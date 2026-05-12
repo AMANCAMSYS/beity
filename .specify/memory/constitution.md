@@ -1,50 +1,83 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+Sync Impact Report
+==================
+Version change: 0.0.0 → 1.0.0 (MAJOR - initial constitution)
+Modified principles: N/A (new)
+Added sections:
+  - Core Principles (6 principles)
+  - Technical Stack
+  - Development Workflow
+  - Security & Data Isolation
+  - Governance
+Removed sections: N/A
+Templates requiring updates:
+  - .specify/templates/plan-template.md ✅ compatible
+  - .specify/templates/spec-template.md ✅ compatible
+  - .specify/templates/tasks-template.md ✅ compatible
+Follow-up TODOs: None
+-->
+
+# Beity Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Feature-First Clean Architecture
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+Every feature MUST be organized under `lib/features/<feature_name>` with clear separation of data, domain, and presentation layers. Features MUST be independently testable and not create circular dependencies. Shared code belongs in `lib/core` or `lib/shared`.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### II. Spec-Driven Development
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+No feature implementation begins without a completed Spec Kit cycle: specify → clarify → plan → tasks → analyze → implement. Each spec MUST have clear acceptance criteria, scope boundaries, and out-of-scope declarations. One spec per Git branch.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### III. Security & RLS First
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+Every Supabase table MUST have Row Level Security (RLS) policies. Users can only access data where they are active members of the associated `home_id`. Write operations MUST include `created_by` or `updated_by` audit fields. No data leakage between homes is acceptable.
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+### IV. MVP Discipline
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+The initial release focuses exclusively on shared shopping lists. Inventory, expenses, tasks, AI, OCR, payments, and store integrations are deferred until the MVP is stable. Features are added incrementally based on validated user needs, not speculative planning.
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+### V. Arabic RTL from Day One
+
+All UI MUST support right-to-left (RTL) layout for Arabic from the beginning. This is not a localization afterthought but a core design constraint. Text, navigation, icons, and layout direction MUST adapt to the selected locale.
+
+### VI. Realtime Collaboration
+
+Shared data (shopping lists, items) MUST synchronize in real-time between home members using Supabase Realtime. The UI MUST handle optimistic updates, conflict resolution based on `updated_at`, and proper subscription lifecycle management.
+
+## Technical Stack
+
+- **Frontend**: Flutter with Riverpod for state management
+- **Routing**: GoRouter with route guards for authentication
+- **Backend**: Supabase (PostgreSQL, Auth, Realtime, Storage, Edge Functions)
+- **Notifications**: Firebase FCM (behind service abstraction)
+- **Offline**: Isar for local caching (post-MVP)
+- **Analytics**: PostHog (post-MVP)
+
+## Development Workflow
+
+- Each spec follows the Spec Kit workflow in sequence
+- Each spec gets its own Git branch (`spec-XX-feature-name`)
+- `flutter analyze` MUST pass before any commit
+- Tests MUST pass for repositories, use cases, and critical UI flows
+- Database migrations MUST include RLS policies
+- Commit messages follow conventional commits format
+
+## Security & Data Isolation
+
+- All tables MUST have `home_id` for data isolation
+- Tables without direct `home_id` MUST enforce access through parent relationships (e.g., `shopping_items` → `shopping_lists` → `homes` → `home_members`)
+- Role-based access: owner, admin, member, viewer
+- Soft delete with `deleted_at` for audit trails
+- No API keys or secrets in mobile client code
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+This constitution supersedes all other development practices for the Beity project. Amendments require:
+1. Documentation of the proposed change
+2. Impact analysis on existing specs and implementations
+3. Version increment following semantic versioning (MAJOR for breaking changes, MINOR for new principles, PATCH for clarifications)
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+All pull requests and code reviews MUST verify compliance with these principles. Complexity or scope expansion MUST be justified against the MVP Discipline principle.
+
+**Version**: 1.0.0 | **Ratified**: 2026-05-12 | **Last Amended**: 2026-05-12

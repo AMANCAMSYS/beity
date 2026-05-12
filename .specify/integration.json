@@ -2,14 +2,19 @@
   "version": "0.8.9.dev0",
   "integration_state_schema": 1,
   "installed_integrations": [
-    "copilot"
+    "opencode",
+    "agy"
   ],
   "integration_settings": {
-    "copilot": {
+    "opencode": {
       "script": "sh",
       "invoke_separator": "."
+    },
+    "agy": {
+      "script": "sh",
+      "invoke_separator": "-"
     }
   },
-  "integration": "copilot",
-  "default_integration": "copilot"
+  "integration": "opencode",
+  "default_integration": "opencode"
 }

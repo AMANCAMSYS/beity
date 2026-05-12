@@ -1,1 +1,11 @@
-{"plugin": ["speckit-opencode-plugin"]}
+{
+  "$schema": "https://opencode.ai/config.json",
+  "plugin": ["speckit-opencode-plugin"],
+  "mcp": {
+    "supabase": {
+      "type": "remote",
+      "url": "https://mcp.supabase.com/mcp?project_ref=izjqefulljwzcpvkfnta",
+      "enabled": true
+    }
+  }
+}
