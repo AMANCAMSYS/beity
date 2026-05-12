@@ -22,6 +22,8 @@ dependencies:
   
   # Backend
   supabase_flutter: ^2.8.4
+  firebase_core: ^3.8.1
+  firebase_messaging: ^15.2.1
   
   # Environment Configuration
   flutter_dotenv: ^5.2.1
@@ -40,6 +42,7 @@ dependencies:
   uuid: ^4.5.1
   logger: ^2.5.0
   json_annotation: ^4.9.0
+  timeago: ^3.7.0
 
 dev_dependencies:
   flutter_test:

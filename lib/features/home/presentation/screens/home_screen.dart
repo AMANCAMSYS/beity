@@ -69,6 +69,28 @@ class HomeScreen extends ConsumerWidget {
                 // TODO: Navigate to shopping lists
               },
             ),
+            ListTile(
+              leading: const Icon(Icons.mail),
+              title: const Text(
+                'الدعوات',
+                textDirection: TextDirection.rtl,
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                context.push('/invitations');
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.group),
+              title: const Text(
+                'إدارة الأعضاء',
+                textDirection: TextDirection.rtl,
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                // TODO: Navigate to manage members
+              },
+            ),
             const Divider(),
             ListTile(
               leading: const Icon(Icons.logout, color: Colors.red),

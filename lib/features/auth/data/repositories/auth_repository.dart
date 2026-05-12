@@ -49,6 +49,13 @@ class AuthRepositoryImpl implements AuthRepository {
         throw const AuthException('فشل إنشاء الحساب');
       }
 
+      // If email confirmation is required, user might be null initially
+      if (response.session == null) {
+        throw const AuthException(
+          'تم إرسال بريد تأكيد، يرجى проверة بريدك الإلكتروني',
+        );
+      }
+
       final userProfile = await _client
           .from('users')
           .select()
@@ -58,6 +65,8 @@ class AuthRepositoryImpl implements AuthRepository {
       return UserModel.fromJson(userProfile);
     } on AuthException {
       rethrow;
+    } on PostgrestException catch (e) {
+      throw AuthException('خطأ في قاعدة البيانات: ${e.message}');
     } catch (e) {
       throw AuthException('حدث خطأ غير متوقع: ${e.toString()}');
     }

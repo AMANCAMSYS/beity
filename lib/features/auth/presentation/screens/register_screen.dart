@@ -49,12 +49,21 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     } catch (e) {
       if (mounted) {
         String message = 'حدث خطأ، يرجى المحاولة مرة أخرى';
-        if (e.toString().contains('already_registered')) {
+        final errorStr = e.toString().toLowerCase();
+        if (errorStr.contains('already') ||
+            errorStr.contains('registered') ||
+            errorStr.contains('exists')) {
           message = AuthErrorMessages.mapError('user_already_registered');
-        } else if (e.toString().contains('weak_password')) {
+        } else if (errorStr.contains('weak') ||
+            errorStr.contains('password') ||
+            errorStr.contains('short')) {
           message = AuthErrorMessages.mapError('weak_password');
-        } else if (e.toString().contains('invalid_email')) {
+        } else if (errorStr.contains('invalid') ||
+            errorStr.contains('email') ||
+            errorStr.contains('valid')) {
           message = AuthErrorMessages.mapError('invalid_email');
+        } else if (errorStr.contains('confirm')) {
+          message = 'تم إرسال بريد تأكيد، يرجى לבדוק بريدك الإلكتروني';
         }
 
         ScaffoldMessenger.of(context).showSnackBar(

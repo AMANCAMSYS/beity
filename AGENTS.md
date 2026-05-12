@@ -44,7 +44,7 @@ Use the following sequence for each spec:
 SPEC 00 - Project Foundation (COMPLETED)
 SPEC 01 - Auth and User Profile (COMPLETED)
 SPEC 02 - Homes and Members (COMPLETED)
-SPEC 03 - Invitations and Roles (IN PROGRESS)
+SPEC 03 - Invitations and Roles (COMPLETED)
 
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
