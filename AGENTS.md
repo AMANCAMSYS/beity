@@ -45,7 +45,7 @@ SPEC 00 - Project Foundation (COMPLETED)
 SPEC 01 - Auth and User Profile (COMPLETED)
 SPEC 02 - Homes and Members (COMPLETED)
 SPEC 03 - Invitations and Roles (COMPLETED)
-SPEC 04 - Categories and Units (IN PROGRESS)
+SPEC 04 - Categories and Units (COMPLETED)
 
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,

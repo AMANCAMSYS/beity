@@ -15,8 +15,8 @@
 
 **Purpose**: Create feature structure and base files
 
-- [ ] T001 Create categories feature directory structure at `lib/features/categories/{data/{models,repositories},domain/{entities,usecases},presentation/{providers,screens,widgets}}`
-- [ ] T002 [P] Create test directory structure at `test/unit/features/categories/`, `test/integration/features/categories/`, `test/widget/features/categories/`
+- [x] T001 Create categories feature directory structure at `lib/features/categories/{data/{models,repositories},domain/{entities,usecases},presentation/{providers,screens,widgets}}`
+- [x] T002 [P] Create test directory structure at `test/unit/features/categories/`, `test/integration/features/categories/`, `test/widget/features/categories/`
 
 ---
 
@@ -26,19 +26,19 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 Create Category entity in `lib/features/categories/domain/entities/category.dart`
-- [ ] T004 [P] Create Unit entity in `lib/features/categories/domain/entities/unit.dart`
-- [ ] T005 Create CategoryModel in `lib/features/categories/data/models/category_model.dart`
-- [ ] T006 [P] Create UnitModel in `lib/features/categories/data/models/unit_model.dart`
-- [ ] T007 Create CategoryRepository interface in `lib/features/categories/data/repositories/category_repository.dart`
-- [ ] T008 [P] Create UnitRepository interface in `lib/features/categories/data/repositories/unit_repository.dart`
-- [ ] T009 Create CategoriesProvider in `lib/features/categories/presentation/providers/categories_provider.dart`
-- [ ] T010 [P] Create UnitsProvider in `lib/features/categories/presentation/providers/units_provider.dart`
-- [ ] T011 Create BilingualTextHelper in `lib/core/utils/bilingual_text_helper.dart`
-- [ ] T012 Run Supabase migration for categories table with RLS policies
-- [ ] T013 Run Supabase migration for units table with RLS policies
-- [ ] T014 Insert default categories data (8 categories)
-- [ ] T015 Insert default units data (11 units)
+- [x] T003 Create Category entity in `lib/features/categories/domain/entities/category.dart`
+- [x] T004 [P] Create Unit entity in `lib/features/categories/domain/entities/unit.dart`
+- [x] T005 Create CategoryModel in `lib/features/categories/data/models/category_model.dart`
+- [x] T006 [P] Create UnitModel in `lib/features/categories/data/models/unit_model.dart`
+- [x] T007 Create CategoryRepository interface in `lib/features/categories/data/repositories/category_repository.dart`
+- [x] T008 [P] Create UnitRepository interface in `lib/features/categories/data/repositories/unit_repository.dart`
+- [x] T009 Create CategoriesProvider in `lib/features/categories/presentation/providers/categories_provider.dart`
+- [x] T010 [P] Create UnitsProvider in `lib/features/categories/presentation/providers/units_provider.dart`
+- [x] T011 Create BilingualTextHelper in `lib/core/utils/bilingual_text_helper.dart`
+- [x] T012 Run Supabase migration for categories table with RLS policies
+- [x] T013 Run Supabase migration for units table with RLS policies
+- [x] T014 Insert default categories data (8 categories)
+- [x] T015 Insert default units data (11 units)
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -52,14 +52,14 @@
 
 ### Implementation for User Story 1
 
-- [ ] T016 [US1] Implement GetCategoriesUseCase in `lib/features/categories/domain/usecases/get_categories_usecase.dart`
-- [ ] T017 [US1] Implement getCategories method in CategoryRepository at `lib/features/categories/data/repositories/category_repository.dart`
-- [ ] T018 [P] [US1] Create CategoriesListScreen in `lib/features/categories/presentation/screens/categories_list_screen.dart`
-- [ ] T019 [US1] Create CategoryCardWidget in `lib/features/categories/presentation/widgets/category_card_widget.dart`
-- [ ] T020 [US1] Display category name (Arabic/English with fallback), icon, and color
-- [ ] T021 [US1] Add category type filter (shopping, inventory, expense)
-- [ ] T022 [US1] Add empty state with Arabic instructions when no categories
-- [ ] T023 [US1] Add Realtime subscription for live category updates
+- [x] T016 [US1] Implement GetCategoriesUseCase in `lib/features/categories/domain/usecases/get_categories_usecase.dart`
+- [x] T017 [US1] Implement getCategories method in CategoryRepository at `lib/features/categories/data/repositories/category_repository.dart`
+- [x] T018 [P] [US1] Create CategoriesListScreen in `lib/features/categories/presentation/screens/categories_list_screen.dart`
+- [x] T019 [US1] Create CategoryCardWidget in `lib/features/categories/presentation/widgets/category_card_widget.dart`
+- [x] T020 [US1] Display category name (Arabic/English with fallback), icon, and color
+- [x] T021 [US1] Add category type filter (shopping, inventory, expense)
+- [x] T022 [US1] Add empty state with Arabic instructions when no categories
+- [x] T023 [US1] Add Realtime subscription for live category updates
 
 **Checkpoint**: User Story 1 complete - users can view categories
 
@@ -73,14 +73,14 @@
 
 ### Implementation for User Story 4
 
-- [ ] T024 [US4] Implement GetUnitsUseCase in `lib/features/categories/domain/usecases/get_units_usecase.dart`
-- [ ] T025 [US4] Implement getUnits method in UnitRepository at `lib/features/categories/data/repositories/unit_repository.dart`
-- [ ] T026 [P] [US4] Create UnitsListScreen in `lib/features/categories/presentation/screens/units_list_screen.dart`
-- [ ] T027 [US4] Create UnitCardWidget in `lib/features/categories/presentation/widgets/unit_card_widget.dart`
-- [ ] T028 [US4] Display unit name (Arabic/English with fallback), symbol, and type
-- [ ] T029 [US4] Add unit type filter (weight, volume, count, length)
-- [ ] T030 [US4] Add empty state with Arabic instructions when no units
-- [ ] T031 [US4] Add Realtime subscription for live unit updates
+- [x] T024 [US4] Implement GetUnitsUseCase in `lib/features/categories/domain/usecases/get_units_usecase.dart`
+- [x] T025 [US4] Implement getUnits method in UnitRepository at `lib/features/categories/data/repositories/unit_repository.dart`
+- [x] T026 [P] [US4] Create UnitsListScreen in `lib/features/categories/presentation/screens/units_list_screen.dart`
+- [x] T027 [US4] Create UnitCardWidget in `lib/features/categories/presentation/widgets/unit_card_widget.dart`
+- [x] T028 [US4] Display unit name (Arabic/English with fallback), symbol, and type
+- [x] T029 [US4] Add unit type filter (weight, volume, count, length)
+- [x] T030 [US4] Add empty state with Arabic instructions when no units
+- [x] T031 [US4] Add Realtime subscription for live unit updates
 
 **Checkpoint**: User Stories 1 AND 4 complete - users can view categories and units
 
@@ -164,12 +164,12 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T067 [P] Add network error handling with retry for all category/unit operations
-- [ ] T068 [P] Add Arabic error messages for all category/unit operations
-- [ ] T069 Update home screen drawer with categories navigation in `lib/features/home/presentation/screens/home_screen.dart`
-- [ ] T070 Update home screen drawer with units navigation in `lib/features/home/presentation/screens/home_screen.dart`
-- [ ] T071 Run `flutter analyze` and fix any issues
-- [ ] T072 Run `flutter test` and ensure all tests pass
+- [x] T067 [P] Add network error handling with retry for all category/unit operations
+- [x] T068 [P] Add Arabic error messages for all category/unit operations
+- [x] T069 Update home screen drawer with categories navigation in `lib/features/home/presentation/screens/home_screen.dart`
+- [x] T070 Update home screen drawer with units navigation in `lib/features/home/presentation/screens/home_screen.dart`
+- [x] T071 Run `flutter analyze` and fix any issues
+- [x] T072 Run `flutter test` and ensure all tests pass
 
 ---
 

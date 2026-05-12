@@ -14,6 +14,8 @@ import '../../features/homes/presentation/screens/onboarding_screen.dart';
 import '../../features/invitations/presentation/screens/invitations_list_screen.dart';
 import '../../features/invitations/presentation/screens/send_invitation_screen.dart';
 import '../../features/invitations/presentation/screens/manage_roles_screen.dart';
+import '../../features/categories/presentation/screens/categories_list_screen.dart';
+import '../../features/categories/presentation/screens/units_list_screen.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -80,6 +82,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           homeId: state.pathParameters['id']!,
           homeName: state.extra as String? ?? 'المنزل',
         ),
+      ),
+      GoRoute(
+        path: '/categories',
+        builder: (context, state) => const CategoriesListScreen(),
+      ),
+      GoRoute(
+        path: '/units',
+        builder: (context, state) => const UnitsListScreen(),
       ),
     ],
     redirect: (context, state) {

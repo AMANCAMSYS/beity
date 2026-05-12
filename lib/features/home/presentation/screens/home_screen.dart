@@ -91,6 +91,28 @@ class HomeScreen extends ConsumerWidget {
                 // TODO: Navigate to manage members
               },
             ),
+            ListTile(
+              leading: const Icon(Icons.category),
+              title: const Text(
+                'التصنيفات',
+                textDirection: TextDirection.rtl,
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                context.push('/categories');
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.straighten),
+              title: const Text(
+                'وحدات القياس',
+                textDirection: TextDirection.rtl,
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                context.push('/units');
+              },
+            ),
             const Divider(),
             ListTile(
               leading: const Icon(Icons.logout, color: Colors.red),

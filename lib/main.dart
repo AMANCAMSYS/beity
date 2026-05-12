@@ -9,6 +9,7 @@ import 'app/theme/app_theme.dart';
 import 'app/router/app_router.dart';
 import 'core/services/supabase_service.dart';
 import 'core/services/notification_service.dart';
+import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,7 +18,9 @@ void main() async {
   await dotenv.load(fileName: '.env');
   
   // Initialize Firebase
-  await Firebase.initializeApp();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   
   // Initialize Supabase
   await SupabaseService.initialize();
