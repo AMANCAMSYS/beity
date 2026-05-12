@@ -5,6 +5,16 @@
 **Status**: Draft  
 **Input**: User description: "SPEC 04 — Categories and Units"
 
+## Clarifications
+
+### Session 2026-05-12
+
+- Q: ماذا يحدث للمنتجات عند حذف التصنيف؟ → A: جعل المنتجات "بدون تصنيف" (uncategorized)
+- Q: ماذا يحدث للمنتجات عند حذف وحدة القياس؟ → A: جعل المنتجات "بدون وحدة" (no unit)
+- Q: كيف يتم دعم اللغات المتعددة للتصنيفات والوحدات؟ → A: حقلين منفصلين (name_ar و name_en)، إذا كان الحقل الإنجليزي فارغاً يتم عرض الاسم العربي
+
+---
+
 ## User Scenarios & Testing
 
 ### User Story 1 - View Categories (Priority: P1)
@@ -90,10 +100,10 @@ As a home owner/admin, I want to create custom units for my home, so that I can 
 
 ### Edge Cases
 
-- What happens when a product is assigned to a category that gets deleted?
+- What happens when a product is assigned to a category that gets deleted? → Products become "uncategorized" (no category)
 - How does the system handle concurrent category edits by multiple admins?
-- What happens when a unit is deleted that is used by products?
-- How does the system handle category/unit names in different languages?
+- What happens when a unit is deleted that is used by products? → Products become "no unit"
+- How does the system handle category/unit names in different languages? → Use name_ar and name_en fields; display Arabic if English is empty
 
 ## Requirements
 
@@ -117,8 +127,8 @@ As a home owner/admin, I want to create custom units for my home, so that I can 
 
 ### Key Entities
 
-- **Category**: Represents a product category. Key attributes: home_id, name, type (shopping/inventory/expense), icon, color, sort_order, is_default
-- **Unit**: Represents a measurement unit. Key attributes: name, symbol, type (weight/volume/count/length), is_default
+- **Category**: Represents a product category. Key attributes: home_id, name_ar, name_en, type (shopping/inventory/expense), icon, color, sort_order, is_default
+- **Unit**: Represents a measurement unit. Key attributes: name_ar, name_en, symbol, type (weight/volume/count/length), is_default
 
 ## Success Criteria
 
