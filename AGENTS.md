@@ -42,11 +42,12 @@ Use the following sequence for each spec:
 
 ## Current Phase
 SPEC 00 - Project Foundation (COMPLETED)
-SPEC 01 - Auth and User Profile (IN PROGRESS)
-SPEC 02 - Homes and Members (PLANNING)
+SPEC 01 - Auth and User Profile (COMPLETED)
+SPEC 02 - Homes and Members (COMPLETED)
+SPEC 03 - Invitations and Roles (IN PROGRESS)
 
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
-specs/001-auth-user-profile/plan.md
+specs/003-invitations-and-roles/plan.md
 <!-- SPECKIT END -->
