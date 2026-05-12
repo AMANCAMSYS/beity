@@ -94,67 +94,41 @@
 
 ### Implementation for User Story 2
 
-- [ ] T032 [US2] Implement CreateCategoryUseCase in `lib/features/categories/domain/usecases/create_category_usecase.dart`
-- [ ] T033 [US2] Implement createCategory method in CategoryRepository at `lib/features/categories/data/repositories/category_repository.dart`
-- [ ] T034 [P] [US2] Create CreateCategoryScreen in `lib/features/categories/presentation/screens/create_category_screen.dart`
-- [ ] T035 [US2] Add Arabic name validation (required, unique within home)
-- [ ] T036 [US2] Add English name validation (optional, unique within home if provided)
-- [ ] T037 [US2] Add category type selection (shopping, inventory, expense)
-- [ ] T038 [US2] Add icon picker (optional)
-- [ ] T039 [US2] Add color picker (optional)
-- [ ] T040 [US2] Add Arabic validation messages for category creation
-- [ ] T041 [US2] Add loading state indicator during category creation
-- [ ] T042 [US2] Implement duplicate name check (FR-003)
-- [ ] T043 [US2] Log category creation activity to activity_logs
-- [ ] T044 [US2] Show success message and redirect after category creation
-
-**Checkpoint**: User Stories 1, 2, AND 4 complete - users can view and create categories
-
----
-
-## Phase 6: User Story 3 - Edit and Delete Custom Categories (Priority: P2)
-
-**Goal**: Home owners/admins can edit or delete custom categories
-
-**Independent Test**: Edit category name, verify change persists; delete category, verify products become uncategorized
-
-### Implementation for User Story 3
-
-- [ ] T045 [US3] Implement UpdateCategoryUseCase in `lib/features/categories/domain/usecases/update_category_usecase.dart`
-- [ ] T046 [P] [US3] Implement DeleteCategoryUseCase in `lib/features/categories/domain/usecases/delete_category_usecase.dart`
-- [ ] T047 [US3] Implement updateCategory method in CategoryRepository at `lib/features/categories/data/repositories/category_repository.dart`
-- [ ] T048 [P] [US3] Implement deleteCategory method in CategoryRepository at `lib/features/categories/data/repositories/category_repository.dart`
-- [ ] T049 [US3] Add edit button to category card (owner/admin only, not for defaults)
-- [ ] T050 [US3] Add delete button to category card (owner/admin only, not for defaults)
-- [ ] T051 [US3] Add confirmation dialog before deleting category
-- [ ] T052 [US3] Warn when deleting category that has products (FR-007)
-- [ ] T053 [US3] Implement default category protection (FR-005)
-- [ ] T054 [US3] Log category update/delete activity to activity_logs
-
-**Checkpoint**: User Stories 1-4 complete - full category management
-
----
-
-## Phase 7: User Story 5 - Create Custom Units (Priority: P3)
-
-**Goal**: Home owners/admins can create custom units for their homes
-
-**Independent Test**: Create custom unit, verify it appears in units list
-
-### Implementation for User Story 5
-
-- [ ] T055 [US5] Implement CreateUnitUseCase in `lib/features/categories/domain/usecases/create_unit_usecase.dart`
-- [ ] T056 [US5] Implement createUnit method in UnitRepository at `lib/features/categories/data/repositories/unit_repository.dart`
-- [ ] T057 [P] [US5] Create CreateUnitScreen in `lib/features/categories/presentation/screens/create_unit_screen.dart`
-- [ ] T058 [US5] Add Arabic name validation (required, unique within home)
-- [ ] T059 [US5] Add English name validation (optional, unique within home if provided)
-- [ ] T060 [US5] Add symbol validation (required, unique within home)
-- [ ] T061 [US5] Add unit type selection (weight, volume, count, length)
-- [ ] T062 [US5] Add Arabic validation messages for unit creation
-- [ ] T063 [US5] Add loading state indicator during unit creation
-- [ ] T064 [US5] Implement duplicate name/symbol check (FR-010)
-- [ ] T065 [US5] Log unit creation activity to activity_logs
-- [ ] T066 [US5] Show success message and redirect after unit creation
+- [x] T032 [US2] Implement CreateCategoryUseCase in `lib/features/categories/domain/usecases/create_category_usecase.dart`
+- [x] T033 [US2] Implement createCategory method in CategoryRepository at `lib/features/categories/data/repositories/category_repository.dart`
+- [x] T034 [P] [US2] Create CreateCategoryScreen in `lib/features/categories/presentation/screens/create_category_screen.dart`
+- [x] T035 [US2] Add Arabic name validation (required, unique within home)
+- [x] T036 [US2] Add English name validation (optional, unique within home if provided)
+- [x] T037 [US2] Add category type selection (shopping, inventory, expense)
+- [x] T038 [US2] Add icon picker (optional)
+- [x] T039 [US2] Add color picker (optional)
+- [x] T040 [US2] Add Arabic validation messages for category creation
+- [x] T041 [US2] Add loading state indicator during category creation
+- [x] T042 [US2] Implement duplicate name check (FR-003)
+- [x] T043 [US2] Log category creation activity to activity_logs
+- [x] T044 [US2] Show success message and redirect after category creation
+- [x] T045 [US3] Implement UpdateCategoryUseCase in `lib/features/categories/domain/usecases/update_category_usecase.dart`
+- [x] T046 [P] [US3] Implement DeleteCategoryUseCase in `lib/features/categories/domain/usecases/delete_category_usecase.dart`
+- [x] T047 [US3] Implement updateCategory method in CategoryRepository at `lib/features/categories/data/repositories/category_repository.dart`
+- [x] T048 [P] [US3] Implement deleteCategory method in CategoryRepository at `lib/features/categories/data/repositories/category_repository.dart`
+- [x] T049 [US3] Add edit button to category card (owner/admin only, not for defaults)
+- [x] T050 [US3] Add delete button to category card (owner/admin only, not for defaults)
+- [x] T051 [US3] Add confirmation dialog before deleting category
+- [x] T052 [US3] Warn when deleting category that has products (FR-007)
+- [x] T053 [US3] Implement default category protection (FR-005)
+- [x] T054 [US3] Log category update/delete activity to activity_logs
+- [x] T055 [US5] Implement CreateUnitUseCase in `lib/features/categories/domain/usecases/create_unit_usecase.dart`
+- [x] T056 [US5] Implement createUnit method in UnitRepository at `lib/features/categories/data/repositories/unit_repository.dart`
+- [x] T057 [P] [US5] Create CreateUnitScreen in `lib/features/categories/presentation/screens/create_unit_screen.dart`
+- [x] T058 [US5] Add Arabic name validation (required, unique within home)
+- [x] T059 [US5] Add English name validation (optional, unique within home if provided)
+- [x] T060 [US5] Add symbol validation (required, unique within home)
+- [x] T061 [US5] Add unit type selection (weight, volume, count, length)
+- [x] T062 [US5] Add Arabic validation messages for unit creation
+- [x] T063 [US5] Add loading state indicator during unit creation
+- [x] T064 [US5] Implement duplicate name/symbol check (FR-010)
+- [x] T065 [US5] Log unit creation activity to activity_logs
+- [x] T066 [US5] Show success message and redirect after unit creation
 
 **Checkpoint**: All user stories complete - full categories and units functionality
 
