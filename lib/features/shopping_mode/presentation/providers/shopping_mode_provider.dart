@@ -1,0 +1,75 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+class ShoppingModeState {
+  final bool isActive;
+  final String? sessionId;
+  final String searchQuery;
+  final Set<String> collapsedCategories;
+
+  const ShoppingModeState({
+    this.isActive = false,
+    this.sessionId,
+    this.searchQuery = '',
+    this.collapsedCategories = const {},
+  });
+
+  ShoppingModeState copyWith({
+    bool? isActive,
+    String? sessionId,
+    String? searchQuery,
+    Set<String>? collapsedCategories,
+  }) {
+    return ShoppingModeState(
+      isActive: isActive ?? this.isActive,
+      sessionId: sessionId ?? this.sessionId,
+      searchQuery: searchQuery ?? this.searchQuery,
+      collapsedCategories: collapsedCategories ?? this.collapsedCategories,
+    );
+  }
+}
+
+class ShoppingModeNotifier extends StateNotifier<ShoppingModeState> {
+  ShoppingModeNotifier() : super(const ShoppingModeState());
+
+  void activate(String sessionId) {
+    state = state.copyWith(
+      isActive: true,
+      sessionId: sessionId,
+    );
+  }
+
+  void deactivate() {
+    state = const ShoppingModeState();
+  }
+
+  void setSearchQuery(String query) {
+    state = state.copyWith(searchQuery: query);
+  }
+
+  void toggleCategory(String categoryId) {
+    final collapsed = Set<String>.from(state.collapsedCategories);
+    if (collapsed.contains(categoryId)) {
+      collapsed.remove(categoryId);
+    } else {
+      collapsed.add(categoryId);
+    }
+    state = state.copyWith(collapsedCategories: collapsed);
+  }
+
+  void collapseCategory(String categoryId) {
+    final collapsed = Set<String>.from(state.collapsedCategories);
+    collapsed.add(categoryId);
+    state = state.copyWith(collapsedCategories: collapsed);
+  }
+
+  void expandCategory(String categoryId) {
+    final collapsed = Set<String>.from(state.collapsedCategories);
+    collapsed.remove(categoryId);
+    state = state.copyWith(collapsedCategories: collapsed);
+  }
+}
+
+final shoppingModeProvider =
+    StateNotifierProvider<ShoppingModeNotifier, ShoppingModeState>((ref) {
+  return ShoppingModeNotifier();
+});

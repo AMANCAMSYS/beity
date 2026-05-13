@@ -7,4 +7,5 @@ class EnvConfig {
   static String get appEnv => dotenv.env['APP_ENV'] ?? 'development';
   static bool get isDebug => dotenv.env['DEBUG_MODE'] == 'true';
   static bool get isProduction => appEnv == 'production';
+  static String get firebaseVapidKey => dotenv.env['FIREBASE_VAPID_KEY'] ?? '';
 }

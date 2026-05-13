@@ -98,7 +98,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   const SizedBox(height: 48),
 
                   // Email Field
-                  TextFormField(
+                  Semantics(
+                    label: 'Email input field',
+                    textField: true,
+                    child: TextFormField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
                     textDirection: TextDirection.ltr,
@@ -111,11 +114,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       final error = AuthErrorMessages.validateEmail(value);
                       return error.isEmpty ? null : error;
                     },
+                    ),
                   ),
                   const SizedBox(height: 16),
 
                   // Password Field
-                  TextFormField(
+                  Semantics(
+                    label: 'Password input field',
+                    textField: true,
+                    child: TextFormField(
                     controller: _passwordController,
                     obscureText: _obscurePassword,
                     textDirection: TextDirection.ltr,
@@ -141,11 +148,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       }
                       return null;
                     },
+                    ),
                   ),
                   const SizedBox(height: 24),
 
                   // Login Button
-                  ElevatedButton(
+                  Semantics(
+                    button: true,
+                    label: 'Login button',
+                    child: ElevatedButton(
                     onPressed: _isLoading ? null : _login,
                     child: _isLoading
                         ? const SizedBox(
@@ -160,6 +171,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             'تسجيل الدخول',
                             textDirection: TextDirection.rtl,
                           ),
+                    ),
                   ),
                   const SizedBox(height: 16),
 

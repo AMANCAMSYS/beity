@@ -63,7 +63,7 @@ class HomeRepositoryImpl implements HomeRepository {
 
       final response = await _client
           .from('home_members')
-          .select('homes(*), homes!inner(*)')
+          .select('*, homes!inner(*)')
           .eq('user_id', user.id)
           .eq('status', 'active')
           .isFilter('deleted_at', null);

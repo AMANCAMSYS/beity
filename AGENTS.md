@@ -50,5 +50,5 @@ SPEC 04 - Categories and Units (COMPLETED)
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
-specs/004-categories-and-units/plan.md
+specs/012-mvp-hardening-beta/plan.md
 <!-- SPECKIT END -->

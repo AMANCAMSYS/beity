@@ -36,6 +36,9 @@ class _CreateHomeScreenState extends ConsumerState<CreateHomeScreen> {
           );
 
       if (mounted) {
+        ref.invalidate(hasHomesProvider);
+        ref.invalidate(userHomesProvider);
+        ref.invalidate(activeHomeIdProvider);
         context.go('/');
       }
     } catch (e) {
@@ -135,7 +138,7 @@ class _CreateHomeScreenState extends ConsumerState<CreateHomeScreen> {
                       }
                     },
                     selectedColor:
-                        Theme.of(context).primaryColor.withOpacity(0.2),
+                        Theme.of(context).primaryColor.withValues(alpha: 0.2),
                     labelStyle: TextStyle(
                       color: isSelected
                           ? Theme.of(context).primaryColor

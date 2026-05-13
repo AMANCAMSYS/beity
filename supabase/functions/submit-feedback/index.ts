@@ -1,0 +1,124 @@
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "jsr:@supabase/supabase-js@2";
+
+const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+Deno.serve(async (req: Request) => {
+  try {
+    // Extract user from JWT
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    // Parse request body
+    const body = await req.json();
+    const { feedback_type, description, star_rating, device_info, screen_route, app_logs } = body;
+
+    // Validate feedback_type
+    if (!feedback_type || !["bug", "survey"].includes(feedback_type)) {
+      return new Response(
+        JSON.stringify({ error: "Invalid feedback_type" }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    // Validate description
+    if (!description || typeof description !== "string" || description.trim().length < 1 || description.length > 2000) {
+      return new Response(
+        JSON.stringify({ error: "description is required (1-2000 characters)" }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    // Validate star_rating for surveys
+    if (feedback_type === "survey") {
+      if (star_rating === undefined || star_rating === null) {
+        return new Response(
+          JSON.stringify({ error: "star_rating required for surveys" }),
+          { status: 400, headers: { "Content-Type": "application/json" } }
+        );
+      }
+      if (typeof star_rating !== "number" || star_rating < 1 || star_rating > 5) {
+        return new Response(
+          JSON.stringify({ error: "star_rating must be 1-5" }),
+          { status: 400, headers: { "Content-Type": "application/json" } }
+        );
+      }
+    }
+
+    // Validate star_rating not present for bugs
+    if (feedback_type === "bug" && star_rating !== undefined && star_rating !== null) {
+      return new Response(
+        JSON.stringify({ error: "star_rating must be null for bug reports" }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    // Validate device_info
+    if (!device_info || typeof device_info !== "object") {
+      return new Response(
+        JSON.stringify({ error: "device_info is required" }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    // Validate app_logs (optional, max 50 entries)
+    let sanitizedLogs: string[] | null = null;
+    if (app_logs && Array.isArray(app_logs)) {
+      sanitizedLogs = app_logs.slice(0, 50).map((log: unknown) => String(log));
+    }
+
+    // Insert feedback
+    const { data, error: insertError } = await supabase
+      .from("beta_feedback")
+      .insert({
+        user_id: user.id,
+        feedback_type,
+        description: description.trim(),
+        star_rating: feedback_type === "survey" ? star_rating : null,
+        device_info,
+        screen_route: screen_route || null,
+        app_logs: sanitizedLogs,
+      })
+      .select("id")
+      .single();
+
+    if (insertError) {
+      console.error("Error inserting feedback:", insertError);
+      return new Response(
+        JSON.stringify({ error: "Internal server error" }),
+        { status: 500, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log(`Feedback submitted: ${data.id} by user ${user.id} (type: ${feedback_type})`);
+
+    return new Response(
+      JSON.stringify({ id: data.id, status: "received" }),
+      { status: 201, headers: { "Content-Type": "application/json" } }
+    );
+  } catch (error) {
+    console.error("Error in submit-feedback:", error);
+    return new Response(
+      JSON.stringify({ error: "Internal server error" }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
+    );
+  }
+});

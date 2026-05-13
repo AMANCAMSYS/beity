@@ -1,0 +1,115 @@
+import 'package:flutter/material.dart';
+
+class HomeSelectorDropdown extends StatelessWidget {
+  final String currentHomeName;
+  final List<HomeOption> homes;
+  final Function(String homeId) onHomeSelected;
+  final VoidCallback onManageHomes;
+
+  const HomeSelectorDropdown({
+    super.key,
+    required this.currentHomeName,
+    required this.homes,
+    required this.onHomeSelected,
+    required this.onManageHomes,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<String>(
+      onSelected: (value) {
+        if (value == 'manage') {
+          onManageHomes();
+        } else {
+          onHomeSelected(value);
+        }
+      },
+      offset: const Offset(0, 40),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      itemBuilder: (context) => [
+        ...homes.map((home) => PopupMenuItem(
+              value: home.id,
+              child: Row(
+                children: [
+                  Icon(
+                    home.isActive ? Icons.check_circle : Icons.home_outlined,
+                    color: home.isActive ? Colors.green : Colors.grey,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          home.name,
+                          style: TextStyle(
+                            fontWeight: home.isActive ? FontWeight.bold : FontWeight.normal,
+                          ),
+                        ),
+                        if (home.memberCount > 0)
+                          Text(
+                            '${home.memberCount} أعضاء',
+                            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            )),
+        const PopupMenuDivider(),
+        const PopupMenuItem(
+          value: 'manage',
+          child: Row(
+            children: [
+              Icon(Icons.settings_outlined, size: 20),
+              SizedBox(width: 12),
+              Text('إدارة المنازل'),
+            ],
+          ),
+        ),
+      ],
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.2),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Flexible(
+              child: Text(
+                currentHomeName,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 4),
+            const Icon(Icons.arrow_drop_down, color: Colors.white, size: 20),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class HomeOption {
+  final String id;
+  final String name;
+  final int memberCount;
+  final bool isActive;
+
+  const HomeOption({
+    required this.id,
+    required this.name,
+    required this.memberCount,
+    required this.isActive,
+  });
+}
