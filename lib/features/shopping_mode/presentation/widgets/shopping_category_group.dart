@@ -4,6 +4,7 @@ import 'shopping_item_card.dart';
 
 class ShoppingCategoryGroup extends StatelessWidget {
   final CategoryGroup group;
+  final Map<String, String> unitNames;
   final bool isCollapsed;
   final VoidCallback onToggle;
   final Function(String itemId) onItemTap;
@@ -12,6 +13,7 @@ class ShoppingCategoryGroup extends StatelessWidget {
   const ShoppingCategoryGroup({
     super.key,
     required this.group,
+    this.unitNames = const {},
     required this.isCollapsed,
     required this.onToggle,
     required this.onItemTap,
@@ -70,6 +72,7 @@ class ShoppingCategoryGroup extends StatelessWidget {
         if (!isCollapsed)
           ...group.items.map((item) => ShoppingItemCard(
                 item: item,
+                unitName: item.unitId != null ? unitNames[item.unitId] : null,
                 onTap: () => onItemTap(item.id),
                 onQuantityTap: onQuantityTap != null
                     ? () => onQuantityTap!(item.id)

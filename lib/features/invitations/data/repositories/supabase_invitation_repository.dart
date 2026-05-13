@@ -247,10 +247,11 @@ class SupabaseInvitationRepository implements InvitationRepository {
     return _client
         .from('invitations')
         .stream(primaryKey: ['id'])
+        .eq('email', user.email!)
         .order('created_at', ascending: false)
         .map((response) => response
             .map((json) => InvitationModel.fromJson(json))
-            .where((inv) => inv.email == user.email && inv.isPending)
+            .where((inv) => inv.isPending)
             .toList());
   }
 

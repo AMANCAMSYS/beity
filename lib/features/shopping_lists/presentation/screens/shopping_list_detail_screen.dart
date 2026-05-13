@@ -15,6 +15,7 @@ import '../../domain/usecases/mark_item_purchased_usecase.dart';
 import '../../domain/usecases/delete_item_usecase.dart';
 import '../../data/models/shopping_item_model.dart';
 import '../../../categories/presentation/providers/categories_provider.dart';
+import '../../../categories/presentation/providers/units_provider.dart';
 import '../../../offline_queue/presentation/widgets/connectivity_listener.dart';
 import '../../../offline_queue/presentation/widgets/sync_status_banner.dart';
 import '../../../offline_queue/presentation/providers/offline_queue_provider.dart';
@@ -99,6 +100,15 @@ class _ShoppingListDetailScreenState
     final list = listAsync.valueOrNull;
     final homeId = list?.homeId ?? '';
     final presenceAsync = ref.watch(presenceProvider(widget.listId));
+
+    // Load units for display
+    final unitsAsync = ref.watch(unitsProvider(null));
+    final unitNames = <String, String>{};
+    unitsAsync.whenData((units) {
+      for (final unit in units) {
+        unitNames[unit.id] = unit.symbol.isNotEmpty ? '${unit.name} (${unit.symbol})' : unit.name;
+      }
+    });
 
     // Offline queue status
     final connectivityStatus = ref.watch(connectivityStatusProvider);
@@ -302,6 +312,7 @@ class _ShoppingListDetailScreenState
                               items: groupItems,
                               isExpanded: isExpanded,
                               homeId: homeId,
+                              unitNames: unitNames,
                             );
                           }),
                           const SizedBox(height: 80),
@@ -371,6 +382,7 @@ class _ShoppingListDetailScreenState
     required List<ShoppingItemModel> items,
     required bool isExpanded,
     required String homeId,
+    required Map<String, String> unitNames,
   }) {
     final categoryName = _getCategoryName(categoryId, homeId);
     final unpurchasedCount = items.where((i) => !i.isPurchased).length;
@@ -436,6 +448,7 @@ class _ShoppingListDetailScreenState
 
             return ShoppingItemTileWidget(
               item: item,
+              unitName: item.unitId != null ? unitNames[item.unitId] : null,
               highlightUntil: _highlightedItems[item.id],
               showPendingIndicator: hasPending,
               onTogglePurchased: () =>

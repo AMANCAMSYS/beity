@@ -10,14 +10,14 @@ mixin ErrorHandlingMixin<T extends StatefulWidget> on State<T> {
   Future<void> handleError(
     dynamic error,
     StackTrace stackTrace, {
-    String? context,
+    String? errorContext,
     VoidCallback? onRetry,
   }) async {
     // Log to monitoring
     await MonitoringService().logError(
       error,
       stackTrace,
-      reason: context,
+      reason: errorContext,
     );
 
     // Map to user-friendly message

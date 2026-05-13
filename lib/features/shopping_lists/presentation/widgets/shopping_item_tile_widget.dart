@@ -5,6 +5,7 @@ import '../../../../core/accessibility/semantics_helpers.dart';
 
 class ShoppingItemTileWidget extends StatefulWidget {
   final ShoppingItem item;
+  final String? unitName;
   final VoidCallback? onTap;
   final VoidCallback? onTogglePurchased;
   final VoidCallback? onEdit;
@@ -15,6 +16,7 @@ class ShoppingItemTileWidget extends StatefulWidget {
   const ShoppingItemTileWidget({
     super.key,
     required this.item,
+    this.unitName,
     this.onTap,
     this.onTogglePurchased,
     this.onEdit,
@@ -109,7 +111,7 @@ class _ShoppingItemTileWidgetState extends State<ShoppingItemTileWidget>
         label: AccessibilityHelpers.shoppingItemLabel(
           name: widget.item.name,
           quantity: widget.item.quantity,
-          unit: widget.item.unit,
+          unit: widget.unitName,
           isPurchased: widget.item.isPurchased,
         ),
         button: true,
@@ -181,8 +183,11 @@ class _ShoppingItemTileWidgetState extends State<ShoppingItemTileWidget>
   Widget? _buildSubtitle(BuildContext context) {
     final parts = <String>[];
 
-    if (widget.item.quantity != 1) {
-      parts.add('${widget.item.quantity}');
+    if (widget.item.quantity != 1 || widget.unitName != null) {
+      final qty = widget.item.quantity == widget.item.quantity.roundToDouble()
+          ? widget.item.quantity.toInt().toString()
+          : widget.item.quantity.toString();
+      parts.add(widget.unitName != null ? '$qty ${widget.unitName}' : qty);
     }
 
     if (widget.item.notes != null && widget.item.notes!.isNotEmpty) {

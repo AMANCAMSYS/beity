@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../data/repositories/auth_repository.dart';
 import '../../data/models/user_model.dart';
+import '../../../homes/presentation/providers/homes_provider.dart';
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return AuthRepositoryImpl(Supabase.instance.client);
@@ -20,8 +21,9 @@ final authStateProvider = StreamProvider<AuthState>((ref) {
 
 class AuthNotifier extends StateNotifier<AsyncValue<UserModel?>> {
   final AuthRepository _repo;
+  final Ref _ref;
 
-  AuthNotifier(this._repo) : super(const AsyncValue.data(null));
+  AuthNotifier(this._repo, this._ref) : super(const AsyncValue.data(null));
 
   Future<void> signUp({
     required String email,
@@ -62,7 +64,20 @@ class AuthNotifier extends StateNotifier<AsyncValue<UserModel?>> {
   Future<void> signOut() async {
     state = const AsyncValue.loading();
     try {
+      // 1. Clear local storage data for current user BEFORE signing out
+      final localDataSource = _ref.read(homeLocalDataSourceProvider);
+      await localDataSource.clearAllUserData();
+
+      // 2. Invalidate all providers to clear cached state
+      _ref.invalidate(currentUserProvider);
+      _ref.invalidate(userHomesProvider);
+      _ref.invalidate(hasHomesProvider);
+      _ref.invalidate(activeHomeIdProvider);
+      _ref.invalidate(homesNotifierProvider);
+
+      // 3. Sign out from Supabase
       await _repo.signOut();
+
       state = const AsyncValue.data(null);
     } catch (e) {
       state = AsyncValue.error(e, StackTrace.current);
@@ -93,5 +108,5 @@ class AuthNotifier extends StateNotifier<AsyncValue<UserModel?>> {
 final authNotifierProvider =
     StateNotifierProvider<AuthNotifier, AsyncValue<UserModel?>>((ref) {
   final repo = ref.read(authRepositoryProvider);
-  return AuthNotifier(repo);
+  return AuthNotifier(repo, ref);
 });

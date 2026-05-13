@@ -5,6 +5,7 @@ import '../../../../core/accessibility/semantics_helpers.dart';
 
 class ShoppingItemCard extends StatelessWidget {
   final ShoppingItemModel item;
+  final String? unitName;
   final VoidCallback onTap;
   final VoidCallback? onQuantityTap;
   final String? purchaserName;
@@ -12,6 +13,7 @@ class ShoppingItemCard extends StatelessWidget {
   const ShoppingItemCard({
     super.key,
     required this.item,
+    this.unitName,
     required this.onTap,
     this.onQuantityTap,
     this.purchaserName,
@@ -26,7 +28,7 @@ class ShoppingItemCard extends StatelessWidget {
       label: AccessibilityHelpers.shoppingItemLabel(
         name: item.name,
         quantity: item.quantity,
-        unit: null,
+        unit: unitName,
         isPurchased: isPurchased,
       ),
       button: true,
@@ -143,6 +145,6 @@ class ShoppingItemCard extends StatelessWidget {
     final qty = item.quantity == item.quantity.roundToDouble()
         ? item.quantity.toInt().toString()
         : item.quantity.toStringAsFixed(1);
-    return qty;
+    return unitName != null ? '$qty $unitName' : qty;
   }
 }

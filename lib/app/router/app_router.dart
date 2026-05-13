@@ -31,6 +31,14 @@ import '../../features/activity_logs/presentation/screens/activity_detail_screen
 import '../../features/notifications/presentation/screens/notification_center_screen.dart';
 import '../../features/notifications/presentation/screens/notification_preferences_screen.dart';
 import '../../features/shopping_mode/presentation/screens/shopping_mode_screen.dart';
+import '../../features/inventory/presentation/screens/inventory_screen.dart';
+import '../../features/inventory/presentation/screens/add_inventory_item_screen.dart';
+import '../../features/inventory/presentation/screens/inventory_item_detail_screen.dart';
+import '../../features/inventory/presentation/screens/edit_inventory_item_screen.dart';
+import '../../features/tasks/presentation/screens/task_list_screen.dart';
+import '../../features/tasks/presentation/screens/add_task_screen.dart';
+import '../../features/tasks/presentation/screens/task_detail_screen.dart';
+import '../../features/tasks/presentation/screens/archived_tasks_screen.dart';
 
 final GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -214,6 +222,67 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/notifications/preferences',
         builder: (context, state) => const NotificationPreferencesScreen(),
+      ),
+      // Inventory
+      GoRoute(
+        path: '/inventory',
+        builder: (context, state) {
+          final homeId = state.extra as String? ?? '';
+          return InventoryScreen(homeId: homeId);
+        },
+      ),
+      GoRoute(
+        path: '/inventory/add',
+        builder: (context, state) {
+          final homeId = state.extra as String? ?? '';
+          return AddInventoryItemScreen(homeId: homeId);
+        },
+      ),
+      GoRoute(
+        path: '/inventory/:id',
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>? ?? {};
+          return InventoryItemDetailScreen(
+            itemId: state.pathParameters['id']!,
+            homeId: extra['homeId'] ?? '',
+          );
+        },
+      ),
+      GoRoute(
+        path: '/inventory/:id/edit',
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>? ?? {};
+          return EditInventoryItemScreen(
+            itemId: state.pathParameters['id']!,
+            homeId: extra['homeId'] ?? '',
+          );
+        },
+      ),
+      // Tasks
+      GoRoute(
+        path: '/home/:id/tasks',
+        builder: (context, state) => TaskListScreen(
+          homeId: state.pathParameters['id']!,
+        ),
+      ),
+      GoRoute(
+        path: '/home/:id/tasks/add',
+        builder: (context, state) => AddTaskScreen(
+          homeId: state.pathParameters['id']!,
+        ),
+      ),
+      GoRoute(
+        path: '/home/:id/tasks/:taskId',
+        builder: (context, state) => TaskDetailScreen(
+          taskId: state.pathParameters['taskId']!,
+          homeId: state.pathParameters['id']!,
+        ),
+      ),
+      GoRoute(
+        path: '/home/:id/tasks/archived',
+        builder: (context, state) => ArchivedTasksScreen(
+          homeId: state.pathParameters['id']!,
+        ),
       ),
     ],
     redirect: (context, state) {

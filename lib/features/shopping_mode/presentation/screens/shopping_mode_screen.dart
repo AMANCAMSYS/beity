@@ -6,6 +6,8 @@ import '../../presentation/providers/shopping_mode_items_provider.dart';
 import '../../presentation/providers/shopping_mode_session_provider.dart';
 import '../../../shopping_lists/presentation/providers/shopping_items_provider.dart';
 import '../../../shopping_lists/domain/usecases/mark_item_purchased_usecase.dart';
+import '../../../categories/presentation/providers/units_provider.dart';
+import '../../../categories/presentation/providers/categories_provider.dart';
 import '../widgets/shopping_category_group.dart';
 import '../../../beta/data/beta_config.dart';
 import '../../../beta/presentation/satisfaction_survey_dialog.dart';
@@ -31,10 +33,21 @@ class ShoppingModeScreen extends ConsumerStatefulWidget {
 }
 
 class _ShoppingModeScreenState extends ConsumerState<ShoppingModeScreen> {
+  bool _isSearchVisible = false;
+  final _searchController = TextEditingController();
+  String _searchQuery = '';
+  String? _filterCategoryId;
+
   @override
   void initState() {
     super.initState();
     _startSession();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _startSession() async {
@@ -80,23 +93,41 @@ class _ShoppingModeScreenState extends ConsumerState<ShoppingModeScreen> {
     final groupsAsync =
         ref.watch(shoppingModeItemsProvider((listId: widget.listId, homeId: widget.homeId)));
 
+    // Load units for display
+    final unitsAsync = ref.watch(unitsProvider(null));
+    final unitNames = <String, String>{};
+    unitsAsync.whenData((units) {
+      for (final unit in units) {
+        unitNames[unit.id] = unit.symbol;
+      }
+    });
+
+    // Load categories for filter
+    final categoriesAsync = ref.watch(categoriesProvider(widget.homeId));
+
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.listName),
         actions: [
           Semantics(
             button: true,
-            label: 'Search items',
+            label: 'بحث في المنتجات',
             child: IconButton(
-              icon: const Icon(Icons.search),
+              icon: Icon(_isSearchVisible ? Icons.close : Icons.search),
               onPressed: () {
-                // TODO: Implement search
+                setState(() {
+                  _isSearchVisible = !_isSearchVisible;
+                  if (!_isSearchVisible) {
+                    _searchController.clear();
+                    _searchQuery = '';
+                  }
+                });
               },
             ),
           ),
           Semantics(
             button: true,
-            label: 'Exit shopping mode',
+            label: 'الخروج من وضع التسوق',
             child: IconButton(
               icon: const Icon(Icons.close),
               onPressed: () => _showExitConfirmation(context),
@@ -104,60 +135,171 @@ class _ShoppingModeScreenState extends ConsumerState<ShoppingModeScreen> {
           ),
         ],
       ),
-      body: groupsAsync.when(
-        data: (groups) {
-          if (groups.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+      body: Column(
+        children: [
+          // Search bar
+          if (_isSearchVisible)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+              child: TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  hintText: 'بحث في المنتجات...',
+                  prefixIcon: const Icon(Icons.search),
+                  suffixIcon: _searchQuery.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear),
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() => _searchQuery = '');
+                          },
+                        )
+                      : null,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  filled: true,
+                  fillColor: theme.cardColor,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                ),
+                autofocus: true,
+                onChanged: (value) {
+                  setState(() => _searchQuery = value);
+                },
+              ),
+            ),
+          // Category filter chips
+          categoriesAsync.when(
+            data: (categories) => SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
                 children: [
-                  Icon(
-                    Icons.shopping_cart_outlined,
-                    size: 64,
-                    color: theme.colorScheme.onSurfaceVariant,
+                  FilterChip(
+                    label: const Text('الكل'),
+                    selected: _filterCategoryId == null,
+                    onSelected: (selected) {
+                      if (selected) setState(() => _filterCategoryId = null);
+                    },
                   ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No items in this list',
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
+                  const SizedBox(width: 8),
+                  ...categories.map((cat) => Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: FilterChip(
+                      label: Text(cat.name),
+                      selected: _filterCategoryId == cat.id,
+                      onSelected: (selected) {
+                        setState(() {
+                          _filterCategoryId = selected ? cat.id : null;
+                        });
+                      },
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Add items to start shopping',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
+                  )),
                 ],
               ),
-            );
-          }
+            ),
+            loading: () => const SizedBox.shrink(),
+            error: (_, __) => const SizedBox.shrink(),
+          ),
+          // Items list
+          Expanded(
+            child: groupsAsync.when(
+              data: (groups) {
+                // Apply filters
+                var filteredGroups = groups;
+                
+                // Filter by category
+                if (_filterCategoryId != null) {
+                  filteredGroups = groups
+                      .where((g) => g.categoryId == _filterCategoryId)
+                      .toList();
+                }
+                
+                // Filter by search query
+                if (_searchQuery.isNotEmpty) {
+                  filteredGroups = filteredGroups.map((group) {
+                    final filteredItems = group.items
+                        .where((item) => item.name
+                            .toLowerCase()
+                            .contains(_searchQuery.toLowerCase()))
+                        .toList();
+                    return CategoryGroup(
+                      categoryId: group.categoryId,
+                      categoryName: group.categoryName,
+                      items: filteredItems,
+                      allPurchased: filteredItems.every((i) => i.isPurchased),
+                    );
+                  }).where((g) => g.items.isNotEmpty).toList();
+                }
 
-          return ListView.builder(
-            itemCount: groups.length,
-            itemBuilder: (context, index) {
-              final group = groups[index];
-              final isCollapsed =
-                  shoppingMode.collapsedCategories.contains(group.categoryId) ||
-                      group.allPurchased;
+                if (filteredGroups.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          _searchQuery.isNotEmpty || _filterCategoryId != null
+                              ? Icons.search_off
+                              : Icons.shopping_cart_outlined,
+                          size: 64,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          _searchQuery.isNotEmpty
+                              ? 'لا توجد نتائج للبحث'
+                              : _filterCategoryId != null
+                                  ? 'لا توجد منتجات في هذا التصنيف'
+                                  : 'لا توجد منتجات في القائمة',
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        if (_searchQuery.isNotEmpty || _filterCategoryId != null) ...[
+                          const SizedBox(height: 8),
+                          TextButton(
+                            onPressed: () {
+                              setState(() {
+                                _searchQuery = '';
+                                _searchController.clear();
+                                _filterCategoryId = null;
+                              });
+                            },
+                            child: const Text('مسح الفلاتر'),
+                          ),
+                        ],
+                      ],
+                    ),
+                  );
+                }
 
-              return ShoppingCategoryGroup(
-                group: group,
-                isCollapsed: isCollapsed,
-                onToggle: () => ref
-                    .read(shoppingModeProvider.notifier)
-                    .toggleCategory(group.categoryId ?? 'uncategorized'),
-                onItemTap: _togglePurchased,
-              );
-            },
-          );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => Center(
-          child: Text('Error: $error'),
-        ),
+                return ListView.builder(
+                  itemCount: filteredGroups.length,
+                  itemBuilder: (context, index) {
+                    final group = filteredGroups[index];
+                    final isCollapsed =
+                        shoppingMode.collapsedCategories.contains(group.categoryId) ||
+                            group.allPurchased;
+
+                    return ShoppingCategoryGroup(
+                      group: group,
+                      unitNames: unitNames,
+                      isCollapsed: isCollapsed,
+                      onToggle: () => ref
+                          .read(shoppingModeProvider.notifier)
+                          .toggleCategory(group.categoryId ?? 'uncategorized'),
+                      onItemTap: _togglePurchased,
+                    );
+                  },
+                );
+              },
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (error, stack) => Center(
+                child: Text('Error: $error'),
+              ),
+            ),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {

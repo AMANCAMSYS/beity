@@ -189,6 +189,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         const SizedBox(width: 12),
         Expanded(
           child: _buildActionCard(
+            icon: Icons.task_alt,
+            label: 'المهام',
+            color: Colors.purple,
+            onTap: () => context.push('/home/$homeId/tasks'),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _buildActionCard(
             icon: Icons.shopping_bag_outlined,
             label: 'وضع التسوق',
             color: Colors.green,
@@ -203,15 +212,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 }
               });
             },
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildActionCard(
-            icon: Icons.add,
-            label: 'قائمة جديدة',
-            color: Colors.orange,
-            onTap: () => context.push('/shopping-lists/create', extra: homeId),
           ),
         ),
       ],
@@ -740,6 +740,24 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             onTap: () { Navigator.pop(context); context.push('/categories'); },
           ),
           ListTile(
+            leading: const Icon(Icons.task_alt),
+            title: const Text('المهام', textDirection: TextDirection.rtl),
+            onTap: () {
+              Navigator.pop(context);
+              final activeHomeId = ref.read(activeHomeIdProvider).valueOrNull;
+              if (activeHomeId != null) context.push('/home/$activeHomeId/tasks');
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.inventory_2),
+            title: const Text('المخزون', textDirection: TextDirection.rtl),
+            onTap: () {
+              Navigator.pop(context);
+              final activeHomeId = ref.read(activeHomeIdProvider).valueOrNull;
+              if (activeHomeId != null) context.push('/inventory', extra: activeHomeId);
+            },
+          ),
+          ListTile(
             leading: const Icon(Icons.straighten),
             title: const Text('وحدات القياس', textDirection: TextDirection.rtl),
             onTap: () { Navigator.pop(context); context.push('/units'); },
@@ -903,7 +921,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       color: Colors.green.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(Icons.shopping_bag_outlined, color: Colors.green),
+                    child: Icon(_getIconData(list.icon), color: Colors.green),
                   ),
                   title: Text(list.name, style: const TextStyle(fontWeight: FontWeight.w600)),
                   trailing: const Icon(Icons.arrow_forward_ios, size: 16),
@@ -1027,6 +1045,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 _settingsItem(Icons.home, 'إدارة المنازل', () => context.push('/homes')),
                 _settingsItem(Icons.category, 'التصنيفات', () => context.push('/categories')),
                 _settingsItem(Icons.straighten, 'وحدات القياس', () => context.push('/units')),
+                _settingsItem(Icons.task_alt, 'المهام', () {
+                  final activeHomeId = ref.read(activeHomeIdProvider).valueOrNull;
+                  if (activeHomeId != null) context.push('/home/$activeHomeId/tasks');
+                }),
                 _settingsItem(Icons.notifications, 'إعدادات الإشعارات', () => context.push('/notifications/preferences')),
               ],
             ),

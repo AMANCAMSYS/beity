@@ -86,7 +86,7 @@ class _EditItemScreenState extends ConsumerState<EditItemScreen> {
         }
         
         final homeId = list.homeId;
-        final unitsAsync = ref.watch(unitsProvider('shopping'));
+        final unitsAsync = ref.watch(unitsProvider(null));
         final categoriesAsync = ref.watch(categoriesProvider(homeId));
         
         return _buildScreen(context, unitsAsync, categoriesAsync);

@@ -46,9 +46,20 @@ SPEC 01 - Auth and User Profile (COMPLETED)
 SPEC 02 - Homes and Members (COMPLETED)
 SPEC 03 - Invitations and Roles (COMPLETED)
 SPEC 04 - Categories and Units (COMPLETED)
+SPEC 05 - Shopping Lists (COMPLETED)
+SPEC 06 - Shopping Items (COMPLETED)
+SPEC 07 - Realtime Sync (COMPLETED)
+SPEC 08 - Activity Logs (COMPLETED)
+SPEC 09 - Notifications (COMPLETED)
+SPEC 10 - Shopping Mode (COMPLETED)
+SPEC 11 - Offline Queue (COMPLETED)
+SPEC 12 - MVP Hardening & Beta (COMPLETED)
+SPEC 13 - Inventory Phase (COMPLETED)
+SPEC 14 - Expenses Phase (COMPLETED)
+SPEC 15 - Tasks Phase (IN PROGRESS)
 
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
-specs/012-mvp-hardening-beta/plan.md
+specs/015-tasks-phase/plan.md
 <!-- SPECKIT END -->

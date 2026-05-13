@@ -23,6 +23,8 @@ class ShoppingList {
   final DateTime? createdAt;
   final DateTime? updatedAt;
   final DateTime? deletedAt;
+  final int itemCount;
+  final int purchasedCount;
 
   const ShoppingList({
     required this.id,
@@ -35,6 +37,8 @@ class ShoppingList {
     this.createdAt,
     this.updatedAt,
     this.deletedAt,
+    this.itemCount = 0,
+    this.purchasedCount = 0,
   });
 
   bool get isArchived => status == ShoppingListStatus.archived;
@@ -51,6 +55,8 @@ class ShoppingList {
     DateTime? createdAt,
     DateTime? updatedAt,
     DateTime? deletedAt,
+    int? itemCount,
+    int? purchasedCount,
   }) {
     return ShoppingList(
       id: id ?? this.id,
@@ -63,6 +69,8 @@ class ShoppingList {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       deletedAt: deletedAt ?? this.deletedAt,
+      itemCount: itemCount ?? this.itemCount,
+      purchasedCount: purchasedCount ?? this.purchasedCount,
     );
   }
 }

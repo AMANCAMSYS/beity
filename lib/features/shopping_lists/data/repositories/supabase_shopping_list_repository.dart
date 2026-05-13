@@ -430,10 +430,18 @@ class SupabaseShoppingListRepository implements ShoppingListRepository {
     final suggestions = <AutocompleteSuggestion>[];
     final seenNames = <String>{};
 
+    // Fetch all units for name resolution
+    final unitsData = await _client.from('units').select('id, name, symbol');
+    final unitMap = <String, String>{};
+    for (final u in unitsData as List) {
+      final symbol = u['symbol'] as String? ?? '';
+      unitMap[u['id'] as String] = symbol.isNotEmpty ? '${u['name']} ($symbol)' : u['name'] as String;
+    }
+
     // 1. Search item templates
     final templates = await _client
         .from('item_templates')
-        .select()
+        .select('id, name, default_quantity, default_unit_id')
         .eq('home_id', homeId)
         .ilike('name', '%$query%')
         .order('usage_count', ascending: false)
@@ -442,10 +450,11 @@ class SupabaseShoppingListRepository implements ShoppingListRepository {
     for (final t in templates as List) {
       final name = t['name'] as String;
       if (seenNames.add(name.toLowerCase())) {
+        final unitId = t['default_unit_id'] as String?;
         suggestions.add(AutocompleteSuggestion(
           name: name,
           quantity: (t['default_quantity'] as num?)?.toDouble() ?? 1,
-          unitName: null,
+          unitName: unitId != null ? unitMap[unitId] : null,
           sourceId: t['id'] as String,
           isTemplate: true,
         ));
@@ -474,10 +483,11 @@ class SupabaseShoppingListRepository implements ShoppingListRepository {
         for (final item in items as List) {
           final name = item['name'] as String;
           if (seenNames.add(name.toLowerCase())) {
+            final unitId = item['unit_id'] as String?;
             suggestions.add(AutocompleteSuggestion(
               name: name,
               quantity: (item['quantity'] as num?)?.toDouble() ?? 1,
-              unitName: null,
+              unitName: unitId != null ? unitMap[unitId] : null,
               sourceId: null,
               isTemplate: false,
             ));

@@ -12,6 +12,8 @@ class MonitoringService {
   final AppLogBuffer _logBuffer = AppLogBuffer();
 
   Future<void> initialize() async {
+    if (kIsWeb) return;
+
     // Disable collection in debug builds
     await _crashlytics.setCrashlyticsCollectionEnabled(!kDebugMode);
 
@@ -26,15 +28,18 @@ class MonitoringService {
   }
 
   Future<void> setUser(String userId) async {
+    if (kIsWeb) return;
     await _crashlytics.setUserIdentifier(userId);
   }
 
   Future<void> setCustomKey(String key, Object value) async {
+    if (kIsWeb) return;
     await _crashlytics.setCustomKey(key, value.toString());
   }
 
   Future<void> log(String message) async {
     _logBuffer.add(message);
+    if (kIsWeb) return;
     await _crashlytics.log(message);
   }
 
@@ -45,6 +50,7 @@ class MonitoringService {
     bool fatal = false,
   }) async {
     _logBuffer.add('ERROR: ${exception.toString()}');
+    if (kIsWeb) return;
     await _crashlytics.recordError(
       exception,
       stackTrace,
@@ -65,6 +71,8 @@ class MonitoringService {
         '${itemCount != null ? ' ($itemCount items)' : ''}';
 
     _logBuffer.add(message);
+
+    if (kIsWeb) return;
 
     // Log as non-fatal error if > 3 seconds (per FR-014)
     if (durationMs > 3000) {

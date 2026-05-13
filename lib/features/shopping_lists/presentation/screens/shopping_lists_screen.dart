@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../homes/presentation/providers/homes_provider.dart';
 import '../providers/shopping_lists_provider.dart';
 import '../widgets/shopping_list_card_widget.dart';
 import '../../domain/entities/shopping_list.dart';
@@ -37,8 +38,18 @@ class _ShoppingListsScreenState extends ConsumerState<ShoppingListsScreen>
 
   @override
   Widget build(BuildContext context) {
-    final activeLists = ref.watch(activeShoppingListsProvider(widget.homeId));
-    final archivedLists = ref.watch(archivedShoppingListsProvider(widget.homeId));
+    final homeId = widget.homeId.isNotEmpty
+        ? widget.homeId
+        : ref.watch(activeHomeIdProvider).valueOrNull ?? '';
+    
+    if (homeId.isEmpty) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final activeLists = ref.watch(activeShoppingListsProvider(homeId));
+    final archivedLists = ref.watch(archivedShoppingListsProvider(homeId));
 
     return Scaffold(
       appBar: AppBar(
@@ -59,7 +70,7 @@ class _ShoppingListsScreenState extends ConsumerState<ShoppingListsScreen>
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => context.push('/shopping-lists/create', extra: widget.homeId),
+        onPressed: () => context.push('/shopping-lists/create', extra: homeId),
         child: const Icon(Icons.add),
       ),
     );

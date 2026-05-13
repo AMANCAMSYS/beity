@@ -25,8 +25,8 @@ class ShoppingListCardWidget extends StatelessWidget {
       child: Semantics(
         label: AccessibilityHelpers.shoppingListLabel(
           name: shoppingList.name,
-          itemCount: shoppingList.itemCount ?? 0,
-          purchasedCount: shoppingList.purchasedCount ?? 0,
+          itemCount: shoppingList.itemCount,
+          purchasedCount: shoppingList.purchasedCount,
         ),
         button: true,
         child: InkWell(
@@ -48,7 +48,7 @@ class ShoppingListCardWidget extends StatelessWidget {
                   child: Icon(
                     shoppingList.isArchived
                         ? Icons.archive_outlined
-                        : Icons.shopping_cart_outlined,
+                        : _getIconData(shoppingList.icon),
                     color: shoppingList.isArchived
                         ? Colors.grey
                         : Theme.of(context).primaryColor,
@@ -166,6 +166,49 @@ class ShoppingListCardWidget extends StatelessWidget {
       return 'منذ ${difference.inDays} أيام';
     } else {
       return '${date.day}/${date.month}/${date.year}';
+    }
+  }
+
+  IconData _getIconData(String iconName) {
+    switch (iconName) {
+      case 'shopping_cart':
+        return Icons.shopping_cart_outlined;
+      case 'shopping_bag':
+        return Icons.shopping_bag_outlined;
+      case 'local_grocery_store':
+        return Icons.local_grocery_store_outlined;
+      case 'local_pharmacy':
+        return Icons.local_pharmacy_outlined;
+      case 'local_hospital':
+        return Icons.local_hospital_outlined;
+      case 'restaurant':
+        return Icons.restaurant_outlined;
+      case 'local_cafe':
+        return Icons.local_cafe_outlined;
+      case 'home':
+        return Icons.home_outlined;
+      case 'hardware':
+        return Icons.hardware_outlined;
+      case 'build':
+        return Icons.build_outlined;
+      case 'child_care':
+        return Icons.child_care_outlined;
+      case 'pets':
+        return Icons.pets_outlined;
+      case 'card_giftcard':
+        return Icons.card_giftcard_outlined;
+      case 'celebration':
+        return Icons.celebration_outlined;
+      case 'school':
+        return Icons.school_outlined;
+      case 'fitness_center':
+        return Icons.fitness_center_outlined;
+      case 'cleaning_services':
+        return Icons.cleaning_services_outlined;
+      case 'local_florist':
+        return Icons.local_florist_outlined;
+      default:
+        return Icons.shopping_cart_outlined;
     }
   }
 }
