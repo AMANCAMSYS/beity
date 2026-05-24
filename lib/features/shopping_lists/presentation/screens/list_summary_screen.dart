@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/shopping_items_provider.dart';
 import '../providers/shopping_lists_provider.dart';
 import '../../domain/entities/shopping_item.dart';
+import '../../../categories/presentation/providers/categories_provider.dart';
 
 class ListSummaryScreen extends ConsumerWidget {
   final String listId;
@@ -217,52 +218,71 @@ class ListSummaryScreen extends ConsumerWidget {
   }
 
   Widget _buildCategoryBreakdown(BuildContext context, List<ShoppingItem> items, bool isArabic) {
-    final categoryMap = <String, List<ShoppingItem>>{};
+    final categoryMap = <String?, List<ShoppingItem>>{};
     
     for (final item in items) {
-      final categoryId = item.categoryId ?? (isArabic ? 'بدون تصنيف' : 'Uncategorized');
-      categoryMap.putIfAbsent(categoryId, () => []).add(item);
+      categoryMap.putIfAbsent(item.categoryId, () => []).add(item);
     }
 
     if (categoryMap.isEmpty) return const SizedBox.shrink();
 
-    return BeityCard(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            isArabic ? 'حسب التصنيف' : 'By Category',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          AppSpacing.gapMD,
-          ...categoryMap.entries.map((entry) {
-            final purchased = entry.value.where((i) => i.isPurchased).length;
-            return Padding(
-              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(entry.key),
-                  ),
-                  Text('$purchased/${entry.value.length}'),
-                  AppSpacing.gapMD,
-                  SizedBox(
-                    width: 100,
-                    child: LinearProgressIndicator(
-                      value: entry.value.isNotEmpty
-                          ? purchased / entry.value.length
-                          : 0,
-                      minHeight: 4,
-                      borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-                    ),
-                  ),
-                ],
+    return Consumer(
+      builder: (context, ref, _) {
+        // Get homeId from the list
+        final listAsync = ref.watch(shoppingListByIdProvider(listId));
+        final homeId = listAsync.valueOrNull?.homeId ?? '';
+        final categoriesAsync = ref.watch(categoriesProvider(homeId));
+        
+        final categoryNames = <String, String>{};
+        categoriesAsync.whenData((categories) {
+          for (final cat in categories) {
+            categoryNames[cat.id] = cat.name == 'Other' ? (isArabic ? 'أخرى' : 'Other') : cat.name;
+          }
+        });
+
+        return BeityCard(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                isArabic ? 'حسب التصنيف' : 'By Category',
+                style: Theme.of(context).textTheme.titleMedium,
               ),
-            );
-          }),
-        ],
-      ),
+              AppSpacing.gapMD,
+              ...categoryMap.entries.map((entry) {
+                final categoryId = entry.key;
+                final categoryName = categoryId != null
+                    ? (categoryNames[categoryId] ?? (isArabic ? 'تصنيف غير معروف' : 'Unknown Category'))
+                    : (isArabic ? 'بدون تصنيف' : 'Uncategorized');
+                final purchased = entry.value.where((i) => i.isPurchased).length;
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(categoryName),
+                      ),
+                      Text('$purchased/${entry.value.length}'),
+                      AppSpacing.gapMD,
+                      SizedBox(
+                        width: 100,
+                        child: LinearProgressIndicator(
+                          value: entry.value.isNotEmpty
+                              ? purchased / entry.value.length
+                              : 0,
+                          minHeight: 4,
+                          borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+            ],
+          ),
+        );
+      },
     );
   }
 
