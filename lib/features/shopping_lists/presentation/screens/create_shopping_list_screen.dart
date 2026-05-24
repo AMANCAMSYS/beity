@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:beity/app/theme/app_colors.dart';
 import 'package:beity/app/theme/app_spacing.dart';
 import 'package:beity/shared/widgets/design_system/beity_button.dart';
 import 'package:beity/shared/widgets/design_system/beity_text_field.dart';
@@ -83,7 +84,7 @@ class _CreateShoppingListScreenState extends ConsumerState<CreateShoppingListScr
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('${isArabic ? 'فشل إنشاء القائمة' : 'Failed to create list'}: ${e.toString()}'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.error,
           ),
         );
       }

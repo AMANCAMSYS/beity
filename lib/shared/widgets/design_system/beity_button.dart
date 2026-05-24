@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../../../app/theme/app_colors.dart';
-import '../../../../app/theme/app_spacing.dart';
+import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_spacing.dart';
 
 enum BeityButtonType { primary, secondary, outline, text, destructive }
 
@@ -30,6 +30,7 @@ class BeityButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final colorScheme = theme.colorScheme;
 
     Color backgroundColor;
     Color foregroundColor;
@@ -37,34 +38,36 @@ class BeityButton extends StatelessWidget {
 
     switch (type) {
       case BeityButtonType.primary:
-        backgroundColor = isDark ? AppColors.primaryLight : AppColors.primary;
-        foregroundColor = isDark ? Colors.black : Colors.white;
+        backgroundColor = colorScheme.primary;
+        foregroundColor = colorScheme.onPrimary;
         break;
       case BeityButtonType.secondary:
-        backgroundColor = isDark ? AppColors.surfaceDark : AppColors.dividerLight;
-        foregroundColor = isDark ? Colors.white : AppColors.textPrimaryLight;
+        backgroundColor = isDark ? AppColors.surfaceVariantDark : AppColors.surfaceVariantLight;
+        foregroundColor = colorScheme.onSurface;
         break;
       case BeityButtonType.outline:
         backgroundColor = Colors.transparent;
-        foregroundColor = isDark ? AppColors.primaryLight : AppColors.primary;
+        foregroundColor = colorScheme.primary;
         border = BorderSide(color: foregroundColor, width: 1.5);
         break;
       case BeityButtonType.text:
         backgroundColor = Colors.transparent;
-        foregroundColor = isDark ? AppColors.primaryLight : AppColors.primary;
+        foregroundColor = colorScheme.primary;
         break;
       case BeityButtonType.destructive:
-        backgroundColor = AppColors.error;
-        foregroundColor = Colors.white;
+        backgroundColor = colorScheme.error;
+        foregroundColor = colorScheme.onError;
         break;
     }
 
     if (onPressed == null && !isLoading) {
-      backgroundColor = isDark ? Colors.grey[800]! : Colors.grey[300]!;
-      foregroundColor = isDark ? Colors.grey[600]! : Colors.grey[500]!;
+      backgroundColor = isDark ? AppColors.surfaceVariantDark : AppColors.surfaceVariantLight;
+      foregroundColor = colorScheme.onSurfaceVariant.withValues(alpha: 0.55);
       if (type == BeityButtonType.outline) {
         backgroundColor = Colors.transparent;
         border = BorderSide(color: foregroundColor, width: 1.5);
+      } else if (type == BeityButtonType.text) {
+        backgroundColor = Colors.transparent;
       }
     }
 
@@ -91,8 +94,8 @@ class BeityButton extends StatelessWidget {
             text,
             style: theme.textTheme.labelLarge?.copyWith(
               color: foregroundColor,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 0.5,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0,
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -104,7 +107,7 @@ class BeityButton extends StatelessWidget {
     final ButtonStyle baseStyle = ButtonStyle(
       backgroundColor: WidgetStateProperty.all(backgroundColor),
       foregroundColor: WidgetStateProperty.all(foregroundColor),
-      overlayColor: WidgetStateProperty.all(foregroundColor.withOpacity(0.1)),
+      overlayColor: WidgetStateProperty.all(foregroundColor.withValues(alpha: 0.1)),
       padding: WidgetStateProperty.all(
         padding ?? const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.md),
       ),

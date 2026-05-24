@@ -18,91 +18,51 @@ class MainShell extends StatelessWidget {
           color: theme.colorScheme.surface,
           border: Border(
             top: BorderSide(
-              color: theme.colorScheme.onSurface.withOpacity(isDark ? 0.08 : 0.05),
+              color: theme.colorScheme.outlineVariant.withValues(alpha: isDark ? 0.5 : 0.9),
               width: 1.0,
             ),
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(isDark ? 0.2 : 0.03),
+              color: Colors.black.withValues(alpha: isDark ? 0.24 : 0.06),
               blurRadius: 12,
               offset: const Offset(0, -3),
             ),
           ],
         ),
         child: SafeArea(
-          child: BottomNavigationBar(
-            currentIndex: navigationShell.currentIndex,
-            onTap: (index) => _onTap(context, index),
-            type: BottomNavigationBarType.fixed,
+          child: NavigationBar(
+            selectedIndex: navigationShell.currentIndex,
+            onDestinationSelected: (index) => _onTap(context, index),
             backgroundColor: Colors.transparent,
             elevation: 0,
-            selectedItemColor: theme.colorScheme.primary,
-            unselectedItemColor: theme.colorScheme.onSurface.withOpacity(0.4),
-            selectedLabelStyle: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 12,
-              fontFamily: theme.textTheme.labelMedium?.fontFamily ?? 'Cairo',
-            ),
-            unselectedLabelStyle: TextStyle(
-              fontWeight: FontWeight.w500,
-              fontSize: 11,
-              fontFamily: theme.textTheme.labelMedium?.fontFamily ?? 'Cairo',
-            ),
-            items: const [
-              BottomNavigationBarItem(
-                icon: Padding(
-                  padding: EdgeInsets.only(bottom: 4),
-                  child: Icon(Icons.home_outlined),
-                ),
-                activeIcon: Padding(
-                  padding: EdgeInsets.only(bottom: 4),
-                  child: Icon(Icons.home_rounded),
-                ),
+            height: 72,
+            indicatorColor: theme.colorScheme.primaryContainer,
+            labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+            destinations: const [
+              NavigationDestination(
+                icon: Icon(Icons.home_outlined),
+                selectedIcon: Icon(Icons.home_rounded),
                 label: 'الرئيسية',
               ),
-              BottomNavigationBarItem(
-                icon: Padding(
-                  padding: EdgeInsets.only(bottom: 4),
-                  child: Icon(Icons.list_alt_outlined),
-                ),
-                activeIcon: Padding(
-                  padding: EdgeInsets.only(bottom: 4),
-                  child: Icon(Icons.list_alt_rounded),
-                ),
+              NavigationDestination(
+                icon: Icon(Icons.list_alt_outlined),
+                selectedIcon: Icon(Icons.list_alt_rounded),
                 label: 'القوائم',
               ),
-              BottomNavigationBarItem(
-                icon: Padding(
-                  padding: EdgeInsets.only(bottom: 4),
-                  child: Icon(Icons.shopping_cart_outlined),
-                ),
-                activeIcon: Padding(
-                  padding: EdgeInsets.only(bottom: 4),
-                  child: Icon(Icons.shopping_cart_rounded),
-                ),
+              NavigationDestination(
+                icon: Icon(Icons.shopping_cart_outlined),
+                selectedIcon: Icon(Icons.shopping_cart_rounded),
                 label: 'التسوق',
               ),
-              BottomNavigationBarItem(
-                icon: Padding(
-                  padding: EdgeInsets.only(bottom: 4),
-                  child: Icon(Icons.history_outlined),
-                ),
-                activeIcon: Padding(
-                  padding: EdgeInsets.only(bottom: 4),
-                  child: Icon(Icons.history_rounded),
-                ),
+              NavigationDestination(
+                icon: Icon(Icons.history_outlined),
+                selectedIcon: Icon(Icons.history_rounded),
                 label: 'النشاط',
               ),
-              BottomNavigationBarItem(
-                icon: Padding(
-                  padding: EdgeInsets.only(bottom: 4),
-                  child: Icon(Icons.settings_outlined),
-                ),
-                activeIcon: Padding(
-                  padding: EdgeInsets.only(bottom: 4),
-                  child: Icon(Icons.settings_rounded),
-                ),
+              NavigationDestination(
+                icon: Icon(Icons.settings_outlined),
+                selectedIcon: Icon(Icons.settings_rounded),
                 label: 'الإعدادات',
               ),
             ],

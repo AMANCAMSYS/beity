@@ -88,7 +88,7 @@ class _ShoppingItemTileWidgetState extends State<ShoppingItemTileWidget>
       background: Container(
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
-        color: Colors.blue,
+        color: AppColors.info,
         child: const Icon(
           Icons.edit,
           color: Colors.white,
@@ -97,7 +97,7 @@ class _ShoppingItemTileWidgetState extends State<ShoppingItemTileWidget>
       secondaryBackground: Container(
         alignment: Alignment.centerLeft,
         padding: const EdgeInsets.only(left: 20),
-        color: Colors.red,
+        color: AppColors.error,
         child: const Icon(
           Icons.delete,
           color: Colors.white,

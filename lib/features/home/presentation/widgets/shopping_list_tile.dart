@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../app/theme/app_colors.dart';
 import '../../../shopping_lists/presentation/providers/shopping_items_provider.dart';
 
 class ShoppingListTile extends ConsumerWidget {
@@ -18,6 +19,7 @@ class ShoppingListTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
     final itemsAsync = ref.watch(shoppingItemsProvider(listId));
 
     return itemsAsync.when(
@@ -38,7 +40,7 @@ class ShoppingListTile extends ConsumerWidget {
                 color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(_getIconData(icon), color: Theme.of(context).primaryColor),
+              child: Icon(_getIconData(icon), color: theme.colorScheme.primary),
             ),
             title: Text(
               listName,
@@ -47,11 +49,11 @@ class ShoppingListTile extends ConsumerWidget {
             subtitle: total == 0
                 ? Text(
                     'قائمة فارغة',
-                    style: TextStyle(color: Colors.grey[500]),
+                    style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
                   )
                 : Text(
                     '$remaining متبقية من $total',
-                    style: TextStyle(color: Colors.grey[600]),
+                    style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
                   ),
             trailing: total > 0
                 ? SizedBox(
@@ -73,7 +75,7 @@ class ShoppingListTile extends ConsumerWidget {
                           child: LinearProgressIndicator(
                             value: total > 0 ? purchased / total : 0,
                             minHeight: 4,
-                            backgroundColor: Colors.grey[200],
+                            backgroundColor: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
                             valueColor: AlwaysStoppedAnimation<Color>(
                               _getProgressColor(total > 0 ? purchased / total : 0),
                             ),
@@ -97,13 +99,16 @@ class ShoppingListTile extends ConsumerWidget {
               color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(_getIconData(icon), color: Theme.of(context).primaryColor),
+            child: Icon(_getIconData(icon), color: theme.colorScheme.primary),
           ),
           title: Text(
             listName,
             style: const TextStyle(fontWeight: FontWeight.w600),
           ),
-          subtitle: Text('جاري التحميل...', style: TextStyle(color: Colors.grey[500])),
+          subtitle: Text(
+            'جاري التحميل...',
+            style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+          ),
         ),
       ),
       error: (_, _) => Card(
@@ -117,7 +122,7 @@ class ShoppingListTile extends ConsumerWidget {
               color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(_getIconData(icon), color: Theme.of(context).primaryColor),
+            child: Icon(_getIconData(icon), color: theme.colorScheme.primary),
           ),
           title: Text(
             listName,
@@ -172,9 +177,9 @@ class ShoppingListTile extends ConsumerWidget {
   }
 
   Color _getProgressColor(double progress) {
-    if (progress >= 0.8) return Colors.green;
-    if (progress >= 0.5) return Colors.blue;
-    if (progress >= 0.3) return Colors.orange;
-    return Colors.red;
+    if (progress >= 0.8) return AppColors.success;
+    if (progress >= 0.5) return AppColors.info;
+    if (progress >= 0.3) return AppColors.warning;
+    return AppColors.error;
   }
 }

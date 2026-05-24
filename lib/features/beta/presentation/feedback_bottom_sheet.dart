@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/theme/app_colors.dart';
 import '../data/feedback_repository.dart';
 
 class FeedbackBottomSheet extends StatefulWidget {
@@ -51,7 +52,7 @@ class _FeedbackBottomSheetState extends State<FeedbackBottomSheet> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('تم إرسال الملاحظات. شكراً!'),
-            backgroundColor: Colors.green,
+            backgroundColor: AppColors.success,
           ),
         );
         Navigator.of(context).pop();

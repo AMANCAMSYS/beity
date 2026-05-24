@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../app/theme/app_colors.dart';
 import '../../../homes/presentation/providers/homes_provider.dart';
 import '../providers/notification_preferences_provider.dart';
 import '../widgets/notification_preference_toggle.dart';
@@ -81,7 +82,7 @@ class NotificationPreferencesScreen extends ConsumerWidget {
                 Icon(
                   isNoHome ? Icons.home_outlined : Icons.error_outline,
                   size: 64,
-                  color: isNoHome ? Colors.grey[400] : Colors.red,
+                  color: isNoHome ? Colors.grey[400] : AppColors.error,
                 ),
                 const SizedBox(height: 16),
                 Text(

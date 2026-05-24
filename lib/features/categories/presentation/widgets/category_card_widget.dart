@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../app/theme/app_colors.dart';
 import '../../data/models/category_model.dart';
 import '../../domain/entities/category.dart';
 import '../providers/categories_provider.dart';
@@ -28,7 +29,7 @@ class CategoryCardWidget extends ConsumerWidget {
           width: 48,
           height: 48,
           decoration: BoxDecoration(
-            color: _getCategoryColor().withOpacity(0.1),
+            color: _getCategoryColor().withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Center(
@@ -46,14 +47,14 @@ class CategoryCardWidget extends ConsumerWidget {
         subtitle: Text(
           _getTypeName(),
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Colors.grey[600],
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
           textDirection: TextDirection.rtl,
         ),
         trailing: isCustom && showActions
             ? IconButton(
                 icon: const Icon(Icons.delete,
-                    size: 20, color: Colors.red),
+                    size: 20, color: AppColors.error),
                 onPressed: () => _deleteCategory(context, ref),
               )
             : null,
@@ -115,7 +116,7 @@ class CategoryCardWidget extends ConsumerWidget {
                         'تم حذف التصنيف بنجاح',
                         textDirection: TextDirection.rtl,
                       ),
-                      backgroundColor: Colors.green,
+                      backgroundColor: AppColors.success,
                     ),
                   );
                 }
@@ -127,14 +128,14 @@ class CategoryCardWidget extends ConsumerWidget {
                         e.toString().replaceAll('Exception: ', ''),
                         textDirection: TextDirection.rtl,
                       ),
-                      backgroundColor: Colors.red,
+                      backgroundColor: AppColors.error,
                     ),
                   );
                 }
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
+              backgroundColor: AppColors.error,
               foregroundColor: Colors.white,
             ),
             child: const Text('حذف'),

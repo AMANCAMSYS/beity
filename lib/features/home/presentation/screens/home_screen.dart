@@ -381,7 +381,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             child: _buildActionCard(
               icon: Icons.auto_awesome_rounded,
               label: 'اقتراحات ذكية',
-              color: Colors.amber,
+              color: AppColors.accent,
               onTap: () => AiListSelectorSheet.show(context, homeId),
             ),
           ),
@@ -513,7 +513,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     child: LinearProgressIndicator(
                       value: progress,
                       minHeight: 8,
-                      backgroundColor: _getProgressColor(progress).withOpacity(0.15),
+                      backgroundColor: _getProgressColor(progress).withValues(alpha: 0.15),
                       valueColor: AlwaysStoppedAnimation<Color>(
                         _getProgressColor(progress),
                       ),
@@ -806,7 +806,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       actions: [
         if (FeatureFlags.enableAi)
           IconButton(
-            icon: const Icon(Icons.auto_awesome_rounded, color: Colors.amber),
+            icon: const Icon(Icons.auto_awesome_rounded, color: AppColors.accent),
             onPressed: () => AiListSelectorSheet.show(context, homeId),
             tooltip: 'المساعد الذكي',
           ),

@@ -200,11 +200,11 @@ class _AiWeeklyPlanViewState extends State<AiWeeklyPlanView> {
 
   Color _mealTypeColor(String type) {
     switch (type.toLowerCase()) {
-      case 'breakfast': return Colors.orange;
+      case 'breakfast': return AppColors.warning;
       case 'lunch': return AppColors.primary;
-      case 'dinner': return Colors.purple;
-      case 'snack': return Colors.teal;
-      case 'dessert': return Colors.pink;
+      case 'dinner': return AppColors.secondary;
+      case 'snack': return AppColors.info;
+      case 'dessert': return AppColors.accent;
       default: return Colors.grey;
     }
   }

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../app/theme/app_colors.dart';
+
 class StarRating extends StatefulWidget {
   final int initialRating;
   final ValueChanged<int> onRatingChanged;
@@ -55,7 +57,7 @@ class _StarRatingState extends State<StarRating> {
                 isFilled ? Icons.star : Icons.star_border,
                 size: widget.size,
                 color: isFilled
-                    ? Colors.amber
+                    ? AppColors.warning
                     : Theme.of(context).colorScheme.outline,
               ),
             ),

@@ -142,13 +142,13 @@ class InvitationCardWidget extends ConsumerWidget {
   Color _getStatusColor() {
     switch (invitation.status) {
       case InvitationStatus.pending:
-        return Colors.orange;
+        return AppColors.warning;
       case InvitationStatus.accepted:
-        return Colors.green;
+        return AppColors.success;
       case InvitationStatus.expired:
-        return Colors.grey;
+        return AppColors.textHintLight;
       case InvitationStatus.cancelled:
-        return Colors.red;
+        return AppColors.error;
     }
   }
 
@@ -248,7 +248,7 @@ class InvitationCardWidget extends ConsumerWidget {
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
             child: const Text('إلغاء الدعوة'),
           ),
         ],
@@ -264,7 +264,7 @@ class InvitationCardWidget extends ConsumerWidget {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('تم إلغاء الدعوة بنجاح', textDirection: TextDirection.rtl),
-              backgroundColor: Colors.green,
+              backgroundColor: AppColors.success,
             ),
           );
         }
@@ -274,7 +274,7 @@ class InvitationCardWidget extends ConsumerWidget {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('فشل إلغاء الدعوة: ${e.toString()}', textDirection: TextDirection.rtl),
-              backgroundColor: Colors.red,
+              backgroundColor: AppColors.error,
             ),
           );
         }

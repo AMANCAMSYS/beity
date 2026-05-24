@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../app/theme/app_colors.dart';
+
 class ActiveListCard extends StatelessWidget {
   final String listName;
   final int totalItems;
@@ -63,7 +65,7 @@ class ActiveListCard extends StatelessWidget {
                       Text(
                         '$totalItems عنصر',
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: Colors.grey[600],
+                          color: theme.colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ],
@@ -94,7 +96,7 @@ class ActiveListCard extends StatelessWidget {
                   icon: Icons.radio_button_unchecked,
                   label: 'متبقية',
                   value: '$remainingItems',
-                  color: Colors.orange,
+                  color: AppColors.warning,
                 ),
                 const SizedBox(width: 24),
                 _buildStatItem(
@@ -102,7 +104,7 @@ class ActiveListCard extends StatelessWidget {
                   icon: Icons.check_circle_outline,
                   label: 'تم شراؤها',
                   value: '$completedItems',
-                  color: Colors.green,
+                  color: AppColors.success,
                 ),
               ],
             ),
@@ -112,7 +114,7 @@ class ActiveListCard extends StatelessWidget {
               child: LinearProgressIndicator(
                 value: progress,
                 minHeight: 8,
-                backgroundColor: Colors.grey[200],
+                backgroundColor: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
                 valueColor: AlwaysStoppedAnimation<Color>(
                   _getProgressColor(progress),
                 ),
@@ -142,7 +144,7 @@ class ActiveListCard extends StatelessWidget {
                     label: const Text('وضع التسوق'),
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      backgroundColor: Colors.green,
+                      backgroundColor: AppColors.accent,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -179,7 +181,7 @@ class ActiveListCard extends StatelessWidget {
         Text(
           label,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Colors.grey[600],
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
         ),
       ],
@@ -187,9 +189,9 @@ class ActiveListCard extends StatelessWidget {
   }
 
   Color _getProgressColor(double progress) {
-    if (progress >= 0.8) return Colors.green;
-    if (progress >= 0.5) return Colors.blue;
-    if (progress >= 0.3) return Colors.orange;
-    return Colors.red;
+    if (progress >= 0.8) return AppColors.success;
+    if (progress >= 0.5) return AppColors.info;
+    if (progress >= 0.3) return AppColors.warning;
+    return AppColors.error;
   }
 }

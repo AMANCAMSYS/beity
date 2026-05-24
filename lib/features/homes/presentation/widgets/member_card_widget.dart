@@ -23,7 +23,7 @@ class MemberCardWidget extends StatelessWidget {
           CircleAvatar(
             radius: 24,
             backgroundColor: isOwner
-                ? Colors.amber.withValues(alpha: 0.1)
+                ? AppColors.warning.withValues(alpha: 0.1)
                 : isAdmin
                     ? AppColors.primary.withValues(alpha: 0.1)
                     : theme.colorScheme.surfaceContainerHighest,
@@ -34,7 +34,7 @@ class MemberCardWidget extends StatelessWidget {
                       ? Icons.admin_panel_settings_rounded
                       : Icons.person_rounded,
               color: isOwner
-                  ? Colors.amber
+                  ? AppColors.warning
                   : isAdmin
                       ? AppColors.primary
                       : theme.colorScheme.onSurfaceVariant,
@@ -62,7 +62,7 @@ class MemberCardWidget extends StatelessWidget {
                       _buildBadge(
                         context,
                         'مالك',
-                        Colors.amber,
+                        AppColors.warning,
                         Icons.star_rounded,
                       )
                     else if (isAdmin)

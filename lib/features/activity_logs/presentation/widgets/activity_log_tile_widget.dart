@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:timeago/timeago.dart' as timeago;
+import '../../../../app/theme/app_colors.dart';
 import '../../data/models/activity_log_model.dart';
 import '../../domain/entities/activity_log.dart';
 
@@ -83,33 +84,33 @@ class ActivityLogTileWidget extends StatelessWidget {
   Color get _actionColor {
     switch (log.action) {
       case ActionType.listCreated:
-        return Colors.green;
+        return AppColors.success;
       case ActionType.listRenamed:
-        return Colors.blue;
+        return AppColors.info;
       case ActionType.listArchived:
-        return Colors.orange;
+        return AppColors.warning;
       case ActionType.listDeleted:
-        return Colors.red;
+        return AppColors.error;
       case ActionType.itemAdded:
-        return Colors.green;
+        return AppColors.success;
       case ActionType.itemUpdated:
-        return Colors.blue;
+        return AppColors.info;
       case ActionType.itemPurchased:
-        return Colors.teal;
+        return AppColors.primary;
       case ActionType.itemUnpurchased:
-        return Colors.amber;
+        return AppColors.warning;
       case ActionType.itemDeleted:
-        return Colors.red;
+        return AppColors.error;
       case ActionType.memberJoined:
-        return Colors.green;
+        return AppColors.success;
       case ActionType.memberRemoved:
-        return Colors.red;
+        return AppColors.error;
       case ActionType.memberRoleChanged:
-        return Colors.purple;
+        return AppColors.secondary;
       case ActionType.invitationAccepted:
-        return Colors.green;
+        return AppColors.success;
       case ActionType.aiItemsAdded:
-        return Colors.purple;
+        return AppColors.accent;
     }
   }
 

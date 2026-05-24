@@ -10,6 +10,9 @@ class BeityCard extends StatelessWidget {
   final Color? backgroundColor;
   final VoidCallback? onTap;
   final BeityCardVariant variant;
+  final bool hasBorder;
+  final double? elevation;
+  final BorderRadius? borderRadius;
 
   const BeityCard({
     super.key,
@@ -19,6 +22,9 @@ class BeityCard extends StatelessWidget {
     this.backgroundColor,
     this.onTap,
     this.variant = BeityCardVariant.outlined,
+    this.hasBorder = false,
+    this.elevation,
+    this.borderRadius,
   });
 
   const BeityCard.elevated({
@@ -28,6 +34,9 @@ class BeityCard extends StatelessWidget {
     this.margin,
     this.backgroundColor,
     this.onTap,
+    this.hasBorder = false,
+    this.elevation,
+    this.borderRadius,
   }) : variant = BeityCardVariant.elevated;
 
   const BeityCard.interactive({
@@ -37,6 +46,9 @@ class BeityCard extends StatelessWidget {
     this.margin,
     this.backgroundColor,
     required this.onTap,
+    this.hasBorder = false,
+    this.elevation,
+    this.borderRadius,
   }) : variant = BeityCardVariant.interactive;
 
   const BeityCard.compact({
@@ -46,34 +58,42 @@ class BeityCard extends StatelessWidget {
     this.margin,
     this.backgroundColor,
     this.onTap,
+    this.hasBorder = false,
+    this.elevation,
+    this.borderRadius,
   }) : variant = BeityCardVariant.compact;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final cardPadding = padding ?? (variant == BeityCardVariant.compact
         ? const EdgeInsets.all(AppSpacing.sm)
         : const EdgeInsets.all(AppSpacing.md));
+    final effectiveRadius = borderRadius ??
+        BorderRadius.circular(
+          variant == BeityCardVariant.compact ? AppSpacing.radiusMd : AppSpacing.radiusLg,
+        );
+    final effectiveElevation = elevation ?? (variant == BeityCardVariant.elevated ? 2 : 0);
+    final showBorder = hasBorder || variant != BeityCardVariant.elevated;
 
     Widget cardContent = Container(
       padding: cardPadding,
       decoration: BoxDecoration(
         color: backgroundColor ?? theme.cardTheme.color ?? theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(
-          variant == BeityCardVariant.compact ? AppSpacing.radiusMd : AppSpacing.radiusLg,
-        ),
-        border: variant == BeityCardVariant.elevated
-            ? null
-            : Border.all(
-                color: theme.dividerTheme.color ?? theme.colorScheme.outlineVariant,
-                width: 1,
-              ),
-        boxShadow: variant == BeityCardVariant.elevated
+        borderRadius: effectiveRadius,
+        border: showBorder
+            ? Border.all(
+                color: theme.colorScheme.outlineVariant,
+                width: hasBorder ? 1.2 : 1,
+              )
+            : null,
+        boxShadow: effectiveElevation > 0
             ? [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.06),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
+                  color: Colors.black.withValues(alpha: isDark ? 0.26 : 0.08),
+                  blurRadius: 8 + (effectiveElevation * 2),
+                  offset: Offset(0, 1 + effectiveElevation),
                 ),
               ]
             : null,
@@ -86,9 +106,7 @@ class BeityCard extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(
-            variant == BeityCardVariant.compact ? AppSpacing.radiusMd : AppSpacing.radiusLg,
-          ),
+          borderRadius: effectiveRadius,
           child: cardContent,
         ),
       );

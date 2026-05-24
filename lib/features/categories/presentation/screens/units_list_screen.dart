@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../app/theme/app_colors.dart';
 import '../providers/units_provider.dart';
 import '../widgets/unit_card_widget.dart';
 
@@ -112,7 +113,7 @@ class _UnitsListScreenState extends ConsumerState<UnitsListScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const Icon(Icons.error_outline,
-                        size: 48, color: Colors.red),
+                        size: 48, color: AppColors.error),
                     const SizedBox(height: 16),
                     Text(
                       'حدث خطأ أثناء تحميل الوحدات',

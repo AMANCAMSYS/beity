@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../app/theme/app_colors.dart';
 import 'error_screen.dart';
 import '../monitoring/monitoring_service.dart';
 
@@ -36,7 +37,7 @@ class _ErrorBoundaryState extends State<ErrorBoundary> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('تم إرسال تقرير الخطأ. شكراً لك!'),
-              backgroundColor: Colors.green,
+              backgroundColor: AppColors.success,
             ),
           );
         },

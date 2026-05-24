@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../app/theme/app_colors.dart';
 import '../../domain/entities/device_sync_status.dart';
 import '../providers/connectivity_provider.dart';
 import '../providers/offline_queue_provider.dart';
@@ -62,13 +63,13 @@ class _ConnectivityListenerState extends ConsumerState<ConnectivityListener> {
 
       if (result.allSucceeded) {
         message = 'تمت مزامنة ${result.successCount} عنصر بنجاح';
-        backgroundColor = Colors.green;
+        backgroundColor = AppColors.success;
       } else if (result.failedCount > 0) {
         message = 'فشلت مزامنة ${result.failedCount} عنصر';
-        backgroundColor = Colors.red;
+        backgroundColor = AppColors.error;
       } else {
         message = 'تمت المزامنة';
-        backgroundColor = Colors.blue;
+        backgroundColor = AppColors.info;
       }
 
       ScaffoldMessenger.of(context).showSnackBar(

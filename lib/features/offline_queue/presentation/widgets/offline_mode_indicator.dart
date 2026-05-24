@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../app/theme/app_colors.dart';
+
 class OfflineModeIndicator extends StatelessWidget {
   final int? pendingCount;
 
@@ -13,7 +15,7 @@ class OfflineModeIndicator extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.orange.shade100,
+        color: AppColors.warningContainer,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -22,13 +24,13 @@ class OfflineModeIndicator extends StatelessWidget {
           Icon(
             Icons.cloud_off,
             size: 16,
-            color: Colors.orange.shade800,
+            color: AppColors.warning,
           ),
           const SizedBox(width: 8),
           Text(
             'أنت غير متصل',
-            style: TextStyle(
-              color: Colors.orange.shade800,
+            style: const TextStyle(
+              color: AppColors.warning,
               fontWeight: FontWeight.w500,
               fontSize: 14,
             ),
@@ -38,7 +40,7 @@ class OfflineModeIndicator extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: Colors.orange.shade800,
+                color: AppColors.warning,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../app/theme/app_colors.dart';
 import '../../../../core/utils/action_debouncer.dart';
 import 'package:go_router/go_router.dart';
 
@@ -53,7 +54,7 @@ class _CreateCategoryScreenState extends ConsumerState<CreateCategoryScreen> {
               'تم إنشاء التصنيف بنجاح',
               textDirection: TextDirection.rtl,
             ),
-            backgroundColor: Colors.green,
+            backgroundColor: AppColors.success,
           ),
         );
         context.pop();
@@ -66,7 +67,7 @@ class _CreateCategoryScreenState extends ConsumerState<CreateCategoryScreen> {
               e.toString().replaceAll('Exception: ', ''),
               textDirection: TextDirection.rtl,
             ),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.error,
           ),
         );
       }

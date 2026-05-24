@@ -1,3 +1,4 @@
+import 'package:beity/app/theme/app_colors.dart';
 import 'package:beity/app/theme/app_spacing.dart';
 import 'package:beity/shared/widgets/design_system/beity_empty_state.dart';
 import 'package:beity/shared/widgets/design_system/beity_filter_chips.dart';
@@ -430,7 +431,7 @@ class _ShoppingModeScreenState extends ConsumerState<ShoppingModeScreen> {
               padding: const EdgeInsets.only(bottom: 4),
               child: Row(
                 children: [
-                  const Icon(Icons.check_circle, size: 16, color: Colors.green),
+                  const Icon(Icons.check_circle, size: 16, color: AppColors.success),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Consumer(

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../app/theme/app_colors.dart';
+
 class AppErrorWidget extends StatelessWidget {
   final String message;
   final VoidCallback? onRetry;
@@ -21,13 +23,13 @@ class AppErrorWidget extends StatelessWidget {
             Icon(
               Icons.error_outline,
               size: 80,
-              color: Colors.red[300],
+              color: AppColors.error,
             ),
             const SizedBox(height: 24),
             Text(
               'حدث خطأ',
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                color: Colors.red[700],
+                color: AppColors.error,
                 fontWeight: FontWeight.bold,
               ),
               textDirection: TextDirection.rtl,
@@ -51,7 +53,7 @@ class AppErrorWidget extends StatelessWidget {
                   textDirection: TextDirection.rtl,
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
+                  backgroundColor: AppColors.error,
                   foregroundColor: Colors.white,
                 ),
               ),

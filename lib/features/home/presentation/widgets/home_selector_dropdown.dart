@@ -16,6 +16,8 @@ class HomeSelectorDropdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return PopupMenuButton<String>(
       onSelected: (value) {
         if (value == 'manage') {
@@ -33,7 +35,7 @@ class HomeSelectorDropdown extends StatelessWidget {
                 children: [
                   Icon(
                     home.isActive ? Icons.check_circle : Icons.home_outlined,
-                    color: home.isActive ? Colors.green : Colors.grey,
+                    color: home.isActive ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
                     size: 20,
                   ),
                   const SizedBox(width: 12),
@@ -50,7 +52,10 @@ class HomeSelectorDropdown extends StatelessWidget {
                         if (home.memberCount > 0)
                           Text(
                             '${home.memberCount} أعضاء',
-                            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
                           ),
                       ],
                     ),
@@ -73,10 +78,10 @@ class HomeSelectorDropdown extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.06),
+          color: theme.colorScheme.primaryContainer.withValues(alpha: 0.46),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.1),
+            color: theme.colorScheme.primary.withValues(alpha: 0.18),
           ),
         ),
         child: Row(
@@ -97,7 +102,7 @@ class HomeSelectorDropdown extends StatelessWidget {
             const SizedBox(width: 2),
             Icon(
               Icons.arrow_drop_down,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
+              color: theme.colorScheme.onSurfaceVariant,
               size: 18,
             ),
           ],

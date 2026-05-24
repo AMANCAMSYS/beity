@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../app/theme/app_colors.dart';
 import '../../../homes/presentation/providers/homes_provider.dart';
 import '../providers/task_providers.dart';
 import '../widgets/recurrence_selector.dart';
@@ -146,7 +147,7 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(foregroundColor: AppColors.error),
             child: const Text('حذف'),
           ),
         ],
@@ -237,9 +238,9 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
                   value: 'delete',
                   child: Row(
                     children: [
-                      Icon(Icons.delete, color: Colors.red),
+                      Icon(Icons.delete, color: AppColors.error),
                       SizedBox(width: 8),
-                      Text('حذف', style: TextStyle(color: Colors.red)),
+                      Text('حذف', style: TextStyle(color: AppColors.error)),
                     ],
                   ),
                 ),
@@ -458,7 +459,7 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
                           const SizedBox(height: 8),
                           ListTile(
                             leading: const Icon(Icons.check_circle,
-                                color: Colors.green),
+                                color: AppColors.success),
                             title: const Text('تم الإكمال'),
                             subtitle: Text(
                               task.completedAt != null
@@ -488,8 +489,8 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
                             ),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: task.isCompleted
-                                  ? Colors.orange
-                                  : Colors.green,
+                                  ? AppColors.warning
+                                  : AppColors.success,
                               foregroundColor: Colors.white,
                             ),
                           ),

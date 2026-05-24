@@ -35,8 +35,8 @@ class BeityFilterChips extends StatelessWidget {
             selected: isSelected,
             onSelected: (_) => onSelected(index),
             selectedColor: isDark
-                ? AppColors.primaryLight.withOpacity(0.2)
-                : AppColors.primary.withOpacity(0.15),
+                ? AppColors.primaryLight.withValues(alpha: 0.2)
+                : AppColors.primaryContainer,
             checkmarkColor: isDark ? AppColors.primaryLight : AppColors.primary,
             labelStyle: TextStyle(
               fontSize: compact ? 12 : 13,

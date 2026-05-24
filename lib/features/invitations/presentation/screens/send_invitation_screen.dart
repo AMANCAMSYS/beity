@@ -54,7 +54,7 @@ class _SendInvitationScreenState extends ConsumerState<SendInvitationScreen> {
               'تم إرسال الدعوة بنجاح',
               textDirection: TextDirection.rtl,
             ),
-            backgroundColor: Colors.green,
+            backgroundColor: AppColors.success,
           ),
         );
         Navigator.pop(context);
@@ -67,7 +67,7 @@ class _SendInvitationScreenState extends ConsumerState<SendInvitationScreen> {
               e.toString().replaceAll('Exception: ', ''),
               textDirection: TextDirection.rtl,
             ),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.error,
           ),
         );
       }

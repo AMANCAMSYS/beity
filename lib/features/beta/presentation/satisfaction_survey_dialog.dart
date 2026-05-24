@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/theme/app_colors.dart';
 import '../../../shared/widgets/star_rating.dart';
 import '../data/beta_preferences.dart';
 import '../data/feedback_repository.dart';
@@ -38,7 +39,7 @@ class _SatisfactionSurveyDialogState extends State<SatisfactionSurveyDialog> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('يرجى اختيار تقييم'),
-          backgroundColor: Colors.orange,
+          backgroundColor: AppColors.warning,
         ),
       );
       return;
@@ -62,7 +63,7 @@ class _SatisfactionSurveyDialogState extends State<SatisfactionSurveyDialog> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('شكراً لملاحظاتك!'),
-            backgroundColor: Colors.green,
+            backgroundColor: AppColors.success,
           ),
         );
         Navigator.of(context).pop();
@@ -73,7 +74,7 @@ class _SatisfactionSurveyDialogState extends State<SatisfactionSurveyDialog> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('فشل الإرسال. يرجى المحاولة مرة أخرى.'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.error,
           ),
         );
       }

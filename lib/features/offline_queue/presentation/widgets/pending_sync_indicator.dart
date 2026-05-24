@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../app/theme/app_colors.dart';
+
 class PendingSyncIndicator extends StatelessWidget {
   final double size;
 
@@ -13,7 +15,7 @@ class PendingSyncIndicator extends StatelessWidget {
     return Icon(
       Icons.cloud_upload_outlined,
       size: size,
-      color: Colors.orange,
+      color: AppColors.warning,
     );
   }
 }

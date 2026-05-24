@@ -414,9 +414,9 @@ class _InventoryItemDetailScreenState
       case 'manual_update':
         return AppColors.primary;
       case 'shopping_restock':
-        return Colors.indigo;
+        return AppColors.info;
       case 'zero_removal':
-        return Colors.orange;
+        return AppColors.warning;
       case 'delete':
         return AppColors.error;
       default:

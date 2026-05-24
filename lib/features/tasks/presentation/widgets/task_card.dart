@@ -19,9 +19,9 @@ class TaskCard extends StatelessWidget {
   });
 
   Color _getDueDateColor() {
-    if (task.isOverdue) return Colors.red;
-    if (task.isDueToday) return Colors.orange;
-    return Colors.grey;
+    if (task.isOverdue) return AppColors.error;
+    if (task.isDueToday) return AppColors.warning;
+    return AppColors.textHintLight;
   }
 
   String _getDueDateText() {

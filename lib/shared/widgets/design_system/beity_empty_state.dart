@@ -8,6 +8,7 @@ class BeityEmptyState extends StatelessWidget {
   final bool isError;
   final String? actionText;
   final VoidCallback? onAction;
+  final VoidCallback? onActionPressed;
 
   const BeityEmptyState({
     super.key,
@@ -17,11 +18,13 @@ class BeityEmptyState extends StatelessWidget {
     this.isError = false,
     this.actionText,
     this.onAction,
+    this.onActionPressed,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final effectiveAction = onAction ?? onActionPressed;
 
     return Center(
       child: Padding(
@@ -33,8 +36,8 @@ class BeityEmptyState extends StatelessWidget {
               icon,
               size: 72,
               color: isError
-                  ? theme.colorScheme.error.withOpacity(0.4)
-                  : theme.colorScheme.onSurfaceVariant.withOpacity(0.3),
+                  ? theme.colorScheme.error.withValues(alpha: 0.42)
+                  : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.34),
             ),
             const SizedBox(height: AppSpacing.lg),
             Text(
@@ -50,15 +53,15 @@ class BeityEmptyState extends StatelessWidget {
               Text(
                 message!,
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant.withOpacity(0.7),
+                  color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.78),
                 ),
                 textAlign: TextAlign.center,
               ),
             ],
-            if (actionText != null && onAction != null) ...[
+            if (actionText != null && effectiveAction != null) ...[
               const SizedBox(height: AppSpacing.lg),
               ElevatedButton.icon(
-                onPressed: onAction,
+                onPressed: effectiveAction,
                 icon: const Icon(Icons.refresh_rounded),
                 label: Text(actionText!),
               ),

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../app/theme/app_colors.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../homes/presentation/providers/homes_provider.dart';
 import '../../../beta/data/beta_config.dart';
@@ -101,7 +102,7 @@ class AppDrawer extends ConsumerWidget {
             ),
           if (FeatureFlags.enableAi)
             ListTile(
-              leading: const Icon(Icons.auto_awesome, color: Colors.amber),
+              leading: const Icon(Icons.auto_awesome, color: AppColors.accent),
               title: const Text('المساعد الذكي', textDirection: TextDirection.rtl),
               onTap: () {
                 Navigator.pop(context);
@@ -227,10 +228,10 @@ class AppDrawer extends ConsumerWidget {
               },
             ),
           ListTile(
-            leading: const Icon(Icons.logout, color: Colors.red),
+            leading: const Icon(Icons.logout, color: AppColors.error),
             title: const Text('تسجيل الخروج',
                 textDirection: TextDirection.rtl,
-                style: TextStyle(color: Colors.red)),
+                style: TextStyle(color: AppColors.error)),
             onTap: () async {
               Navigator.pop(context);
               try {
@@ -241,7 +242,7 @@ class AppDrawer extends ConsumerWidget {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('فشل تسجيل الخروج: ${e.toString()}'),
-                      backgroundColor: Colors.red,
+                      backgroundColor: AppColors.error,
                     ),
                   );
                 }

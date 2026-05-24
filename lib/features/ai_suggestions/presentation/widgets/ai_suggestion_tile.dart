@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../app/theme/app_colors.dart';
 import '../providers/ai_suggestions_provider.dart';
 import '../../domain/entities/ai_suggestion.dart';
 
@@ -45,12 +46,12 @@ class AiSuggestionTile extends ConsumerWidget {
                 margin: const EdgeInsets.symmetric(horizontal: 4),
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: Colors.orange.shade100,
+                  color: AppColors.warningContainer,
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
                   isArabic ? 'موجود بالفعل' : 'Already in list',
-                  style: TextStyle(fontSize: 10, color: Colors.orange.shade900),
+                  style: const TextStyle(fontSize: 10, color: AppColors.warning),
                 ),
               ),
           ],
@@ -113,7 +114,7 @@ class AiSuggestionTile extends ConsumerWidget {
               suggestion.reason!,
               style: TextStyle(
                 fontSize: 12,
-                color: Colors.blue.shade700,
+                color: AppColors.info,
                 fontStyle: FontStyle.italic,
               ),
             ),

@@ -72,7 +72,7 @@ class _ShoppingListsScreenState extends ConsumerState<ShoppingListsScreen>
         actions: [
           if (FeatureFlags.enableAi)
             IconButton(
-              icon: const Icon(Icons.auto_awesome_rounded, color: Colors.amber),
+              icon: const Icon(Icons.auto_awesome_rounded, color: AppColors.accent),
               onPressed: () => AiListSelectorSheet.show(context, homeId),
               tooltip: isArabic ? 'المساعد الذكي' : 'AI Assistant',
             ),

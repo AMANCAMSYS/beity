@@ -1,4 +1,5 @@
 import 'package:beity/app/theme/app_spacing.dart';
+import 'package:beity/app/theme/app_colors.dart';
 import 'package:beity/shared/widgets/design_system/beity_empty_state.dart';
 import 'package:beity/shared/widgets/design_system/beity_text_field.dart';
 import 'package:flutter/material.dart';
@@ -191,7 +192,7 @@ class _QuickAddScreenState extends ConsumerState<QuickAddScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('خطأ: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.error,
           ),
         );
       }
@@ -217,7 +218,7 @@ class _QuickAddScreenState extends ConsumerState<QuickAddScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('خطأ في التراجع: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.error,
           ),
         );
       }

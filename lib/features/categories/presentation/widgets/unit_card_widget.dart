@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../app/theme/app_colors.dart';
 import '../../data/models/unit_model.dart';
 import '../../domain/entities/unit.dart';
 import '../providers/units_provider.dart';
@@ -24,7 +25,7 @@ class UnitCardWidget extends ConsumerWidget {
           width: 48,
           height: 48,
           decoration: BoxDecoration(
-            color: _getUnitColor().withOpacity(0.1),
+            color: _getUnitColor().withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Center(
@@ -46,14 +47,14 @@ class UnitCardWidget extends ConsumerWidget {
         subtitle: Text(
           '${_getTypeName()} • ${unit.symbol}',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Colors.grey[600],
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
           textDirection: TextDirection.rtl,
         ),
         trailing: !unit.isDefault && showActions
             ? IconButton(
                 icon: const Icon(Icons.delete,
-                    size: 20, color: Colors.red),
+                    size: 20, color: AppColors.error),
                 onPressed: () => _deleteUnit(context, ref),
               )
             : null,
@@ -64,13 +65,13 @@ class UnitCardWidget extends ConsumerWidget {
   Color _getUnitColor() {
     switch (unit.type) {
       case UnitType.weight:
-        return Colors.orange;
+        return AppColors.warning;
       case UnitType.volume:
-        return Colors.blue;
+        return AppColors.info;
       case UnitType.count:
-        return Colors.green;
+        return AppColors.success;
       case UnitType.length:
-        return Colors.purple;
+        return AppColors.secondary;
     }
   }
 
@@ -118,7 +119,7 @@ class UnitCardWidget extends ConsumerWidget {
                         'تم حذف الوحدة بنجاح',
                         textDirection: TextDirection.rtl,
                       ),
-                      backgroundColor: Colors.green,
+                      backgroundColor: AppColors.success,
                     ),
                   );
                 }
@@ -130,14 +131,14 @@ class UnitCardWidget extends ConsumerWidget {
                         e.toString().replaceAll('Exception: ', ''),
                         textDirection: TextDirection.rtl,
                       ),
-                      backgroundColor: Colors.red,
+                      backgroundColor: AppColors.error,
                     ),
                   );
                 }
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
+              backgroundColor: AppColors.error,
               foregroundColor: Colors.white,
             ),
             child: const Text('حذف'),

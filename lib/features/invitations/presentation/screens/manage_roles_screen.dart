@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../app/theme/app_colors.dart';
 import '../providers/roles_provider.dart';
 import '../widgets/role_selector_widget.dart';
 import '../../../homes/data/models/home_member_model.dart';
@@ -90,7 +91,7 @@ class _ManageRolesScreenState extends ConsumerState<ManageRolesScreen> {
                   Text(
                     member.userEmail ?? '',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.grey[600],
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                     textDirection: TextDirection.ltr,
                   ),
@@ -101,13 +102,13 @@ class _ManageRolesScreenState extends ConsumerState<ManageRolesScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.amber.withOpacity(0.2),
+                  color: AppColors.warning.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Text(
                   'مالك',
                   style: TextStyle(
-                    color: Colors.amber,
+                    color: AppColors.warning,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -138,7 +139,7 @@ class _ManageRolesScreenState extends ConsumerState<ManageRolesScreen> {
               'تم تغيير الدور بنجاح',
               textDirection: TextDirection.rtl,
             ),
-            backgroundColor: Colors.green,
+            backgroundColor: AppColors.success,
           ),
         );
       }
@@ -150,7 +151,7 @@ class _ManageRolesScreenState extends ConsumerState<ManageRolesScreen> {
               e.toString().replaceAll('Exception: ', ''),
               textDirection: TextDirection.rtl,
             ),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.error,
           ),
         );
       }

@@ -199,7 +199,14 @@ class AiRecipeChecklist extends ConsumerWidget {
               if (ing.reason != null && ing.reason!.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(top: 4),
-                  child: Text(ing.reason!, style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic, color: Colors.blue.shade600)),
+                  child: Text(
+                    ing.reason!,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontStyle: FontStyle.italic,
+                      color: AppColors.info,
+                    ),
+                  ),
                 ),
             ],
           ),

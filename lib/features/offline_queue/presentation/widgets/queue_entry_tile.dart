@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../app/theme/app_colors.dart';
 import '../../domain/entities/queue_entry.dart';
 import '../../domain/entities/sync_status.dart';
 
@@ -34,7 +35,7 @@ class QueueEntryTile extends StatelessWidget {
   Widget _buildLeadingIcon() {
     switch (entry.syncStatus) {
       case SyncStatus.pending:
-        return const Icon(Icons.cloud_upload_outlined, color: Colors.orange);
+        return const Icon(Icons.cloud_upload_outlined, color: AppColors.warning);
       case SyncStatus.syncing:
         return const SizedBox(
           width: 24,
@@ -42,7 +43,7 @@ class QueueEntryTile extends StatelessWidget {
           child: CircularProgressIndicator(strokeWidth: 2),
         );
       case SyncStatus.failed:
-        return const Icon(Icons.error_outline, color: Colors.red);
+        return const Icon(Icons.error_outline, color: AppColors.error);
     }
   }
 

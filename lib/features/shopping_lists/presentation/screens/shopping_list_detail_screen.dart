@@ -165,7 +165,7 @@ class _ShoppingListDetailScreenState
         actions: [
           if (FeatureFlags.enableAi)
             IconButton(
-              icon: const Icon(Icons.auto_awesome_rounded, color: Colors.amber),
+              icon: const Icon(Icons.auto_awesome_rounded, color: AppColors.accent),
               onPressed: () => ActionDebouncer.execute(() async {
                 final list = listAsync.valueOrNull;
                 if (list != null) {
@@ -634,7 +634,7 @@ class _ShoppingListDetailScreenState
           duration: const Duration(seconds: 5),
           action: SnackBarAction(
             label: isArabic ? 'تراجع' : 'Undo',
-            textColor: Colors.amber,
+            textColor: AppColors.accentLight,
             onPressed: () => _undoDelete(),
           ),
         ),

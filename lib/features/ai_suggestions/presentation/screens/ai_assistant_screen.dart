@@ -409,7 +409,7 @@ class _AiAssistantScreenState extends ConsumerState<AiAssistantScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.info_outline_rounded, size: 48, color: Colors.blue),
+                const Icon(Icons.info_outline_rounded, size: 48, color: AppColors.info),
                 const SizedBox(height: 16),
                 Text(response.message, textAlign: TextAlign.center, style: const TextStyle(fontSize: 15)),
               ],

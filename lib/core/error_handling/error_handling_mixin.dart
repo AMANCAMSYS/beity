@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../app/theme/app_colors.dart';
 import '../monitoring/monitoring_service.dart';
 import 'error_handler.dart';
 
@@ -32,14 +33,14 @@ mixin ErrorHandlingMixin<T extends StatefulWidget> on State<T> {
           action: onRetry != null
               ? SnackBarAction(label: 'إعادة المحاولة', onPressed: onRetry)
               : null,
-          backgroundColor: Colors.orange,
+          backgroundColor: AppColors.warning,
         );
         break;
 
       case RecoveryAction.reauth:
         _showSnackBar(
           errorInfo.message,
-          backgroundColor: Colors.red,
+          backgroundColor: AppColors.error,
         );
         // Navigate to login after a delay
         Future.delayed(const Duration(seconds: 2), () {
@@ -55,7 +56,7 @@ mixin ErrorHandlingMixin<T extends StatefulWidget> on State<T> {
       case RecoveryAction.navigateToHomes:
         _showSnackBar(
           errorInfo.message,
-          backgroundColor: Colors.red,
+          backgroundColor: AppColors.error,
         );
         Navigator.of(context).pushNamedAndRemoveUntil(
           '/homes',
@@ -69,14 +70,14 @@ mixin ErrorHandlingMixin<T extends StatefulWidget> on State<T> {
           action: onRetry != null
               ? SnackBarAction(label: 'إعادة المحاولة', onPressed: onRetry)
               : null,
-          backgroundColor: Colors.red,
+          backgroundColor: AppColors.error,
         );
         break;
 
       case RecoveryAction.dismiss:
         _showSnackBar(
           errorInfo.message,
-          backgroundColor: Colors.orange,
+          backgroundColor: AppColors.warning,
         );
         break;
 
@@ -86,7 +87,7 @@ mixin ErrorHandlingMixin<T extends StatefulWidget> on State<T> {
           action: onRetry != null
               ? SnackBarAction(label: 'إعادة المحاولة', onPressed: onRetry)
               : null,
-          backgroundColor: Colors.red,
+          backgroundColor: AppColors.error,
         );
         break;
     }

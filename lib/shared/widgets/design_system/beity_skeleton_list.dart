@@ -74,7 +74,7 @@ class _SkeletonRowState extends State<_SkeletonRow>
           return Container(
             height: widget.height,
             decoration: BoxDecoration(
-              color: baseColor.withOpacity(_animation.value),
+              color: baseColor.withValues(alpha: _animation.value),
               borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
             ),
             padding: const EdgeInsets.all(AppSpacing.md),
@@ -84,7 +84,7 @@ class _SkeletonRowState extends State<_SkeletonRow>
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: baseColor.withOpacity(_animation.value + 0.1),
+                    color: baseColor.withValues(alpha: _animation.value + 0.1),
                     shape: BoxShape.circle,
                   ),
                 ),
@@ -98,7 +98,7 @@ class _SkeletonRowState extends State<_SkeletonRow>
                         height: 14,
                         width: double.infinity,
                         decoration: BoxDecoration(
-                          color: baseColor.withOpacity(_animation.value + 0.1),
+                          color: baseColor.withValues(alpha: _animation.value + 0.1),
                           borderRadius: BorderRadius.circular(4),
                         ),
                       ),
@@ -107,7 +107,7 @@ class _SkeletonRowState extends State<_SkeletonRow>
                         height: 12,
                         width: 120,
                         decoration: BoxDecoration(
-                          color: baseColor.withOpacity(_animation.value + 0.05),
+                          color: baseColor.withValues(alpha: _animation.value + 0.05),
                           borderRadius: BorderRadius.circular(4),
                         ),
                       ),
