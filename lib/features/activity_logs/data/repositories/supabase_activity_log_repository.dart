@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:async';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/activity_log_model.dart';
 import '../../domain/entities/activity_log.dart';
@@ -14,14 +16,60 @@ class SupabaseActivityLogRepository implements ActivityLogRepository {
     int limit = 50,
     int offset = 0,
   }) {
-    return _client
+    final controller = StreamController<List<ActivityLogModel>>();
+    
+    // Load initial data via regular query
+    _loadInitialData(controller, homeId, limit, offset);
+    
+    // Also listen to realtime changes
+    _client
         .from('activity_logs')
         .stream(primaryKey: ['id'])
         .eq('home_id', homeId)
         .order('created_at', ascending: false)
         .limit(limit)
         .map((response) =>
-            response.map((json) => ActivityLogModel.fromJson(json)).toList());
+            response.map((json) => ActivityLogModel.fromJson(json)).toList())
+        .listen(
+          (data) {
+            if (!controller.isClosed) {
+              controller.add(data);
+            }
+          },
+          onError: (error) {
+            // Silently handle realtime errors - initial data already loaded
+          },
+        );
+    
+    return controller.stream;
+  }
+
+  Future<void> _loadInitialData(
+    StreamController<List<ActivityLogModel>> controller,
+    String homeId,
+    int limit,
+    int offset,
+  ) async {
+    try {
+      final response = await _client
+          .from('activity_logs')
+          .select()
+          .eq('home_id', homeId)
+          .order('created_at', ascending: false)
+          .range(offset, offset + limit - 1);
+
+      final logs = (response as List)
+          .map((json) => ActivityLogModel.fromJson(json))
+          .toList();
+      
+      if (!controller.isClosed) {
+        controller.add(logs);
+      }
+    } catch (e) {
+      if (!controller.isClosed) {
+        controller.addError(e);
+      }
+    }
   }
 
   @override
@@ -31,7 +79,13 @@ class SupabaseActivityLogRepository implements ActivityLogRepository {
     int limit = 50,
     int offset = 0,
   }) {
-    return _client
+    final controller = StreamController<List<ActivityLogModel>>();
+    
+    // Load initial data via regular query
+    _loadListInitialData(controller, homeId, listId, limit, offset);
+    
+    // Also listen to realtime changes
+    _client
         .from('activity_logs')
         .stream(primaryKey: ['id'])
         .eq('home_id', homeId)
@@ -44,7 +98,53 @@ class SupabaseActivityLogRepository implements ActivityLogRepository {
                     log.entityId == listId) ||
                 (log.metadata != null &&
                     log.metadata!['list_id'] == listId))
-            .toList());
+            .toList())
+        .listen(
+          (data) {
+            if (!controller.isClosed) {
+              controller.add(data);
+            }
+          },
+          onError: (error) {
+            // Silently handle realtime errors
+          },
+        );
+    
+    return controller.stream;
+  }
+
+  Future<void> _loadListInitialData(
+    StreamController<List<ActivityLogModel>> controller,
+    String homeId,
+    String listId,
+    int limit,
+    int offset,
+  ) async {
+    try {
+      final response = await _client
+          .from('activity_logs')
+          .select()
+          .eq('home_id', homeId)
+          .order('created_at', ascending: false)
+          .range(offset, offset + limit - 1);
+
+      final logs = (response as List)
+          .map((json) => ActivityLogModel.fromJson(json))
+          .where((log) =>
+              (log.entityType == EntityType.shoppingList &&
+                  log.entityId == listId) ||
+              (log.metadata != null &&
+                  log.metadata!['list_id'] == listId))
+          .toList();
+      
+      if (!controller.isClosed) {
+        controller.add(logs);
+      }
+    } catch (e) {
+      if (!controller.isClosed) {
+        controller.addError(e);
+      }
+    }
   }
 
   @override
