@@ -11,15 +11,21 @@ final activityLogRepositoryProvider = Provider<ActivityLogRepository>((ref) {
 });
 
 final homeActivityProvider =
-    StreamProvider.autoDispose.family<List<ActivityLogModel>, String>((ref, homeId) {
+    FutureProvider.autoDispose.family<List<ActivityLogModel>, String>((ref, homeId) async {
   final repository = ref.watch(activityLogRepositoryProvider);
-  return repository.watchHomeActivity(homeId: homeId);
+  return repository.getActivityLogs(homeId: homeId, limit: 50);
 });
 
 final listActivityProvider =
-    StreamProvider.autoDispose.family<List<ActivityLogModel>, List<String>>((ref, params) {
+    FutureProvider.autoDispose.family<List<ActivityLogModel>, List<String>>((ref, params) async {
   final repository = ref.watch(activityLogRepositoryProvider);
-  return repository.watchListActivity(homeId: params[0], listId: params[1]);
+  final homeId = params[0];
+  final listId = params[1];
+  final logs = await repository.getActivityLogs(homeId: homeId, limit: 100);
+  return logs.where((log) =>
+      (log.entityType == EntityType.shoppingList && log.entityId == listId) ||
+      (log.metadata != null && log.metadata!['list_id'] == listId)
+  ).toList();
 });
 
 final activityActorsProvider =
