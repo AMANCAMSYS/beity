@@ -13,6 +13,8 @@ class PresenceIndicatorWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+    final theme = Theme.of(context);
     final others = presences.values
         .where((p) => p.userId != currentUserId)
         .toList();
@@ -24,26 +26,25 @@ class PresenceIndicatorWidget extends StatelessWidget {
       child: Row(
         children: [
           Text(
-            'المتواجدون:',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.grey[600],
-                ),
-            textDirection: TextDirection.rtl,
+            isArabic ? 'المتواجدون:' : 'Active now:',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
           ),
           const SizedBox(width: 8),
           ...others.take(5).map((presence) => Padding(
-                padding: const EdgeInsets.only(left: 4),
+                padding: const EdgeInsetsDirectional.only(end: 4),
                 child: Tooltip(
                   message: presence.displayName,
                   child: CircleAvatar(
                     radius: 14,
-                    backgroundColor: Colors.blue[100],
+                    backgroundColor: theme.colorScheme.primaryContainer,
                     child: Text(
                       presence.initials,
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
-                        color: Colors.blue[800],
+                        color: theme.colorScheme.onPrimaryContainer,
                       ),
                     ),
                   ),
@@ -51,15 +52,15 @@ class PresenceIndicatorWidget extends StatelessWidget {
               )),
           if (others.length > 5)
             Padding(
-              padding: const EdgeInsets.only(left: 4),
+              padding: const EdgeInsetsDirectional.only(end: 4),
               child: CircleAvatar(
                 radius: 14,
-                backgroundColor: Colors.grey[200],
+                backgroundColor: theme.colorScheme.surfaceContainerHighest,
                 child: Text(
                   '+${others.length - 5}',
                   style: TextStyle(
                     fontSize: 10,
-                    color: Colors.grey[700],
+                    color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
               ),

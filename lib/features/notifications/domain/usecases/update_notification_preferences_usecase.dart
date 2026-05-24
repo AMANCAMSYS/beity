@@ -6,9 +6,15 @@ class UpdateNotificationPreferencesUseCase {
 
   UpdateNotificationPreferencesUseCase(this._repository);
 
-  Future<List<NotificationPreference>> call({
-    required List<Map<String, dynamic>> preferences,
+  Future<NotificationPreferences> call({
+    required String homeId,
+    required String field,
+    required bool value,
   }) async {
-    return await _repository.updatePreferences(preferences: preferences);
+    return await _repository.updatePreference(
+      homeId: homeId,
+      field: field,
+      value: value,
+    );
   }
 }

@@ -82,11 +82,12 @@ class SupabaseShoppingListRepository implements ShoppingListRepository {
     String? description,
     String? status,
   }) async {
+    final user = _client.auth.currentUser;
     final updates = <String, dynamic>{
       'updated_at': DateTime.now().toIso8601String(),
+      'updated_by': user?.id,
     };
-    if (name != null) updates['title'] = name; // Database uses 'title'
-    if (description != null) updates['type'] = description; // Database uses 'type'
+    if (name != null) updates['title'] = name;
     if (status != null) updates['status'] = status;
 
     final response = await _client
@@ -103,10 +104,13 @@ class SupabaseShoppingListRepository implements ShoppingListRepository {
   Future<void> deleteShoppingList({
     required String listId,
   }) async {
+    final user = _client.auth.currentUser;
     await _client
         .from('shopping_lists')
         .update({
           'deleted_at': DateTime.now().toIso8601String(),
+          'updated_at': DateTime.now().toIso8601String(),
+          'updated_by': user?.id,
         })
         .eq('id', listId);
   }
@@ -136,6 +140,7 @@ class SupabaseShoppingListRepository implements ShoppingListRepository {
         .from('shopping_items')
         .select()
         .eq('list_id', listId) // Database uses 'list_id'
+        .filter('deleted_at', 'is', null)
         .order('status', ascending: true)
         .order('name', ascending: true);
 
@@ -160,6 +165,7 @@ class SupabaseShoppingListRepository implements ShoppingListRepository {
 
   @override
   Future<ShoppingItemModel> createShoppingItem({
+    String? id,
     required String listId,
     required String name,
     double quantity = 1,
@@ -174,17 +180,24 @@ class SupabaseShoppingListRepository implements ShoppingListRepository {
       throw Exception('يجب تسجيل الدخول أولاً');
     }
 
+    final payload = <String, dynamic>{
+      'list_id': listId,
+      'name': name,
+      'quantity': quantity,
+      'unit_id': unitId,
+      'category_id': categoryId,
+      'estimated_price': price,
+      'currency': currency ?? 'SAR',
+      'note': notes,
+      'created_by': user.id,
+    };
+    if (id != null) {
+      payload['id'] = id;
+    }
+
     final response = await _client
         .from('shopping_items')
-        .insert({
-          'list_id': listId, // Database uses 'list_id'
-          'name': name,
-          'quantity': quantity,
-          'unit_id': unitId,
-          'category_id': categoryId,
-          'note': notes, // Database uses 'note'
-          'created_by': user.id,
-        })
+        .insert(payload)
         .select()
         .single();
 
@@ -201,14 +214,16 @@ class SupabaseShoppingListRepository implements ShoppingListRepository {
     double? price,
     String? notes,
   }) async {
+    final user = _client.auth.currentUser;
     final updates = <String, dynamic>{
       'updated_at': DateTime.now().toIso8601String(),
+      'updated_by': user?.id,
     };
     if (name != null) updates['name'] = name;
     if (quantity != null) updates['quantity'] = quantity;
     if (unitId != null) updates['unit_id'] = unitId;
     if (categoryId != null) updates['category_id'] = categoryId;
-    if (notes != null) updates['note'] = notes; // Database uses 'note'
+    if (notes != null) updates['note'] = notes;
 
     final response = await _client
         .from('shopping_items')
@@ -224,9 +239,14 @@ class SupabaseShoppingListRepository implements ShoppingListRepository {
   Future<void> deleteShoppingItem({
     required String itemId,
   }) async {
+    final user = _client.auth.currentUser;
     await _client
         .from('shopping_items')
-        .delete()
+        .update({
+          'deleted_at': DateTime.now().toIso8601String(),
+          'updated_at': DateTime.now().toIso8601String(),
+          'updated_by': user?.id,
+        })
         .eq('id', itemId);
   }
 
@@ -241,12 +261,13 @@ class SupabaseShoppingListRepository implements ShoppingListRepository {
     }
 
     final updates = <String, dynamic>{
-      'status': isPurchased ? 'completed' : 'pending', // Database uses 'status'
+      'status': isPurchased ? 'completed' : 'pending',
       'updated_at': DateTime.now().toIso8601String(),
+      'updated_by': user.id,
     };
 
     if (isPurchased) {
-      updates['completed_by'] = user.id; // Database uses 'completed_by'
+      updates['completed_by'] = user.id;
       updates['completed_at'] = DateTime.now().toIso8601String();
     } else {
       updates['completed_by'] = null;
@@ -291,8 +312,10 @@ class SupabaseShoppingListRepository implements ShoppingListRepository {
         .eq('list_id', listId) // Database uses 'list_id'
         .order('status', ascending: true)
         .order('name', ascending: true)
-        .map((response) =>
-            response.map((json) => ShoppingItemModel.fromJson(json)).toList());
+        .map((response) => response
+            .map((json) => ShoppingItemModel.fromJson(json))
+            .where((item) => item.deletedAt == null)
+            .toList());
   }
 
   // Item Templates

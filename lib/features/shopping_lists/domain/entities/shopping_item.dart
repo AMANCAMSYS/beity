@@ -14,6 +14,7 @@ class ShoppingItem {
   final String createdBy;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+  final DateTime? deletedAt;
 
   const ShoppingItem({
     required this.id,
@@ -31,6 +32,7 @@ class ShoppingItem {
     required this.createdBy,
     this.createdAt,
     this.updatedAt,
+    this.deletedAt,
   });
 
   bool get hasPrice => price != null && price! > 0;

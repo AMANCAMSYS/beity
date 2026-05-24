@@ -1,9 +1,11 @@
+import 'package:beity/app/theme/app_spacing.dart';
+import 'package:beity/shared/widgets/design_system/beity_empty_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../providers/categories_provider.dart';
 import '../widgets/category_card_widget.dart';
-import '../../domain/entities/category.dart';
 
 class CategoriesListScreen extends ConsumerStatefulWidget {
   final String? homeId;
@@ -35,7 +37,7 @@ class _CategoriesListScreenState extends ConsumerState<CategoriesListScreen> {
             IconButton(
               icon: const Icon(Icons.add),
               onPressed: () {
-                // Navigate to create category screen
+                context.push('/categories/create', extra: widget.homeId);
               },
             ),
         ],
@@ -63,40 +65,10 @@ class _CategoriesListScreenState extends ConsumerState<CategoriesListScreen> {
             child: categoriesAsync.when(
               data: (categories) {
                 if (categories.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.category_outlined,
-                          size: 64,
-                          color: Colors.grey[400],
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'لا توجد تصنيفات',
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleMedium
-                              ?.copyWith(
-                                color: Colors.grey[600],
-                              ),
-                          textDirection: TextDirection.rtl,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'سيتم عرض التصنيفات الافتراضية هنا',
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodyMedium
-                              ?.copyWith(
-                                color: Colors.grey[500],
-                              ),
-                          textDirection: TextDirection.rtl,
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
+                  return BeityEmptyState(
+                    title: 'لا توجد تصنيفات',
+                    message: 'سيتم عرض التصنيفات الافتراضية هنا',
+                    icon: Icons.category_outlined,
                   );
                 }
 
@@ -114,24 +86,13 @@ class _CategoriesListScreenState extends ConsumerState<CategoriesListScreen> {
               },
               loading: () =>
                   const Center(child: CircularProgressIndicator()),
-              error: (error, stack) => Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.error_outline,
-                        size: 48, color: Colors.red),
-                    const SizedBox(height: 16),
-                    Text(
-                      'حدث خطأ أثناء تحميل التصنيفات',
-                      textDirection: TextDirection.rtl,
-                    ),
-                    const SizedBox(height: 8),
-                    ElevatedButton(
-                      onPressed: () => ref.invalidate(categoriesByTypeProvider),
-                      child: const Text('إعادة المحاولة'),
-                    ),
-                  ],
-                ),
+              error: (error, stack) => BeityEmptyState(
+                title: 'حدث خطأ',
+                message: error.toString(),
+                icon: Icons.error_outline_rounded,
+                isError: true,
+                actionText: 'إعادة المحاولة',
+                onActionPressed: () => ref.invalidate(categoriesByTypeProvider),
               ),
             ),
           ),

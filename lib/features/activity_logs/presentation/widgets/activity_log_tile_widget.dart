@@ -75,6 +75,8 @@ class ActivityLogTileWidget extends StatelessWidget {
         return Icons.admin_panel_settings_outlined;
       case ActionType.invitationAccepted:
         return Icons.mark_email_read_outlined;
+      case ActionType.aiItemsAdded:
+        return Icons.auto_awesome;
     }
   }
 
@@ -106,6 +108,8 @@ class ActivityLogTileWidget extends StatelessWidget {
         return Colors.purple;
       case ActionType.invitationAccepted:
         return Colors.green;
+      case ActionType.aiItemsAdded:
+        return Colors.purple;
     }
   }
 

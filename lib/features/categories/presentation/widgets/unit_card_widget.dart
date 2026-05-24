@@ -51,19 +51,10 @@ class UnitCardWidget extends ConsumerWidget {
           textDirection: TextDirection.rtl,
         ),
         trailing: !unit.isDefault && showActions
-            ? Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.edit, size: 20),
-                    onPressed: () => _editUnit(context),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.delete,
-                        size: 20, color: Colors.red),
-                    onPressed: () => _deleteUnit(context, ref),
-                  ),
-                ],
+            ? IconButton(
+                icon: const Icon(Icons.delete,
+                    size: 20, color: Colors.red),
+                onPressed: () => _deleteUnit(context, ref),
               )
             : null,
       ),
@@ -94,10 +85,6 @@ class UnitCardWidget extends ConsumerWidget {
       case UnitType.length:
         return 'طول';
     }
-  }
-
-  void _editUnit(BuildContext context) {
-    // Navigate to edit unit screen
   }
 
   void _deleteUnit(BuildContext context, WidgetRef ref) {

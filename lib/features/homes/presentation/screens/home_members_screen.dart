@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:beity/app/theme/app_spacing.dart';
+import 'package:beity/shared/widgets/design_system/beity_card.dart';
+import 'package:beity/shared/widgets/design_system/beity_button.dart';
+import 'package:beity/shared/widgets/design_system/beity_empty_state.dart';
+import 'package:beity/core/utils/action_debouncer.dart';
 import '../providers/homes_provider.dart';
 import '../widgets/member_card_widget.dart';
 import '../../../invitations/presentation/providers/invitations_provider.dart';
@@ -17,20 +22,27 @@ class HomeMembersScreen extends ConsumerWidget {
     final membersAsync = ref.watch(homeMembersProvider(homeId));
     final homeAsync = ref.watch(userHomesProvider);
     final invitationsAsync = ref.watch(homeInvitationsStreamProvider(homeId));
+    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('أعضاء المنزل'),
+        centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.person_add),
-            tooltip: 'دعوة عضو',
+            icon: const Icon(Icons.admin_panel_settings_rounded),
+            tooltip: 'إدارة الأدوار',
             onPressed: () {
               final homes = homeAsync.valueOrNull ?? [];
               final home = homes.where((h) => h.id == homeId).firstOrNull;
               final homeName = home?.name ?? 'المنزل';
-              context.push('/homes/$homeId/invitations/send', extra: homeName);
+              context.push('/homes/$homeId/roles', extra: homeName);
             },
+          ),
+          IconButton(
+            icon: const Icon(Icons.mail_outline_rounded),
+            tooltip: 'دعوات هذا المنزل',
+            onPressed: () => context.push('/homes/$homeId/invitations'),
           ),
         ],
       ),
@@ -43,95 +55,123 @@ class HomeMembersScreen extends ConsumerWidget {
           );
 
           if (members.isEmpty && pendingInvitations.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.people_outline,
-                    size: 80,
-                    color: Colors.grey[400],
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'لا يوجد أعضاء',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: Colors.grey[600],
-                        ),
-                  ),
-                  const SizedBox(height: 24),
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      final homes = homeAsync.valueOrNull ?? [];
-                      final home = homes.where((h) => h.id == homeId).firstOrNull;
-                      final homeName = home?.name ?? 'المنزل';
-                      context.push('/homes/$homeId/invitations/send', extra: homeName);
-                    },
-                    icon: const Icon(Icons.person_add),
-                    label: const Text('دعوة عضو'),
-                  ),
-                ],
-              ),
-            );
+            return _buildEmptyState(context, ref, homeAsync);
           }
 
-          return ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              // Pending Invitations Section
-              if (pendingInvitations.isNotEmpty) ...[
-                Text(
-                  'الدعوات المعلقة',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.orange,
+          return RefreshIndicator(
+            onRefresh: () async {
+              ref.invalidate(homeMembersProvider(homeId));
+              ref.invalidate(homeInvitationsStreamProvider(homeId));
+              ref.invalidate(homeInvitationsProvider(homeId));
+            },
+            color: theme.colorScheme.primary,
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              children: [
+                // Pending Invitations Section
+                if (pendingInvitations.isNotEmpty) ...[
+                  Row(
+                    children: [
+                      Icon(Icons.mail_rounded, size: 20, color: theme.colorScheme.tertiary),
+                      AppSpacing.gapSM,
+                      Text(
+                        'الدعوات المعلقة',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: theme.colorScheme.tertiary,
+                        ),
+                      ),
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.tertiary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                        ),
+                        child: Text(
+                          pendingInvitations.length.toString(),
+                          style: theme.textTheme.labelMedium?.copyWith(
+                            color: theme.colorScheme.tertiary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
+                  AppSpacing.gapMD,
+                  ...pendingInvitations.map((invitation) => Padding(
+                    padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                    child: InvitationCardWidget(
+                      invitation: invitation,
+                      isOwner: true,
+                    ),
+                  )),
+                  AppSpacing.gapLG,
+                  Divider(color: theme.colorScheme.outlineVariant),
+                  AppSpacing.gapLG,
+                ],
+                
+                // Active Members Section
+                Row(
+                  children: [
+                    Icon(Icons.people_rounded, size: 20, color: theme.colorScheme.primary),
+                    AppSpacing.gapSM,
+                    Text(
+                      'الأعضاء النشطون',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 8),
-                ...pendingInvitations.map((invitation) => InvitationCardWidget(
-                  invitation: invitation,
-                  isOwner: true,
+                AppSpacing.gapMD,
+                ...members.map((member) => Padding(
+                  padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                  child: MemberCardWidget(member: member),
                 )),
-                const Divider(height: 32),
               ],
-              
-              // Active Members Section
-              Text(
-                'الأعضاء النشطون',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              ...members.map((member) => MemberCardWidget(member: member)),
-            ],
+            ),
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error_outline, size: 48, color: Colors.red),
-              const SizedBox(height: 16),
-              Text(
-                'حدث خطأ: ${error.toString()}',
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
+        error: (error, stack) => BeityEmptyState(
+          title: 'حدث خطأ في تحميل الأعضاء',
+          message: error.toString(),
+          icon: Icons.error_outline_rounded,
+          isError: true,
+          actionText: 'إعادة المحاولة',
+          onActionPressed: () => ref.invalidate(homeMembersProvider(homeId)),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
           final homes = homeAsync.valueOrNull ?? [];
           final home = homes.where((h) => h.id == homeId).firstOrNull;
           final homeName = home?.name ?? 'المنزل';
           context.push('/homes/$homeId/invitations/send', extra: homeName);
         },
-        tooltip: 'دعوة عضو',
-        child: const Icon(Icons.person_add),
+        label: const Text('دعوة عضو'),
+        icon: const Icon(Icons.person_add_rounded),
+        backgroundColor: theme.colorScheme.primary,
+        foregroundColor: theme.colorScheme.onPrimary,
       ),
+    );
+  }
+
+  Widget _buildEmptyState(BuildContext context, WidgetRef ref, AsyncValue<List<dynamic>> homeAsync) {
+    return BeityEmptyState(
+      title: 'لا يوجد أعضاء آخرون',
+      message: 'ابدأ بدعوة أفراد عائلتك لمشاركتك في إدارة المنزل والتسوق.',
+      icon: Icons.group_add_outlined,
+      actionText: 'إرسال أول دعوة',
+      onActionPressed: () {
+        final homes = homeAsync.valueOrNull ?? [];
+        final home = homes.where((h) => h.id == homeId).firstOrNull;
+        final homeName = home?.name ?? 'المنزل';
+        context.push('/homes/$homeId/invitations/send', extra: homeName);
+      },
     );
   }
 }

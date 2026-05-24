@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:beity/app/theme/app_spacing.dart';
+import 'package:beity/app/theme/app_colors.dart';
 
 class CategoryGroupHeader extends StatelessWidget {
   final String? categoryName;
@@ -12,35 +14,41 @@ class CategoryGroupHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final displayName = categoryName ?? 'بدون تصنيف';
-    final isRtl = Directionality.of(context) == TextDirection.rtl;
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+    final theme = Theme.of(context);
+    final displayName = categoryName ?? (isArabic ? 'بدون تصنيف' : 'Uncategorized');
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, AppSpacing.xs),
       child: Row(
-        textDirection: isRtl ? TextDirection.rtl : TextDirection.ltr,
         children: [
           Text(
             displayName,
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
+            style: theme.textTheme.labelLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: theme.colorScheme.primary,
+            ),
           ),
-          const SizedBox(width: 8),
+          AppSpacing.gapSM,
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 2),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
+              color: theme.colorScheme.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
             ),
             child: Text(
-              '$itemCount',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.primary,
-                            fontWeight: FontWeight.bold,
-                          ),
+              itemCount.toString(),
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.primary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          AppSpacing.gapMD,
+          Expanded(
+            child: Divider(
+              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+              thickness: 1,
             ),
           ),
         ],

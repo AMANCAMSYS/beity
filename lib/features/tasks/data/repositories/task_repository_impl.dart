@@ -72,6 +72,17 @@ class TaskRepositoryImpl implements TaskRepository {
   }
 
   @override
+  Future<Task> updateTaskAssignee({
+    required String taskId,
+    required String? assignedTo,
+  }) async {
+    return _dataSource.updateTaskAssignee(
+      taskId: taskId,
+      assignedTo: assignedTo,
+    );
+  }
+
+  @override
   Future<void> deleteTask({
     required String taskId,
   }) async {

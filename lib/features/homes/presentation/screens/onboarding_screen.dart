@@ -52,82 +52,9 @@ class OnboardingScreen extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
-
-              // Join Home Button
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () {
-                    _showJoinHomeDialog(context);
-                  },
-                  icon: const Icon(Icons.group_add),
-                  label: const Text(
-                    'الانضمام إلى منزل',
-                    textDirection: TextDirection.rtl,
-                    style: TextStyle(fontSize: 16),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                ),
-              ),
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  void _showJoinHomeDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text(
-          'الانضمام إلى منزل',
-          textDirection: TextDirection.rtl,
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'أدخل رمز الدعوة للانضمام إلى منزل موجود',
-              textDirection: TextDirection.rtl,
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              textDirection: TextDirection.ltr,
-              decoration: InputDecoration(
-                labelText: 'رمز الدعوة',
-                hintText: 'XXXX-XXXX',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('إلغاء'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              // TODO: Implement join home with invitation code
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text(
-                    'سيتم تفعيل الانضمام بالرمز قريباً',
-                    textDirection: TextDirection.rtl,
-                  ),
-                ),
-              );
-            },
-            child: const Text('انضمام'),
-          ),
-        ],
       ),
     );
   }

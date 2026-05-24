@@ -20,7 +20,7 @@ class _ErrorBoundaryState extends State<ErrorBoundary> {
   Widget build(BuildContext context) {
     if (_error != null) {
       return ErrorScreen(
-        message: 'An unexpected error occurred. Please try again.',
+        message: 'حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.',
         onRetry: () {
           setState(() {
             _error = null;
@@ -35,7 +35,7 @@ class _ErrorBoundaryState extends State<ErrorBoundary> {
           );
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Error report sent. Thank you!'),
+              content: Text('تم إرسال تقرير الخطأ. شكراً لك!'),
               backgroundColor: Colors.green,
             ),
           );

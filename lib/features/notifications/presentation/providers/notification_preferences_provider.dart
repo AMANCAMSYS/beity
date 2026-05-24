@@ -6,6 +6,7 @@ import '../../domain/entities/notification_preference.dart';
 import '../../domain/usecases/get_notification_preferences_usecase.dart';
 import '../../domain/usecases/update_notification_preferences_usecase.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../homes/presentation/providers/homes_provider.dart';
 
 final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
   return SupabaseNotificationRepository(Supabase.instance.client);
@@ -24,35 +25,32 @@ final updateNotificationPreferencesUseCaseProvider =
 });
 
 final notificationPreferencesProvider =
-    AsyncNotifierProvider<NotificationPreferencesNotifier, List<NotificationPreference>>(
+    AsyncNotifierProvider<NotificationPreferencesNotifier, NotificationPreferences>(
   NotificationPreferencesNotifier.new,
 );
 
 class NotificationPreferencesNotifier
-    extends AsyncNotifier<List<NotificationPreference>> {
+    extends AsyncNotifier<NotificationPreferences> {
   @override
-  Future<List<NotificationPreference>> build() async {
+  Future<NotificationPreferences> build() async {
+    final homeId = ref.watch(activeHomeIdProvider).valueOrNull;
+    if (homeId == null || homeId.isEmpty) {
+      throw Exception('لا يوجد منزل نشط');
+    }
+
     final useCase = ref.read(getNotificationPreferencesUseCaseProvider);
-    return await useCase.call();
+    return await useCase.call(homeId: homeId);
   }
 
-  Future<void> updatePreference(String category, bool enabled) async {
+  Future<void> updateField(String field, bool value) async {
+    final homeId = ref.read(activeHomeIdProvider).valueOrNull;
+    if (homeId == null) return;
+
     final useCase = ref.read(updateNotificationPreferencesUseCaseProvider);
     state = const AsyncValue.loading();
 
     state = await AsyncValue.guard(() async {
-      return await useCase.call(preferences: [
-        {'category': category, 'enabled': enabled},
-      ]);
-    });
-  }
-
-  Future<void> updateAllPreferences(List<Map<String, dynamic>> preferences) async {
-    final useCase = ref.read(updateNotificationPreferencesUseCaseProvider);
-    state = const AsyncValue.loading();
-
-    state = await AsyncValue.guard(() async {
-      return await useCase.call(preferences: preferences);
+      return await useCase.call(homeId: homeId, field: field, value: value);
     });
   }
 }

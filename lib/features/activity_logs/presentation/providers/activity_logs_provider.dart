@@ -11,13 +11,13 @@ final activityLogRepositoryProvider = Provider<ActivityLogRepository>((ref) {
 });
 
 final homeActivityProvider =
-    StreamProvider.family<List<ActivityLogModel>, String>((ref, homeId) {
+    StreamProvider.autoDispose.family<List<ActivityLogModel>, String>((ref, homeId) {
   final repository = ref.watch(activityLogRepositoryProvider);
   return repository.watchHomeActivity(homeId: homeId);
 });
 
 final listActivityProvider =
-    StreamProvider.family<List<ActivityLogModel>, List<String>>((ref, params) {
+    StreamProvider.autoDispose.family<List<ActivityLogModel>, List<String>>((ref, params) {
   final repository = ref.watch(activityLogRepositoryProvider);
   return repository.watchListActivity(homeId: params[0], listId: params[1]);
 });

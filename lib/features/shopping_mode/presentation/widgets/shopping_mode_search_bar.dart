@@ -14,6 +14,8 @@ class ShoppingModeSearchBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+
     return Container(
       height: 48,
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -24,7 +26,7 @@ class ShoppingModeSearchBar extends StatelessWidget {
       child: TextField(
         autofocus: false,
         decoration: InputDecoration(
-          hintText: 'Search items...',
+          hintText: isArabic ? 'بحث في العناصر...' : 'Search items...',
           prefixIcon: const Icon(Icons.search),
           suffixIcon: IconButton(
             icon: const Icon(Icons.clear),

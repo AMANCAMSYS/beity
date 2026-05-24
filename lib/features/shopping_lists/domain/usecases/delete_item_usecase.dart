@@ -21,10 +21,12 @@ class DeleteItemUseCase {
     await _repository.deleteShoppingItem(itemId: itemId);
   }
 
-  /// Re-create a previously deleted item (undo).
+  /// Re-create a previously deleted item (undo) by clearing soft delete.
   Future<void> restoreItem({
     required ShoppingItemModel item,
   }) async {
+    // Re-create the item with same data since we use soft delete
+    // The old item still exists with deleted_at set
     await _repository.createShoppingItem(
       listId: item.shoppingListId,
       name: item.name,

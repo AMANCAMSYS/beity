@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:beity/app/theme/app_spacing.dart';
+import 'package:beity/app/theme/app_colors.dart';
+import 'package:beity/shared/widgets/design_system/beity_empty_state.dart';
 import '../providers/balance_providers.dart';
 import '../widgets/balance_card.dart';
 
@@ -14,53 +17,45 @@ class BalancesScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final balancesAsync = ref.watch(balancesProvider(homeId));
+    final theme = Theme.of(context);
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('الأرصدة'),
+        title: Text(isArabic ? 'الأرصدة والتسويات' : 'Balances & Settlements', style: const TextStyle(fontWeight: FontWeight.bold)),
       ),
       body: balancesAsync.when(
         data: (balances) {
           if (balances.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.check_circle_outline,
-                    size: 64,
-                    color: Colors.green[400],
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'تم تسوية جميع الحسابات',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: Colors.green[600],
-                        ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'لا توجد ديون بين الأعضاء',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.grey[500],
-                        ),
-                  ),
-                ],
-              ),
+            return BeityEmptyState(
+              title: isArabic ? 'تم تسوية جميع الحسابات' : 'All accounts settled',
+              message: isArabic 
+                  ? 'لا توجد مبالغ مستحقة بين أعضاء المنزل حالياً. حافظ على هذا التوازن الجميل!' 
+                  : 'No outstanding amounts between members. Keep up this great balance!',
+              icon: Icons.check_circle_outline_rounded,
             );
           }
 
           return ListView.builder(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.lg),
             itemCount: balances.length,
             itemBuilder: (context, index) {
               final balance = balances[index];
-              return BalanceCard(balance: balance);
+              return Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                child: BalanceCard(balance: balance),
+              );
             },
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => Center(
-          child: Text('Error: $error'),
+        error: (error, stack) => BeityEmptyState(
+          title: isArabic ? 'عذراً، حدث خطأ' : 'Oops, something went wrong',
+          message: error.toString(),
+          icon: Icons.error_outline_rounded,
+          isError: true,
+          actionText: isArabic ? 'إعادة المحاولة' : 'Try Again',
+          onActionPressed: () => ref.invalidate(balancesProvider(homeId)),
         ),
       ),
     );

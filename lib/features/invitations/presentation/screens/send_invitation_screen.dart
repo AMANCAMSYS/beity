@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
-
+import 'package:beity/app/theme/app_spacing.dart';
+import 'package:beity/app/theme/app_colors.dart';
+import 'package:beity/shared/widgets/design_system/beity_card.dart';
+import 'package:beity/shared/widgets/design_system/beity_button.dart';
+import 'package:beity/shared/widgets/design_system/beity_text_field.dart';
 import '../providers/invitations_provider.dart';
+import 'package:beity/core/utils/action_debouncer.dart';
 
 class SendInvitationScreen extends ConsumerStatefulWidget {
   final String homeId;
@@ -53,7 +57,7 @@ class _SendInvitationScreenState extends ConsumerState<SendInvitationScreen> {
             backgroundColor: Colors.green,
           ),
         );
-        context.pop();
+        Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
@@ -76,102 +80,173 @@ class _SendInvitationScreenState extends ConsumerState<SendInvitationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          'دعوة عضو جديد',
-          textDirection: TextDirection.rtl,
-        ),
+        title: const Text('دعوة عضو جديد'),
+        centerTitle: true,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
+      body: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         child: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              AppSpacing.gapLG,
+              Center(
+                child: Container(
+                  padding: const EdgeInsets.all(AppSpacing.xl),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.tertiary.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.mail_rounded,
+                    size: 64,
+                    color: theme.colorScheme.tertiary,
+                  ),
+                ),
+              ),
+              AppSpacing.gapXL,
               Text(
                 'إضافة عضو إلى ${widget.homeName}',
-                style: Theme.of(context).textTheme.titleLarge,
-                textDirection: TextDirection.rtl,
-              ),
-              const SizedBox(height: 24),
-              TextFormField(
-                controller: _emailController,
-                keyboardType: TextInputType.emailAddress,
-                textDirection: TextDirection.ltr,
-                decoration: const InputDecoration(
-                  labelText: 'البريد الإلكتروني',
-                  hintText: 'example@email.com',
-                  prefixIcon: Icon(Icons.email),
+                textAlign: TextAlign.center,
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'يرجى إدخال البريد الإلكتروني';
-                  }
-                  if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-                      .hasMatch(value)) {
-                    return 'البريد الإلكتروني غير صالح';
-                  }
-                  return null;
-                },
               ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                value: _selectedRole,
-                decoration: const InputDecoration(
-                  labelText: 'الدور',
-                  prefixIcon: Icon(Icons.person),
-                ),
-                items: const [
-                  DropdownMenuItem(
-                    value: 'admin',
-                    child: Text('مدير'),
-                  ),
-                  DropdownMenuItem(
-                    value: 'member',
-                    child: Text('عضو'),
-                  ),
-                  DropdownMenuItem(
-                    value: 'viewer',
-                    child: Text('مشاهد'),
-                  ),
-                ],
-                onChanged: (value) {
-                  if (value != null) {
-                    setState(() => _selectedRole = value);
-                  }
-                },
-              ),
-              const SizedBox(height: 8),
+              AppSpacing.gapSM,
               Text(
-                'المدير: يمكنه إدارة القوائم والأعضاء\nالعضو: يمكنه تعديل القوائم\nالمشاهد: يمكنه المشاهدة فقط',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.grey[600],
-                    ),
-                textDirection: TextDirection.rtl,
+                'سيتم إرسال رابط دعوة إلى البريد الإلكتروني للمستخدم.',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               ),
-              const SizedBox(height: 32),
-              ElevatedButton(
-                onPressed: _isLoading ? null : _sendInvitation,
-                child: _isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Text(
-                        'إرسال الدعوة',
-                        textDirection: TextDirection.rtl,
+              AppSpacing.gapXXL,
+              BeityCard(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    BeityTextField(
+                      controller: _emailController,
+                      labelText: 'البريد الإلكتروني',
+                      hintText: 'example@email.com',
+                      prefixIcon: Icons.email_rounded,
+                      keyboardType: TextInputType.emailAddress,
+                      textDirection: TextDirection.ltr,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'يرجى إدخال البريد الإلكتروني';
+                        }
+                        if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                            .hasMatch(value)) {
+                          return 'البريد الإلكتروني غير صالح';
+                        }
+                        return null;
+                      },
+                    ),
+                    AppSpacing.gapXL,
+                    Text(
+                      'صلاحيات العضو',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
                       ),
+                    ),
+                    AppSpacing.gapMD,
+                    DropdownButtonFormField<String>(
+                      value: _selectedRole,
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                          borderSide: BorderSide.none,
+                        ),
+                        prefixIcon: const Icon(Icons.security_rounded),
+                      ),
+                      items: const [
+                        DropdownMenuItem(value: 'admin', child: Text('مدير')),
+                        DropdownMenuItem(value: 'member', child: Text('عضو')),
+                        DropdownMenuItem(value: 'viewer', child: Text('مشاهد')),
+                      ],
+                      onChanged: (value) {
+                        if (value != null) {
+                          setState(() => _selectedRole = value);
+                        }
+                      },
+                    ),
+                    AppSpacing.gapLG,
+                    _buildRoleInfo(
+                      context,
+                      'مدير',
+                      'يمكنه إدارة القوائم، إضافة وحذف الأعضاء وتعديل الأدوار.',
+                      Icons.admin_panel_settings_rounded,
+                    ),
+                    AppSpacing.gapSM,
+                    _buildRoleInfo(
+                      context,
+                      'عضو',
+                      'يمكنه إضافة وتعديل القوائم والمنتجات والمهام بشكل كامل.',
+                      Icons.person_rounded,
+                    ),
+                    AppSpacing.gapSM,
+                    _buildRoleInfo(
+                      context,
+                      'مشاهد',
+                      'يمكنه مشاهدة القوائم والمهام فقط دون القدرة على التعديل.',
+                      Icons.visibility_rounded,
+                    ),
+                  ],
+                ),
+              ),
+              AppSpacing.gapXXL,
+              BeityButton(
+                onPressed: () => ActionDebouncer.execute(_sendInvitation),
+                text: 'إرسال الدعوة',
+                isLoading: _isLoading,
+                type: BeityButtonType.primary,
+                icon: Icons.send_rounded,
               ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildRoleInfo(BuildContext context, String title, String desc, IconData icon) {
+    final theme = Theme.of(context);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 16, color: theme.colorScheme.primary),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: theme.textTheme.labelMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.primary,
+                ),
+              ),
+              Text(
+                desc,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

@@ -46,6 +46,7 @@ abstract class ShoppingListRepository {
   });
 
   Future<ShoppingItemModel> createShoppingItem({
+    String? id,
     required String listId,
     required String name,
     double quantity = 1,

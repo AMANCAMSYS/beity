@@ -22,6 +22,7 @@ class ShoppingItemCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
     final isPurchased = item.isPurchased;
 
     return Semantics(
@@ -126,7 +127,7 @@ class ShoppingItemCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      _formatQuantity(item),
+                      _formatQuantity(item, isArabic),
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
@@ -141,10 +142,12 @@ class ShoppingItemCard extends StatelessWidget {
     );
   }
 
-  String _formatQuantity(ShoppingItemModel item) {
+  String _formatQuantity(ShoppingItemModel item, bool isArabic) {
     final qty = item.quantity == item.quantity.roundToDouble()
         ? item.quantity.toInt().toString()
         : item.quantity.toStringAsFixed(1);
-    return unitName != null ? '$qty $unitName' : qty;
+    
+    if (unitName == null || unitName!.isEmpty) return qty;
+    return '$qty $unitName';
   }
 }

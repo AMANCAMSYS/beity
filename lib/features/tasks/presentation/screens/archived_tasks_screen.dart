@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/task_providers.dart';
 import '../widgets/task_card.dart';
+import '../../../home/presentation/widgets/app_drawer.dart';
+import '../../../../shared/widgets/design_system/beity_empty_state.dart';
 
 class ArchivedTasksScreen extends ConsumerWidget {
   final String homeId;
@@ -17,6 +19,7 @@ class ArchivedTasksScreen extends ConsumerWidget {
     final repository = ref.watch(taskRepositoryProvider);
 
     return Scaffold(
+      drawer: const AppDrawer(),
       appBar: AppBar(
         title: const Text('المهام المؤرشفة'),
       ),
@@ -31,15 +34,11 @@ class ArchivedTasksScreen extends ConsumerWidget {
           }
 
           if (snapshot.hasError) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.error_outline, size: 48, color: Colors.red),
-                  const SizedBox(height: 16),
-                  Text('خطأ: ${snapshot.error}'),
-                ],
-              ),
+            return BeityEmptyState(
+              title: 'حدث خطأ',
+              message: snapshot.error.toString(),
+              icon: Icons.error_outline_rounded,
+              isError: true,
             );
           }
 
@@ -48,21 +47,10 @@ class ArchivedTasksScreen extends ConsumerWidget {
               tasks.where((t) => t.isArchived).toList();
 
           if (archivedTasks.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.archive_outlined,
-                      size: 64, color: Colors.grey.shade400),
-                  const SizedBox(height: 16),
-                  const Text('لا توجد مهام مؤرشفة'),
-                  const SizedBox(height: 8),
-                  Text(
-                    'تُؤرشف المهام المكتملة تلقائياً بعد 7 أيام',
-                    style: TextStyle(color: Colors.grey.shade600),
-                  ),
-                ],
-              ),
+            return const BeityEmptyState(
+              title: 'لا توجد مهام مؤرشفة',
+              message: 'تُؤرشف المهام المكتملة تلقائياً بعد 7 أيام',
+              icon: Icons.archive_outlined,
             );
           }
 

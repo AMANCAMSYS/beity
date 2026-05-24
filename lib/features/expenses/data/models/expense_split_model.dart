@@ -11,10 +11,10 @@ class ExpenseSplitModel extends ExpenseSplit {
 
   factory ExpenseSplitModel.fromJson(Map<String, dynamic> json) {
     return ExpenseSplitModel(
-      id: json['id'] as String,
-      expenseId: json['expense_id'] as String,
-      memberId: json['member_id'] as String,
-      amount: json['amount'] as int,
+      id: json['id'] as String? ?? '',
+      expenseId: json['expense_id'] as String? ?? '',
+      memberId: json['member_id'] as String? ?? '',
+      amount: (json['amount'] as num?)?.toInt() ?? 0,
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'] as String)
           : null,

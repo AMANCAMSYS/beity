@@ -74,6 +74,7 @@ class _ShoppingQuickAddOverlayState
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
 
     return Container(
       decoration: BoxDecoration(
@@ -102,7 +103,7 @@ class _ShoppingQuickAddOverlayState
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  'Quick Add Item',
+                  isArabic ? 'إضافة سريعة' : 'Quick Add',
                   style: theme.textTheme.titleLarge,
                 ),
                 const SizedBox(height: 16),
@@ -113,7 +114,7 @@ class _ShoppingQuickAddOverlayState
                   autofocus: true,
                   style: const TextStyle(fontSize: 18),
                   decoration: InputDecoration(
-                    hintText: 'Item name...',
+                    hintText: isArabic ? 'اسم العنصر...' : 'Item name...',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -134,8 +135,10 @@ class _ShoppingQuickAddOverlayState
                   ..._suggestions.map((suggestion) => ListTile(
                         leading: const Icon(Icons.history),
                         title: Text(suggestion.name),
-                        subtitle: suggestion.unitName != null
-                            ? Text('${suggestion.quantity} ${suggestion.unitName}')
+                        subtitle: suggestion.unitName != null || suggestion.quantity != 1
+                            ? Text(isArabic 
+                                ? '${suggestion.quantity == suggestion.quantity.roundToDouble() ? suggestion.quantity.toInt() : suggestion.quantity.toStringAsFixed(1)}${suggestion.unitName != null ? " ${suggestion.unitName}" : ""}'
+                                : '${suggestion.quantity == suggestion.quantity.roundToDouble() ? suggestion.quantity.toInt() : suggestion.quantity.toStringAsFixed(1)}${suggestion.unitName != null ? " ${suggestion.unitName}" : ""}')
                             : null,
                         onTap: () => _addItem(suggestion.name),
                       )),
@@ -149,11 +152,11 @@ class _ShoppingQuickAddOverlayState
                       onChanged: (value) =>
                           setState(() => _keepOpen = value ?? true),
                     ),
-                    const Text('Add another'),
+                    Text(isArabic ? 'إضافة أخرى' : 'Add another'),
                     const Spacer(),
                     FilledButton(
                       onPressed: () => _addItem(_controller.text),
-                      child: const Text('Add'),
+                      child: Text(isArabic ? 'إضافة' : 'Add'),
                     ),
                   ],
                 ),

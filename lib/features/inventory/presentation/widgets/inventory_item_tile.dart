@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:beity/app/theme/app_spacing.dart';
+import 'package:beity/app/theme/app_colors.dart';
+import 'package:beity/shared/widgets/design_system/beity_card.dart';
+import 'package:beity/shared/widgets/design_system/beity_button.dart';
 import '../../domain/entities/inventory_item.dart';
 import 'low_stock_badge.dart';
 
@@ -23,115 +27,212 @@ class InventoryItemTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
     final isRtl = Directionality.of(context) == TextDirection.rtl;
+    final theme = Theme.of(context);
 
     return Dismissible(
       key: Key(item.id),
+      direction: DismissDirection.endToStart,
       background: Container(
         alignment: isRtl ? Alignment.centerLeft : Alignment.centerRight,
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        color: Colors.red,
-        child: const Icon(Icons.delete, color: Colors.white),
-      ),
-      confirmDismiss: (_) => _showDeleteConfirmation(context),
-      onDismissed: (_) => onDelete?.call(),
-      child: ListTile(
-        onTap: onTap,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        title: Row(
-          children: [
-            Expanded(
-              child: Text(
-                item.name,
-                style: const TextStyle(fontWeight: FontWeight.w500),
-                overflow: TextOverflow.ellipsis,
-              ),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+        margin: const EdgeInsets.symmetric(vertical: AppSpacing.sm, horizontal: AppSpacing.lg),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.error,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+          boxShadow: [
+            BoxShadow(
+              color: theme.colorScheme.error.withValues(alpha: 0.2),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
             ),
-            if (item.isLowStock) ...[
-              const SizedBox(width: 8),
-              const LowStockBadge(),
-            ],
           ],
         ),
-        subtitle: _buildSubtitle(context),
-        trailing: _buildQuantityControls(context),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.delete_outline_rounded, color: Colors.white, size: 28),
+            AppSpacing.gapXXS,
+            Text(
+              isArabic ? 'حذف' : 'Delete',
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10),
+            ),
+          ],
+        ),
+      ),
+      confirmDismiss: (_) => _showDeleteConfirmation(context, isArabic),
+      onDismissed: (_) => onDelete?.call(),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.xs),
+        child: BeityCard(
+          padding: EdgeInsets.zero,
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  theme.colorScheme.surface,
+                  theme.colorScheme.surfaceContainerLow,
+                ],
+              ),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              item.name,
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: theme.colorScheme.onSurface,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (item.isLowStock) ...[
+                            AppSpacing.gapSM,
+                            const LowStockBadge(),
+                          ],
+                        ],
+                      ),
+                      if (unitName != null || (item.notes != null && item.notes!.isNotEmpty)) ...[
+                        AppSpacing.gapXXS,
+                        _buildSubtitle(context, theme),
+                      ],
+                    ],
+                  ),
+                ),
+                AppSpacing.gapMD,
+                _buildQuantityControls(context, theme, isArabic),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
 
-  Widget? _buildSubtitle(BuildContext context) {
+  Widget _buildSubtitle(BuildContext context, ThemeData theme) {
     final parts = <String>[];
     if (unitName != null) parts.add(unitName!);
     if (item.notes != null && item.notes!.isNotEmpty) parts.add(item.notes!);
-    if (parts.isEmpty) return null;
+    if (parts.isEmpty) return const SizedBox.shrink();
 
-    return Text(
-      parts.join(' • '),
-      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Colors.grey[600],
-          ),
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-    );
-  }
-
-  Widget _buildQuantityControls(BuildContext context) {
     return Row(
-      mainAxisSize: MainAxisSize.min,
       children: [
-        _QuantityButton(
-          icon: Icons.remove,
-          onTap: () {
-            HapticFeedback.lightImpact();
-            onQuantityDecrement?.call();
-          },
-        ),
-        SizedBox(
-          width: 48,
+        Icon(Icons.info_outline_rounded, size: 12, color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6)),
+        AppSpacing.gapXXS,
+        Expanded(
           child: Text(
-            _formatQuantity(item.quantity),
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+            parts.join(' • '),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+              fontWeight: FontWeight.w500,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
-        ),
-        _QuantityButton(
-          icon: Icons.add,
-          onTap: () {
-            HapticFeedback.lightImpact();
-            onQuantityIncrement?.call();
-          },
         ),
       ],
     );
   }
 
-  String _formatQuantity(double q) {
+  Widget _buildQuantityControls(BuildContext context, ThemeData theme, bool isArabic) {
+    return Container(
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+        border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _QuantityButton(
+            icon: Icons.remove_rounded,
+            onTap: () {
+              HapticFeedback.lightImpact();
+              onQuantityDecrement?.call();
+            },
+          ),
+          Container(
+            constraints: const BoxConstraints(minWidth: 48),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
+            child: Text(
+              _formatQuantity(item.quantity, isArabic),
+              textAlign: TextAlign.center,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: theme.colorScheme.primary,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
+          ),
+          _QuantityButton(
+            icon: Icons.add_rounded,
+            onTap: () {
+              HapticFeedback.lightImpact();
+              onQuantityIncrement?.call();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatQuantity(double q, bool isArabic) {
     if (q == q.roundToDouble() && q < 1000) {
       return q.toInt().toString();
     }
     return q.toStringAsFixed(1);
   }
 
-  Future<bool?> _showDeleteConfirmation(BuildContext context) {
+  Future<bool?> _showDeleteConfirmation(BuildContext context, bool isArabic) {
+    final theme = Theme.of(context);
     return showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('حذف المنتج'),
-        content: Text('هل أنت متأكد من حذف "${item.name}" من المخزون؟'),
+        backgroundColor: theme.colorScheme.surface,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusXl)),
+        title: Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: theme.colorScheme.error),
+            AppSpacing.gapMD,
+            Text(
+              isArabic ? 'حذف المنتج' : 'Delete Item',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        content: Text(
+          isArabic ? 'هل أنت متأكد من حذف "${item.name}"؟' : 'Are you sure you want to delete "${item.name}"?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('إلغاء'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
+            child: Text(
+              isArabic ? 'إلغاء' : 'Cancel',
+              style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontWeight: FontWeight.bold),
             ),
-            child: const Text('حذف'),
+          ),
+          BeityButton(
+            width: 100,
+            text: isArabic ? 'حذف' : 'Delete',
+            onPressed: () => Navigator.pop(context, true),
+            type: BeityButtonType.primary,
+            icon: Icons.delete_outline_rounded,
           ),
         ],
       ),
@@ -147,16 +248,30 @@ class _QuantityButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 44,
-      height: 44,
-      child: Material(
-        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(8),
-          onTap: onTap,
-          child: Icon(icon, size: 20),
+    final theme = Theme.of(context);
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(AppSpacing.xs),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 2,
+                offset: const Offset(0, 1),
+              ),
+            ],
+          ),
+          child: Icon(
+            icon,
+            size: 18,
+            color: theme.colorScheme.primary,
+          ),
         ),
       ),
     );

@@ -50,68 +50,78 @@ class QueueActionExecutor {
     final user = _client.auth.currentUser;
     if (user == null) throw Exception('User not authenticated');
 
-    await _client.from('shopping_items').insert({
-      'list_id': payload['listId'],
+    final table = entry.entityType.tableName;
+    // Use upsert with the pre-generated ID so that subsequent
+    // update/delete/markPurchased entries referencing this ID work correctly
+    await _client.from(table).upsert({
+      'id': entry.entityId,
+      'list_id': payload['list_id'],
       'name': payload['name'],
       'quantity': payload['quantity'] ?? 1,
-      'unit_id': payload['unitId'],
-      'category_id': payload['categoryId'],
-      'price': payload['price'],
-      'currency': payload['currency'],
-      'notes': payload['notes'],
+      'unit_id': payload['unit_id'],
+      'category_id': payload['category_id'],
+      'estimated_price': payload['estimated_price'],
+      'currency': payload['currency'] ?? 'SAR',
+      'note': payload['note'],
       'created_by': user.id,
-    });
+    }, onConflict: 'id');
   }
 
   Future<void> _executeUpdateItem(QueueEntry entry) async {
     final payload = entry.payload;
-    final itemId = payload['itemId'] as String;
+    final table = entry.entityType.tableName;
 
     final updates = <String, dynamic>{
       'updated_at': DateTime.now().toIso8601String(),
+      'updated_by': _client.auth.currentUser?.id,
     };
 
     if (payload['name'] != null) updates['name'] = payload['name'];
     if (payload['quantity'] != null) updates['quantity'] = payload['quantity'];
-    if (payload['unitId'] != null) updates['unit_id'] = payload['unitId'];
-    if (payload['categoryId'] != null) {
-      updates['category_id'] = payload['categoryId'];
+    if (payload['unit_id'] != null) updates['unit_id'] = payload['unit_id'];
+    if (payload['category_id'] != null) {
+      updates['category_id'] = payload['category_id'];
     }
-    if (payload['price'] != null) updates['price'] = payload['price'];
-    if (payload['notes'] != null) updates['notes'] = payload['notes'];
+    if (payload['note'] != null) updates['note'] = payload['note'];
 
-    await _client.from('shopping_items').update(updates).eq('id', itemId);
+    await _client.from(table).update(updates).eq('id', entry.entityId);
   }
 
   Future<void> _executeDeleteItem(QueueEntry entry) async {
-    final itemId = entry.payload['itemId'] as String;
-
-    await _client.from('shopping_items').update({
+    final table = entry.entityType.tableName;
+    await _client.from(table).update({
       'deleted_at': DateTime.now().toIso8601String(),
-    }).eq('id', itemId);
+      'updated_at': DateTime.now().toIso8601String(),
+      'updated_by': _client.auth.currentUser?.id,
+    }).eq('id', entry.entityId);
   }
 
   Future<void> _executeMarkPurchased(QueueEntry entry) async {
     final payload = entry.payload;
-    final itemId = payload['itemId'] as String;
-    final isPurchased = payload['isPurchased'] as bool;
+    final table = entry.entityType.tableName;
+    final user = _client.auth.currentUser;
 
-    await _client.from('shopping_items').update({
-      'is_purchased': isPurchased,
-      'purchased_at': isPurchased ? payload['purchasedAt'] : null,
-      'purchased_by': isPurchased ? _client.auth.currentUser?.id : null,
+    final isPurchased = payload['status'] == 'completed';
+
+    await _client.from(table).update({
+      'status': payload['status'] ?? (isPurchased ? 'completed' : 'pending'),
+      'completed_at': isPurchased
+          ? (payload['completed_at'] ?? DateTime.now().toIso8601String())
+          : null,
+      'completed_by': isPurchased ? (user?.id) : null,
       'updated_at': DateTime.now().toIso8601String(),
-    }).eq('id', itemId);
+      'updated_by': user?.id,
+    }).eq('id', entry.entityId);
   }
 
   Future<void> _executeUpdateQuantity(QueueEntry entry) async {
     final payload = entry.payload;
-    final itemId = payload['itemId'] as String;
-    final quantity = payload['quantity'] as double;
+    final table = entry.entityType.tableName;
 
-    await _client.from('shopping_items').update({
-      'quantity': quantity,
+    await _client.from(table).update({
+      'quantity': payload['quantity'],
       'updated_at': DateTime.now().toIso8601String(),
-    }).eq('id', itemId);
+      'updated_by': _client.auth.currentUser?.id,
+    }).eq('id', entry.entityId);
   }
 }

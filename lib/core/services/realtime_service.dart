@@ -70,25 +70,7 @@ class PresenceState {
   }
 }
 
-enum QueueOperation { add, update, delete, markPurchased }
-
-class OfflineQueueEntry {
-  final String id;
-  final QueueOperation operation;
-  final String entityType;
-  final String? entityId;
-  final Map<String, dynamic> payload;
-  final DateTime createdAt;
-
-  const OfflineQueueEntry({
-    required this.id,
-    required this.operation,
-    required this.entityType,
-    this.entityId,
-    required this.payload,
-    required this.createdAt,
-  });
-}
+// Offline queue types removed
 
 class RealtimeService {
   final SupabaseClient _client;
@@ -105,10 +87,13 @@ class RealtimeService {
 
   DateTime? _lastConnectedAt;
   StreamSubscription? _connectivitySubscription;
+  bool _isDisposed = false;
 
   RealtimeService(this._client) {
     _initConnectionMonitoring();
   }
+
+  bool get isDisposed => _isDisposed;
 
   Stream<ConnectionStateModel> get connectionState =>
       _connectionController.stream;
@@ -123,6 +108,8 @@ class RealtimeService {
 
     _connectivitySubscription =
         _connectivity.onConnectivityChanged.listen((results) {
+      if (_isDisposed) return;
+
       final hasConnection = results.isNotEmpty &&
           !results.every((r) => r == ConnectivityResult.none);
 
@@ -135,7 +122,7 @@ class RealtimeService {
         );
 
         Future.delayed(const Duration(seconds: 2), () {
-          if (!_connectionController.isClosed) {
+          if (!_isDisposed && !_connectionController.isClosed) {
             _lastConnectedAt = DateTime.now();
             _connectionController.add(
               ConnectionStateModel(
@@ -159,6 +146,8 @@ class RealtimeService {
     required String filterValue,
     required List<String> primaryKey,
   }) {
+    if (_isDisposed) return const Stream.empty();
+
     final key = '$table:$filterColumn=$filterValue';
 
     if (_tableControllers.containsKey(key)) {
@@ -180,7 +169,9 @@ class RealtimeService {
             value: filterValue,
           ),
           callback: (payload) {
-            controller.add(payload.newRecord);
+            if (!_isDisposed) {
+              controller.add(payload.newRecord);
+            }
           },
         )
         .subscribe();
@@ -194,6 +185,8 @@ class RealtimeService {
     required String channelName,
     required PresencePayload userPayload,
   }) {
+    if (_isDisposed) return const Stream.empty();
+
     if (_presenceControllers.containsKey(channelName)) {
       return _presenceControllers[channelName]!.stream;
     }
@@ -205,6 +198,7 @@ class RealtimeService {
     final channel = _client.channel(channelName);
 
     channel.onPresenceSync((_) {
+      if (_isDisposed) return;
       final stateMap = <String, PresenceState>{};
 
       try {
@@ -245,7 +239,9 @@ class RealtimeService {
     channel.subscribe();
 
     Future.delayed(const Duration(milliseconds: 500), () {
-      channel.track(userPayload.toMap());
+      if (!_isDisposed) {
+        channel.track(userPayload.toMap());
+      }
     });
 
     _channels[channelName] = channel;
@@ -267,6 +263,25 @@ class RealtimeService {
     final channel = _channels[channelName];
     if (channel != null) {
       channel.untrack();
+    }
+  }
+
+  Future<void> unsubscribeChannel(String key) async {
+    final channel = _channels.remove(key);
+    if (channel != null) {
+      try {
+        await channel.unsubscribe();
+      } catch (_) {}
+    }
+
+    final tableController = _tableControllers.remove(key);
+    if (tableController != null && !tableController.isClosed) {
+      await tableController.close();
+    }
+
+    final presenceController = _presenceControllers.remove(key);
+    if (presenceController != null && !presenceController.isClosed) {
+      await presenceController.close();
     }
   }
 
@@ -292,23 +307,34 @@ class RealtimeService {
   }
 
   Future<void> disposeAll() async {
+    _isDisposed = true;
+
     await _connectivitySubscription?.cancel();
+    _connectivitySubscription = null;
 
     for (final channel in _channels.values) {
-      await channel.unsubscribe();
+      try {
+        await channel.unsubscribe();
+      } catch (_) {}
     }
     _channels.clear();
 
     for (final controller in _tableControllers.values) {
-      await controller.close();
+      if (!controller.isClosed) {
+        await controller.close();
+      }
     }
     _tableControllers.clear();
 
     for (final controller in _presenceControllers.values) {
-      await controller.close();
+      if (!controller.isClosed) {
+        await controller.close();
+      }
     }
     _presenceControllers.clear();
 
-    await _connectionController.close();
+    if (!_connectionController.isClosed) {
+      await _connectionController.close();
+    }
   }
 }

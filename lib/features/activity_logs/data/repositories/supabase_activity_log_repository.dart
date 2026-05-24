@@ -101,4 +101,27 @@ class SupabaseActivityLogRepository implements ActivityLogRepository {
 
     return actors;
   }
+
+  @override
+  Future<void> logActivity({
+    required String homeId,
+    required ActionType action,
+    required EntityType entityType,
+    String? entityId,
+    String? entityName,
+    Map<String, dynamic>? metadata,
+  }) async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) return;
+
+    await _client.from('activity_logs').insert({
+      'home_id': homeId,
+      'user_id': userId,
+      'action': action.value,
+      'entity_type': entityType.value,
+      'entity_id': entityId,
+      'entity_name': entityName,
+      'metadata': metadata,
+    });
+  }
 }

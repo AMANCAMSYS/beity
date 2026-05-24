@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:beity/app/theme/app_spacing.dart';
+import 'package:beity/app/theme/app_colors.dart';
 
 class QuantityAdjusterWidget extends StatelessWidget {
   final double quantity;
@@ -21,39 +23,64 @@ class QuantityAdjusterWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _StepButton(
-          icon: Icons.remove,
-          onTap: () {
-            HapticFeedback.lightImpact();
-            final newQty = (quantity - _step).clamp(0.0, double.infinity);
-            onChanged(newQty);
-          },
-        ),
-        SizedBox(
-          width: 64,
-          child: Text(
-            _formatQuantity(quantity),
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+        border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _StepButton(
+            icon: Icons.remove_rounded,
+            onTap: () {
+              HapticFeedback.lightImpact();
+              final newQty = (quantity - _step).clamp(0.0, double.infinity);
+              onChanged(newQty);
+            },
           ),
-        ),
-        _StepButton(
-          icon: Icons.add,
-          onTap: () {
-            HapticFeedback.lightImpact();
-            onChanged(quantity + _step);
-          },
-        ),
-      ],
+          Container(
+            constraints: const BoxConstraints(minWidth: 80),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  _formatQuantity(quantity, isArabic),
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+                if (unitId != null)
+                  Text(
+                    isArabic ? 'الكمية' : 'Quantity',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          _StepButton(
+            icon: Icons.add_rounded,
+            onTap: () {
+              HapticFeedback.lightImpact();
+              onChanged(quantity + _step);
+            },
+          ),
+        ],
+      ),
     );
   }
 
-  String _formatQuantity(double q) {
+  String _formatQuantity(double q, bool isArabic) {
     if (q == q.roundToDouble() && q < 1000) {
       return q.toInt().toString();
     }
@@ -69,16 +96,20 @@ class _StepButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 48,
-      height: 48,
-      child: Material(
-        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: onTap,
-          child: Icon(icon, size: 24),
+    final theme = Theme.of(context);
+    return Material(
+      color: theme.colorScheme.primary.withValues(alpha: 0.1),
+      borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          child: Icon(
+            icon,
+            size: 24,
+            color: theme.colorScheme.primary,
+          ),
         ),
       ),
     );

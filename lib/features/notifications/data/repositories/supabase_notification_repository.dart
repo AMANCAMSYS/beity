@@ -11,6 +11,10 @@ class SupabaseNotificationRepository implements NotificationRepository {
 
   SupabaseNotificationRepository(this._client);
 
+  // ---------------------------------------------------------------------------
+  // Notification history
+  // ---------------------------------------------------------------------------
+
   @override
   Future<List<AppNotification>> getNotificationHistory({
     int limit = 20,
@@ -22,16 +26,30 @@ class SupabaseNotificationRepository implements NotificationRepository {
     final user = _client.auth.currentUser;
     if (user == null) throw Exception('User not authenticated');
 
-    final response = await _client.rpc('get_notification_history', params: {
-      'p_limit': limit,
-      'p_offset': offset,
-      'p_home_id': homeId,
-      'p_category': category,
-      'p_unread_only': unreadOnly,
-    });
+    var query = _client
+        .from('notifications')
+        .select()
+        .eq('user_id', user.id);
+
+    if (homeId != null) {
+      query = query.eq('home_id', homeId);
+    }
+
+    if (category != null) {
+      query = query.eq('category', category);
+    }
+
+    if (unreadOnly) {
+      query = query.eq('is_read', false);
+    }
+
+    final response = await query
+        .order('created_at', ascending: false)
+        .range(offset, offset + limit - 1);
 
     return (response as List)
-        .map((json) => NotificationModel.fromJson(json as Map<String, dynamic>).toEntity())
+        .map((json) =>
+            NotificationModel.fromJson(json as Map<String, dynamic>).toEntity())
         .toList();
   }
 
@@ -80,51 +98,106 @@ class SupabaseNotificationRepository implements NotificationRepository {
     return response.length;
   }
 
-  @override
-  Future<List<NotificationPreference>> getPreferences() async {
-    final user = _client.auth.currentUser;
-    if (user == null) throw Exception('User not authenticated');
-
-    final response = await _client
-        .from('notification_preferences')
-        .select()
-        .eq('user_id', user.id)
-        .order('category');
-
-    return (response as List)
-        .map((json) =>
-            NotificationPreferenceModel.fromJson(json as Map<String, dynamic>)
-                .toEntity())
-        .toList();
-  }
+  // ---------------------------------------------------------------------------
+  // Notification preferences
+  // ---------------------------------------------------------------------------
 
   @override
-  Future<List<NotificationPreference>> updatePreferences({
-    required List<Map<String, dynamic>> preferences,
-  }) async {
+  Future<NotificationPreferences> getPreferences({required String homeId}) async {
     final user = _client.auth.currentUser;
-    if (user == null) throw Exception('User not authenticated');
+    if (user == null) throw Exception('يجب تسجيل الدخول أولاً');
 
-    final results = <NotificationPreference>[];
-
-    for (final pref in preferences) {
+    try {
       final response = await _client
           .from('notification_preferences')
-          .upsert({
-            'user_id': user.id,
-            'category': pref['category'],
-            'enabled': pref['enabled'],
-            'created_by': user.id,
-          }, onConflict: 'user_id,category')
           .select()
-          .single();
+          .eq('user_id', user.id)
+          .eq('home_id', homeId)
+          .maybeSingle();
 
-      results.add(
-          NotificationPreferenceModel.fromJson(response).toEntity());
+      if (response == null) {
+        // No row yet — upsert defaults so the UI can immediately toggle them.
+        final created = await _client
+            .from('notification_preferences')
+            .upsert(
+              {
+                'user_id': user.id,
+                'home_id': homeId,
+                'item_added': true,
+                'item_completed': true,
+                'low_stock': true,
+                'expiry_alert': true,
+                'expense_added': true,
+                'task_due': true,
+              },
+              onConflict: 'user_id,home_id',
+            )
+            .select()
+            .maybeSingle();
+
+        if (created == null) {
+          // DB unreachable — return safe in-memory defaults.
+          return _defaultPrefs(userId: user.id, homeId: homeId);
+        }
+        return NotificationPreferencesModel.fromJson(created).toEntity();
+      }
+
+      return NotificationPreferencesModel.fromJson(response).toEntity();
+    } catch (_) {
+      // On any DB/parse error return safe defaults — never crash the UI.
+      return _defaultPrefs(userId: user.id, homeId: homeId);
+    }
+  }
+
+  @override
+  Future<NotificationPreferences> updatePreference({
+    required String homeId,
+    required String field,
+    required bool value,
+  }) async {
+    final user = _client.auth.currentUser;
+    if (user == null) throw Exception('يجب تسجيل الدخول أولاً');
+
+    // Allowlist of valid column names — prevents arbitrary column injection.
+    const allowedFields = {
+      'item_added',
+      'item_completed',
+      'low_stock',
+      'expiry_alert',
+      'expense_added',
+      'task_due',
+    };
+    if (!allowedFields.contains(field)) {
+      throw ArgumentError('حقل غير مسموح به: $field');
     }
 
-    return results;
+    try {
+      // Upsert so we never crash when the row doesn't exist yet.
+      final response = await _client
+          .from('notification_preferences')
+          .upsert(
+            {
+              'user_id': user.id,
+              'home_id': homeId,
+              field: value,
+            },
+            onConflict: 'user_id,home_id',
+          )
+          .select()
+          .maybeSingle();
+
+      if (response == null) {
+        return _defaultPrefs(userId: user.id, homeId: homeId);
+      }
+      return NotificationPreferencesModel.fromJson(response).toEntity();
+    } catch (_) {
+      return _defaultPrefs(userId: user.id, homeId: homeId);
+    }
   }
+
+  // ---------------------------------------------------------------------------
+  // Edge Function trigger
+  // ---------------------------------------------------------------------------
 
   @override
   Future<void> sendNotification({
@@ -143,5 +216,28 @@ class SupabaseNotificationRepository implements NotificationRepository {
       'reference_type': referenceType,
       'context': context ?? {},
     });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Private helpers
+  // ---------------------------------------------------------------------------
+
+  NotificationPreferences _defaultPrefs({
+    required String userId,
+    required String homeId,
+  }) {
+    return NotificationPreferences(
+      id: '',
+      userId: userId,
+      homeId: homeId,
+      itemAdded: true,
+      itemCompleted: true,
+      lowStock: true,
+      expiryAlert: true,
+      expenseAdded: true,
+      taskDue: true,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
   }
 }

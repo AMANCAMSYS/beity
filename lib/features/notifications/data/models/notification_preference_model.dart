@@ -1,67 +1,92 @@
 import '../../domain/entities/notification_preference.dart';
 
-class NotificationPreferenceModel {
+class NotificationPreferencesModel {
   final String id;
   final String userId;
-  final String category;
-  final bool enabled;
-  final String createdBy;
+  final String homeId;
+  final bool itemAdded;
+  final bool itemCompleted;
+  final bool lowStock;
+  final bool expiryAlert;
+  final bool expenseAdded;
+  final bool taskDue;
   final DateTime createdAt;
   final DateTime updatedAt;
 
-  const NotificationPreferenceModel({
+  const NotificationPreferencesModel({
     required this.id,
     required this.userId,
-    required this.category,
-    this.enabled = true,
-    required this.createdBy,
+    required this.homeId,
+    this.itemAdded = true,
+    this.itemCompleted = true,
+    this.lowStock = true,
+    this.expiryAlert = true,
+    this.expenseAdded = true,
+    this.taskDue = true,
     required this.createdAt,
     required this.updatedAt,
   });
 
-  factory NotificationPreferenceModel.fromJson(Map<String, dynamic> json) {
-    return NotificationPreferenceModel(
-      id: json['id'] as String,
-      userId: json['user_id'] as String,
-      category: json['category'] as String,
-      enabled: json['enabled'] as bool? ?? true,
-      createdBy: json['created_by'] as String,
-      createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: DateTime.parse(json['updated_at'] as String),
+  factory NotificationPreferencesModel.fromJson(Map<String, dynamic> json) {
+    return NotificationPreferencesModel(
+      id: json['id'] as String? ?? '',
+      userId: json['user_id'] as String? ?? '',
+      homeId: json['home_id'] as String? ?? '',
+      itemAdded: json['item_added'] as bool? ?? true,
+      itemCompleted: json['item_completed'] as bool? ?? true,
+      lowStock: json['low_stock'] as bool? ?? true,
+      expiryAlert: json['expiry_alert'] as bool? ?? true,
+      expenseAdded: json['expense_added'] as bool? ?? true,
+      taskDue: json['task_due'] as bool? ?? true,
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'] as String)
+          : DateTime.now(),
+      updatedAt: json['updated_at'] != null
+          ? DateTime.parse(json['updated_at'] as String)
+          : DateTime.now(),
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
       'user_id': userId,
-      'category': category,
-      'enabled': enabled,
-      'created_by': createdBy,
-      'created_at': createdAt.toIso8601String(),
-      'updated_at': updatedAt.toIso8601String(),
+      'home_id': homeId,
+      'item_added': itemAdded,
+      'item_completed': itemCompleted,
+      'low_stock': lowStock,
+      'expiry_alert': expiryAlert,
+      'expense_added': expenseAdded,
+      'task_due': taskDue,
     };
   }
 
-  NotificationPreference toEntity() {
-    return NotificationPreference(
+  NotificationPreferences toEntity() {
+    return NotificationPreferences(
       id: id,
       userId: userId,
-      category: category,
-      enabled: enabled,
-      createdBy: createdBy,
+      homeId: homeId,
+      itemAdded: itemAdded,
+      itemCompleted: itemCompleted,
+      lowStock: lowStock,
+      expiryAlert: expiryAlert,
+      expenseAdded: expenseAdded,
+      taskDue: taskDue,
       createdAt: createdAt,
       updatedAt: updatedAt,
     );
   }
 
-  factory NotificationPreferenceModel.fromEntity(NotificationPreference entity) {
-    return NotificationPreferenceModel(
+  factory NotificationPreferencesModel.fromEntity(NotificationPreferences entity) {
+    return NotificationPreferencesModel(
       id: entity.id,
       userId: entity.userId,
-      category: entity.category,
-      enabled: entity.enabled,
-      createdBy: entity.createdBy,
+      homeId: entity.homeId,
+      itemAdded: entity.itemAdded,
+      itemCompleted: entity.itemCompleted,
+      lowStock: entity.lowStock,
+      expiryAlert: entity.expiryAlert,
+      expenseAdded: entity.expenseAdded,
+      taskDue: entity.taskDue,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
     );

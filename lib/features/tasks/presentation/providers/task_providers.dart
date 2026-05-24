@@ -31,7 +31,7 @@ final taskCommentRepositoryProvider = Provider<TaskCommentRepository>((ref) {
 });
 
 final tasksProvider =
-    StreamProvider.family<List<Task>, ({String homeId, String? assignedTo})>(
+    StreamProvider.autoDispose.family<List<Task>, ({String homeId, String? assignedTo})>(
         (ref, params) {
   final repository = ref.watch(taskRepositoryProvider);
   return repository.watchTasks(
@@ -47,7 +47,7 @@ final taskByIdProvider =
 });
 
 final taskCommentsProvider =
-    StreamProvider.family<List<TaskComment>, String>((ref, taskId) {
+    StreamProvider.autoDispose.family<List<TaskComment>, String>((ref, taskId) {
   final repository = ref.watch(taskCommentRepositoryProvider);
   return repository.watchComments(taskId: taskId);
 });

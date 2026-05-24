@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../domain/entities/queue_entry.dart';
 import '../../domain/entities/action_type.dart';
@@ -8,7 +9,14 @@ import '../../domain/entities/entity_type.dart';
 import '../../domain/entities/sync_status.dart';
 
 class SharedPreferencesQueueDataSource {
-  static const String _queueKey = 'offline_queue_entries';
+  static const String _queueKeyBase = 'offline_queue_entries';
+
+  String _getUserId() {
+    final user = Supabase.instance.client.auth.currentUser;
+    return user?.id ?? 'anonymous';
+  }
+
+  String get _queueKey => '${_getUserId()}_$_queueKeyBase';
 
   Future<List<QueueEntry>> _loadEntries() async {
     final prefs = await SharedPreferences.getInstance();
@@ -23,6 +31,16 @@ class SharedPreferencesQueueDataSource {
     final prefs = await SharedPreferences.getInstance();
     final json = jsonEncode(entries.map((e) => e.toJson()).toList());
     await prefs.setString(_queueKey, json);
+  }
+
+  Future<void> clearQueue() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_queueKey);
+  }
+
+  Future<void> clearQueueForUser(String userId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('${userId}_$_queueKeyBase');
   }
 
   Future<int> enqueueAction({

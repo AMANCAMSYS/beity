@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../data/models/inventory_item_model.dart';
 import '../../data/repositories/inventory_repository.dart';
 import '../../data/repositories/supabase_inventory_repository.dart';
+import '../../domain/usecases/add_purchased_to_inventory_usecase.dart';
 
 final inventoryRepositoryProvider = Provider<InventoryRepository>((ref) {
   final client = Supabase.instance.client;
@@ -10,7 +11,10 @@ final inventoryRepositoryProvider = Provider<InventoryRepository>((ref) {
 });
 
 final inventoryItemsProvider =
-    StreamProvider.family<List<InventoryItemModel>, String>((ref, homeId) {
+    StreamProvider.autoDispose.family<List<InventoryItemModel>, String>((ref, homeId) {
+  if (homeId.isEmpty) {
+    return Stream.value([]);
+  }
   final repository = ref.watch(inventoryRepositoryProvider);
   return repository.watchInventoryItems(homeId: homeId);
 });
@@ -56,4 +60,10 @@ final inventorySearchProvider = FutureProvider.family<
     homeId: params.homeId,
     query: params.query,
   );
+});
+
+final addPurchasedToInventoryUseCaseProvider =
+    Provider<AddPurchasedToInventoryUseCase>((ref) {
+  final repository = ref.watch(inventoryRepositoryProvider);
+  return AddPurchasedToInventoryUseCase(repository);
 });

@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:beity/app/theme/app_spacing.dart';
+import 'package:beity/shared/widgets/design_system/beity_card.dart';
+import 'package:beity/shared/widgets/design_system/beity_button.dart';
+import 'package:beity/shared/widgets/design_system/beity_text_field.dart';
+import 'package:beity/core/utils/action_debouncer.dart';
 import '../../domain/entities/home_type.dart';
 import '../providers/homes_provider.dart';
 
@@ -49,7 +54,7 @@ class _CreateHomeScreenState extends ConsumerState<CreateHomeScreen> {
               'فشل إنشاء المنزل: ${e.toString()}',
               textDirection: TextDirection.rtl,
             ),
-            backgroundColor: Colors.red,
+            backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
       }
@@ -62,115 +67,125 @@ class _CreateHomeScreenState extends ConsumerState<CreateHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('إنشاء منزل جديد'),
+        centerTitle: true,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         child: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Icon(
-                Icons.home,
-                size: 80,
-                color: Theme.of(context).primaryColor,
-              ),
-              const SizedBox(height: 24),
-              Text(
-                'أنشئ منزلك',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'أدخل اسم المنزل واختر نوعه',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: Colors.grey[600],
-                    ),
-              ),
-              const SizedBox(height: 32),
-
-              // Home Name
-              TextFormField(
-                controller: _nameController,
-                textDirection: TextDirection.rtl,
-                decoration: const InputDecoration(
-                  labelText: 'اسم المنزل',
-                  prefixIcon: Icon(Icons.home),
-                  hintText: 'مثال: منزلي، شقة الطلاب',
+              AppSpacing.gapLG,
+              Center(
+                child: Container(
+                  padding: const EdgeInsets.all(AppSpacing.xl),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.home_work_rounded,
+                    size: 80,
+                    color: theme.colorScheme.primary,
+                  ),
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'يرجى إدخال اسم المنزل';
-                  }
-                  if (value.length > 100) {
-                    return 'اسم المنزل طويل جداً';
-                  }
-                  return null;
-                },
               ),
-              const SizedBox(height: 24),
-
-              // Home Type
+              AppSpacing.gapXL,
               Text(
-                'نوع المنزل',
-                style: Theme.of(context).textTheme.titleMedium,
-                textDirection: TextDirection.rtl,
-              ),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: HomeType.allValues.map((type) {
-                  final isSelected = _selectedType == type;
-                  return ChoiceChip(
-                    label: Text(type.arabicName),
-                    selected: isSelected,
-                    onSelected: (selected) {
-                      if (selected) {
-                        setState(() => _selectedType = type);
-                      }
-                    },
-                    selectedColor:
-                        Theme.of(context).primaryColor.withValues(alpha: 0.2),
-                    labelStyle: TextStyle(
-                      color: isSelected
-                          ? Theme.of(context).primaryColor
-                          : Colors.black87,
-                      fontWeight:
-                          isSelected ? FontWeight.bold : FontWeight.normal,
-                    ),
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 32),
-
-              // Create Button
-              ElevatedButton(
-                onPressed: _isLoading ? null : _createHome,
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+                'ابدأ فصلاً جديداً',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
                 ),
-                child: _isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Text(
-                        'إنشاء المنزل',
-                        textDirection: TextDirection.rtl,
-                        style: TextStyle(fontSize: 16),
+              ),
+              AppSpacing.gapSM,
+              Text(
+                'أنشئ مساحة مشتركة لإدارة منزلك واحتياجاتك مع عائلتك أو أصدقائك.',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              AppSpacing.gapXXL,
+              BeityCard(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    BeityTextField(
+                      controller: _nameController,
+                      textDirection: TextDirection.rtl,
+                      labelText: 'اسم المنزل',
+                      prefixIcon: Icons.home_rounded,
+                      hintText: 'مثال: منزل العائلة، شقة الطلاب',
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'يرجى إدخال اسم المنزل';
+                        }
+                        if (value.length > 100) {
+                          return 'اسم المنزل طويل جداً';
+                        }
+                        return null;
+                      },
+                    ),
+                    AppSpacing.gapXL,
+                    Text(
+                      'نوع المنزل',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
                       ),
+                    ),
+                    AppSpacing.gapMD,
+                    Wrap(
+                      spacing: AppSpacing.sm,
+                      runSpacing: AppSpacing.sm,
+                      children: HomeType.allValues.map((type) {
+                        final isSelected = _selectedType == type;
+                        return ChoiceChip(
+                          label: Text(type.arabicName),
+                          selected: isSelected,
+                          onSelected: (selected) {
+                            if (selected) {
+                              setState(() => _selectedType = type);
+                            }
+                          },
+                          showCheckmark: false,
+                          backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                          selectedColor: theme.colorScheme.primary.withValues(alpha: 0.2),
+                          labelStyle: TextStyle(
+                            color: isSelected
+                                ? theme.colorScheme.primary
+                                : theme.colorScheme.onSurfaceVariant,
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                            side: BorderSide(
+                              color: isSelected
+                                  ? theme.colorScheme.primary
+                                  : Colors.transparent,
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                ),
+              ),
+              AppSpacing.gapXXL,
+              BeityButton(
+                onPressed: () => ActionDebouncer.execute(_createHome),
+                text: 'إنشاء المنزل',
+                isLoading: _isLoading,
+                type: BeityButtonType.primary,
+                icon: Icons.add_home_rounded,
               ),
             ],
           ),

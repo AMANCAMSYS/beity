@@ -49,6 +49,7 @@ class SupabaseRoleRepository implements RoleRepository {
         .update({
           'role': newRole,
           'updated_at': DateTime.now().toIso8601String(),
+          'updated_by': user.id,
         })
         .eq('home_id', homeId)
         .eq('user_id', userId)
@@ -117,10 +118,15 @@ class SupabaseRoleRepository implements RoleRepository {
       throw Exception('لا يمكن إزالة نفسك، يجب نقل الملكية أولاً');
     }
 
-    // Remove member
+    // Soft delete member
     await _client
         .from('home_members')
-        .delete()
+        .update({
+          'status': 'inactive',
+          'deleted_at': DateTime.now().toIso8601String(),
+          'updated_at': DateTime.now().toIso8601String(),
+          'updated_by': user.id,
+        })
         .eq('home_id', homeId)
         .eq('user_id', userId);
 
@@ -168,25 +174,27 @@ class SupabaseRoleRepository implements RoleRepository {
       throw Exception('المالك الجديد يجب أن يكون عضواً في المنزل');
     }
 
-    // Update current owner to admin
-    await _client
-        .from('home_members')
-        .update({
-          'role': 'admin',
-          'updated_at': DateTime.now().toIso8601String(),
-        })
-        .eq('home_id', homeId)
-        .eq('user_id', user.id);
-
-    // Update new owner
+    // Promote new owner FIRST (before demoting old owner) to avoid trigger conflict
     await _client
         .from('home_members')
         .update({
           'role': 'owner',
           'updated_at': DateTime.now().toIso8601String(),
+          'updated_by': user.id,
         })
         .eq('home_id', homeId)
         .eq('user_id', newOwnerId);
+
+    // Now demote current owner to admin
+    await _client
+        .from('home_members')
+        .update({
+          'role': 'admin',
+          'updated_at': DateTime.now().toIso8601String(),
+          'updated_by': user.id,
+        })
+        .eq('home_id', homeId)
+        .eq('user_id', user.id);
 
     // Update home owner_id
     await _client.from('homes').update({

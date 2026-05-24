@@ -1,3 +1,5 @@
+import 'package:beity/app/theme/app_spacing.dart';
+import 'package:beity/shared/widgets/design_system/beity_empty_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -173,73 +175,25 @@ class _ActivityFeedScreenState extends ConsumerState<ActivityFeedScreen> {
   }
 
   Widget _buildEmptyState(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.history,
-              size: 80,
-              color: Colors.grey[400],
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'لا توجد نشاطات بعد',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    color: Colors.grey[700],
-                    fontWeight: FontWeight.bold,
-                  ),
-              textAlign: TextAlign.center,
-              textDirection: TextDirection.rtl,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'ستظهر النشاطات عندما يتفاعل الأعضاء مع القوائم والمنتجات',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey[600],
-                  ),
-              textAlign: TextAlign.center,
-              textDirection: TextDirection.rtl,
-            ),
-          ],
-        ),
-      ),
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+    return BeityEmptyState(
+      title: isArabic ? 'لا توجد نشاطات بعد' : 'No activities yet',
+      message: isArabic
+          ? 'ستظهر النشاطات عندما يتفاعل الأعضاء مع القوائم والمنتجات'
+          : 'Activities will appear when members interact with lists and products',
+      icon: Icons.history_rounded,
     );
   }
 
   Widget _buildErrorState(BuildContext context, String error) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.error_outline, size: 64, color: Colors.red[300]),
-            const SizedBox(height: 16),
-            Text(
-              'حدث خطأ',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: Colors.grey[700],
-                  ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              error,
-              style: TextStyle(color: Colors.grey[500]),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton.icon(
-              onPressed: () =>
-                  ref.invalidate(homeActivityProvider(widget.homeId)),
-              icon: const Icon(Icons.refresh),
-              label: const Text('إعادة المحاولة'),
-            ),
-          ],
-        ),
-      ),
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+    return BeityEmptyState(
+      title: isArabic ? 'حدث خطأ' : 'An error occurred',
+      message: error,
+      icon: Icons.error_outline_rounded,
+      isError: true,
+      actionText: isArabic ? 'إعادة المحاولة' : 'Try Again',
+      onActionPressed: () => ref.invalidate(homeActivityProvider(widget.homeId)),
     );
   }
 

@@ -1,31 +1,50 @@
-class NotificationPreference {
+class NotificationPreferences {
   final String id;
   final String userId;
-  final String category;
-  final bool enabled;
-  final String createdBy;
+  final String homeId;
+  final bool itemAdded;
+  final bool itemCompleted;
+  final bool lowStock;
+  final bool expiryAlert;
+  final bool expenseAdded;
+  final bool taskDue;
   final DateTime createdAt;
   final DateTime updatedAt;
 
-  const NotificationPreference({
+  const NotificationPreferences({
     required this.id,
     required this.userId,
-    required this.category,
-    this.enabled = true,
-    required this.createdBy,
+    required this.homeId,
+    this.itemAdded = true,
+    this.itemCompleted = true,
+    this.lowStock = true,
+    this.expiryAlert = true,
+    this.expenseAdded = true,
+    this.taskDue = true,
     required this.createdAt,
     required this.updatedAt,
   });
 
-  factory NotificationPreference.fromJson(Map<String, dynamic> json) {
-    return NotificationPreference(
-      id: json['id'] as String,
-      userId: json['user_id'] as String,
-      category: json['category'] as String,
-      enabled: json['enabled'] as bool? ?? true,
-      createdBy: json['created_by'] as String,
-      createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: DateTime.parse(json['updated_at'] as String),
+  NotificationPreferences copyWith({
+    bool? itemAdded,
+    bool? itemCompleted,
+    bool? lowStock,
+    bool? expiryAlert,
+    bool? expenseAdded,
+    bool? taskDue,
+  }) {
+    return NotificationPreferences(
+      id: id,
+      userId: userId,
+      homeId: homeId,
+      itemAdded: itemAdded ?? this.itemAdded,
+      itemCompleted: itemCompleted ?? this.itemCompleted,
+      lowStock: lowStock ?? this.lowStock,
+      expiryAlert: expiryAlert ?? this.expiryAlert,
+      expenseAdded: expenseAdded ?? this.expenseAdded,
+      taskDue: taskDue ?? this.taskDue,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
     );
   }
 }

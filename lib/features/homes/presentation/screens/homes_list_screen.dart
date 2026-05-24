@@ -1,9 +1,20 @@
+import 'package:beity/shared/widgets/design_system/beity_empty_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:beity/app/theme/app_spacing.dart';
+import 'package:beity/app/theme/app_colors.dart';
+import 'package:beity/shared/widgets/design_system/beity_button.dart';
 import '../providers/homes_provider.dart';
 import '../widgets/home_card_widget.dart';
+import '../../../notifications/presentation/providers/notifications_provider.dart';
+import '../../../notifications/presentation/providers/unread_count_provider.dart';
+import '../../../notifications/presentation/providers/notification_preferences_provider.dart';
+import '../../../tasks/presentation/providers/task_filter_providers.dart';
+import '../../../activity_logs/presentation/providers/activity_logs_provider.dart';
+import '../../../categories/presentation/providers/categories_provider.dart';
+import '../../../categories/presentation/providers/units_provider.dart';
 
 class HomesListScreen extends ConsumerStatefulWidget {
   const HomesListScreen({super.key});
@@ -25,16 +36,17 @@ class _HomesListScreenState extends ConsumerState<HomesListScreen> {
   Widget build(BuildContext context) {
     final homesAsync = ref.watch(homesNotifierProvider);
     final activeHomeIdAsync = ref.watch(activeHomeIdProvider);
+    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(' المنازل'),
+        title: const Text('المنازل'),
+        centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () {
-              ref.read(homesNotifierProvider.notifier).refreshHomes();
-            },
+            icon: const Icon(Icons.refresh_rounded),
+            onPressed: () => ref.read(homesNotifierProvider.notifier).refreshHomes(),
+            tooltip: 'تحديث القائمة',
           ),
         ],
       ),
@@ -48,107 +60,68 @@ class _HomesListScreenState extends ConsumerState<HomesListScreen> {
 
           return RefreshIndicator(
             onRefresh: () async {
-              ref.read(homesNotifierProvider.notifier).refreshHomes();
+              await ref.read(homesNotifierProvider.notifier).refreshHomes();
             },
+            color: theme.colorScheme.primary,
             child: ListView.builder(
-              padding: const EdgeInsets.all(16),
+              physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+              padding: const EdgeInsets.all(AppSpacing.lg),
               itemCount: homes.length,
               itemBuilder: (context, index) {
                 final home = homes[index];
                 final isActive = home.id == activeHomeId;
 
-                return HomeCardWidget(
-                  home: home,
-                  isActive: isActive,
-                  onTap: () async {
-                    final localDataSource =
-                        ref.read(homeLocalDataSourceProvider);
-                    await localDataSource.setActiveHome(home.id, home.name);
-                    ref.invalidate(activeHomeIdProvider);
-                  },
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                  child: HomeCardWidget(
+                    home: home,
+                    isActive: isActive,
+                    onTap: () async {
+                      final localDataSource = ref.read(homeLocalDataSourceProvider);
+                      await localDataSource.setActiveHome(home.id, home.name);
+                      ref.invalidate(activeHomeIdProvider);
+                      // Invalidate home-scoped providers to refresh for new home
+                      ref.invalidate(notificationsProvider);
+                      ref.invalidate(unreadCountProvider);
+                      ref.invalidate(notificationPreferencesProvider);
+                      ref.invalidate(taskFilterProvider);
+                      ref.invalidate(activityFilterProvider);
+                      ref.invalidate(categoryNotifierProvider);
+                      ref.invalidate(unitNotifierProvider);
+                    },
+                  ),
                 );
               },
             ),
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error_outline, size: 48, color: Colors.red),
-              const SizedBox(height: 16),
-              Text(
-                'حدث خطأ',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                error.toString(),
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.grey),
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () {
-                  ref.read(homesNotifierProvider.notifier).loadHomes();
-                },
-                child: const Text('إعادة المحاولة'),
-              ),
-            ],
-          ),
+        error: (error, stack) => BeityEmptyState(
+          title: 'عذراً، حدث خطأ',
+          message: error.toString(),
+          icon: Icons.error_outline_rounded,
+          isError: true,
+          actionText: 'إعادة المحاولة',
+          onActionPressed: () => ref.read(homesNotifierProvider.notifier).loadHomes(),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.push('/homes/create'),
-        child: const Icon(Icons.add),
+        label: const Text('منزل جديد'),
+        icon: const Icon(Icons.add_rounded),
+        backgroundColor: theme.colorScheme.primary,
+        foregroundColor: theme.colorScheme.onPrimary,
       ),
     );
   }
 
   Widget _buildEmptyState(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.home_outlined,
-              size: 100,
-              color: Colors.grey[400],
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'لا توجد منازل',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    color: Colors.grey[700],
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'أنشئ منزلك الأول لتبدأ',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: Colors.grey[600],
-                  ),
-            ),
-            const SizedBox(height: 32),
-            ElevatedButton.icon(
-              onPressed: () => context.push('/homes/create'),
-              icon: const Icon(Icons.add),
-              label: const Text('إنشاء منزل'),
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 32,
-                  vertical: 16,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
+    return BeityEmptyState(
+      title: 'لا توجد منازل حتى الآن',
+      message: 'أنشئ منزلك الأول لتبدأ في إدارة احتياجاتك المنزلية مع عائلتك بكل سهولة.',
+      icon: Icons.home_outlined,
+      actionText: 'إنشاء منزلي الأول',
+      onActionPressed: () => context.push('/homes/create'),
     );
   }
 }

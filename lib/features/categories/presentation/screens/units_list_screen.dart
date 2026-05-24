@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../providers/units_provider.dart';
 import '../widgets/unit_card_widget.dart';
-import '../../domain/entities/unit.dart';
 
 class UnitsListScreen extends ConsumerStatefulWidget {
   const UnitsListScreen({super.key});
@@ -29,7 +29,7 @@ class _UnitsListScreenState extends ConsumerState<UnitsListScreen> {
           IconButton(
             icon: const Icon(Icons.add),
             onPressed: () {
-              // Navigate to create unit screen
+              context.push('/units/create');
             },
           ),
         ],

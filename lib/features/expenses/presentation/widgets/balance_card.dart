@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:beity/app/theme/app_spacing.dart';
+import 'package:beity/app/theme/app_colors.dart';
+import 'package:beity/shared/widgets/design_system/beity_card.dart';
 import '../../domain/entities/balance.dart';
 
 class BalanceCard extends StatelessWidget {
@@ -11,73 +14,93 @@ class BalanceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final debtor = balance.getDebtor();
-    final creditor = balance.getCreditor();
-    final amount = balance.absoluteAmount / 100; // Convert from cents
+    final theme = Theme.of(context);
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+    final amount = balance.absoluteAmount / 100;
 
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'دين',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.grey[600],
-                        ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    debtor,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                  ),
-                ],
-              ),
-            ),
-            Column(
+    return BeityCard(
+      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+      child: Row(
+        children: [
+          // Debtor (Owes money)
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(
-                  Icons.arrow_forward,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
                 Text(
-                  '${amount.toStringAsFixed(2)} ر.س',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
+                  isArabic ? 'مدين' : 'Debtor',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                AppSpacing.gapXXS,
+                Text(
+                  balance.getDebtor(),
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    'يدين لـ',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.grey[600],
-                        ),
+          ),
+          
+          // Amount and Arrow
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+            child: Column(
+              children: [
+                Icon(
+                  Icons.arrow_forward_rounded,
+                  color: theme.colorScheme.error.withValues(alpha: 0.5),
+                  size: 20,
+                ),
+                AppSpacing.gapXXS,
+                Text(
+                  amount.toStringAsFixed(2),
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.error,
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    creditor,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                ),
+                Text(
+                  isArabic ? 'ر.س' : 'SAR',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.error.withValues(alpha: 0.7),
+                    fontWeight: FontWeight.bold,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+
+          // Creditor (Is owed money)
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  isArabic ? 'دائن' : 'Creditor',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                AppSpacing.gapXXS,
+                Text(
+                  balance.getCreditor(),
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -20,12 +20,14 @@ abstract class NotificationRepository {
   /// Mark all notifications as read
   Future<int> markAllAsRead();
 
-  /// Get notification preferences for the current user
-  Future<List<NotificationPreference>> getPreferences();
+  /// Get notification preferences for the current user and home
+  Future<NotificationPreferences> getPreferences({required String homeId});
 
-  /// Update notification preferences
-  Future<List<NotificationPreference>> updatePreferences({
-    required List<Map<String, dynamic>> preferences,
+  /// Update a single notification preference field
+  Future<NotificationPreferences> updatePreference({
+    required String homeId,
+    required String field,
+    required bool value,
   });
 
   /// Send a notification via Edge Function (for client-triggered notifications)

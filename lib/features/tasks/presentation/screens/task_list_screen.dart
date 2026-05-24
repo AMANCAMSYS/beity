@@ -1,8 +1,15 @@
+import 'package:beity/app/theme/app_spacing.dart';
+import 'package:beity/app/theme/app_colors.dart';
+import 'package:beity/shared/widgets/design_system/beity_button.dart';
+import 'package:beity/shared/widgets/design_system/beity_card.dart';
+import 'package:beity/shared/widgets/design_system/beity_empty_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:beity/core/utils/action_debouncer.dart';
 import '../../../homes/presentation/providers/homes_provider.dart';
+import '../../../home/presentation/widgets/app_drawer.dart';
 import '../providers/task_providers.dart';
 import '../providers/task_filter_providers.dart';
 import '../widgets/task_card.dart';
@@ -47,12 +54,16 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
       }
     });
 
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+    final theme = Theme.of(context);
+
     return Scaffold(
+      drawer: const AppDrawer(),
       appBar: AppBar(
-        title: const Text('المهام'),
+        title: Text(isArabic ? 'المهام' : 'Tasks', style: const TextStyle(fontWeight: FontWeight.bold)),
         actions: [
           PopupMenuButton<String>(
-            icon: const Icon(Icons.sort),
+            icon: const Icon(Icons.sort_rounded),
             onSelected: (value) {
               final notifier = ref.read(taskFilterProvider.notifier);
               switch (value) {
@@ -79,33 +90,33 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
                 value: 'due_date_asc',
                 checked: filter.sortBy == TaskSortBy.dueDate &&
                     filter.sortOrder == TaskSortOrder.ascending,
-                child: const Text('تاريخ الاستحقاق (تصاعدي)'),
+                child: Text(isArabic ? 'تاريخ الاستحقاق (أولاً)' : 'Due Date (Earliest)'),
               ),
               CheckedPopupMenuItem<String>(
                 value: 'due_date_desc',
                 checked: filter.sortBy == TaskSortBy.dueDate &&
                     filter.sortOrder == TaskSortOrder.descending,
-                child: const Text('تاريخ الاستحقاق (تنازلي)'),
+                child: Text(isArabic ? 'تاريخ الاستحقاق (آخراً)' : 'Due Date (Latest)'),
               ),
               CheckedPopupMenuItem<String>(
                 value: 'created_asc',
                 checked: filter.sortBy == TaskSortBy.createdAt &&
                     filter.sortOrder == TaskSortOrder.ascending,
-                child: const Text('تاريخ الإنشاء (تصاعدي)'),
+                child: Text(isArabic ? 'تاريخ الإنشاء (الأقدم)' : 'Created (Oldest)'),
               ),
               CheckedPopupMenuItem<String>(
                 value: 'created_desc',
                 checked: filter.sortBy == TaskSortBy.createdAt &&
                     filter.sortOrder == TaskSortOrder.descending,
-                child: const Text('تاريخ الإنشاء (تنازلي)'),
+                child: Text(isArabic ? 'تاريخ الإنشاء (الأحدث)' : 'Created (Newest)'),
               ),
             ],
           ),
           IconButton(
             icon: const Icon(Icons.archive_outlined),
-            onPressed: () {
+            onPressed: () => ActionDebouncer.execute(() async {
               context.push('/home/${widget.homeId}/tasks/archived');
-            },
+            }),
           ),
         ],
       ),
@@ -177,29 +188,14 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
                 });
 
                 if (filteredTasks.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.task_alt,
-                          size: 64,
-                          color: Colors.grey.shade400,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          _currentTab == 0
-                              ? 'لا توجد مهام مسندة إليك'
-                              : 'لا توجد مهام',
-                          style: Theme.of(context).textTheme.titleLarge,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'اضغط على + لإضافة مهمة جديدة',
-                          style: TextStyle(color: Colors.grey.shade600),
-                        ),
-                      ],
-                    ),
+                  return BeityEmptyState(
+                    title: _currentTab == 0
+                        ? (isArabic ? 'لا توجد مهام مسندة إليك' : 'No tasks assigned to you')
+                        : (isArabic ? 'لا توجد مهام' : 'No tasks found'),
+                    message: isArabic ? 'اضغط على الزر لإضافة مهمة جديدة' : 'Tap the button to add a new task',
+                    icon: Icons.task_alt_rounded,
+                    actionText: isArabic ? 'إضافة مهمة' : 'Add Task',
+                    onActionPressed: () => ActionDebouncer.execute(() => context.push('/home/${widget.homeId}/tasks/add')),
                   );
                 }
 
@@ -227,12 +223,12 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
                           assigneeName: task.assignedTo != null
                               ? memberNames[task.assignedTo]
                               : null,
-                          onTap: () {
+                          onTap: () => ActionDebouncer.execute(() async {
                             context.push(
                               '/home/${widget.homeId}/tasks/${task.id}',
                             );
-                          },
-                          onComplete: () async {
+                          }),
+                          onComplete: () => ActionDebouncer.execute(() async {
                             try {
                               final repository =
                                   ref.read(taskRepositoryProvider);
@@ -249,7 +245,7 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
                                 );
                               }
                             }
-                          },
+                          }),
                         ),
                       ),
                     ],
@@ -270,12 +266,12 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
                           assigneeName: task.assignedTo != null
                               ? memberNames[task.assignedTo]
                               : null,
-                          onTap: () {
+                          onTap: () => ActionDebouncer.execute(() async {
                             context.push(
                               '/home/${widget.homeId}/tasks/${task.id}',
                             );
-                          },
-                          onComplete: () async {
+                          }),
+                          onComplete: () => ActionDebouncer.execute(() async {
                             try {
                               final repository =
                                   ref.read(taskRepositoryProvider);
@@ -288,7 +284,7 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
                                 );
                               }
                             }
-                          },
+                          }),
                         ),
                       ),
                     ],
@@ -297,31 +293,21 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
               },
               loading: () =>
                   const Center(child: CircularProgressIndicator()),
-              error: (error, _) => Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.error_outline,
-                        size: 48, color: Colors.red),
-                    const SizedBox(height: 16),
-                    Text('خطأ: $error'),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: () => ref.invalidate(tasksProvider),
-                      child: const Text('إعادة المحاولة'),
-                    ),
-                  ],
-                ),
+              error: (error, _) => BeityEmptyState(
+                title: isArabic ? 'عذراً، حدث خطأ' : 'Oops, something went wrong',
+                message: error.toString(),
+                icon: Icons.error_outline_rounded,
+                isError: true,
+                actionText: isArabic ? 'إعادة المحاولة' : 'Try Again',
+                onActionPressed: () => ref.invalidate(tasksProvider),
               ),
             ),
           ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          context.push('/home/${widget.homeId}/tasks/add');
-        },
-        child: const Icon(Icons.add),
+        onPressed: () => ActionDebouncer.execute(() => context.push('/home/${widget.homeId}/tasks/add')),
+        child: const Icon(Icons.add_rounded),
       ),
     );
   }

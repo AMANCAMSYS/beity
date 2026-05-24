@@ -2,22 +2,25 @@ import 'package:flutter/material.dart';
 
 class ItemUpdatedToast {
   static void show(BuildContext context, {required String updatedBy}) {
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+    final theme = Theme.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
           children: [
-            const Icon(Icons.sync, color: Colors.white, size: 20),
+            Icon(Icons.sync, color: theme.colorScheme.onSecondary, size: 20),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                'تم التحديث بواسطة $updatedBy',
-                textDirection: TextDirection.rtl,
-                style: const TextStyle(color: Colors.white),
+                isArabic 
+                    ? 'تم التحديث بواسطة $updatedBy'
+                    : 'Updated by $updatedBy',
+                style: TextStyle(color: theme.colorScheme.onSecondary),
               ),
             ),
           ],
         ),
-        backgroundColor: Colors.orange[700],
+        backgroundColor: theme.colorScheme.secondary,
         duration: const Duration(seconds: 3),
         behavior: SnackBarBehavior.floating,
         margin: const EdgeInsets.all(8),

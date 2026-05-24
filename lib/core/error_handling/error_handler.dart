@@ -6,7 +6,7 @@ class ErrorHandler {
   static ErrorHandlerMessage mapExceptionToMessage(dynamic exception) {
     if (exception is NetworkException) {
       return ErrorHandlerMessage(
-        message: 'You\'re offline. Changes will sync when you\'re back online.',
+        message: 'أنت غير متصل بالإنترنت. سيتم مزامنة التغييرات عند عودة الاتصال.',
         recoveryAction: RecoveryAction.queueAndRetry,
         icon: Icons.wifi_off,
       );
@@ -14,7 +14,7 @@ class ErrorHandler {
 
     if (exception is AuthException) {
       return ErrorHandlerMessage(
-        message: 'Your session expired. Please sign in again.',
+        message: 'انتهت صلاحية جلستك. يرجى تسجيل الدخول مرة أخرى.',
         recoveryAction: RecoveryAction.reauth,
         icon: Icons.lock_outline,
       );
@@ -22,7 +22,7 @@ class ErrorHandler {
 
     if (exception is PermissionException) {
       return ErrorHandlerMessage(
-        message: 'You no longer have access to this home.',
+        message: 'لم يعد لديك وصول إلى هذا المنزل.',
         recoveryAction: RecoveryAction.navigateToHomes,
         icon: Icons.no_accounts,
       );
@@ -30,7 +30,7 @@ class ErrorHandler {
 
     if (exception is DatabaseException) {
       return ErrorHandlerMessage(
-        message: 'Something went wrong on our end. Please try again.',
+        message: 'حدث خطأ من جانبنا. يرجى المحاولة مرة أخرى.',
         recoveryAction: RecoveryAction.retry,
         icon: Icons.error_outline,
       );
@@ -46,7 +46,7 @@ class ErrorHandler {
 
     // Default for unknown errors
     return ErrorHandlerMessage(
-      message: 'An unexpected error occurred. Please try again or report this.',
+      message: 'حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى أو الإبلاغ عن المشكلة.',
       recoveryAction: RecoveryAction.retryAndReport,
       icon: Icons.error_outline,
     );

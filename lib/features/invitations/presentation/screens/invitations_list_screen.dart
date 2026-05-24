@@ -15,6 +15,25 @@ class InvitationsListScreen extends ConsumerWidget {
         ? ref.watch(homeInvitationsStreamProvider(homeId!))
         : ref.watch(userInvitationsStreamProvider);
 
+    ref.listen<AsyncValue<void>>(invitationNotifierProvider, (previous, next) {
+      next.whenOrNull(
+        error: (error, stack) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(error.toString().replaceAll('Exception: ', '')),
+            ),
+          );
+        },
+        data: (_) {
+          if (previous?.isLoading == true) {
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(const SnackBar(content: Text('تمت العملية بنجاح')));
+          }
+        },
+      );
+    });
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -29,19 +48,15 @@ class InvitationsListScreen extends ConsumerWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    Icons.mail_outline,
-                    size: 64,
-                    color: Colors.grey[400],
-                  ),
+                  Icon(Icons.mail_outline, size: 64, color: Colors.grey[400]),
                   const SizedBox(height: 16),
                   Text(
                     homeId != null
                         ? 'لا توجد دعوات معلقة لهذا المنزل'
                         : 'ليس لديك دعوات معلقة',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: Colors.grey[600],
-                        ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.titleMedium?.copyWith(color: Colors.grey[600]),
                     textDirection: TextDirection.rtl,
                   ),
                   const SizedBox(height: 8),
@@ -49,9 +64,9 @@ class InvitationsListScreen extends ConsumerWidget {
                     homeId != null
                         ? 'يمكنك دعوة أعضاء جدد من إعدادات المنزل'
                         : 'ستظهر هنا الدعوات الواردة لك',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.grey[500],
-                        ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodyMedium?.copyWith(color: Colors.grey[500]),
                     textDirection: TextDirection.rtl,
                     textAlign: TextAlign.center,
                   ),
@@ -85,9 +100,11 @@ class InvitationsListScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 8),
               ElevatedButton(
-                onPressed: () => ref.invalidate(homeId != null
-                    ? homeInvitationsStreamProvider(homeId!)
-                    : userInvitationsStreamProvider),
+                onPressed: () => ref.invalidate(
+                  homeId != null
+                      ? homeInvitationsStreamProvider(homeId!)
+                      : userInvitationsStreamProvider,
+                ),
                 child: const Text('إعادة المحاولة'),
               ),
             ],

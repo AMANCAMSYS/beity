@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/utils/action_debouncer.dart';
 import 'package:go_router/go_router.dart';
 
 import '../providers/units_provider.dart';
-import '../../domain/entities/unit.dart';
 
 class CreateUnitScreen extends ConsumerStatefulWidget {
   const CreateUnitScreen({super.key});
@@ -154,7 +154,7 @@ class _CreateUnitScreenState extends ConsumerState<CreateUnitScreen> {
               ),
               const SizedBox(height: 32),
               ElevatedButton(
-                onPressed: _isLoading ? null : _createUnit,
+                onPressed: _isLoading ? null : () => ActionDebouncer.execute(_createUnit),
                 child: _isLoading
                     ? const SizedBox(
                         height: 20,

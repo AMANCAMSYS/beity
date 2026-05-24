@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:timeago/timeago.dart' as timeago;
-
+import 'package:beity/app/theme/app_spacing.dart';
+import 'package:beity/app/theme/app_colors.dart';
+import 'package:beity/shared/widgets/design_system/beity_card.dart';
+import 'package:beity/shared/widgets/design_system/beity_button.dart';
+import 'package:beity/core/utils/action_debouncer.dart';
 import '../../data/models/invitation_model.dart';
 import '../../domain/entities/invitation.dart';
+import '../../../homes/presentation/providers/homes_provider.dart';
 import '../providers/invitations_provider.dart';
 
 class InvitationCardWidget extends ConsumerWidget {
@@ -18,94 +23,118 @@ class InvitationCardWidget extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isExpired = invitation.isExpired;
+    final theme = Theme.of(context);
     final isPending = invitation.isPending;
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+    return BeityCard(
+      margin: const EdgeInsets.only(bottom: AppSpacing.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 20,
+                backgroundColor: _getStatusColor().withValues(alpha: 0.1),
+                child: Icon(
+                  _getStatusIcon(),
+                  color: _getStatusColor(),
+                  size: 20,
+                ),
+              ),
+              AppSpacing.gapMD,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      invitation.email ?? 'دعوة',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textDirection: TextDirection.ltr,
+                    ),
+                    AppSpacing.gapXXS,
+                    Text(
+                      'الدور: ${_getRoleName()}',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              _buildStatusChip(context),
+            ],
+          ),
+          if (invitation.createdAt != null) ...[
+            AppSpacing.gapSM,
             Row(
               children: [
-                CircleAvatar(
-                  backgroundColor: _getStatusColor().withOpacity(0.1),
-                  child: Icon(
-                    _getStatusIcon(),
-                    color: _getStatusColor(),
+                Icon(
+                  Icons.access_time_rounded,
+                  size: 12,
+                  color: theme.colorScheme.outline,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  timeago.format(invitation.createdAt!, locale: 'ar'),
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.outline,
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        invitation.email ?? 'دعوة',
-                        style: Theme.of(context).textTheme.titleMedium,
-                        textDirection: TextDirection.ltr,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'الدور: ${_getRoleName()}',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Colors.grey[600],
-                            ),
-                        textDirection: TextDirection.rtl,
-                      ),
-                    ],
-                  ),
-                ),
-                _buildStatusChip(),
               ],
             ),
-            if (invitation.createdAt != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                timeago.format(invitation.createdAt!, locale: 'ar'),
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.grey[500],
-                    ),
-                textDirection: TextDirection.rtl,
-              ),
-            ],
-            if (isPending && !isOwner) ...[
-              const SizedBox(height: 16),
+          ],
+          if (isPending) ...[
+            AppSpacing.gapLG,
+            if (!isOwner)
               Row(
                 children: [
                   Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => _declineInvitation(ref),
-                      child: const Text('رفض'),
+                    child: BeityButton(
+                      onPressed: () => ActionDebouncer.execute(() => _declineInvitation(ref)),
+                      text: 'رفض',
+                      type: BeityButtonType.secondary,
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  AppSpacing.gapMD,
                   Expanded(
-                    child: ElevatedButton(
-                      onPressed: () => _acceptInvitation(ref),
-                      child: const Text('قبول'),
+                    child: BeityButton(
+                      onPressed: () => ActionDebouncer.execute(() => _acceptInvitation(ref)),
+                      text: 'قبول',
+                      type: BeityButtonType.primary,
                     ),
                   ),
                 ],
-              ),
-            ],
-            if (isPending && isOwner) ...[
-              const SizedBox(height: 16),
+              )
+            else
               SizedBox(
                 width: double.infinity,
-                child: OutlinedButton(
-                  onPressed: () => _cancelInvitation(ref),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.red,
+                child: OutlinedButton.icon(
+                  onPressed: () => ActionDebouncer.execute(() => _cancelInvitation(ref, context)),
+                  icon: const Icon(Icons.cancel_outlined, color: Color(0xFFEF5350), size: 18),
+                  label: const Text(
+                    'إلغاء الدعوة',
+                    style: TextStyle(
+                      color: Color(0xFFEF5350),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      fontFamily: 'Cairo',
+                    ),
                   ),
-                  child: const Text('إلغاء الدعوة'),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Color(0x7FEF5350), width: 1.2),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    backgroundColor: const Color(0x0AEF5350),
+                  ),
                 ),
               ),
-            ],
           ],
-        ),
+        ],
       ),
     );
   }
@@ -136,18 +165,18 @@ class InvitationCardWidget extends ConsumerWidget {
     }
   }
 
-  Widget _buildStatusChip() {
+  Widget _buildStatusChip(BuildContext context) {
+    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: _getStatusColor().withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
+        color: _getStatusColor().withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
       ),
       child: Text(
         _getStatusName(),
-        style: TextStyle(
+        style: theme.textTheme.labelSmall?.copyWith(
           color: _getStatusColor(),
-          fontSize: 12,
           fontWeight: FontWeight.bold,
         ),
       ),
@@ -185,6 +214,8 @@ class InvitationCardWidget extends ConsumerWidget {
       await ref.read(invitationNotifierProvider.notifier).acceptInvitation(
             token: invitation.token,
           );
+      // Invalidate homes list so the new home appears
+      ref.invalidate(userHomesProvider);
     } catch (e) {
       // Error is handled by the provider
     }
@@ -200,13 +231,54 @@ class InvitationCardWidget extends ConsumerWidget {
     }
   }
 
-  Future<void> _cancelInvitation(WidgetRef ref) async {
-    try {
-      await ref.read(invitationNotifierProvider.notifier).cancelInvitation(
-            invitationId: invitation.id,
+  Future<void> _cancelInvitation(WidgetRef ref, BuildContext context) async {
+    debugPrint('Cancelling invitation: ${invitation.id} for ${invitation.email}');
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('إلغاء الدعوة؟', textDirection: TextDirection.rtl),
+        content: Text(
+          'هل أنت متأكد من إلغاء دعوة ${invitation.email}؟',
+          textDirection: TextDirection.rtl,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('تراجع'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('إلغاء الدعوة'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await ref.read(invitationNotifierProvider.notifier).cancelInvitation(
+              invitationId: invitation.id,
+            );
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('تم إلغاء الدعوة بنجاح', textDirection: TextDirection.rtl),
+              backgroundColor: Colors.green,
+            ),
           );
-    } catch (e) {
-      // Error is handled by the provider
+        }
+      } catch (e) {
+        debugPrint('Error cancelling invitation: $e');
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('فشل إلغاء الدعوة: ${e.toString()}', textDirection: TextDirection.rtl),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
     }
   }
 }

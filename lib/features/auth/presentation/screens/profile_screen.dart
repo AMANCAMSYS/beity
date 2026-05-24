@@ -2,6 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:beity/core/utils/auth_error_messages.dart';
+import 'package:beity/core/utils/action_debouncer.dart';
+import 'package:beity/app/theme/app_spacing.dart';
+import 'package:beity/app/theme/app_colors.dart';
+import 'package:beity/shared/widgets/design_system/beity_button.dart';
+import 'package:beity/shared/widgets/design_system/beity_text_field.dart';
+import 'package:beity/shared/widgets/design_system/beity_card.dart';
 import '../providers/auth_provider.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -68,7 +74,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               'فشل تحديث الملف الشخصي: ${e.toString()}',
               textDirection: TextDirection.rtl,
             ),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.error,
           ),
         );
       }
@@ -89,31 +95,39 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final currentUser = ref.watch(currentUserProvider);
+    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('الملف الشخصي'),
+        centerTitle: true,
         actions: [
           if (!_isEditing)
             IconButton(
-              icon: const Icon(Icons.edit),
+              icon: const Icon(Icons.edit_rounded),
               onPressed: () => setState(() => _isEditing = true),
+              tooltip: 'تعديل الملف الشخصي',
             ),
         ],
       ),
       body: currentUser.when(
         data: (user) {
           if (user == null) {
-            return const Center(
-              child: Text(
-                'لا يوجد بيانات مستخدم',
-                textDirection: TextDirection.rtl,
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.person_off_rounded, size: 64, color: theme.colorScheme.outline),
+                  AppSpacing.gapMD,
+                  const Text('لا يوجد بيانات مستخدم', textDirection: TextDirection.rtl),
+                ],
               ),
             );
           }
 
           return SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.all(AppSpacing.lg),
             child: _isEditing
                 ? _buildEditForm()
                 : _buildProfileView(user),
@@ -121,9 +135,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stack) => Center(
-          child: Text(
-            'خطأ: ${error.toString()}',
-            textDirection: TextDirection.rtl,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.error_outline_rounded, size: 64, color: theme.colorScheme.error),
+              AppSpacing.gapMD,
+              Text('خطأ: ${error.toString()}', textDirection: TextDirection.rtl),
+            ],
           ),
         ),
       ),
@@ -131,57 +149,88 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Widget _buildProfileView(dynamic user) {
+    final theme = Theme.of(context);
+    
     return Column(
       children: [
-        const SizedBox(height: 24),
-        CircleAvatar(
-          radius: 60,
-          backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.1),
-          child: Icon(
-            Icons.person,
-            size: 60,
-            color: Theme.of(context).primaryColor,
+        AppSpacing.gapLG,
+        Container(
+          padding: const EdgeInsets.all(AppSpacing.xs),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.2), width: 2),
           ),
-        ),
-        const SizedBox(height: 32),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                _buildInfoRow('الاسم', user.fullName),
-                const Divider(),
-                _buildInfoRow('البريد الإلكتروني', user.email),
-                const Divider(),
-                _buildInfoRow('رقم الهاتف', user.phone ?? 'غير محدد'),
-              ],
+          child: CircleAvatar(
+            radius: 56,
+            backgroundColor: theme.colorScheme.primaryContainer,
+            child: Icon(
+              Icons.person_rounded,
+              size: 64,
+              color: theme.colorScheme.onPrimaryContainer,
             ),
           ),
+        ),
+        AppSpacing.gapXL,
+        Text(
+          user.fullName,
+          style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+          textAlign: TextAlign.center,
+        ),
+        AppSpacing.gapXS,
+        Text(
+          user.email,
+          style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+          textAlign: TextAlign.center,
+        ),
+        AppSpacing.gapXL,
+        BeityCard(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Column(
+            children: [
+              _buildInfoRow(Icons.person_outline_rounded, 'الاسم', user.fullName),
+              Divider(height: AppSpacing.xl, color: theme.colorScheme.outlineVariant),
+              _buildInfoRow(Icons.email_outlined, 'البريد الإلكتروني', user.email),
+              Divider(height: AppSpacing.xl, color: theme.colorScheme.outlineVariant),
+              _buildInfoRow(Icons.phone_outlined, 'رقم الهاتف', user.phone ?? 'غير محدد'),
+            ],
+          ),
+        ),
+        AppSpacing.gapXL,
+        BeityButton(
+          onPressed: () => ActionDebouncer.execute(() => ref.read(authNotifierProvider.notifier).signOut()),
+          text: 'تسجيل الخروج',
+          type: BeityButtonType.secondary,
+          icon: Icons.logout_rounded,
         ),
       ],
     );
   }
 
-  Widget _buildInfoRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: Colors.grey[600],
-                ),
-            textDirection: TextDirection.rtl,
-          ),
-          Text(
-            value,
-            style: Theme.of(context).textTheme.titleMedium,
-            textDirection: TextDirection.rtl,
-          ),
-        ],
-      ),
+  Widget _buildInfoRow(IconData icon, String label, String value) {
+    final theme = Theme.of(context);
+
+    return Row(
+      children: [
+        Icon(icon, size: 20, color: theme.colorScheme.primary),
+        AppSpacing.gapMD,
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            Text(
+              value,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -191,64 +240,55 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SizedBox(height: 24),
-          TextFormField(
-            controller: _nameController,
-            textDirection: TextDirection.rtl,
-            decoration: const InputDecoration(
-              labelText: 'الاسم الكامل',
-              prefixIcon: Icon(Icons.person),
+          AppSpacing.gapLG,
+          BeityCard(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Column(
+              children: [
+                BeityTextField(
+                  controller: _nameController,
+                  textDirection: TextDirection.rtl,
+                  labelText: 'الاسم الكامل',
+                  prefixIcon: Icons.person_rounded,
+                  validator: (value) {
+                    final error = AuthErrorMessages.validateName(value);
+                    return error.isEmpty ? null : error;
+                  },
+                ),
+                AppSpacing.gapLG,
+                BeityTextField(
+                  controller: _phoneController,
+                  keyboardType: TextInputType.phone,
+                  textDirection: TextDirection.ltr,
+                  labelText: 'رقم الهاتف (اختياري)',
+                  prefixIcon: Icons.phone_rounded,
+                  hintText: '+90 xxx xxx xxxx',
+                ),
+              ],
             ),
-            validator: (value) {
-              final error = AuthErrorMessages.validateName(value);
-              return error.isEmpty ? null : error;
-            },
           ),
-          const SizedBox(height: 16),
-          TextFormField(
-            controller: _phoneController,
-            keyboardType: TextInputType.phone,
-            textDirection: TextDirection.ltr,
-            decoration: const InputDecoration(
-              labelText: 'رقم الهاتف (اختياري)',
-              prefixIcon: Icon(Icons.phone),
-              hintText: '+90 xxx xxx xxxx',
-            ),
-          ),
-          const SizedBox(height: 32),
+          AppSpacing.gapXL,
           Row(
             children: [
-              Expanded(
-                child: OutlinedButton(
+                Expanded(
+                child: BeityButton(
                   onPressed: _isLoading
                       ? null
                       : () {
                           setState(() => _isEditing = false);
                           _loadUserData();
                         },
-                  child: const Text(
-                    'إلغاء',
-                    textDirection: TextDirection.rtl,
-                  ),
+                  text: 'إلغاء',
+                  type: BeityButtonType.secondary,
                 ),
               ),
-              const SizedBox(width: 16),
+              AppSpacing.gapMD,
               Expanded(
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _updateProfile,
-                  child: _isLoading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Text(
-                          'حفظ',
-                          textDirection: TextDirection.rtl,
-                        ),
+                child: BeityButton(
+                  onPressed: () => ActionDebouncer.execute(_updateProfile),
+                  text: 'حفظ',
+                  isLoading: _isLoading,
+                  type: BeityButtonType.primary,
                 ),
               ),
             ],

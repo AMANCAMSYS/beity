@@ -2,7 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/models/inventory_transaction_model.dart';
 import 'inventory_provider.dart';
 
-final inventoryTransactionsProvider = StreamProvider.family<
+final inventoryTransactionsProvider = StreamProvider.autoDispose.family<
     List<InventoryTransactionModel>, String>((ref, itemId) {
   final repository = ref.watch(inventoryRepositoryProvider);
   return repository.watchTransactions(inventoryItemId: itemId);

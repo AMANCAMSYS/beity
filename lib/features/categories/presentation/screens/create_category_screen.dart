@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/utils/action_debouncer.dart';
 import 'package:go_router/go_router.dart';
 
 import '../providers/categories_provider.dart';
-import '../../domain/entities/category.dart';
 
 class CreateCategoryScreen extends ConsumerStatefulWidget {
   final String homeId;
@@ -164,7 +164,7 @@ class _CreateCategoryScreenState extends ConsumerState<CreateCategoryScreen> {
               ),
               const SizedBox(height: 32),
               ElevatedButton(
-                onPressed: _isLoading ? null : _createCategory,
+                onPressed: _isLoading ? null : () => ActionDebouncer.execute(_createCategory),
                 child: _isLoading
                     ? const SizedBox(
                         height: 20,

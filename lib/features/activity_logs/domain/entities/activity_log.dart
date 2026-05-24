@@ -11,7 +11,8 @@ enum ActionType {
   memberJoined,
   memberRemoved,
   memberRoleChanged,
-  invitationAccepted;
+  invitationAccepted,
+  aiItemsAdded;
 
   String get value {
     switch (this) {
@@ -41,6 +42,8 @@ enum ActionType {
         return 'member_role_changed';
       case ActionType.invitationAccepted:
         return 'invitation_accepted';
+      case ActionType.aiItemsAdded:
+        return 'ai_items_added';
     }
   }
 
@@ -72,6 +75,8 @@ enum ActionType {
         return 'تغيير دور';
       case ActionType.invitationAccepted:
         return 'قبول دعوة';
+      case ActionType.aiItemsAdded:
+        return 'إضافة اقتراحات ذكية';
     }
   }
 
@@ -103,6 +108,8 @@ enum ActionType {
         return ActionType.memberRoleChanged;
       case 'invitation_accepted':
         return ActionType.invitationAccepted;
+      case 'ai_items_added':
+        return ActionType.aiItemsAdded;
       default:
         return ActionType.listCreated;
     }
@@ -214,6 +221,9 @@ class ActivityLog {
         return 'غيّر دوره من "$oldRole" إلى "$newRole"';
       case ActionType.invitationAccepted:
         return 'قبل الدعوة';
+      case ActionType.aiItemsAdded:
+        final count = metadata?['items_count'] ?? 0;
+        return 'أضاف $count من الاقتراحات الذكية';
     }
   }
 

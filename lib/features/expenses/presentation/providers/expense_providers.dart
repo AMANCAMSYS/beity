@@ -17,7 +17,10 @@ final expenseRepositoryProvider = Provider<ExpenseRepository>((ref) {
 });
 
 final expensesProvider =
-    StreamProvider.family<List<Expense>, String>((ref, homeId) {
+    StreamProvider.autoDispose.family<List<Expense>, String>((ref, homeId) {
+  if (homeId.isEmpty) {
+    return Stream.value([]);
+  }
   final repository = ref.watch(expenseRepositoryProvider);
   return repository.watchExpenses(homeId: homeId);
 });

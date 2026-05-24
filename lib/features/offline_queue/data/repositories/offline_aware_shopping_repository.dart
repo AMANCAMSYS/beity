@@ -8,19 +8,23 @@ import '../../../shopping_lists/data/models/item_template_model.dart';
 import '../../../shopping_lists/data/repositories/shopping_list_repository.dart';
 import '../../../shopping_lists/presentation/providers/shopping_items_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:uuid/uuid.dart';
 
 class OfflineAwareShoppingRepository implements ShoppingListRepository {
   final ShoppingListRepository _remoteRepository;
   final OfflineQueueRepository _queueRepository;
   final ConnectivityRepository _connectivityRepository;
+  final String? _homeId;
 
   OfflineAwareShoppingRepository({
     required ShoppingListRepository remoteRepository,
     required OfflineQueueRepository queueRepository,
     required ConnectivityRepository connectivityRepository,
+    String? homeId,
   })  : _remoteRepository = remoteRepository,
         _queueRepository = queueRepository,
-        _connectivityRepository = connectivityRepository;
+        _connectivityRepository = connectivityRepository,
+        _homeId = homeId;
 
   Future<bool> get _isOnline async {
     final status = await _connectivityRepository.getCurrentStatus();
@@ -94,6 +98,7 @@ class OfflineAwareShoppingRepository implements ShoppingListRepository {
 
   @override
   Future<ShoppingItemModel> createShoppingItem({
+    String? id,
     required String listId,
     required String name,
     double quantity = 1,
@@ -103,8 +108,11 @@ class OfflineAwareShoppingRepository implements ShoppingListRepository {
     String? currency,
     String? notes,
   }) async {
+    final effectiveId = id ?? const Uuid().v4();
+    
     if (await _isOnline) {
       return _remoteRepository.createShoppingItem(
+        id: effectiveId,
         listId: listId,
         name: name,
         quantity: quantity,
@@ -120,24 +128,24 @@ class OfflineAwareShoppingRepository implements ShoppingListRepository {
     await _queueRepository.enqueueAction(
       actionType: ActionType.addItem,
       entityType: EntityType.shoppingItem,
-      entityId: listId, // temporary, will be replaced with actual item id
-      homeId: listId,
+      entityId: effectiveId,
+      homeId: _homeId ?? listId,
       payload: {
-        'listId': listId,
+        'id': effectiveId,
+        'list_id': listId,
         'name': name,
         'quantity': quantity,
-        'unitId': unitId,
-        'categoryId': categoryId,
-        'price': price,
-        'currency': currency,
-        'notes': notes,
+        'unit_id': unitId,
+        'category_id': categoryId,
+        'note': notes,
+        'created_by': Supabase.instance.client.auth.currentUser?.id,
       },
     );
 
     // Return a temporary model for optimistic UI
     final user = Supabase.instance.client.auth.currentUser;
     return ShoppingItemModel(
-      id: 'offline_${DateTime.now().millisecondsSinceEpoch}',
+      id: effectiveId,
       shoppingListId: listId,
       name: name,
       quantity: quantity,
@@ -180,21 +188,32 @@ class OfflineAwareShoppingRepository implements ShoppingListRepository {
       actionType: ActionType.updateItem,
       entityType: EntityType.shoppingItem,
       entityId: itemId,
-      homeId: itemId,
+      homeId: _homeId ?? itemId,
       payload: {
-        'itemId': itemId,
         'name': name,
         'quantity': quantity,
-        'unitId': unitId,
-        'categoryId': categoryId,
-        'price': price,
-        'notes': notes,
-      },
+        'unit_id': unitId,
+        'category_id': categoryId,
+        'note': notes,
+      }..removeWhere((key, value) => value == null),
     );
 
-    // Return current item (optimistic)
-    final current = await _remoteRepository.getShoppingItemById(itemId: itemId);
-    return current!;
+    final user = Supabase.instance.client.auth.currentUser;
+    return ShoppingItemModel(
+      id: itemId,
+      shoppingListId: '',
+      name: name ?? '',
+      quantity: quantity ?? 1,
+      unitId: unitId,
+      categoryId: categoryId,
+      price: price,
+      currency: 'SAR',
+      notes: notes,
+      isPurchased: false,
+      createdBy: user?.id ?? '',
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
   }
 
   @override
@@ -208,7 +227,7 @@ class OfflineAwareShoppingRepository implements ShoppingListRepository {
       actionType: ActionType.deleteItem,
       entityType: EntityType.shoppingItem,
       entityId: itemId,
-      homeId: itemId,
+      homeId: _homeId ?? itemId,
       payload: {
         'itemId': itemId,
       },
@@ -232,17 +251,26 @@ class OfflineAwareShoppingRepository implements ShoppingListRepository {
       actionType: ActionType.markPurchased,
       entityType: EntityType.shoppingItem,
       entityId: itemId,
-      homeId: itemId,
+      homeId: _homeId ?? itemId,
       payload: {
-        'itemId': itemId,
-        'isPurchased': isPurchased,
-        'purchasedAt': DateTime.now().toIso8601String(),
+        'status': isPurchased ? 'completed' : 'pending',
+        'completed_at': isPurchased ? DateTime.now().toIso8601String() : null,
+        'completed_by': isPurchased ? Supabase.instance.client.auth.currentUser?.id : null,
       },
     );
 
-    // Return current item (optimistic)
-    final current = await _remoteRepository.getShoppingItemById(itemId: itemId);
-    return current!;
+    final user = Supabase.instance.client.auth.currentUser;
+    return ShoppingItemModel(
+      id: itemId,
+      shoppingListId: '',
+      name: '',
+      quantity: 1,
+      currency: 'SAR',
+      isPurchased: isPurchased,
+      createdBy: user?.id ?? '',
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
   }
 
   @override

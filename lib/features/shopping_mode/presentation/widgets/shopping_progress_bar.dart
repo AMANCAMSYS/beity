@@ -16,6 +16,8 @@ class ShoppingProgressBar extends StatelessWidget {
     final progress = totalCount > 0 ? purchasedCount / totalCount : 0.0;
     final isComplete = purchasedCount == totalCount && totalCount > 0;
 
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+
     return Container(
       height: 56,
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -29,9 +31,7 @@ class ShoppingProgressBar extends StatelessWidget {
                 backgroundColor:
                     theme.colorScheme.surfaceContainerHighest,
                 valueColor: AlwaysStoppedAnimation<Color>(
-                  isComplete
-                      ? theme.colorScheme.primary
-                      : theme.colorScheme.primary,
+                  theme.colorScheme.primary,
                 ),
                 minHeight: 8,
               ),
@@ -39,7 +39,7 @@ class ShoppingProgressBar extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           Text(
-            '$purchasedCount of $totalCount',
+            isArabic ? '$purchasedCount من $totalCount' : '$purchasedCount of $totalCount',
             style: theme.textTheme.bodyLarge?.copyWith(
               color: isComplete
                   ? theme.colorScheme.primary

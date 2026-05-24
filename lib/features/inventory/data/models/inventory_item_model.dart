@@ -19,16 +19,16 @@ class InventoryItemModel extends InventoryItem {
 
   factory InventoryItemModel.fromJson(Map<String, dynamic> json) {
     return InventoryItemModel(
-      id: json['id'] as String,
-      homeId: json['home_id'] as String,
-      name: json['name'] as String,
+      id: json['id'] as String? ?? '',
+      homeId: json['home_id'] as String? ?? '',
+      name: json['name'] as String? ?? '',
       quantity: (json['quantity'] as num?)?.toDouble() ?? 0,
       unitId: json['unit_id'] as String?,
       categoryId: json['category_id'] as String?,
       minQuantity: (json['min_quantity'] as num?)?.toDouble(),
       notes: json['notes'] as String?,
-      createdBy: json['created_by'] as String,
-      updatedBy: json['updated_by'] as String,
+      createdBy: json['created_by'] as String? ?? '',
+      updatedBy: json['updated_by'] as String? ?? '',
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'] as String)
           : null,

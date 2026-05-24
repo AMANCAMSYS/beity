@@ -57,9 +57,10 @@ SPEC 12 - MVP Hardening & Beta (COMPLETED)
 SPEC 13 - Inventory Phase (COMPLETED)
 SPEC 14 - Expenses Phase (COMPLETED)
 SPEC 15 - Tasks Phase (IN PROGRESS)
+SPEC 16 - AI Phase 1 (IN PROGRESS)
 
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
-specs/015-tasks-phase/plan.md
+specs/016-ai-phase/plan.md
 <!-- SPECKIT END -->

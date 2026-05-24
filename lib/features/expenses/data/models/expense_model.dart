@@ -21,18 +21,20 @@ class ExpenseModel extends Expense {
 
   factory ExpenseModel.fromJson(Map<String, dynamic> json) {
     return ExpenseModel(
-      id: json['id'] as String,
-      homeId: json['home_id'] as String,
-      amount: json['amount'] as int,
-      description: json['description'] as String,
-      date: DateTime.parse(json['date'] as String),
+      id: json['id'] as String? ?? '',
+      homeId: json['home_id'] as String? ?? '',
+      amount: (json['amount'] as num?)?.toInt() ?? 0,
+      description: json['description'] as String? ?? '',
+      date: json['date'] != null
+          ? DateTime.parse(json['date'] as String)
+          : DateTime.now(),
       categoryId: json['category_id'] as String?,
-      paidBy: json['paid_by'] as String,
+      paidBy: json['paid_by'] as String? ?? '',
       shoppingListItemId: json['shopping_list_item_id'] as String?,
       currencyCode: json['currency_code'] as String? ?? 'SAR',
-      convertedAmount: json['converted_amount'] as int,
+      convertedAmount: (json['converted_amount'] as num?)?.toInt() ?? 0,
       status: json['status'] as String? ?? 'active',
-      createdBy: json['created_by'] as String,
+      createdBy: json['created_by'] as String? ?? '',
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'] as String)
           : null,

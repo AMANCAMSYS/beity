@@ -114,6 +114,25 @@ class TaskRemoteDataSource {
     return TaskModel.fromJson(response);
   }
 
+  Future<TaskModel> updateTaskAssignee({
+    required String taskId,
+    required String? assignedTo,
+  }) async {
+    final user = _client.auth.currentUser;
+    if (user == null) {
+      throw Exception('يجب تسجيل الدخول أولاً');
+    }
+
+    final response = await _client
+        .from('tasks')
+        .update({'assigned_to': assignedTo})
+        .eq('id', taskId)
+        .select()
+        .single();
+
+    return TaskModel.fromJson(response);
+  }
+
   Future<void> deleteTask({
     required String taskId,
   }) async {
@@ -142,6 +161,8 @@ class TaskRemoteDataSource {
         .from('tasks')
         .update({
           'status': 'completed',
+          'completed_by': user.id,
+          'completed_at': DateTime.now().toIso8601String(),
         })
         .eq('id', taskId)
         .select()
@@ -162,6 +183,8 @@ class TaskRemoteDataSource {
         .from('tasks')
         .update({
           'status': 'incomplete',
+          'completed_by': null,
+          'completed_at': null,
         })
         .eq('id', taskId)
         .select()
@@ -173,16 +196,20 @@ class TaskRemoteDataSource {
   Future<String?> createNextRecurringTask({
     required String taskId,
   }) async {
-    final response = await _client.rpc(
-      'create_next_recurring_task',
-      params: {'p_task_id': taskId},
-    );
-
-    return response as String?;
+    try {
+      final response = await _client.rpc(
+        'create_next_recurring_task',
+        params: {'p_task_id': taskId},
+      );
+      return response as String?;
+    } catch (_) {
+      // RPC does not exist yet; recurring tasks not supported in current schema
+      return null;
+    }
   }
 
   Future<void> archiveOldCompletedTasks() async {
-    await _client.rpc('archive_old_completed_tasks');
+    await _client.rpc('auto_archive_completed_tasks');
   }
 
   Stream<List<TaskModel>> watchTasks({

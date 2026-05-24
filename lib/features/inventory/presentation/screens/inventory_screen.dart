@@ -1,14 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:beity/app/theme/app_spacing.dart';
+import 'package:beity/app/theme/app_colors.dart';
+import 'package:beity/shared/widgets/design_system/beity_button.dart';
+import 'package:beity/shared/widgets/design_system/beity_empty_state.dart';
 import '../providers/inventory_provider.dart';
 import '../widgets/inventory_item_tile.dart';
 import '../widgets/category_group_header.dart';
+import '../widgets/inventory_quick_add_sheet.dart';
 import '../../domain/usecases/delete_inventory_item_usecase.dart';
 import '../../domain/usecases/update_inventory_quantity_usecase.dart';
 import '../../data/models/inventory_item_model.dart';
 import '../../../categories/presentation/providers/categories_provider.dart';
 import '../../../categories/presentation/providers/units_provider.dart';
+import '../../../home/presentation/widgets/app_drawer.dart';
 
 class InventoryScreen extends ConsumerWidget {
   final String homeId;
@@ -21,6 +27,8 @@ class InventoryScreen extends ConsumerWidget {
     final groupedItems = ref.watch(groupedInventoryItemsProvider(homeId));
     final categoriesAsync = ref.watch(categoriesProvider(homeId));
     final unitsAsync = ref.watch(unitsProvider(null));
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+    final theme = Theme.of(context);
 
     // Build category name map
     final categoryNames = <String, String>{};
@@ -40,80 +48,67 @@ class InventoryScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('المخزون'),
+        title: Text(isArabic ? 'المخزون' : 'Inventory', style: const TextStyle(fontWeight: FontWeight.bold)),
       ),
+      drawer: const AppDrawer(),
       body: inventoryAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error_outline, size: 48, color: Colors.red),
-              const SizedBox(height: 16),
-              Text('خطأ في تحميل المخزون: $error'),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () =>
-                    ref.invalidate(inventoryItemsProvider(homeId)),
-                child: const Text('إعادة المحاولة'),
-              ),
-            ],
-          ),
+        error: (error, _) => BeityEmptyState(
+          title: isArabic ? 'عذراً، حدث خطأ' : 'Oops, something went wrong',
+          message: error.toString(),
+          icon: Icons.error_outline_rounded,
+          isError: true,
+          actionText: isArabic ? 'إعادة المحاولة' : 'Try Again',
+          onActionPressed: () => ref.invalidate(inventoryItemsProvider(homeId)),
         ),
         data: (items) {
           if (items.isEmpty) {
-            return _buildEmptyState(context);
+            return BeityEmptyState(
+              title: isArabic ? 'المخزون فارغ' : 'Inventory is empty',
+              message: isArabic 
+                  ? 'أضف المنتجات التي لديك في المنزل لتتبعها بسهولة وتعرف متى تنفذ' 
+                  : 'Add products you have at home to track them easily and know when they run out',
+              icon: Icons.inventory_2_rounded,
+              actionText: isArabic ? 'إضافة أول منتج' : 'Add First Product',
+              onActionPressed: () => context.push('/inventory/add', extra: homeId),
+            );
           }
           return _buildInventoryList(
               context, ref, groupedItems, categoryNames, unitNames);
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => context.push('/inventory/add', extra: homeId),
-        child: const Icon(Icons.add),
-      ),
-    );
-  }
-
-  Widget _buildEmptyState(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: AppSpacing.md),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            Icon(
-              Icons.inventory_2_outlined,
-              size: 80,
-              color: Colors.grey[400],
+            // Quick add button
+            FloatingActionButton.small(
+              heroTag: 'quick_add',
+              onPressed: () => _showQuickAdd(context),
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              elevation: 4,
+              child: const Icon(Icons.bolt_rounded),
             ),
-            const SizedBox(height: 24),
-            Text(
-              'المخزون فارغ',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    color: Colors.grey[600],
-                  ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'أضف المنتجات التي لديك في المنزل لتتبعها بسهولة',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: Colors.grey[500],
-                  ),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: () =>
-                  context.push('/inventory/add', extra: homeId),
-              icon: const Icon(Icons.add),
-              label: const Text('إضافة منتج'),
+            AppSpacing.gapSM,
+            // Full add button
+            FloatingActionButton(
+              heroTag: 'full_add',
+              onPressed: () => context.push('/inventory/add', extra: homeId),
+              backgroundColor: theme.colorScheme.primaryContainer,
+              foregroundColor: theme.colorScheme.onPrimaryContainer,
+              elevation: 4,
+              child: const Icon(Icons.add_rounded, size: 28),
             ),
           ],
         ),
       ),
     );
   }
+
+
 
   Widget _buildInventoryList(
     BuildContext context,
@@ -130,6 +125,7 @@ class InventoryScreen extends ConsumerWidget {
       });
 
     return ListView.builder(
+      padding: const EdgeInsets.only(bottom: 100), // Space for FAB
       itemCount: categoryKeys.fold<int>(
           0, (sum, key) => sum + 1 + (groupedItems[key]?.length ?? 0)),
       itemBuilder: (context, index) {
@@ -174,6 +170,7 @@ class InventoryScreen extends ConsumerWidget {
     WidgetRef ref,
     InventoryItemModel item,
   ) async {
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
     try {
       final useCase = DeleteInventoryItemUseCase(
         ref.read(inventoryRepositoryProvider),
@@ -183,7 +180,11 @@ class InventoryScreen extends ConsumerWidget {
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('خطأ في حذف المنتج: $e')),
+          SnackBar(
+            content: Text(isArabic ? 'خطأ في حذف المنتج: $e' : 'Error deleting item: $e'),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+          ),
         );
       }
     }
@@ -195,9 +196,11 @@ class InventoryScreen extends ConsumerWidget {
     InventoryItemModel item,
     double direction,
   ) async {
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
     try {
       final step = _getStep(item.unitId);
       final newQty = item.quantity + (step * direction);
+      if (newQty < 0) return;
 
       final useCase = UpdateInventoryQuantityUseCase(
         ref.read(inventoryRepositoryProvider),
@@ -211,7 +214,11 @@ class InventoryScreen extends ConsumerWidget {
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('خطأ في تحديث الكمية: $e')),
+          SnackBar(
+            content: Text(isArabic ? 'خطأ في تحديث الكمية: $e' : 'Error updating quantity: $e'),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+          ),
         );
       }
     }
@@ -219,7 +226,20 @@ class InventoryScreen extends ConsumerWidget {
 
   double _getStep(String? unitId) {
     // TODO: Determine step based on unit type (fractional: 0.5, whole: 1)
-    // Will be refined when unit data includes fractional flag
     return 1;
+  }
+
+  void _showQuickAdd(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => InventoryQuickAddSheet(
+        homeId: homeId,
+        onItemAdded: () {
+          // Refresh is handled inside the sheet
+        },
+      ),
+    );
   }
 }

@@ -10,4 +10,13 @@ enum EntityType {
         return 'Shopping List';
     }
   }
+
+  String get tableName {
+    switch (this) {
+      case EntityType.shoppingItem:
+        return 'shopping_items';
+      case EntityType.shoppingList:
+        return 'shopping_lists';
+    }
+  }
 }

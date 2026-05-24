@@ -61,9 +61,9 @@ class SettlementRemoteDataSource {
 
     return (response as List)
         .map((json) => Balance(
-              memberA: json['member_a'] as String,
-              memberB: json['member_b'] as String,
-              netAmount: json['net_amount'] as int,
+              memberA: json['member_a'] as String? ?? '',
+              memberB: json['member_b'] as String? ?? '',
+              netAmount: (json['net_amount'] as num?)?.toInt() ?? 0,
             ))
         .toList();
   }
@@ -78,7 +78,7 @@ class SettlementRemoteDataSource {
       'p_user_id': userId,
     });
 
-    return response as bool;
+    return response == true;
   }
 
   Stream<List<SettlementModel>> watchSettlements({

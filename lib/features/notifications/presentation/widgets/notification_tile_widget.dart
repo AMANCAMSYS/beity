@@ -31,15 +31,15 @@ class NotificationTileWidget extends StatelessWidget {
     final difference = now.difference(dateTime);
 
     if (difference.inMinutes < 1) {
-      return 'Just now';
+      return 'الآن';
     } else if (difference.inMinutes < 60) {
-      return '${difference.inMinutes}m ago';
+      return 'منذ ${difference.inMinutes} د';
     } else if (difference.inHours < 24) {
-      return '${difference.inHours}h ago';
+      return 'منذ ${difference.inHours} س';
     } else if (difference.inDays < 7) {
-      return '${difference.inDays}d ago';
+      return 'منذ ${difference.inDays} ي';
     } else {
-      return DateFormat('MMM d').format(dateTime);
+      return DateFormat('MMM d', 'ar').format(dateTime);
     }
   }
 

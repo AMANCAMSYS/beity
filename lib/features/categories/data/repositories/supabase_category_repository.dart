@@ -17,7 +17,7 @@ class SupabaseCategoryRepository implements CategoryRepository {
         .select()
         .isFilter('deleted_at', null);
 
-    if (homeId != null) {
+    if (homeId != null && homeId.isNotEmpty) {
       query = query.or('is_default.eq.true,home_id.eq.$homeId');
     } else {
       query = query.eq('is_default', true);
@@ -176,7 +176,7 @@ class SupabaseCategoryRepository implements CategoryRepository {
             .map((json) => CategoryModel.fromJson(json))
             .where((cat) =>
                 cat.deletedAt == null &&
-                (cat.isDefault || (homeId != null && cat.homeId == homeId)) &&
+                (cat.isDefault || (homeId != null && homeId.isNotEmpty && cat.homeId == homeId)) &&
                 (type == null || cat.type.name == type))
             .toList());
   }

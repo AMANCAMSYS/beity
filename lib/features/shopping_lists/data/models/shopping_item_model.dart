@@ -17,6 +17,7 @@ class ShoppingItemModel extends ShoppingItem {
     required super.createdBy,
     super.createdAt,
     super.updatedAt,
+    super.deletedAt,
   });
 
   factory ShoppingItemModel.fromJson(Map<String, dynamic> json) {
@@ -28,8 +29,8 @@ class ShoppingItemModel extends ShoppingItem {
       quantity: (json['quantity'] as num?)?.toDouble() ?? 1,
       unitId: json['unit_id'] as String?,
       categoryId: json['category_id'] as String?,
-      price: null, // No price column in current schema
-      currency: 'SAR',
+      price: (json['estimated_price'] as num?)?.toDouble(),
+      currency: json['currency'] as String? ?? 'SAR',
       notes: json['note'] as String?, // Database uses 'note' not 'notes'
       isPurchased: status == 'completed', // Database uses 'status' field
       purchasedBy: json['completed_by'] as String?, // Database uses 'completed_by'
@@ -43,20 +44,25 @@ class ShoppingItemModel extends ShoppingItem {
       updatedAt: json['updated_at'] != null
           ? DateTime.parse(json['updated_at'] as String)
           : null,
+      deletedAt: json['deleted_at'] != null
+          ? DateTime.parse(json['deleted_at'] as String)
+          : null,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'list_id': shoppingListId, // Database uses 'list_id'
+      'list_id': shoppingListId,
       'name': name,
       'quantity': quantity,
       'unit_id': unitId,
       'category_id': categoryId,
-      'note': notes, // Database uses 'note' not 'notes'
-      'status': isPurchased ? 'completed' : 'pending', // Database uses 'status'
-      'completed_by': purchasedBy, // Database uses 'completed_by'
+      'estimated_price': price,
+      'currency': currency,
+      'note': notes,
+      'status': isPurchased ? 'completed' : 'pending',
+      'completed_by': purchasedBy,
       'completed_at': purchasedAt?.toIso8601String(),
       'created_by': createdBy,
       'created_at': createdAt?.toIso8601String(),
@@ -66,12 +72,14 @@ class ShoppingItemModel extends ShoppingItem {
 
   Map<String, dynamic> toInsertJson() {
     return {
-      'list_id': shoppingListId, // Database uses 'list_id'
+      'list_id': shoppingListId,
       'name': name,
       'quantity': quantity,
       'unit_id': unitId,
       'category_id': categoryId,
-      'note': notes, // Database uses 'note' not 'notes'
+      'estimated_price': price,
+      'currency': currency,
+      'note': notes,
       'created_by': createdBy,
     };
   }
@@ -92,6 +100,7 @@ class ShoppingItemModel extends ShoppingItem {
     String? createdBy,
     DateTime? createdAt,
     DateTime? updatedAt,
+    DateTime? deletedAt,
   }) {
     return ShoppingItemModel(
       id: id ?? this.id,
@@ -109,6 +118,7 @@ class ShoppingItemModel extends ShoppingItem {
       createdBy: createdBy ?? this.createdBy,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
     );
   }
 }

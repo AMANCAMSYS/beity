@@ -7,20 +7,19 @@ import '../../data/repositories/supabase_shopping_list_repository.dart';
 import '../../../../core/services/realtime_service.dart';
 import 'realtime_providers.dart';
 
-final shoppingItemRepositoryProvider = Provider<ShoppingListRepository>((ref) {
-  final client = Supabase.instance.client;
-  return SupabaseShoppingListRepository(client);
-});
+import 'shopping_lists_provider.dart';
+
+final shoppingItemRepositoryProvider = shoppingListRepositoryProvider;
 
 final shoppingItemsProvider =
-    StreamProvider.family<List<ShoppingItemModel>, String>((ref, listId) {
-  final repository = ref.watch(shoppingItemRepositoryProvider);
+    StreamProvider.autoDispose.family<List<ShoppingItemModel>, String>((ref, listId) {
+  final repository = ref.watch(shoppingListRepositoryProvider);
   return repository.watchShoppingItems(listId: listId);
 });
 
 final shoppingItemByIdProvider =
     FutureProvider.family<ShoppingItemModel?, String>((ref, itemId) async {
-  final repository = ref.watch(shoppingItemRepositoryProvider);
+  final repository = ref.watch(shoppingListRepositoryProvider);
   return repository.getShoppingItemById(itemId: itemId);
 });
 
@@ -46,13 +45,13 @@ final purchasedItemsProvider =
 
 final itemTemplatesProvider =
     StreamProvider.family<List<ItemTemplateModel>, String>((ref, homeId) {
-  final repository = ref.watch(shoppingItemRepositoryProvider);
+  final repository = ref.watch(shoppingListRepositoryProvider);
   return repository.watchItemTemplates(homeId: homeId);
 });
 
 final purchaseHistoryProvider =
     FutureProvider.family<List<ShoppingItemModel>, String>((ref, homeId) async {
-  final repository = ref.watch(shoppingItemRepositoryProvider);
+  final repository = ref.watch(shoppingListRepositoryProvider);
   return repository.getPurchaseHistory(homeId: homeId);
 });
 
@@ -98,7 +97,7 @@ final unpurchasedTotalProvider =
 final autocompleteSuggestionsProvider = FutureProvider.family<
     List<AutocompleteSuggestion>,
     ({String homeId, String query})>((ref, params) async {
-  final repository = ref.watch(shoppingItemRepositoryProvider);
+  final repository = ref.watch(shoppingListRepositoryProvider);
   return repository.getAutocompleteSuggestions(
     homeId: params.homeId,
     query: params.query,
@@ -122,7 +121,7 @@ class AutocompleteSuggestion {
 }
 
 final presenceProvider =
-    StreamProvider.family<Map<String, PresenceState>, String>((ref, listId) {
+    StreamProvider.autoDispose.family<Map<String, PresenceState>, String>((ref, listId) {
   final service = ref.watch(realtimeServiceProvider);
   final currentUser = Supabase.instance.client.auth.currentUser;
   if (currentUser == null) {
@@ -130,6 +129,7 @@ final presenceProvider =
   }
 
   final channelName = 'presence:list:$listId';
+  ref.onDispose(() => service.unsubscribeChannel(channelName));
   return service.watchPresence(
     channelName: channelName,
     userPayload: PresencePayload(

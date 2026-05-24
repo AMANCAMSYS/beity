@@ -71,10 +71,13 @@ class HomeSelectorDropdown extends StatelessWidget {
         ),
       ],
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.2),
+          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.06),
           borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.1),
+          ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -82,17 +85,21 @@ class HomeSelectorDropdown extends StatelessWidget {
             Flexible(
               child: Text(
                 currentHomeName,
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
                   fontWeight: FontWeight.w600,
-                  fontSize: 14,
+                  fontSize: 13,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            const SizedBox(width: 4),
-            const Icon(Icons.arrow_drop_down, color: Colors.white, size: 20),
+            const SizedBox(width: 2),
+            Icon(
+              Icons.arrow_drop_down,
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
+              size: 18,
+            ),
           ],
         ),
       ),

@@ -1,5 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:beity/app/theme/app_spacing.dart';
+import 'package:beity/app/theme/app_colors.dart';
+import 'package:beity/shared/widgets/design_system/beity_button.dart';
+import 'package:beity/shared/widgets/design_system/beity_text_field.dart';
+import 'package:beity/shared/widgets/design_system/beity_card.dart';
+import 'package:beity/shared/widgets/design_system/beity_empty_state.dart';
+import '../../../../core/utils/action_debouncer.dart';
 import '../providers/shopping_items_provider.dart';
 import '../providers/shopping_lists_provider.dart';
 import '../widgets/item_suggestions_widget.dart';
@@ -86,9 +93,10 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
     return listAsync.when(
       data: (list) {
         if (list == null) {
+          final isArabic = Localizations.localeOf(context).languageCode == 'ar';
           return Scaffold(
-            appBar: AppBar(title: const Text('إضافة منتج')),
-            body: const Center(child: Text('القائمة غير موجودة')),
+            appBar: AppBar(title: Text(isArabic ? 'إضافة منتج' : 'Add Item')),
+            body: Center(child: Text(isArabic ? 'القائمة غير موجودة' : 'List not found')),
           );
         }
 
@@ -98,14 +106,27 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
 
         return _buildScreen(context, unitsAsync, categoriesAsync);
       },
-      loading: () => Scaffold(
-        appBar: AppBar(title: const Text('إضافة منتج')),
-        body: const Center(child: CircularProgressIndicator()),
-      ),
-      error: (error, _) => Scaffold(
-        appBar: AppBar(title: const Text('إضافة منتج')),
-        body: Center(child: Text('خطأ: $error')),
-      ),
+      loading: () {
+        final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+        return Scaffold(
+          appBar: AppBar(title: Text(isArabic ? 'إضافة منتج' : 'Add Item')),
+          body: const Center(child: CircularProgressIndicator()),
+        );
+      },
+      error: (error, _) {
+        final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+        return Scaffold(
+          appBar: AppBar(title: Text(isArabic ? 'إضافة منتج' : 'Add Item')),
+          body: BeityEmptyState(
+            title: isArabic ? 'حدث خطأ' : 'An error occurred',
+            message: error.toString(),
+            icon: Icons.error_outline_rounded,
+            isError: true,
+            actionText: isArabic ? 'إعادة المحاولة' : 'Try Again',
+            onActionPressed: () => ref.invalidate(shoppingListByIdProvider(widget.listId)),
+          ),
+        );
+      },
     );
   }
 
@@ -114,182 +135,186 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
     AsyncValue<List<dynamic>> unitsAsync,
     AsyncValue<List<dynamic>> categoriesAsync,
   ) {
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+    final theme = Theme.of(context);
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('إضافة منتج'),
-        actions: [
-          TextButton(
-            onPressed: _isLoading ? null : () => _saveItem(skipDuplicateCheck: false),
-            child: const Text('حفظ'),
-          ),
-        ],
+        title: Text(isArabic ? 'إضافة منتج' : 'Add Item', style: const TextStyle(fontWeight: FontWeight.bold)),
       ),
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppSpacing.lg),
           children: [
-            // Name field with autocomplete
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                TextFormField(
-                  controller: _nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'اسم المنتج *',
-                    hintText: 'مثال: حليب، خبز، تفاح',
-                    prefixIcon: Icon(Icons.shopping_basket_outlined),
-                  ),
-                  textCapitalization: TextCapitalization.sentences,
-                  autofocus: true,
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'اسم المنتج مطلوب';
-                    }
-                    return null;
-                  },
-                ),
-                ItemSuggestionsWidget(
-                  suggestions: _suggestions,
-                  query: _nameQuery,
-                  onSuggestionTap: (suggestion) {
-                    _nameController.text = suggestion.name;
-                    _quantityController.text =
-                        suggestion.quantity.toStringAsFixed(
-                            suggestion.quantity == suggestion.quantity.roundToDouble()
-                                ? 0
-                                : 1);
-                    setState(() {
-                      _nameQuery = suggestion.name;
-                      _suggestions = [];
-                    });
-                  },
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: TextFormField(
-                    controller: _quantityController,
-                    decoration: const InputDecoration(
-                      labelText: 'الكمية',
-                      prefixIcon: Icon(Icons.numbers),
-                    ),
-                    keyboardType: TextInputType.number,
+            BeityCard(
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  BeityTextField(
+                    controller: _nameController,
+                    labelText: isArabic ? 'اسم المنتج *' : 'Item Name *',
+                    hintText: isArabic ? 'مثال: حليب، خبز، تفاح' : 'e.g. Milk, Bread, Apples',
+                    prefixIcon: Icons.shopping_basket_outlined,
+                    autofocus: true,
                     validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'الكمية مطلوبة';
-                      }
-                      final quantity = double.tryParse(value);
-                      if (quantity == null || quantity <= 0) {
-                        return 'الكمية غير صالحة';
+                      if (value == null || value.trim().isEmpty) {
+                        return isArabic ? 'اسم المنتج مطلوب' : 'Item name is required';
                       }
                       return null;
                     },
                   ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: unitsAsync.when(
-                    data: (units) => DropdownButtonFormField<String>(
-                      value: _selectedUnitId,
-                      decoration: const InputDecoration(
-                        labelText: 'الوحدة',
-                        prefixIcon: Icon(Icons.straighten),
+                  ItemSuggestionsWidget(
+                    suggestions: _suggestions,
+                    query: _nameQuery,
+                    onSuggestionTap: (suggestion) {
+                      _nameController.text = suggestion.name;
+                      _quantityController.text =
+                          suggestion.quantity == suggestion.quantity.roundToDouble()
+                              ? suggestion.quantity.toInt().toString()
+                              : suggestion.quantity.toStringAsFixed(1);
+                      setState(() {
+                        _nameQuery = suggestion.name;
+                        _suggestions = [];
+                      });
+                    },
+                  ),
+                  AppSpacing.gapLG,
+                  Row(
+                    children: [
+                      Expanded(
+                        child: BeityTextField(
+                          controller: _quantityController,
+                          labelText: isArabic ? 'الكمية' : 'Quantity',
+                          prefixIcon: Icons.numbers,
+                          keyboardType: TextInputType.number,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return isArabic ? 'الكمية مطلوبة' : 'Quantity is required';
+                            }
+                            final quantity = double.tryParse(value);
+                            if (quantity == null || quantity <= 0) {
+                              return isArabic ? 'الكمية غير صالحة' : 'Invalid quantity';
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+                      AppSpacing.gapMD,
+                      Expanded(
+                        child: unitsAsync.when(
+                          data: (units) => DropdownButtonFormField<String>(
+                            value: _selectedUnitId,
+                            decoration: InputDecoration(
+                              labelText: isArabic ? 'الوحدة' : 'Unit',
+                              prefixIcon: const Icon(Icons.straighten),
+                              filled: true,
+                              fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                                borderSide: BorderSide.none,
+                              ),
+                            ),
+                            items: [
+                              DropdownMenuItem(
+                                  value: null, child: Text(isArabic ? 'بدون وحدة' : 'No Unit')),
+                              ...units.map((unit) => DropdownMenuItem(
+                                    value: unit.id,
+                                    child: Text('${unit.name} (${unit.symbol})'),
+                                  )),
+                            ],
+                            onChanged: (value) {
+                              setState(() {
+                                _selectedUnitId = value;
+                              });
+                            },
+                          ),
+                          loading: () => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                          error: (_, __) => Text(isArabic ? 'خطأ في تحميل الوحدات' : 'Error loading units'),
+                        ),
+                      ),
+                    ],
+                  ),
+                  AppSpacing.gapLG,
+                  BeityTextField(
+                    controller: _priceController,
+                    labelText: isArabic ? 'السعر (اختياري)' : 'Price (Optional)',
+                    hintText: '0.00',
+                    prefixIcon: Icons.attach_money,
+                    suffixIcon: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                      child: Text(isArabic ? 'ر.س' : 'SAR', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                    ),
+                    keyboardType: TextInputType.number,
+                    validator: (value) {
+                      if (value != null && value.isNotEmpty) {
+                        final price = double.tryParse(value);
+                        if (price == null || price < 0) {
+                          return isArabic ? 'السعر غير صالح' : 'Invalid price';
+                        }
+                      }
+                      return null;
+                    },
+                  ),
+                ],
+              ),
+            ),
+            AppSpacing.gapLG,
+            BeityCard(
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  categoriesAsync.when(
+                    data: (categories) => DropdownButtonFormField<String>(
+                      value: _selectedCategoryId,
+                      decoration: InputDecoration(
+                        labelText: isArabic ? 'التصنيف' : 'Category',
+                        prefixIcon: const Icon(Icons.category_outlined),
+                        filled: true,
+                        fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                          borderSide: BorderSide.none,
+                        ),
                       ),
                       items: [
-                        const DropdownMenuItem(
-                            value: null, child: Text('بدون')),
-                        ...units.map((unit) => DropdownMenuItem(
-                              value: unit.id,
-                              child: Text('${unit.name} (${unit.symbol})'),
+                        DropdownMenuItem(
+                            value: null, child: Text(isArabic ? 'بدون تصنيف' : 'No Category')),
+                        ...categories.map((category) => DropdownMenuItem(
+                              value: category.id,
+                                child: Text(category.name == 'Other' ? (isArabic ? 'أخرى' : 'Other') : category.name),
                             )),
                       ],
                       onChanged: (value) {
                         setState(() {
-                          _selectedUnitId = value;
+                          _selectedCategoryId = value;
                         });
                       },
                     ),
-                    loading: () => const CircularProgressIndicator(),
-                    error: (_, __) => const Text('خطأ في تحميل الوحدات'),
+                    loading: () => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                    error: (_, __) => Text(isArabic ? 'خطأ في تحميل التصنيفات' : 'Error loading categories'),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _priceController,
-              decoration: const InputDecoration(
-                labelText: 'السعر (اختياري)',
-                hintText: '0.00',
-                prefixIcon: Icon(Icons.attach_money),
-                suffixText: 'ر.س',
-              ),
-              keyboardType: TextInputType.number,
-              validator: (value) {
-                if (value != null && value.isNotEmpty) {
-                  final price = double.tryParse(value);
-                  if (price == null || price < 0) {
-                    return 'السعر غير صالح';
-                  }
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            categoriesAsync.when(
-              data: (categories) => DropdownButtonFormField<String>(
-                value: _selectedCategoryId,
-                decoration: const InputDecoration(
-                  labelText: 'التصنيف',
-                  prefixIcon: Icon(Icons.category_outlined),
-                ),
-                items: [
-                  const DropdownMenuItem(
-                      value: null, child: Text('بدون تصنيف')),
-                  ...categories.map((category) => DropdownMenuItem(
-                        value: category.id,
-                        child: Text(category.name),
-                      )),
+                  AppSpacing.gapLG,
+                  BeityTextField(
+                    controller: _notesController,
+                    labelText: isArabic ? 'ملاحظات (اختياري)' : 'Notes (Optional)',
+                    hintText: isArabic ? 'مثال: نوع معين، حجم كبير' : 'e.g. Specific brand, large size',
+                    prefixIcon: Icons.notes_outlined,
+                    maxLines: 2,
+                  ),
                 ],
-                onChanged: (value) {
-                  setState(() {
-                    _selectedCategoryId = value;
-                  });
-                },
               ),
-              loading: () => const CircularProgressIndicator(),
-              error: (_, __) => const Text('خطأ في تحميل التصنيفات'),
             ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _notesController,
-              decoration: const InputDecoration(
-                labelText: 'ملاحظات (اختياري)',
-                hintText: 'مثال: نوع معين، حجم كبير',
-                prefixIcon: Icon(Icons.notes_outlined),
-              ),
-              maxLines: 2,
-            ),
-            const SizedBox(height: 32),
-            ElevatedButton.icon(
-              onPressed: _isLoading
-                  ? null
-                  : () => _saveItem(skipDuplicateCheck: false),
-              icon: _isLoading
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.add),
-              label: Text(_isLoading ? 'جاري الإضافة...' : 'إضافة المنتج'),
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-              ),
+            AppSpacing.gapXXL,
+            BeityButton(
+              text: _isLoading 
+                  ? (isArabic ? 'جاري الإضافة...' : 'Adding...') 
+                  : (isArabic ? 'إضافة المنتج' : 'Add Item'),
+              icon: Icons.add_rounded,
+              isLoading: _isLoading,
+              onPressed: () => ActionDebouncer.execute(() => _saveItem(skipDuplicateCheck: false)),
             ),
           ],
         ),
@@ -329,16 +354,18 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
       }
     } on DuplicateItemException catch (e) {
       if (mounted) {
-        final shouldAdd = await _showDuplicateWarning(e.itemName);
+        final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+        final shouldAdd = await _showDuplicateWarning(e.itemName, isArabic);
         if (shouldAdd == true && mounted) {
           await _saveItem(skipDuplicateCheck: true);
         }
       }
     } catch (e) {
       if (mounted) {
+        final isArabic = Localizations.localeOf(context).languageCode == 'ar';
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('خطأ: $e'),
+            content: Text('${isArabic ? 'خطأ' : 'Error'}: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -350,20 +377,38 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
     }
   }
 
-  Future<bool?> _showDuplicateWarning(String itemName) {
+  Future<bool?> _showDuplicateWarning(String itemName, bool isArabic) {
     return showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('منتج مكرر'),
-        content: Text('"$itemName" موجود بالفعل في القائمة. هل تريد إضافته؟'),
+        title: Text(isArabic ? 'منتج مكرر' : 'Duplicate Item', textAlign: TextAlign.center),
+        titleTextStyle: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusLg)),
+        content: Text(
+          isArabic 
+              ? '"$itemName" موجود بالفعل في القائمة. هل تريد إضافته مرة أخرى؟'
+              : '"$itemName" is already in the list. Do you want to add it again?',
+          textAlign: TextAlign.center,
+        ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('إلغاء'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('إضافة'),
+          Row(
+            children: [
+                Expanded(
+                child: BeityButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  text: isArabic ? 'إلغاء' : 'Cancel',
+                  type: BeityButtonType.secondary,
+                ),
+              ),
+              AppSpacing.gapMD,
+              Expanded(
+                child: BeityButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  text: isArabic ? 'إضافة' : 'Add',
+                  type: BeityButtonType.primary,
+                ),
+              ),
+            ],
           ),
         ],
       ),

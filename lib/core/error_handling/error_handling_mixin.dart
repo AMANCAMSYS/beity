@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../errors/app_exception.dart';
 import '../monitoring/monitoring_service.dart';
 import 'error_handler.dart';
 
@@ -31,7 +30,7 @@ mixin ErrorHandlingMixin<T extends StatefulWidget> on State<T> {
         _showSnackBar(
           errorInfo.message,
           action: onRetry != null
-              ? SnackBarAction(label: 'Retry', onPressed: onRetry)
+              ? SnackBarAction(label: 'إعادة المحاولة', onPressed: onRetry)
               : null,
           backgroundColor: Colors.orange,
         );
@@ -68,7 +67,7 @@ mixin ErrorHandlingMixin<T extends StatefulWidget> on State<T> {
         _showSnackBar(
           errorInfo.message,
           action: onRetry != null
-              ? SnackBarAction(label: 'Retry', onPressed: onRetry)
+              ? SnackBarAction(label: 'إعادة المحاولة', onPressed: onRetry)
               : null,
           backgroundColor: Colors.red,
         );
@@ -85,7 +84,7 @@ mixin ErrorHandlingMixin<T extends StatefulWidget> on State<T> {
         _showSnackBar(
           errorInfo.message,
           action: onRetry != null
-              ? SnackBarAction(label: 'Retry', onPressed: onRetry)
+              ? SnackBarAction(label: 'إعادة المحاولة', onPressed: onRetry)
               : null,
           backgroundColor: Colors.red,
         );

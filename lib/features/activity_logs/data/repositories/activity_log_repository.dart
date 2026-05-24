@@ -24,4 +24,13 @@ abstract class ActivityLogRepository {
   });
 
   Future<List<ActivityActor>> getHomeActors({required String homeId});
+
+  Future<void> logActivity({
+    required String homeId,
+    required ActionType action,
+    required EntityType entityType,
+    String? entityId,
+    String? entityName,
+    Map<String, dynamic>? metadata,
+  });
 }

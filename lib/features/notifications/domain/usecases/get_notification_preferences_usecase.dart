@@ -6,7 +6,7 @@ class GetNotificationPreferencesUseCase {
 
   GetNotificationPreferencesUseCase(this._repository);
 
-  Future<List<NotificationPreference>> call() async {
-    return await _repository.getPreferences();
+  Future<NotificationPreferences> call({required String homeId}) async {
+    return await _repository.getPreferences(homeId: homeId);
   }
 }

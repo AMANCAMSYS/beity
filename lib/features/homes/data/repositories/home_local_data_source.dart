@@ -46,6 +46,16 @@ class HomeLocalDataSource {
     }
   }
 
+  Future<void> clearAllUserDataForUser(String userId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final keys = prefs.getKeys().toList();
+    for (final key in keys) {
+      if (key.startsWith('${userId}_')) {
+        await prefs.remove(key);
+      }
+    }
+  }
+
   Future<bool> hasActiveHome() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.containsKey(_userKey(_activeHomeKey));

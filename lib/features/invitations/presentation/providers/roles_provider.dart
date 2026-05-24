@@ -15,7 +15,7 @@ final homeMembersProvider = FutureProvider.family<List<HomeMemberModel>, String>
   return repo.getHomeMembers(homeId: homeId);
 });
 
-final homeMembersStreamProvider = StreamProvider.family<List<HomeMemberModel>, String>((ref, homeId) {
+final homeMembersStreamProvider = StreamProvider.autoDispose.family<List<HomeMemberModel>, String>((ref, homeId) {
   final repo = ref.read(roleRepositoryProvider);
   return repo.watchHomeMembers(homeId: homeId);
 });

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/models/shopping_mode_session_model.dart';
 import '../../../shopping_lists/data/models/shopping_item_model.dart';
 import '../../../categories/presentation/providers/categories_provider.dart';
+import '../../../categories/presentation/providers/units_provider.dart';
 
 class ShoppingExitSummary extends ConsumerWidget {
   final ShoppingModeSessionModel session;
@@ -21,6 +22,7 @@ class ShoppingExitSummary extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
     final categoriesAsync = ref.watch(categoriesProvider(homeId));
     final categories = categoriesAsync.valueOrNull ?? [];
 
@@ -55,13 +57,15 @@ class ShoppingExitSummary extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
-                    'Shopping Complete!',
+                    isArabic ? 'تم التسوق!' : 'Shopping Done!',
                     style: theme.textTheme.headlineSmall,
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '${session.itemsPurchasedCount} of ${session.itemsTotalCount} items purchased',
+                    isArabic
+                        ? '${session.itemsPurchasedCount} من ${session.itemsTotalCount} عنصر تم شراؤه'
+                        : '${session.itemsPurchasedCount} of ${session.itemsTotalCount} items purchased',
                     style: theme.textTheme.bodyLarge?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
@@ -70,7 +74,7 @@ class ShoppingExitSummary extends ConsumerWidget {
                   const SizedBox(height: 24),
                   if (purchasedItems.isNotEmpty) ...[
                     Text(
-                      'Purchased Items',
+                      isArabic ? 'العناصر المشتراة' : 'Purchased Items',
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
@@ -80,7 +84,9 @@ class ShoppingExitSummary extends ConsumerWidget {
                       final category = categories
                           .where((c) => c.id == entry.key)
                           .firstOrNull;
-                      final categoryName = category?.name ?? 'Other';
+                      final categoryName = category?.name == 'Other' || category == null
+                          ? (isArabic ? 'أخرى' : 'Other')
+                          : category.name;
 
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -102,9 +108,21 @@ class ShoppingExitSummary extends ConsumerWidget {
                                   size: 20,
                                 ),
                                 title: Text(item.name),
-                                subtitle: item.purchasedBy != null
-                                    ? Text('Purchased by user')
-                                    : null,
+                                subtitle: Consumer(
+                                  builder: (context, ref, _) {
+                                    final unitsAsync = ref.watch(unitsProvider(homeId));
+                                    final units = unitsAsync.valueOrNull ?? [];
+                                    final unit = units.where((u) => u.id == item.unitId).firstOrNull;
+                                    final unitName = unit?.name;
+                                    
+                                    final qty = item.quantity == item.quantity.roundToDouble() 
+                                        ? item.quantity.toInt().toString() 
+                                        : item.quantity.toStringAsFixed(1);
+                                    
+                                    if (unitName == null || unitName.isEmpty) return Text(qty);
+                                    return Text(isArabic ? '$qty $unitName' : '$qty $unitName');
+                                  },
+                                ),
                               )),
                         ],
                       );
@@ -113,7 +131,7 @@ class ShoppingExitSummary extends ConsumerWidget {
                   const SizedBox(height: 24),
                   FilledButton(
                     onPressed: onDismiss,
-                    child: const Text('Return to List'),
+                    child: Text(isArabic ? 'العودة إلى القائمة' : 'Back to List'),
                   ),
                 ],
               ),

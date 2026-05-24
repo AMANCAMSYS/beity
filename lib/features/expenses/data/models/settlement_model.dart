@@ -15,14 +15,16 @@ class SettlementModel extends Settlement {
 
   factory SettlementModel.fromJson(Map<String, dynamic> json) {
     return SettlementModel(
-      id: json['id'] as String,
-      homeId: json['home_id'] as String,
-      fromMember: json['from_member'] as String,
-      toMember: json['to_member'] as String,
-      amount: json['amount'] as int,
+      id: json['id'] as String? ?? '',
+      homeId: json['home_id'] as String? ?? '',
+      fromMember: json['from_member'] as String? ?? '',
+      toMember: json['to_member'] as String? ?? '',
+      amount: (json['amount'] as num?)?.toInt() ?? 0,
       paymentMethod: json['payment_method'] as String? ?? 'cash',
-      date: DateTime.parse(json['date'] as String),
-      createdBy: json['created_by'] as String,
+      date: json['date'] != null
+          ? DateTime.parse(json['date'] as String)
+          : DateTime.now(),
+      createdBy: json['created_by'] as String? ?? '',
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'] as String)
           : null,

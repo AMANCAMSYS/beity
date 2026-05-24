@@ -1,10 +1,15 @@
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:beity/app/theme/app_spacing.dart';
+import 'package:beity/shared/widgets/design_system/beity_button.dart';
+import 'package:beity/shared/widgets/design_system/beity_text_field.dart';
+import 'package:beity/shared/widgets/design_system/beity_card.dart';
 import '../../../homes/presentation/providers/homes_provider.dart';
 import '../providers/task_providers.dart';
 import '../widgets/recurrence_selector.dart';
+import '../../../../core/utils/action_debouncer.dart';
 
 class AddTaskScreen extends ConsumerStatefulWidget {
   final String homeId;
@@ -96,126 +101,168 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+    final theme = Theme.of(context);
     final membersAsync = ref.watch(homeMembersProvider(widget.homeId));
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('إضافة مهمة'),
+        title: Text(isArabic ? 'إضافة مهمة' : 'Add Task', style: const TextStyle(fontWeight: FontWeight.bold)),
       ),
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppSpacing.lg),
           children: [
-            TextFormField(
-              controller: _titleController,
-              decoration: const InputDecoration(
-                labelText: 'عنوان المهمة',
-                border: OutlineInputBorder(),
-              ),
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'الرجاء إدخال عنوان المهمة';
-                }
-                if (value.trim().length > 200) {
-                  return 'العنوان يجب أن يكون أقل من 200 حرف';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _descriptionController,
-              maxLines: 3,
-              decoration: const InputDecoration(
-                labelText: 'الوصف (اختياري)',
-                border: OutlineInputBorder(),
-              ),
-              validator: (value) {
-                if (value != null && value.length > 2000) {
-                  return 'الوصف يجب أن يكون أقل من 2000 حرف';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            ListTile(
-              title: const Text('تاريخ الاستحقاق (اختياري)'),
-              subtitle: Text(
-                _selectedDueDate != null
-                    ? '${_selectedDueDate!.day}/${_selectedDueDate!.month}/${_selectedDueDate!.year}'
-                    : 'لم يتم تحديد تاريخ',
-              ),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
+            BeityCard(
+              padding: const EdgeInsets.all(AppSpacing.xl),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (_selectedDueDate != null)
-                    IconButton(
-                      icon: const Icon(Icons.clear),
-                      onPressed: () {
-                        setState(() {
-                          _selectedDueDate = null;
-                        });
-                      },
-                    ),
-                  const Icon(Icons.calendar_today),
+                  Text(
+                    isArabic ? 'تفاصيل المهمة' : 'Task Details',
+                    style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  AppSpacing.gapLG,
+                  BeityTextField(
+                    controller: _titleController,
+                    labelText: isArabic ? 'عنوان المهمة' : 'Task Title',
+                    hintText: isArabic ? 'ماذا يجب أن نفعل؟' : 'What needs to be done?',
+                    prefixIcon: Icons.task_alt_rounded,
+                    autofocus: true,
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return isArabic ? 'الرجاء إدخال عنوان المهمة' : 'Please enter task title';
+                      }
+                      if (value.trim().length > 200) {
+                        return isArabic ? 'العنوان طويل جداً' : 'Title is too long';
+                      }
+                      return null;
+                    },
+                  ),
+                  AppSpacing.gapLG,
+                  BeityTextField(
+                    controller: _descriptionController,
+                    labelText: isArabic ? 'الوصف (اختياري)' : 'Description (Optional)',
+                    hintText: isArabic ? 'تفاصيل إضافية...' : 'Additional details...',
+                    prefixIcon: Icons.notes_rounded,
+                    maxLines: 3,
+                    validator: (value) {
+                      if (value != null && value.length > 2000) {
+                        return isArabic ? 'الوصف طويل جداً' : 'Description is too long';
+                      }
+                      return null;
+                    },
+                  ),
                 ],
               ),
-              onTap: _selectDueDate,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-                side: BorderSide(color: Colors.grey.shade400),
+            ),
+            AppSpacing.gapLG,
+
+            BeityCard(
+              padding: const EdgeInsets.all(AppSpacing.xl),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    isArabic ? 'التوقيت والإسناد' : 'Timing & Assignment',
+                    style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  AppSpacing.gapLG,
+                  
+                  // Date Picker
+                  Text(
+                    isArabic ? 'تاريخ الاستحقاق' : 'Due Date',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  AppSpacing.gapSM,
+                  InkWell(
+                    onTap: _selectDueDate,
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                    child: Container(
+                      padding: const EdgeInsets.all(AppSpacing.md),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                        border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5)),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.calendar_today_rounded, size: 20, color: theme.colorScheme.primary),
+                          AppSpacing.gapMD,
+                          Text(
+                            _selectedDueDate != null
+                                ? '${_selectedDueDate!.day}/${_selectedDueDate!.month}/${_selectedDueDate!.year}'
+                                : (isArabic ? 'لم يتم التحديد' : 'Not specified'),
+                            style: theme.textTheme.bodyLarge?.copyWith(
+                              fontWeight: _selectedDueDate != null ? FontWeight.bold : FontWeight.normal,
+                              color: _selectedDueDate != null ? null : theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                          const Spacer(),
+                          if (_selectedDueDate != null)
+                            IconButton(
+                              icon: const Icon(Icons.clear, size: 18),
+                              onPressed: () => setState(() => _selectedDueDate = null),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  AppSpacing.gapLG,
+
+                  // Assignee dropdown
+                  membersAsync.when(
+                    data: (members) {
+                      return DropdownButtonFormField<String>(
+                        value: _selectedAssignedTo,
+                        decoration: InputDecoration(
+                          labelText: isArabic ? 'إسناد إلى' : 'Assign to',
+                          prefixIcon: const Icon(Icons.person_outline_rounded),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                          ),
+                        ),
+                        items: [
+                          DropdownMenuItem<String>(
+                            value: null,
+                            child: Text(isArabic ? 'غير مسند' : 'Unassigned'),
+                          ),
+                          ...members.map((member) => DropdownMenuItem<String>(
+                                value: member.userId,
+                                child: Text(member.userName ?? member.userEmail ?? (isArabic ? 'عضو' : 'Member')),
+                              )),
+                        ],
+                        onChanged: (value) => setState(() => _selectedAssignedTo = value),
+                      );
+                    },
+                    loading: () => const LinearProgressIndicator(),
+                    error: (e, _) => Text(isArabic ? 'خطأ في تحميل الأعضاء' : 'Error loading members'),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 16),
-            // Assignee picker
-            membersAsync.when(
-              data: (members) {
-                return DropdownButtonFormField<String>(
-                  initialValue: _selectedAssignedTo,
-                  decoration: const InputDecoration(
-                    labelText: 'إسناد إلى (اختياري)',
-                    border: OutlineInputBorder(),
-                  ),
-                  items: [
-                    const DropdownMenuItem<String>(
-                      value: null,
-                      child: Text('غير مسند'),
-                    ),
-                    ...members.map((member) => DropdownMenuItem<String>(
-                          value: member.userId,
-                          child: Text(member.userName ?? member.userEmail ?? 'عضو'),
-                        )),
-                  ],
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedAssignedTo = value;
-                    });
-                  },
-                );
-              },
-              loading: () => const CircularProgressIndicator(),
-              error: (e, _) => Text('خطأ في تحميل الأعضاء: $e'),
+            AppSpacing.gapLG,
+
+            BeityCard(
+              padding: const EdgeInsets.all(AppSpacing.xl),
+              child: RecurrenceSelector(
+                selectedRecurrence: _selectedRecurrenceType,
+                onChanged: (value) => setState(() => _selectedRecurrenceType = value),
+              ),
             ),
-            const SizedBox(height: 16),
-            RecurrenceSelector(
-              selectedRecurrence: _selectedRecurrenceType,
-              onChanged: (value) {
-                setState(() {
-                  _selectedRecurrenceType = value;
-                });
-              },
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: _isLoading ? null : _submit,
-              child: _isLoading
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text('حفظ'),
+            AppSpacing.gapXXL,
+
+            BeityButton(
+              text: isArabic ? 'حفظ المهمة' : 'Save Task',
+              icon: Icons.check_rounded,
+              isLoading: _isLoading,
+              onPressed: () => ActionDebouncer.execute(_submit),
             ),
           ],
         ),

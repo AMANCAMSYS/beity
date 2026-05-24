@@ -3,6 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:beity/core/utils/auth_error_messages.dart';
+import 'package:beity/core/utils/action_debouncer.dart';
+import 'package:beity/app/theme/app_spacing.dart';
+import 'package:beity/app/theme/app_colors.dart';
+import 'package:beity/shared/widgets/design_system/beity_button.dart';
+import 'package:beity/shared/widgets/design_system/beity_text_field.dart';
 import '../providers/auth_provider.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
@@ -69,7 +74,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(message, textDirection: TextDirection.rtl),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.error,
           ),
         );
       }
@@ -82,11 +87,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(AppSpacing.lg),
             child: Form(
               key: _formKey,
               child: Column(
@@ -94,109 +102,102 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Icon(
-                    Icons.home,
+                    Icons.home_rounded,
                     size: 80,
-                    color: Theme.of(context).primaryColor,
+                    color: theme.primaryColor,
                   ),
-                  const SizedBox(height: 16),
+                  AppSpacing.gapMD,
                   Text(
                     'بيتي',
                     textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                    style: theme.textTheme.headlineLarge?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
                   ),
-                  const SizedBox(height: 8),
+                  AppSpacing.gapSM,
                   Text(
                     'إنشاء حساب جديد',
                     textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: Colors.grey[600],
+                    style: theme.textTheme.titleMedium?.copyWith(
+                          color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
                         ),
                   ),
-                  const SizedBox(height: 48),
+                  AppSpacing.gapXXL,
 
                   // Name Field
-                  TextFormField(
+                  BeityTextField(
                     controller: _nameController,
                     textDirection: TextDirection.rtl,
-                    decoration: const InputDecoration(
-                      labelText: 'الاسم الكامل',
-                      prefixIcon: Icon(Icons.person),
-                    ),
+                    labelText: 'الاسم الكامل',
+                    prefixIcon: Icons.person_rounded,
                     validator: (value) {
                       final error = AuthErrorMessages.validateName(value);
                       return error.isEmpty ? null : error;
                     },
                   ),
-                  const SizedBox(height: 16),
+                  AppSpacing.gapMD,
 
                   // Email Field
-                  TextFormField(
+                  BeityTextField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
                     textDirection: TextDirection.ltr,
-                    decoration: const InputDecoration(
-                      labelText: 'البريد الإلكتروني',
-                      hintText: 'example@email.com',
-                      prefixIcon: Icon(Icons.email),
-                    ),
+                    labelText: 'البريد الإلكتروني',
+                    hintText: 'example@email.com',
+                    prefixIcon: Icons.email_rounded,
                     validator: (value) {
                       final error = AuthErrorMessages.validateEmail(value);
                       return error.isEmpty ? null : error;
                     },
                   ),
-                  const SizedBox(height: 16),
+                  AppSpacing.gapMD,
 
                   // Password Field
-                  TextFormField(
+                  BeityTextField(
                     controller: _passwordController,
                     obscureText: _obscurePassword,
                     textDirection: TextDirection.ltr,
-                    decoration: InputDecoration(
-                      labelText: 'كلمة المرور',
-                      prefixIcon: const Icon(Icons.lock),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscurePassword
-                              ? Icons.visibility_off
-                              : Icons.visibility,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _obscurePassword = !_obscurePassword;
-                          });
-                        },
+                    labelText: 'كلمة المرور',
+                    prefixIcon: Icons.lock_rounded,
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscurePassword
+                            ? Icons.visibility_off_rounded
+                            : Icons.visibility_rounded,
+                        color: isDark ? AppColors.textHintDark : AppColors.textHintLight,
                       ),
+                      onPressed: () {
+                        setState(() {
+                          _obscurePassword = !_obscurePassword;
+                        });
+                      },
                     ),
                     validator: (value) {
                       final error = AuthErrorMessages.validatePassword(value);
                       return error.isEmpty ? null : error;
                     },
                   ),
-                  const SizedBox(height: 16),
+                  AppSpacing.gapMD,
 
                   // Confirm Password Field
-                  TextFormField(
+                  BeityTextField(
                     controller: _confirmPasswordController,
                     obscureText: _obscureConfirmPassword,
                     textDirection: TextDirection.ltr,
-                    decoration: InputDecoration(
-                      labelText: 'تأكيد كلمة المرور',
-                      prefixIcon: const Icon(Icons.lock_outline),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscureConfirmPassword
-                              ? Icons.visibility_off
-                              : Icons.visibility,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _obscureConfirmPassword =
-                                !_obscureConfirmPassword;
-                          });
-                        },
+                    labelText: 'تأكيد كلمة المرور',
+                    prefixIcon: Icons.lock_outline_rounded,
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscureConfirmPassword
+                            ? Icons.visibility_off_rounded
+                            : Icons.visibility_rounded,
+                        color: isDark ? AppColors.textHintDark : AppColors.textHintLight,
                       ),
+                      onPressed: () {
+                        setState(() {
+                          _obscureConfirmPassword = !_obscureConfirmPassword;
+                        });
+                      },
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
@@ -208,40 +209,34 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       return null;
                     },
                   ),
-                  const SizedBox(height: 24),
+                  AppSpacing.gapLG,
 
                   // Register Button
-                  ElevatedButton(
-                    onPressed: _isLoading ? null : _register,
-                    child: _isLoading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Text(
-                            'إنشاء حساب',
-                            textDirection: TextDirection.rtl,
-                          ),
+                  BeityButton(
+                    text: 'إنشاء حساب',
+                    isLoading: _isLoading,
+                    onPressed: () => ActionDebouncer.execute(_register),
                   ),
-                  const SizedBox(height: 16),
+                  AppSpacing.gapMD,
 
                   // Login Link
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text(
+                      Text(
                         'لديك حساب بالفعل؟',
                         textDirection: TextDirection.rtl,
+                        style: theme.textTheme.bodyMedium,
                       ),
                       TextButton(
                         onPressed: () => context.go('/login'),
-                        child: const Text(
+                        child: Text(
                           'تسجيل الدخول',
                           textDirection: TextDirection.rtl,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.primaryColor,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ],

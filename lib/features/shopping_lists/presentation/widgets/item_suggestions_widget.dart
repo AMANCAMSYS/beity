@@ -49,7 +49,7 @@ class ItemSuggestionsWidget extends StatelessWidget {
           final suggestion = filtered[index];
           return ListTile(
             dense: true,
-            title: _buildHighlightedText(suggestion.name, query),
+            title: _buildHighlightedText(context, suggestion.name, query),
             subtitle: _buildSubtitle(suggestion),
             leading: Icon(
               suggestion.isTemplate ? Icons.bookmark_outline : Icons.history,
@@ -64,12 +64,11 @@ class ItemSuggestionsWidget extends StatelessWidget {
 
   Widget? _buildSubtitle(AutocompleteSuggestion suggestion) {
     final parts = <String>[];
-    if (suggestion.quantity != 1) {
-      parts.add(suggestion.quantity.toStringAsFixed(
-          suggestion.quantity == suggestion.quantity.roundToDouble() ? 0 : 1));
-    }
-    if (suggestion.unitName != null && suggestion.unitName!.isNotEmpty) {
-      parts.add(suggestion.unitName!);
+    if (suggestion.quantity != 1 || suggestion.unitName != null) {
+      final qty = suggestion.quantity == suggestion.quantity.roundToDouble()
+          ? suggestion.quantity.toInt().toString()
+          : suggestion.quantity.toStringAsFixed(1);
+      parts.add(suggestion.unitName != null ? '$qty ${suggestion.unitName}' : qty);
     }
     if (parts.isEmpty) return null;
     return Text(
@@ -78,30 +77,31 @@ class ItemSuggestionsWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildHighlightedText(String text, String query) {
+  Widget _buildHighlightedText(BuildContext context, String text, String query) {
+    final theme = Theme.of(context);
     final lowerText = text.toLowerCase();
     final lowerQuery = query.toLowerCase();
     final startIndex = lowerText.indexOf(lowerQuery);
 
     if (startIndex == -1) {
-      return Text(text);
+      return Text(text, style: TextStyle(color: theme.colorScheme.onSurface));
     }
 
     return RichText(
       text: TextSpan(
         text: text.substring(0, startIndex),
-        style: const TextStyle(color: Colors.black),
+        style: TextStyle(color: theme.colorScheme.onSurface),
         children: [
           TextSpan(
             text: text.substring(startIndex, startIndex + query.length),
-            style: const TextStyle(
-              color: Colors.blue,
+            style: TextStyle(
+              color: theme.colorScheme.primary,
               fontWeight: FontWeight.bold,
             ),
           ),
           TextSpan(
             text: text.substring(startIndex + query.length),
-            style: const TextStyle(color: Colors.black),
+            style: TextStyle(color: theme.colorScheme.onSurface),
           ),
         ],
       ),

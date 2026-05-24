@@ -18,60 +18,34 @@ class SupabaseInvitationRepository implements InvitationRepository {
       throw Exception('يجب تسجيل الدخول أولاً');
     }
 
-    // Check if user is owner/admin of the home
-    final membership = await _client
-        .from('home_members')
-        .select('role')
-        .eq('home_id', homeId)
-        .eq('user_id', user.id)
-        .single();
+    try {
+      // Use server-side RPC for secure token generation and validation
+      final response = await _client.rpc(
+        'create_invitation',
+        params: {
+          'p_home_id': homeId,
+          'p_email': email,
+          'p_role': role,
+        },
+      );
 
-    if (membership == null ||
-        (membership['role'] != 'owner' && membership['role'] != 'admin')) {
-      throw Exception('ليس لديك صلاحية لإرسال دعوات');
+      return InvitationModel.fromJson(response as Map<String, dynamic>);
+    } on PostgrestException catch (e) {
+      // Map server errors to user-friendly messages
+      if (e.message.contains('already an active member')) {
+        throw Exception('هذا المستخدم عضو بالفعل في المنزل');
+      }
+      if (e.message.contains('pending invitation already exists')) {
+        throw Exception('يوجد دعوة معلقة بالفعل لهذا البريد الإلكتروني');
+      }
+      if (e.message.contains('Only owners and admins')) {
+        throw Exception('ليس لديك صلاحية لإرسال دعوات');
+      }
+      if (e.message.contains('gen_random_bytes')) {
+        throw Exception('تعذر إنشاء رمز الدعوة. يرجى تحديث قاعدة البيانات ثم المحاولة مرة أخرى');
+      }
+      throw Exception('فشل إرسال الدعوة: ${e.message}');
     }
-
-    // Check if email is already a member
-    final existingMember = await _client
-        .from('home_members')
-        .select('id')
-        .eq('home_id', homeId)
-        .eq('user_id', _client.auth.currentUser!.id)
-        .maybeSingle();
-
-    // Check for existing pending invitation
-    final existingInvitation = await _client
-        .from('invitations')
-        .select('id')
-        .eq('home_id', homeId)
-        .eq('email', email)
-        .eq('status', 'pending')
-        .maybeSingle();
-
-    if (existingInvitation != null) {
-      throw Exception('يوجد دعوة معلقة بالفعل لهذا البريد الإلكتروني');
-    }
-
-    // Generate unique token
-    final token = _generateToken();
-
-    // Create invitation
-    final response = await _client
-        .from('invitations')
-        .insert({
-          'home_id': homeId,
-          'email': email,
-          'role': role,
-          'token': token,
-          'status': 'pending',
-          'invited_by': user.id,
-          'expires_at':
-              DateTime.now().add(const Duration(days: 7)).toIso8601String(),
-        })
-        .select()
-        .single();
-
-    return InvitationModel.fromJson(response);
   }
 
   @override
@@ -81,53 +55,24 @@ class SupabaseInvitationRepository implements InvitationRepository {
       throw Exception('يجب تسجيل الدخول أولاً');
     }
 
-    // Get invitation by token
-    final invitation = await _client
-        .from('invitations')
-        .select()
-        .eq('token', token)
-        .eq('status', 'pending')
-        .single();
-
-    if (invitation == null) {
-      throw Exception('الدعوة غير موجودة أو منتهية الصلاحية');
+    try {
+      final response = await _client.rpc(
+        'accept_invitation',
+        params: {'invitation_token': token},
+      );
+      return InvitationModel.fromJson(response as Map<String, dynamic>);
+    } catch (e) {
+      if (e.toString().contains('Not authenticated')) {
+        throw Exception('يجب تسجيل الدخول أولاً');
+      } else if (e.toString().contains('Invitation not found')) {
+        throw Exception('الدعوة غير موجودة أو تم التعامل معها مسبقاً');
+      } else if (e.toString().contains('Invitation expired')) {
+        throw Exception('الدعوة منتهية الصلاحية');
+      } else if (e.toString().contains('Unauthorized')) {
+        throw Exception('غير مصرح لك بقبول هذه الدعوة');
+      }
+      throw Exception('فشل في قبول الدعوة: $e');
     }
-
-    // Check if expired
-    final expiresAt = DateTime.parse(invitation['expires_at']);
-    if (expiresAt.isBefore(DateTime.now())) {
-      // Mark as expired
-      await _client
-          .from('invitations')
-          .update({'status': 'expired'}).eq('id', invitation['id']);
-      throw Exception('الدعوة منتهية الصلاحية');
-    }
-
-    // Update invitation status
-    await _client.from('invitations').update({
-      'status': 'accepted',
-      'accepted_at': DateTime.now().toIso8601String(),
-    }).eq('id', invitation['id']);
-
-    // Add user to home_members
-    await _client.from('home_members').insert({
-      'home_id': invitation['home_id'],
-      'user_id': user.id,
-      'role': invitation['role'],
-      'status': 'active',
-    });
-
-    // Log activity
-    await _client.from('activity_logs').insert({
-      'home_id': invitation['home_id'],
-      'user_id': user.id,
-      'action': 'invitation_accepted',
-      'entity_type': 'invitation',
-      'entity_id': invitation['id'],
-    });
-
-    return InvitationModel.fromJson(
-        {...invitation, 'status': 'accepted', 'accepted_at': DateTime.now().toIso8601String()});
   }
 
   @override
@@ -142,17 +87,24 @@ class SupabaseInvitationRepository implements InvitationRepository {
         .select()
         .eq('token', token)
         .eq('status', 'pending')
-        .single();
+        .maybeSingle();
 
     if (invitation == null) {
       throw Exception('الدعوة غير موجودة');
     }
 
-    await _client
+    final response = await _client
         .from('invitations')
-        .update({'status': 'cancelled'}).eq('id', invitation['id']);
+        .update({'status': 'cancelled'})
+        .eq('id', invitation['id'])
+        .select()
+        .maybeSingle();
 
-    return InvitationModel.fromJson({...invitation, 'status': 'cancelled'});
+    if (response == null) {
+      throw Exception('ليس لديك صلاحية لرفض هذه الدعوة');
+    }
+
+    return InvitationModel.fromJson(response);
   }
 
   @override
@@ -167,17 +119,24 @@ class SupabaseInvitationRepository implements InvitationRepository {
         .from('invitations')
         .select()
         .eq('id', invitationId)
-        .single();
+        .maybeSingle();
 
     if (invitation == null) {
       throw Exception('الدعوة غير موجودة');
     }
 
-    await _client
+    final response = await _client
         .from('invitations')
-        .update({'status': 'cancelled'}).eq('id', invitationId);
+        .update({'status': 'cancelled'})
+        .eq('id', invitationId)
+        .select()
+        .maybeSingle();
 
-    return InvitationModel.fromJson({...invitation, 'status': 'cancelled'});
+    if (response == null) {
+      throw Exception('ليس لديك صلاحية لإلغاء هذه الدعوة');
+    }
+
+    return InvitationModel.fromJson(response);
   }
 
   @override
@@ -234,6 +193,7 @@ class SupabaseInvitationRepository implements InvitationRepository {
         .order('created_at', ascending: false)
         .map((response) => response
             .map((json) => InvitationModel.fromJson(json))
+            .where((inv) => inv.isPending)
             .toList());
   }
 
@@ -255,8 +215,4 @@ class SupabaseInvitationRepository implements InvitationRepository {
             .toList());
   }
 
-  String _generateToken() {
-    return DateTime.now().millisecondsSinceEpoch.toString() +
-        (1000 + (DateTime.now().microsecond % 9000)).toString();
-  }
 }

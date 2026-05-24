@@ -21,7 +21,16 @@ final userHomesProvider = FutureProvider<List<HomeModel>>((ref) async {
 
 final activeHomeIdProvider = FutureProvider<String?>((ref) async {
   final localDataSource = ref.read(homeLocalDataSourceProvider);
-  return localDataSource.getActiveHomeId();
+  final activeId = await localDataSource.getActiveHomeId();
+  if (activeId != null && activeId.isNotEmpty) return activeId;
+
+  final repo = ref.read(homeRepositoryProvider);
+  final homes = await repo.getUserHomes();
+  if (homes.isNotEmpty) {
+    await localDataSource.setActiveHome(homes.first.id, homes.first.name);
+    return homes.first.id;
+  }
+  return null;
 });
 
 final hasHomesProvider = FutureProvider<bool>((ref) async {

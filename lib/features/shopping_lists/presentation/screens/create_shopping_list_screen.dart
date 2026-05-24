@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:beity/app/theme/app_spacing.dart';
+import 'package:beity/shared/widgets/design_system/beity_button.dart';
+import 'package:beity/shared/widgets/design_system/beity_text_field.dart';
+import 'package:beity/shared/widgets/design_system/beity_card.dart';
+import '../../../../core/utils/action_debouncer.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../domain/usecases/create_shopping_list_usecase.dart';
@@ -17,35 +22,33 @@ class CreateShoppingListScreen extends ConsumerStatefulWidget {
 class _CreateShoppingListScreenState extends ConsumerState<CreateShoppingListScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  final _descriptionController = TextEditingController();
   String _selectedIcon = 'shopping_cart';
   bool _isLoading = false;
 
   static const _iconOptions = [
-    {'icon': 'shopping_cart', 'label': 'مشتريات', 'data': Icons.shopping_cart},
-    {'icon': 'shopping_bag', 'label': 'تسوق', 'data': Icons.shopping_bag},
-    {'icon': 'local_grocery_store', 'label': 'بقالة', 'data': Icons.local_grocery_store},
-    {'icon': 'local_pharmacy', 'label': 'صيدلية', 'data': Icons.local_pharmacy},
-    {'icon': 'local_hospital', 'label': 'صحة', 'data': Icons.local_hospital},
-    {'icon': 'restaurant', 'label': 'مطعم', 'data': Icons.restaurant},
-    {'icon': 'local_cafe', 'label': 'مقهى', 'data': Icons.local_cafe},
-    {'icon': 'home', 'label': 'منزل', 'data': Icons.home},
-    {'icon': 'hardware', 'label': 'أدوات', 'data': Icons.hardware},
-    {'icon': 'build', 'label': 'صيانة', 'data': Icons.build},
-    {'icon': 'child_care', 'label': 'أطفال', 'data': Icons.child_care},
-    {'icon': 'pets', 'label': 'حيوانات', 'data': Icons.pets},
-    {'icon': 'card_giftcard', 'label': 'هدايا', 'data': Icons.card_giftcard},
-    {'icon': 'celebration', 'label': 'احتفال', 'data': Icons.celebration},
-    {'icon': 'school', 'label': 'مدرسة', 'data': Icons.school},
-    {'icon': 'fitness_center', 'label': 'رياضة', 'data': Icons.fitness_center},
-    {'icon': 'cleaning_services', 'label': 'تنظيف', 'data': Icons.cleaning_services},
-    {'icon': 'local_florist', 'label': 'زهور', 'data': Icons.local_florist},
+    {'icon': 'shopping_cart', 'ar': 'مشتريات', 'en': 'Groceries', 'data': Icons.shopping_cart},
+    {'icon': 'shopping_bag', 'ar': 'تسوق', 'en': 'Shopping', 'data': Icons.shopping_bag},
+    {'icon': 'local_grocery_store', 'ar': 'بقالة', 'en': 'Store', 'data': Icons.local_grocery_store},
+    {'icon': 'local_pharmacy', 'ar': 'صيدلية', 'en': 'Pharmacy', 'data': Icons.local_pharmacy},
+    {'icon': 'local_hospital', 'ar': 'صحة', 'en': 'Health', 'data': Icons.local_hospital},
+    {'icon': 'restaurant', 'ar': 'مطعم', 'en': 'Restaurant', 'data': Icons.restaurant},
+    {'icon': 'local_cafe', 'ar': 'مقهى', 'en': 'Cafe', 'data': Icons.local_cafe},
+    {'icon': 'home', 'ar': 'منزل', 'en': 'Home', 'data': Icons.home},
+    {'icon': 'hardware', 'ar': 'أدوات', 'en': 'Tools', 'data': Icons.hardware},
+    {'icon': 'build', 'ar': 'صيانة', 'en': 'Build', 'data': Icons.build},
+    {'icon': 'child_care', 'ar': 'أطفال', 'en': 'Baby', 'data': Icons.child_care},
+    {'icon': 'pets', 'ar': 'حيوانات', 'en': 'Pets', 'data': Icons.pets},
+    {'icon': 'card_giftcard', 'ar': 'هدايا', 'en': 'Gifts', 'data': Icons.card_giftcard},
+    {'icon': 'celebration', 'ar': 'احتفال', 'en': 'Celebration', 'data': Icons.celebration},
+    {'icon': 'school', 'ar': 'مدرسة', 'en': 'School', 'data': Icons.school},
+    {'icon': 'fitness_center', 'ar': 'رياضة', 'en': 'Fitness', 'data': Icons.fitness_center},
+    {'icon': 'cleaning_services', 'ar': 'تنظيف', 'en': 'Cleaning', 'data': Icons.cleaning_services},
+    {'icon': 'local_florist', 'ar': 'زهور', 'en': 'Flowers', 'data': Icons.local_florist},
   ];
 
   @override
   void dispose() {
     _nameController.dispose();
-    _descriptionController.dispose();
     super.dispose();
   }
 
@@ -76,9 +79,10 @@ class _CreateShoppingListScreenState extends ConsumerState<CreateShoppingListScr
       }
     } catch (e) {
       if (mounted) {
+        final isArabic = Localizations.localeOf(context).languageCode == 'ar';
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('فشل إنشاء القائمة: ${e.toString()}'),
+            content: Text('${isArabic ? 'فشل إنشاء القائمة' : 'Failed to create list'}: ${e.toString()}'),
             backgroundColor: Colors.red,
           ),
         );
@@ -90,12 +94,15 @@ class _CreateShoppingListScreenState extends ConsumerState<CreateShoppingListScr
 
   @override
   Widget build(BuildContext context) {
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+    final theme = Theme.of(context);
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('إنشاء قائمة تسوق'),
+        title: Text(isArabic ? 'إنشاء قائمة تسوق' : 'Create Shopping List', style: const TextStyle(fontWeight: FontWeight.bold)),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         child: Form(
           key: _formKey,
           child: Column(
@@ -104,143 +111,111 @@ class _CreateShoppingListScreenState extends ConsumerState<CreateShoppingListScr
               // Selected icon preview
               Center(
                 child: Container(
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.all(AppSpacing.xl),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                    color: theme.primaryColor.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
                     _getIconData(_selectedIcon),
                     size: 48,
-                    color: Theme.of(context).primaryColor,
+                    color: theme.primaryColor,
                   ),
                 ),
               ),
-              const SizedBox(height: 24),
+              AppSpacing.gapXL,
 
               // Icon picker
-              Text(
-                'اختر أيقونة القائمة',
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Container(
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey[300]!),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                padding: const EdgeInsets.all(12),
-                child: Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: _iconOptions.map((option) {
-                    final isSelected = _selectedIcon == option['icon'];
-                    return GestureDetector(
-                      onTap: () => setState(() => _selectedIcon = option['icon'] as String),
-                      child: Container(
-                        width: 56,
-                        height: 56,
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? Theme.of(context).primaryColor.withValues(alpha: 0.15)
-                              : Colors.grey[100],
-                          borderRadius: BorderRadius.circular(12),
-                          border: isSelected
-                              ? Border.all(color: Theme.of(context).primaryColor, width: 2)
-                              : null,
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              option['data'] as IconData,
-                              color: isSelected
-                                  ? Theme.of(context).primaryColor
-                                  : Colors.grey[600],
-                              size: 22,
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              option['label'] as String,
-                              style: TextStyle(
-                                fontSize: 8,
-                                color: isSelected
-                                    ? Theme.of(context).primaryColor
-                                    : Colors.grey[600],
-                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                              ),
-                            ),
-                          ],
-                        ),
+              BeityCard(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isArabic ? 'اختر أيقونة القائمة' : 'Choose List Icon',
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
                       ),
-                    );
-                  }).toList(),
+                    ),
+                    AppSpacing.gapMD,
+                    Wrap(
+                      spacing: AppSpacing.sm,
+                      runSpacing: AppSpacing.sm,
+                      children: _iconOptions.map((option) {
+                        final isSelected = _selectedIcon == option['icon'];
+                        return GestureDetector(
+                          onTap: () => setState(() => _selectedIcon = option['icon'] as String),
+                          child: Container(
+                            width: 60,
+                            height: 60,
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? theme.primaryColor.withValues(alpha: 0.15)
+                                  : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                              borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                              border: isSelected
+                                  ? Border.all(color: theme.primaryColor, width: 2)
+                                  : null,
+                            ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  option['data'] as IconData,
+                                  color: isSelected
+                                      ? theme.primaryColor
+                                      : theme.colorScheme.onSurfaceVariant,
+                                  size: 24,
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  (isArabic ? option['ar'] : option['en']) as String,
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: isSelected
+                                        ? theme.primaryColor
+                                        : theme.colorScheme.onSurfaceVariant,
+                                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 24),
+              AppSpacing.gapLG,
 
               // Name field
-              TextFormField(
-                controller: _nameController,
-                decoration: InputDecoration(
-                  labelText: 'اسم القائمة',
-                  hintText: 'مثال: مشتريات الأسبوع',
-                  prefixIcon: const Icon(Icons.list_alt),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+              BeityCard(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                child: BeityTextField(
+                  controller: _nameController,
+                  labelText: isArabic ? 'اسم القائمة' : 'List Name',
+                  hintText: isArabic ? 'مثال: مشتريات الأسبوع' : 'e.g. Weekly Groceries',
+                  prefixIcon: Icons.list_alt_rounded,
+                  autofocus: true,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return isArabic ? 'اسم القائمة مطلوب' : 'List name is required';
+                    }
+                    return null;
+                  },
                 ),
-                textCapitalization: TextCapitalization.sentences,
-                textInputAction: TextInputAction.next,
-                autofocus: true,
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'اسم القائمة مطلوب';
-                  }
-                  return null;
-                },
               ),
-              const SizedBox(height: 16),
-
-              // Description field
-              TextFormField(
-                controller: _descriptionController,
-                decoration: InputDecoration(
-                  labelText: 'الوصف (اختياري)',
-                  hintText: 'مثال: خضروات وفواكه ولحوم',
-                  prefixIcon: const Icon(Icons.description_outlined),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                textCapitalization: TextCapitalization.sentences,
-                textInputAction: TextInputAction.done,
-                maxLines: 2,
-                onFieldSubmitted: (_) => _createList(),
-              ),
-              const SizedBox(height: 32),
+              AppSpacing.gapXXL,
 
               // Create button
-              ElevatedButton(
-                onPressed: _isLoading ? null : _createList,
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: _isLoading
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text(
-                        'إنشاء القائمة',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
+              BeityButton(
+                text: _isLoading 
+                    ? (isArabic ? 'جاري الإنشاء...' : 'Creating...') 
+                    : (isArabic ? 'إنشاء القائمة' : 'Create List'),
+                icon: Icons.add_task_rounded,
+                isLoading: _isLoading,
+                onPressed: () => ActionDebouncer.execute(_createList),
               ),
             ],
           ),

@@ -18,13 +18,16 @@ final settlementRepositoryProvider = Provider<SettlementRepository>((ref) {
 });
 
 final settlementsProvider =
-    StreamProvider.family<List<Settlement>, String>((ref, homeId) {
+    StreamProvider.autoDispose.family<List<Settlement>, String>((ref, homeId) {
   final repository = ref.watch(settlementRepositoryProvider);
   return repository.watchSettlements(homeId: homeId);
 });
 
 final balancesProvider =
     FutureProvider.family<List<Balance>, String>((ref, homeId) async {
+  if (homeId.isEmpty) {
+    throw Exception('لم يتم تحديد المنزل بشكل صحيح');
+  }
   final repository = ref.watch(settlementRepositoryProvider);
   return repository.calculateBalances(homeId: homeId);
 });

@@ -4,6 +4,9 @@ import '../../../homes/presentation/providers/homes_provider.dart';
 import '../providers/task_providers.dart';
 import '../widgets/recurrence_selector.dart';
 import '../widgets/comment_thread.dart';
+import '../../../../core/utils/action_debouncer.dart';
+import '../../../../shared/widgets/design_system/beity_empty_state.dart';
+import '../../../../shared/widgets/design_system/beity_button.dart';
 
 class TaskDetailScreen extends ConsumerStatefulWidget {
   final String taskId;
@@ -28,6 +31,7 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
   final _editDescriptionController = TextEditingController();
   DateTime? _editDueDate;
   String? _editRecurrenceType;
+  String? _editAssignedTo;
 
   @override
   void dispose() {
@@ -41,6 +45,7 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
     _editDescriptionController.text = task.description ?? '';
     _editDueDate = task.dueDate;
     _editRecurrenceType = task.recurrenceType;
+    _editAssignedTo = task.assignedTo;
     setState(() {
       _isEditing = true;
     });
@@ -72,6 +77,10 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
             : null,
         dueDate: _editDueDate,
         recurrenceType: _editRecurrenceType,
+      );
+      await repository.updateTaskAssignee(
+        taskId: widget.taskId,
+        assignedTo: _editAssignedTo,
       );
       ref.invalidate(taskByIdProvider);
       ref.invalidate(tasksProvider);
@@ -241,7 +250,11 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
       body: taskAsync.when(
         data: (task) {
           if (task == null) {
-            return const Center(child: Text('المهمة غير موجودة'));
+            return const BeityEmptyState(
+              title: 'المهمة غير موجودة',
+              message: 'عذراً، لا يمكن العثور على تفاصيل هذه المهمة حالياً',
+              icon: Icons.task_alt_rounded,
+            );
           }
 
           return SingleChildScrollView(
@@ -309,6 +322,40 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
                             });
                           },
                         ),
+                        const SizedBox(height: 16),
+                        membersAsync.when(
+                          data: (members) {
+                            return DropdownButtonFormField<String>(
+                              initialValue: _editAssignedTo,
+                              decoration: const InputDecoration(
+                                labelText: 'إسناد إلى',
+                                border: OutlineInputBorder(),
+                              ),
+                              items: [
+                                const DropdownMenuItem<String>(
+                                  value: null,
+                                  child: Text('غير مسند'),
+                                ),
+                                ...members.map((member) =>
+                                    DropdownMenuItem<String>(
+                                      value: member.userId,
+                                      child: Text(member.userName ??
+                                          member.userEmail ??
+                                          'عضو'),
+                                    )),
+                              ],
+                              onChanged: (value) {
+                                setState(() {
+                                  _editAssignedTo = value;
+                                });
+                              },
+                            );
+                          },
+                          loading: () =>
+                              const CircularProgressIndicator(),
+                          error: (e, _) =>
+                              Text('خطأ في تحميل الأعضاء: $e'),
+                        ),
                         const SizedBox(height: 24),
                         Row(
                           children: [
@@ -321,7 +368,7 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
                             const SizedBox(width: 16),
                             Expanded(
                               child: ElevatedButton(
-                                onPressed: _isLoading ? null : _saveEditing,
+                                onPressed: _isLoading ? null : () => ActionDebouncer.execute(_saveEditing),
                                 child: _isLoading
                                     ? const SizedBox(
                                         height: 20,
@@ -428,7 +475,7 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton.icon(
-                            onPressed: _isLoading ? null : _toggleComplete,
+                            onPressed: _isLoading ? null : () => ActionDebouncer.execute(_toggleComplete),
                             icon: Icon(
                               task.isCompleted
                                   ? Icons.undo
@@ -461,20 +508,13 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error_outline, size: 48, color: Colors.red),
-              const SizedBox(height: 16),
-              Text('خطأ: $error'),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () => ref.invalidate(taskByIdProvider(widget.taskId)),
-                child: const Text('إعادة المحاولة'),
-              ),
-            ],
-          ),
+        error: (error, _) => BeityEmptyState(
+          title: 'عذراً، حدث خطأ',
+          message: error.toString(),
+          icon: Icons.error_outline_rounded,
+          isError: true,
+          actionText: 'إعادة المحاولة',
+          onActionPressed: () => ref.invalidate(taskByIdProvider(widget.taskId)),
         ),
       ),
     );

@@ -16,7 +16,7 @@ class NotificationCenterScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Notifications'),
+        title: const Text('الإشعارات'),
         actions: [
           unreadCount.whenOrNull(
                 data: (count) => count > 0
@@ -27,7 +27,7 @@ class NotificationCenterScreen extends ConsumerWidget {
                               .markAllAsRead();
                           ref.read(unreadCountProvider.notifier).reset();
                         },
-                        child: const Text('Mark all read'),
+                        child: const Text('تحديد الكل كمقروء'),
                       )
                     : null,
               ) ??
@@ -42,33 +42,33 @@ class NotificationCenterScreen extends ConsumerWidget {
             children: [
               const Icon(Icons.error_outline, size: 48, color: Colors.red),
               const SizedBox(height: 16),
-              Text('Error loading notifications: $error'),
+              Text('خطأ في تحميل الإشعارات: $error', textDirection: TextDirection.rtl),
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () => ref.invalidate(notificationsProvider),
-                child: const Text('Retry'),
+                child: const Text('إعادة المحاولة'),
               ),
             ],
           ),
         ),
         data: (notifications) {
           if (notifications.isEmpty) {
-            return const Center(
+            return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(Icons.notifications_none,
-                      size: 64, color: Colors.grey),
-                  SizedBox(height: 16),
+                      size: 64, color: Colors.grey[400]),
+                  const SizedBox(height: 16),
                   Text(
-                    'No notifications yet',
-                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                    'لا توجد إشعارات بعد',
+                    style: TextStyle(fontSize: 16, color: Colors.grey[600]),
                   ),
-                  SizedBox(height: 8),
+                  const SizedBox(height: 8),
                   Text(
-                    'You\'ll see notifications here when\nsomeone adds items or invites you',
+                    'ستظهر هنا الإشعارات عندما\nيقوم أحد بإضافة عناصر أو دعوتك',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.grey),
+                    style: TextStyle(color: Colors.grey[500]),
                   ),
                 ],
               ),

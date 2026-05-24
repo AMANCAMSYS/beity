@@ -1,5 +1,9 @@
+import 'package:beity/app/theme/app_spacing.dart';
+import 'package:beity/shared/widgets/design_system/beity_empty_state.dart';
+import 'package:beity/shared/widgets/design_system/beity_text_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/utils/action_debouncer.dart';
 import '../providers/shopping_items_provider.dart';
 import '../../domain/usecases/add_item_usecase.dart';
 import '../../domain/usecases/delete_item_usecase.dart';
@@ -32,27 +36,20 @@ class _QuickAddScreenState extends ConsumerState<QuickAddScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
     final templatesAsync = ref.watch(itemTemplatesProvider(widget.homeId));
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('إضافة سريعة'),
+        title: Text(isArabic ? 'إضافة سريعة' : 'Quick Add', style: const TextStyle(fontWeight: FontWeight.bold)),
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(60),
+          preferredSize: const Size.fromHeight(80),
           child: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: TextField(
+            padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.lg),
+            child: BeityTextField(
               controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'بحث في المنتجات...',
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                filled: true,
-                fillColor: Theme.of(context).cardColor,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-              ),
+              hintText: isArabic ? 'بحث في المنتجات...' : 'Search items...',
+              prefixIcon: Icons.search_rounded,
               onChanged: (value) {
                 setState(() {
                   _searchQuery = value;
@@ -72,93 +69,93 @@ class _QuickAddScreenState extends ConsumerState<QuickAddScreen> {
                   .toList();
 
           if (filtered.isEmpty) {
-            return _buildEmptyState(context);
+            return BeityEmptyState(
+              title: isArabic ? 'لا توجد منتجات' : 'No Items Found',
+              message: _searchQuery.isEmpty 
+                  ? (isArabic ? 'ستظهر هنا المنتجات التي تشتريها بكثرة' : 'Products you buy frequently will appear here')
+                  : (isArabic ? 'لم يتم العثور على نتائج للبحث' : 'No results found for your search'),
+              icon: Icons.bookmark_outline_rounded,
+            );
           }
 
           return ListView.builder(
-            padding: const EdgeInsets.symmetric(vertical: 8),
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
             itemCount: filtered.length,
             itemBuilder: (context, index) {
               final template = filtered[index];
-              return _buildTemplateTile(context, template);
+              return _buildTemplateTile(context, template, isArabic);
             },
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(child: Text('خطأ: $error')),
+        error: (error, _) => BeityEmptyState(
+          title: isArabic ? 'حدث خطأ' : 'An error occurred',
+          message: error.toString(),
+          icon: Icons.error_outline_rounded,
+          isError: true,
+          actionText: isArabic ? 'إعادة المحاولة' : 'Retry',
+          onActionPressed: () => ref.invalidate(itemTemplatesProvider(widget.homeId)),
+        ),
       ),
     );
   }
 
-  Widget _buildEmptyState(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.bookmark_outline,
-            size: 64,
-            color: Colors.grey[400],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'لا توجد منتجات محفوظة',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: Colors.grey[600],
-                ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'ستظهر هنا المنتجات التي تشتريها frequently',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.grey[500],
-                ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTemplateTile(BuildContext context, ItemTemplateModel template) {
+  Widget _buildTemplateTile(BuildContext context, ItemTemplateModel template, bool isArabic) {
+    final theme = Theme.of(context);
+    
     return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.xs),
       leading: Container(
         width: 48,
         height: 48,
         decoration: BoxDecoration(
-          color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(12),
+          color: theme.colorScheme.primary.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
         ),
         child: Icon(
-          Icons.replay_outlined,
-          color: Theme.of(context).primaryColor,
+          Icons.replay_rounded,
+          color: theme.colorScheme.primary,
         ),
       ),
-      title: Text(template.name),
+      title: Text(
+        template.name,
+        style: const TextStyle(fontWeight: FontWeight.bold),
+      ),
       subtitle: Text(
-        'الكمية الافتراضية: ${template.defaultQuantity}',
-        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Colors.grey[600],
-            ),
+        isArabic ? 'الكمية: ${template.defaultQuantity}' : 'Qty: ${template.defaultQuantity}',
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
       ),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            '${template.usageCount} مرة',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.grey[500],
-                ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+            ),
+            child: Text(
+              isArabic ? '${template.usageCount} مرة' : '${template.usageCount}x',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
-          const SizedBox(width: 8),
-          const Icon(Icons.add_circle_outline),
+          AppSpacing.gapSM,
+          Icon(
+            Icons.add_circle_outline_rounded,
+            color: theme.colorScheme.primary,
+          ),
         ],
       ),
-      onTap: () => _addFromTemplate(template),
+      onTap: () => ActionDebouncer.execute(() => _addFromTemplate(template, isArabic)),
     );
   }
 
-  Future<void> _addFromTemplate(ItemTemplateModel template) async {
+  Future<void> _addFromTemplate(ItemTemplateModel template, bool isArabic) async {
     try {
       final repository = ref.read(shoppingItemRepositoryProvider);
       final addItemUseCase = AddItemUseCase(repository);
@@ -181,10 +178,10 @@ class _QuickAddScreenState extends ConsumerState<QuickAddScreen> {
         ScaffoldMessenger.of(context).clearSnackBars();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('تم إضافة ${template.name}'),
+            content: Text(isArabic ? 'تم إضافة ${template.name}' : 'Added ${template.name}'),
             action: SnackBarAction(
-              label: 'تراجع',
-              onPressed: () => _undoAdd(),
+              label: isArabic ? 'تراجع' : 'Undo',
+              onPressed: () => ActionDebouncer.execute(_undoAdd),
             ),
           ),
         );

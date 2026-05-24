@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../domain/entities/shopping_list.dart';
-import '../../../../core/accessibility/semantics_helpers.dart';
+import 'package:beity/app/theme/app_spacing.dart';
+import 'package:beity/shared/widgets/design_system/beity_card.dart';
+import 'package:beity/features/shopping_lists/domain/entities/shopping_list.dart';
+import 'package:beity/core/accessibility/semantics_helpers.dart';
 
 class ShoppingListCardWidget extends StatelessWidget {
   final ShoppingList shoppingList;
@@ -20,8 +22,12 @@ class ShoppingListCardWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+    final theme = Theme.of(context);
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+
+    return BeityCard(
+      onTap: onTap,
+      padding: EdgeInsets.zero,
       child: Semantics(
         label: AccessibilityHelpers.shoppingListLabel(
           name: shoppingList.name,
@@ -29,141 +35,169 @@ class ShoppingListCardWidget extends StatelessWidget {
           purchasedCount: shoppingList.purchasedCount,
         ),
         button: true,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Row(
+            children: [
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: shoppingList.isArchived
+                      ? theme.colorScheme.surfaceContainerHighest
+                      : theme.colorScheme.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+                  border: Border.all(
                     color: shoppingList.isArchived
-                        ? Colors.grey.withValues(alpha: 0.2)
-                        : Theme.of(context).primaryColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    shoppingList.isArchived
-                        ? Icons.archive_outlined
-                        : _getIconData(shoppingList.icon),
-                    color: shoppingList.isArchived
-                        ? Colors.grey
-                        : Theme.of(context).primaryColor,
+                        ? theme.colorScheme.outline.withValues(alpha: 0.1)
+                        : theme.colorScheme.primary.withValues(alpha: 0.1),
                   ),
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+                child: Icon(
+                  shoppingList.isArchived
+                      ? Icons.archive_rounded
+                      : _getIconData(shoppingList.icon),
+                  color: shoppingList.isArchived
+                      ? theme.colorScheme.onSurfaceVariant
+                      : theme.colorScheme.primary,
+                  size: 26,
+                ),
+              ),
+              AppSpacing.gapLG,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      shoppingList.name,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: shoppingList.isArchived
+                            ? theme.colorScheme.onSurfaceVariant
+                            : theme.colorScheme.onSurface,
+                        decoration: shoppingList.isArchived
+                            ? TextDecoration.lineThrough
+                            : null,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (shoppingList.description != null &&
+                        shoppingList.description!.isNotEmpty) ...[
+                      AppSpacing.gapXS,
                       Text(
-                        shoppingList.name,
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              decoration: shoppingList.isArchived
-                                  ? TextDecoration.lineThrough
-                                  : null,
-                            ),
+                        shoppingList.description!,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      if (shoppingList.description != null &&
-                          shoppingList.description!.isNotEmpty) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          shoppingList.description!,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: Colors.grey[600],
-                              ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                      const SizedBox(height: 4),
-                      Text(
-                        _formatDate(shoppingList.updatedAt ?? shoppingList.createdAt),
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Colors.grey[500],
-                              fontSize: 12,
-                            ),
-                      ),
                     ],
-                  ),
-                ),
-                if (!shoppingList.isArchived)
-                  Semantics(
-                    button: true,
-                    label: 'More options for ${shoppingList.name}',
-                    child: PopupMenuButton<String>(
-                      icon: const Icon(Icons.more_vert),
-                      onSelected: (value) {
-                        switch (value) {
-                          case 'rename':
-                            onRename?.call();
-                            break;
-                          case 'archive':
-                            onArchive?.call();
-                            break;
-                          case 'delete':
-                            onDelete?.call();
-                            break;
-                        }
-                      },
-                      itemBuilder: (context) => [
-                        const PopupMenuItem(
-                          value: 'rename',
-                          child: Row(
-                            children: [
-                              Icon(Icons.edit_outlined, size: 20),
-                              SizedBox(width: 8),
-                              Text('إعادة تسمية'),
-                            ],
-                          ),
+                    AppSpacing.gapXS,
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.access_time_rounded,
+                          size: 12,
+                          color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
                         ),
-                        const PopupMenuItem(
-                          value: 'archive',
-                          child: Row(
-                            children: [
-                              Icon(Icons.archive_outlined, size: 20),
-                              SizedBox(width: 8),
-                              Text('أرشفة'),
-                            ],
-                          ),
-                        ),
-                        const PopupMenuItem(
-                          value: 'delete',
-                          child: Row(
-                            children: [
-                              Icon(Icons.delete_outline, size: 20, color: Colors.red),
-                              SizedBox(width: 8),
-                              Text('حذف', style: TextStyle(color: Colors.red)),
-                            ],
+                        AppSpacing.gapXS,
+                        Text(
+                          _formatDate(shoppingList.updatedAt ?? shoppingList.createdAt, isArabic),
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                            fontSize: 11,
                           ),
                         ),
                       ],
                     ),
+                  ],
+                ),
+              ),
+              if (!shoppingList.isArchived)
+                Semantics(
+                  button: true,
+                  label: isArabic 
+                      ? 'خيارات إضافية لـ ${shoppingList.name}' 
+                      : 'More options for ${shoppingList.name}',
+                  child: PopupMenuButton<String>(
+                    icon: Icon(
+                      Icons.more_vert_rounded,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+                    ),
+                    onSelected: (value) {
+                      switch (value) {
+                        case 'rename':
+                          onRename?.call();
+                          break;
+                        case 'archive':
+                          onArchive?.call();
+                          break;
+                        case 'delete':
+                          onDelete?.call();
+                          break;
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      PopupMenuItem(
+                        value: 'rename',
+                        child: Row(
+                          children: [
+                            Icon(Icons.edit_rounded, size: 20, color: theme.colorScheme.primary),
+                            AppSpacing.gapMD,
+                            Text(isArabic ? 'إعادة تسمية' : 'Rename'),
+                          ],
+                        ),
+                      ),
+                      PopupMenuItem(
+                        value: 'archive',
+                        child: Row(
+                          children: [
+                            Icon(Icons.archive_rounded, size: 20, color: theme.colorScheme.secondary),
+                            AppSpacing.gapMD,
+                            Text(isArabic ? 'أرشفة' : 'Archive'),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuDivider(),
+                      PopupMenuItem(
+                        value: 'delete',
+                        child: Row(
+                          children: [
+                            Icon(Icons.delete_outline_rounded, size: 20, color: theme.colorScheme.error),
+                            AppSpacing.gapMD,
+                            Text(
+                              isArabic ? 'حذف' : 'Delete',
+                              style: TextStyle(color: theme.colorScheme.error),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-              ],
-            ),
+                ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  String _formatDate(DateTime? date) {
+  String _formatDate(DateTime? date, bool isArabic) {
     if (date == null) return '';
     final now = DateTime.now();
     final difference = now.difference(date);
 
     if (difference.inDays == 0) {
-      return 'اليوم';
+      return isArabic ? 'اليوم' : 'Today';
     } else if (difference.inDays == 1) {
-      return 'أمس';
+      return isArabic ? 'أمس' : 'Yesterday';
     } else if (difference.inDays < 7) {
-      return 'منذ ${difference.inDays} أيام';
+      return isArabic ? 'منذ ${difference.inDays} أيام' : '${difference.inDays} days ago';
     } else {
       return '${date.day}/${date.month}/${date.year}';
     }

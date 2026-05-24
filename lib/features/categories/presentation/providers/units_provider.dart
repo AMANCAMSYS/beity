@@ -14,7 +14,7 @@ final unitsProvider = FutureProvider.family<List<UnitModel>, String?>((ref, type
   return repo.getUnits(type: type);
 });
 
-final unitsStreamProvider = StreamProvider.family<List<UnitModel>, String?>((ref, type) {
+final unitsStreamProvider = StreamProvider.autoDispose.family<List<UnitModel>, String?>((ref, type) {
   final repo = ref.read(unitRepositoryProvider);
   return repo.watchUnits(type: type);
 });

@@ -1,5 +1,3 @@
-import 'package:flutter/material.dart';
-
 mixin AccessibilityHelpers {
   static String shoppingItemLabel({
     required String name,

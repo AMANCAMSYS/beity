@@ -11,6 +11,9 @@ class ConnectionStatusWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+    final theme = Theme.of(context);
+
     if (connectionState.isConnected) {
       return const SizedBox.shrink();
     }
@@ -19,16 +22,15 @@ class ConnectionStatusWidget extends StatelessWidget {
       return Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
-        color: Colors.red[600],
-        child: const Row(
+        color: theme.colorScheme.error,
+        child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.wifi_off, color: Colors.white, size: 16),
-            SizedBox(width: 8),
+            Icon(Icons.wifi_off, color: theme.colorScheme.onError, size: 16),
+            const SizedBox(width: 8),
             Text(
-              'غير متصل',
-              style: TextStyle(color: Colors.white, fontSize: 13),
-              textDirection: TextDirection.rtl,
+              isArabic ? 'غير متصل' : 'Offline',
+              style: TextStyle(color: theme.colorScheme.onError, fontSize: 13),
             ),
           ],
         ),
@@ -39,23 +41,22 @@ class ConnectionStatusWidget extends StatelessWidget {
       return Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
-        color: Colors.blue[600],
+        color: theme.colorScheme.tertiary,
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const SizedBox(
+            SizedBox(
               width: 14,
               height: 14,
               child: CircularProgressIndicator(
                 strokeWidth: 2,
-                color: Colors.white,
+                color: theme.colorScheme.onTertiary,
               ),
             ),
             const SizedBox(width: 8),
-            const Text(
-              'جارٍ المزامنة...',
-              style: TextStyle(color: Colors.white, fontSize: 13),
-              textDirection: TextDirection.rtl,
+            Text(
+              isArabic ? 'جارٍ المزامنة...' : 'Syncing...',
+              style: TextStyle(color: theme.colorScheme.onTertiary, fontSize: 13),
             ),
           ],
         ),

@@ -181,12 +181,13 @@ class _ShoppingItemTileWidgetState extends State<ShoppingItemTileWidget>
   }
 
   Widget? _buildSubtitle(BuildContext context) {
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
     final parts = <String>[];
 
     if (widget.item.quantity != 1 || widget.unitName != null) {
       final qty = widget.item.quantity == widget.item.quantity.roundToDouble()
           ? widget.item.quantity.toInt().toString()
-          : widget.item.quantity.toString();
+          : widget.item.quantity.toStringAsFixed(1);
       parts.add(widget.unitName != null ? '$qty ${widget.unitName}' : qty);
     }
 
@@ -195,7 +196,8 @@ class _ShoppingItemTileWidgetState extends State<ShoppingItemTileWidget>
     }
 
     if (widget.item.isPurchased && widget.item.purchasedAt != null) {
-      parts.add('تم الشراء');
+      final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+      parts.add(isArabic ? 'تم الشراء' : 'Purchased');
     }
 
     if (parts.isEmpty) return null;
@@ -226,23 +228,26 @@ class _ShoppingItemTileWidgetState extends State<ShoppingItemTileWidget>
   }
 
   Future<bool?> _showDeleteConfirmation(BuildContext context) {
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
     return showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('حذف المنتج'),
-        content: Text('هل أنت متأكد من حذف "${widget.item.name}"؟'),
+        title: Text(isArabic ? 'حذف المنتج' : 'Delete Item'),
+        content: Text(isArabic 
+            ? 'هل أنت متأكد من حذف "${widget.item.name}"؟'
+            : 'Are you sure you want to delete "${widget.item.name}"?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('إلغاء'),
+            child: Text(isArabic ? 'إلغاء' : 'Cancel'),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
+              backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Theme.of(context).colorScheme.onError,
             ),
-            child: const Text('حذف'),
+            child: Text(isArabic ? 'حذف' : 'Delete'),
           ),
         ],
       ),

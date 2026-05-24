@@ -14,6 +14,7 @@ class CategoryFilterWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
     return SizedBox(
       height: 40,
       child: ListView(
@@ -22,7 +23,7 @@ class CategoryFilterWidget extends StatelessWidget {
         children: [
           _buildFilterChip(
             context,
-            label: 'الكل',
+            label: isArabic ? 'الكل' : 'All',
             isSelected: selectedCategoryId == null,
             onTap: () => onCategorySelected(null),
           ),
@@ -44,7 +45,7 @@ class CategoryFilterWidget extends StatelessWidget {
     required VoidCallback onTap,
   }) {
     return Padding(
-      padding: const EdgeInsets.only(right: 8),
+      padding: const EdgeInsetsDirectional.only(end: 8),
       child: FilterChip(
         label: Text(label),
         selected: isSelected,

@@ -44,6 +44,13 @@ class NotificationService {
     // Initialize local notifications
     await _initializeLocalNotifications();
 
+    // Configure foreground notification options for iOS
+    await _messaging.setForegroundNotificationPresentationOptions(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+
     // Request permission
     final settings = await _messaging.requestPermission(
       alert: true,
@@ -94,9 +101,9 @@ class NotificationService {
     const androidSettings =
         AndroidInitializationSettings('@mipmap/ic_launcher');
     const iosSettings = DarwinInitializationSettings(
-      requestAlertPermission: false,
-      requestBadgePermission: false,
-      requestSoundPermission: false,
+      requestAlertPermission: true,
+      requestBadgePermission: true,
+      requestSoundPermission: true,
     );
 
     const initSettings = InitializationSettings(
@@ -112,6 +119,26 @@ class NotificationService {
         }
       },
     );
+
+    // Create custom notification channel on Android for heads-up notifications
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      final androidImplementation = _localNotifications
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>();
+      if (androidImplementation != null) {
+        await androidImplementation.createNotificationChannel(
+          const AndroidNotificationChannel(
+            'beity_notifications',
+            'Beity Notifications',
+            description: 'Notifications for shopping list and home activity',
+            importance: Importance.max,
+            playSound: true,
+            enableVibration: true,
+            showBadge: true,
+          ),
+        );
+      }
+    }
   }
 
   static Future<void> _saveTokenToSupabase(String token) async {
@@ -133,7 +160,7 @@ class NotificationService {
   static String _getPlatform() {
     if (defaultTargetPlatform == TargetPlatform.iOS) return 'ios';
     if (defaultTargetPlatform == TargetPlatform.android) return 'android';
-    return 'flutter';
+    return 'web';
   }
 
   static void _handleForegroundMessage(RemoteMessage message) {
@@ -152,14 +179,19 @@ class NotificationService {
 
   static Future<void> _showLocalNotification(RemoteMessage message) async {
     final notification = message.notification;
-    if (notification == null) return;
+    final title = notification?.title ?? message.data['title'] ?? 'Notification';
+    final body = notification?.body ?? message.data['body'] ?? '';
+
+    if (title.isEmpty && body.isEmpty) return;
 
     const androidDetails = AndroidNotificationDetails(
       'beity_notifications',
       'Beity Notifications',
       channelDescription: 'Notifications for shopping list and home activity',
-      importance: Importance.high,
+      importance: Importance.max,
       priority: Priority.high,
+      playSound: true,
+      enableVibration: true,
     );
 
     const iosDetails = DarwinNotificationDetails(
@@ -174,9 +206,9 @@ class NotificationService {
     );
 
     await _localNotifications.show(
-      id: notification.hashCode,
-      title: notification.title ?? 'Notification',
-      body: notification.body ?? '',
+      id: notification.hashCode != 0 ? notification.hashCode : DateTime.now().millisecond,
+      title: title,
+      body: body,
       notificationDetails: details,
       payload: message.data['route'] as String?,
     );

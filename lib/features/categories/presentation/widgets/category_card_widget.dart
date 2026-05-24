@@ -51,19 +51,10 @@ class CategoryCardWidget extends ConsumerWidget {
           textDirection: TextDirection.rtl,
         ),
         trailing: isCustom && showActions
-            ? Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.edit, size: 20),
-                    onPressed: () => _editCategory(context),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.delete,
-                        size: 20, color: Colors.red),
-                    onPressed: () => _deleteCategory(context, ref),
-                  ),
-                ],
+            ? IconButton(
+                icon: const Icon(Icons.delete,
+                    size: 20, color: Colors.red),
+                onPressed: () => _deleteCategory(context, ref),
               )
             : null,
       ),
@@ -91,10 +82,6 @@ class CategoryCardWidget extends ConsumerWidget {
       case CategoryType.expense:
         return 'مصروفات';
     }
-  }
-
-  void _editCategory(BuildContext context) {
-    // Navigate to edit category screen
   }
 
   void _deleteCategory(BuildContext context, WidgetRef ref) {

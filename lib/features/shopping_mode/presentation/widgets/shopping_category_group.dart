@@ -23,6 +23,7 @@ class ShoppingCategoryGroup extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -37,13 +38,17 @@ class ShoppingCategoryGroup extends StatelessWidget {
               children: [
                 Icon(
                   isCollapsed
-                      ? Icons.keyboard_arrow_right
+                      ? (Directionality.of(context) == TextDirection.rtl
+                          ? Icons.keyboard_arrow_left
+                          : Icons.keyboard_arrow_right)
                       : Icons.keyboard_arrow_down,
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  group.categoryName,
+                  group.categoryName == 'Other' 
+                      ? (isArabic ? 'أخرى' : 'Other') 
+                      : group.categoryName,
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: theme.colorScheme.onSurface,
@@ -51,7 +56,9 @@ class ShoppingCategoryGroup extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  '${group.items.where((i) => i.isPurchased).length}/${group.items.length}',
+                  isArabic 
+                      ? '${group.items.where((i) => i.isPurchased).length} من ${group.items.length}' 
+                      : '${group.items.where((i) => i.isPurchased).length} of ${group.items.length}',
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),

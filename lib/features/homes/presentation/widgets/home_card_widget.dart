@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import 'package:beity/app/theme/app_spacing.dart';
+import 'package:beity/app/theme/app_colors.dart';
+import 'package:beity/shared/widgets/design_system/beity_card.dart';
 import '../../domain/entities/home_type.dart';
 import '../../data/models/home_model.dart';
 
@@ -18,97 +21,83 @@ class HomeCardWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final homeType = HomeType.fromValue(home.type);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      elevation: isActive ? 4 : 1,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: isActive
-            ? BorderSide(color: Theme.of(context).primaryColor, width: 2)
-            : BorderSide.none,
-      ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: isActive
-                      ? Theme.of(context).primaryColor
-                      : Colors.grey[200],
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  _getIconForType(homeType),
-                  color: isActive ? Colors.white : Colors.grey[600],
-                  size: 28,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+    return BeityCard(
+      onTap: onTap,
+      margin: const EdgeInsets.only(bottom: AppSpacing.md),
+      hasBorder: isActive,
+      child: Row(
+        children: [
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: isActive
+                  ? AppColors.primary.withValues(alpha: 0.1)
+                  : theme.colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+            ),
+            child: Icon(
+              _getIconForType(homeType),
+              color: isActive ? AppColors.primary : theme.colorScheme.onSurfaceVariant,
+              size: 32,
+            ),
+          ),
+          AppSpacing.gapMD,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            home.name,
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleMedium
-                                ?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
+                    Expanded(
+                      child: Text(
+                        home.name,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (isActive)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.sm,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.success.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                        ),
+                        child: Text(
+                          'نشط',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: AppColors.success,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                        if (isActive)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context)
-                                  .primaryColor
-                                  .withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              'نشط',
-                              style: TextStyle(
-                                color: Theme.of(context).primaryColor,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      homeType.arabicName,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Colors.grey[600],
-                          ),
-                    ),
+                      ),
                   ],
                 ),
-              ),
-              Icon(
-                Icons.arrow_forward_ios,
-                size: 16,
-                color: Colors.grey[400],
-              ),
-            ],
+                AppSpacing.gapXXS,
+                Text(
+                  homeType.arabicName,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
+          Icon(
+            Icons.arrow_forward_ios_rounded,
+            size: 14,
+            color: theme.colorScheme.outline,
+          ),
+        ],
       ),
     );
   }
@@ -116,17 +105,17 @@ class HomeCardWidget extends StatelessWidget {
   IconData _getIconForType(HomeType type) {
     switch (type) {
       case HomeType.family:
-        return Icons.family_restroom;
+        return Icons.family_restroom_rounded;
       case HomeType.couple:
-        return Icons.favorite;
+        return Icons.favorite_rounded;
       case HomeType.sharedHouse:
-        return Icons.people;
+        return Icons.people_rounded;
       case HomeType.studentHousing:
-        return Icons.school;
+        return Icons.school_rounded;
       case HomeType.singleUser:
-        return Icons.person;
+        return Icons.person_rounded;
       case HomeType.office:
-        return Icons.business;
+        return Icons.business_rounded;
     }
   }
 }

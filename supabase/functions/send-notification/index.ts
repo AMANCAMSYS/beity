@@ -1,5 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "jsr:@supabase/supabase-js@2";
+import { createClient, type SupabaseClient } from "jsr:@supabase/supabase-js@2";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -7,6 +7,56 @@ const firebaseProjectId = Deno.env.get("FIREBASE_PROJECT_ID") || "beity-ad796";
 const firebaseServiceAccountJson = Deno.env.get("FIREBASE_SERVICE_ACCOUNT_JSON");
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+async function requireUser(req: Request, supabaseAdmin: SupabaseClient) {
+  const authHeader = req.headers.get("Authorization") ?? "";
+  const token = authHeader.replace(/^Bearer\s+/i, "");
+
+  if (!token) {
+    return {
+      response: new Response(
+        JSON.stringify({ error: "Missing authorization token" }),
+        { status: 401, headers: { "Content-Type": "application/json" } },
+      ),
+    };
+  }
+
+  const { data, error } = await supabaseAdmin.auth.getUser(token);
+  if (error || !data.user) {
+    return {
+      response: new Response(
+        JSON.stringify({ error: "Invalid authorization token" }),
+        { status: 401, headers: { "Content-Type": "application/json" } },
+      ),
+    };
+  }
+
+  return { user: data.user };
+}
+
+async function requireActiveHomeMember(
+  supabaseAdmin: SupabaseClient,
+  homeId: string,
+  userId: string,
+): Promise<Response | null> {
+  const { data, error } = await supabaseAdmin
+    .from("home_members")
+    .select("role")
+    .eq("home_id", homeId)
+    .eq("user_id", userId)
+    .eq("status", "active")
+    .is("deleted_at", null)
+    .maybeSingle();
+
+  if (error || !data) {
+    return new Response(
+      JSON.stringify({ error: "Access denied" }),
+      { status: 403, headers: { "Content-Type": "application/json" } },
+    );
+  }
+
+  return null;
+}
 
 // Notification content templates
 const templates: Record<string, Record<string, { title: string; body: string }>> = {
@@ -25,6 +75,23 @@ const templates: Record<string, Record<string, { title: string; body: string }>>
     invitation_received: { title: "دعوة", body: "تمت دعوتك إلى {home} من قبل {actor}" },
   },
 };
+
+function getPreferenceColumnForEvent(eventType: string): string | null {
+  switch (eventType) {
+    case "item_added":
+      return "item_added";
+    case "item_completed":
+      return "item_completed";
+    case "item_updated":
+      return "item_added";
+    case "member_joined":
+      return null;
+    case "invitation_received":
+      return null;
+    default:
+      return null;
+  }
+}
 
 function getCategoryForEvent(eventType: string): string {
   switch (eventType) {
@@ -155,6 +222,13 @@ async function sendFCMNotification(
 
 Deno.serve(async (req: Request) => {
   try {
+    // Verify JWT
+    const authResult = await requireUser(req, supabase);
+    if ("response" in authResult) {
+      return authResult.response;
+    }
+    const authenticatedUser = authResult.user;
+
     const { event_type, home_id, actor_id, reference_id, reference_type, context } = await req.json();
 
     if (!event_type || !home_id || !actor_id) {
@@ -164,27 +238,62 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const category = getCategoryForEvent(event_type);
-    const targetRoute = getRouteForEvent(event_type, reference_id, reference_type);
-
-    // 1. Get home members (exclude actor)
-    const { data: members, error: membersError } = await supabase
-      .from("home_members")
-      .select("user_id")
-      .eq("home_id", home_id)
-      .eq("status", "active")
-      .isFilter("deleted_at", null)
-      .neq("user_id", actor_id);
-
-    if (membersError) {
-      console.error("Error fetching members:", membersError);
-      return new Response(
-        JSON.stringify({ error: "Failed to fetch home members" }),
-        { status: 500, headers: { "Content-Type": "application/json" } }
-      );
+    // Verify the caller is an active member of this home
+    const membershipError = await requireActiveHomeMember(supabase, home_id, authenticatedUser.id);
+    if (membershipError) {
+      return membershipError;
     }
 
-    if (!members || members.length === 0) {
+    const category = getCategoryForEvent(event_type);
+    const targetRoute = getRouteForEvent(event_type, reference_id, reference_type);
+    const preferenceColumn = getPreferenceColumnForEvent(event_type);
+
+    let members: { user_id: string }[] = [];
+
+    if (event_type === "invitation_received") {
+      // For invitations, we only notify the invited user, NOT the home members.
+      const { data: invitation } = await supabase
+        .from("invitations")
+        .select("email")
+        .eq("id", reference_id)
+        .single();
+      
+      if (invitation?.email) {
+        // Find if this email belongs to a registered user
+        const { data: invitee } = await supabase
+          .from("users")
+          .select("id")
+          .eq("email", invitation.email)
+          .single();
+
+        if (invitee) {
+          members = [{ user_id: invitee.id }];
+        }
+      }
+    } else {
+      // 1. Get home members (exclude actor)
+      const { data: homeMembers, error: membersError } = await supabase
+        .from("home_members")
+        .select("user_id")
+        .eq("home_id", home_id)
+        .eq("status", "active")
+        .is("deleted_at", null)
+        .neq("user_id", actor_id);
+
+      if (membersError) {
+        console.error("Error fetching members:", membersError);
+        return new Response(
+          JSON.stringify({ error: "Failed to fetch home members" }),
+          { status: 500, headers: { "Content-Type": "application/json" } }
+        );
+      }
+      
+      if (homeMembers) {
+        members = homeMembers;
+      }
+    }
+
+    if (members.length === 0) {
       return new Response(
         JSON.stringify({ success: true, notifications_sent: 0, recipients: [] }),
         { status: 200, headers: { "Content-Type": "application/json" } }
@@ -192,13 +301,13 @@ Deno.serve(async (req: Request) => {
     }
 
     // 2. Get actor name
-    const { data: actorProfile } = await supabase
-      .from("profiles")
+    const { data: actorUser } = await supabase
+      .from("users")
       .select("full_name")
       .eq("id", actor_id)
       .single();
 
-    const actorName = actorProfile?.full_name || "Someone";
+    const actorName = actorUser?.full_name || "Someone";
 
     // 3. Get home name
     const { data: home } = await supabase
@@ -216,16 +325,18 @@ Deno.serve(async (req: Request) => {
     for (const member of members) {
       const userId = member.user_id;
 
-      // 4. Check notification preferences
-      const { data: pref } = await supabase
-        .from("notification_preferences")
-        .select("enabled")
-        .eq("user_id", userId)
-        .eq("category", category)
-        .single();
+      // 4. Check notification preferences (column-based schema)
+      if (preferenceColumn) {
+        const { data: pref } = await supabase
+          .from("notification_preferences")
+          .select(preferenceColumn)
+          .eq("user_id", userId)
+          .eq("home_id", home_id)
+          .maybeSingle();
 
-      if (pref && !pref.enabled) {
-        continue; // User has disabled this category
+        if (pref && pref[preferenceColumn] === false) {
+          continue; // User has disabled this notification type
+        }
       }
 
       // 5. Check throttling (2-minute window)
@@ -242,13 +353,13 @@ Deno.serve(async (req: Request) => {
         .maybeSingle();
 
       // 6. Get user locale preference
-      const { data: userProfile } = await supabase
-        .from("profiles")
+      const { data: targetUser } = await supabase
+        .from("users")
         .select("locale")
         .eq("id", userId)
         .single();
 
-      const locale = userProfile?.locale || "en";
+      const locale = targetUser?.locale || "en";
       const template = templates[locale]?.[event_type] || templates.en[event_type] || templates.en.item_added;
 
       const rendered = renderTemplate(template, {

@@ -14,13 +14,13 @@ class InventoryTransactionModel extends InventoryTransaction {
 
   factory InventoryTransactionModel.fromJson(Map<String, dynamic> json) {
     return InventoryTransactionModel(
-      id: json['id'] as String,
-      inventoryItemId: json['inventory_item_id'] as String,
-      homeId: json['home_id'] as String,
-      previousQuantity: (json['previous_quantity'] as num).toDouble(),
-      newQuantity: (json['new_quantity'] as num).toDouble(),
-      changeReason: json['change_reason'] as String,
-      changedBy: json['changed_by'] as String,
+      id: json['id'] as String? ?? '',
+      inventoryItemId: json['inventory_item_id'] as String? ?? '',
+      homeId: json['home_id'] as String? ?? '',
+      previousQuantity: (json['previous_quantity'] as num?)?.toDouble() ?? 0,
+      newQuantity: (json['new_quantity'] as num?)?.toDouble() ?? 0,
+      changeReason: json['change_reason'] as String? ?? '',
+      changedBy: json['changed_by'] as String? ?? '',
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'] as String)
           : null,

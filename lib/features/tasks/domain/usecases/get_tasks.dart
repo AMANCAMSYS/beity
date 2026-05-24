@@ -53,10 +53,15 @@ class GetTasks {
         int comparison;
         switch (params.sortBy) {
           case 'due_date':
-            if (a.dueDate == null && b.dueDate == null) comparison = 0;
-            if (a.dueDate == null) comparison = 1;
-            if (b.dueDate == null) comparison = -1;
-            comparison = a.dueDate!.compareTo(b.dueDate!);
+            if (a.dueDate == null && b.dueDate == null) {
+              comparison = 0;
+            } else if (a.dueDate == null) {
+              comparison = 1;
+            } else if (b.dueDate == null) {
+              comparison = -1;
+            } else {
+              comparison = a.dueDate!.compareTo(b.dueDate!);
+            }
             break;
           case 'created_at':
           default:

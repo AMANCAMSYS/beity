@@ -32,6 +32,11 @@ abstract class TaskRepository {
     String? recurrenceType,
   });
 
+  Future<Task> updateTaskAssignee({
+    required String taskId,
+    required String? assignedTo,
+  });
+
   Future<void> deleteTask({
     required String taskId,
   });

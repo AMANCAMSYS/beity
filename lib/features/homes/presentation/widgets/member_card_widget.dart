@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-
+import 'package:beity/app/theme/app_spacing.dart';
+import 'package:beity/app/theme/app_colors.dart';
+import 'package:beity/shared/widgets/design_system/beity_card.dart';
 import '../../data/models/home_member_model.dart';
 
 class MemberCardWidget extends StatelessWidget {
@@ -10,112 +12,126 @@ class MemberCardWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final isOwner = member.role == 'owner';
     final isAdmin = member.role == 'admin';
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            CircleAvatar(
-              backgroundColor: isOwner
+    return BeityCard(
+      margin: const EdgeInsets.only(bottom: AppSpacing.md),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 24,
+            backgroundColor: isOwner
+                ? Colors.amber.withValues(alpha: 0.1)
+                : isAdmin
+                    ? AppColors.primary.withValues(alpha: 0.1)
+                    : theme.colorScheme.surfaceContainerHighest,
+            child: Icon(
+              isOwner
+                  ? Icons.star_rounded
+                  : isAdmin
+                      ? Icons.admin_panel_settings_rounded
+                      : Icons.person_rounded,
+              color: isOwner
                   ? Colors.amber
                   : isAdmin
-                      ? Colors.blue
-                      : Colors.grey[300],
-              child: Icon(
-                isOwner
-                    ? Icons.star
-                    : isAdmin
-                        ? Icons.admin_panel_settings
-                        : Icons.person,
-                color: isOwner || isAdmin ? Colors.white : Colors.grey[600],
-              ),
+                      ? AppColors.primary
+                      : theme.colorScheme.onSurfaceVariant,
+              size: 28,
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          member.userName ?? 'مستخدم',
-                          style:
-                              Theme.of(context).textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                  ),
+          ),
+          AppSpacing.gapMD,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        member.userName ?? 'مستخدم',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      if (isOwner)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.amber.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.star, size: 14, color: Colors.amber),
-                              SizedBox(width: 4),
-                              Text(
-                                'مالك',
-                                style: TextStyle(
-                                  color: Colors.amber,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      if (isAdmin)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.blue.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Text(
-                            'مشرف',
-                            style: TextStyle(
-                              color: Colors.blue,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                    ],
+                    ),
+                    if (isOwner)
+                      _buildBadge(
+                        context,
+                        'مالك',
+                        Colors.amber,
+                        Icons.star_rounded,
+                      )
+                    else if (isAdmin)
+                      _buildBadge(
+                        context,
+                        'مشرف',
+                        AppColors.primary,
+                        Icons.admin_panel_settings_rounded,
+                      ),
+                  ],
+                ),
+                AppSpacing.gapXXS,
+                Text(
+                  _getRoleName(member.role),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    _getRoleName(member.role),
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.grey[600],
-                        ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'انضم: ${DateFormat('yyyy/MM/dd', 'ar').format(member.joinedAt)}',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.grey[500],
-                        ),
-                  ),
-                ],
-              ),
+                ),
+                AppSpacing.gapXXS,
+                Row(
+                  children: [
+                    Icon(
+                      Icons.calendar_today_rounded,
+                      size: 12,
+                      color: theme.colorScheme.outline,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'انضم: ${DateFormat('yyyy/MM/dd', 'ar').format(member.joinedAt)}',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.outline,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBadge(
+    BuildContext context,
+    String label,
+    Color color,
+    IconData icon,
+  ) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: color),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              color: color,
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
       ),
     );
   }

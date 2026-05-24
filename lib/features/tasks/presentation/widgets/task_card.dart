@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:beity/app/theme/app_spacing.dart';
+import 'package:beity/app/theme/app_colors.dart';
+import 'package:beity/shared/widgets/design_system/beity_card.dart';
 import '../../domain/entities/task.dart';
 
 class TaskCard extends StatelessWidget {
@@ -48,97 +51,148 @@ class TaskCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: ListTile(
-        onTap: onTap,
-        leading: Checkbox(
-          value: task.isCompleted,
-          onChanged: onComplete != null ? (_) => onComplete!() : null,
-        ),
-        title: Text(
-          task.title,
-          style: TextStyle(
-            decoration:
-                task.isCompleted ? TextDecoration.lineThrough : null,
-            color: task.isCompleted ? Colors.grey : null,
-          ),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    final theme = Theme.of(context);
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+
+    return BeityCard(
+      onTap: onTap,
+      padding: EdgeInsets.zero,
+      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (task.description != null && task.description!.isNotEmpty)
-              Text(
-                task.description!,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: Colors.grey.shade600),
+            // Status Indicator Stripe
+            Container(
+              width: 6,
+              decoration: BoxDecoration(
+                color: task.isCompleted
+                    ? AppColors.success.withValues(alpha: 0.5)
+                    : (task.isOverdue ? AppColors.error : AppColors.primary),
+                borderRadius: isArabic
+                    ? const BorderRadius.only(
+                        topRight: Radius.circular(AppSpacing.radiusLg),
+                        bottomRight: Radius.circular(AppSpacing.radiusLg),
+                      )
+                    : const BorderRadius.only(
+                        topLeft: Radius.circular(AppSpacing.radiusLg),
+                        bottomLeft: Radius.circular(AppSpacing.radiusLg),
+                      ),
               ),
-            const SizedBox(height: 4),
-            Wrap(
-              spacing: 8,
-              runSpacing: 4,
-              children: [
-                if (task.assignedTo != null && assigneeName != null)
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.person, size: 14, color: Colors.grey.shade600),
-                      const SizedBox(width: 4),
-                      Text(
-                        assigneeName!,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey.shade600,
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                child: Row(
+                  children: [
+                    // Completion Checkbox
+                    Transform.scale(
+                      scale: 1.1,
+                      child: Checkbox(
+                        value: task.isCompleted,
+                        onChanged: onComplete != null ? (_) => onComplete!() : null,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
                         ),
+                        activeColor: AppColors.success,
                       ),
-                    ],
-                  ),
-                if (task.dueDate != null)
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
+                    ),
+                    AppSpacing.gapSM,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            task.title,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              decoration: task.isCompleted ? TextDecoration.lineThrough : null,
+                              color: task.isCompleted ? theme.colorScheme.outline : null,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          if (task.description != null && task.description!.isNotEmpty) ...[
+                            AppSpacing.gapXXS,
+                            Text(
+                              task.description!,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                          AppSpacing.gapSM,
+                          Wrap(
+                            spacing: AppSpacing.md,
+                            runSpacing: AppSpacing.xxs,
+                            children: [
+                              if (task.assignedTo != null && assigneeName != null)
+                                _buildInfoTag(
+                                  context,
+                                  Icons.person_rounded,
+                                  assigneeName!,
+                                  theme.colorScheme.onSurfaceVariant,
+                                ),
+                              if (task.dueDate != null)
+                                _buildInfoTag(
+                                  context,
+                                  Icons.calendar_today_rounded,
+                                  _getDueDateText(),
+                                  _getDueDateColor(),
+                                  isBold: task.isOverdue || task.isDueToday,
+                                ),
+                              if (task.isRecurring)
+                                _buildInfoTag(
+                                  context,
+                                  Icons.repeat_rounded,
+                                  _getRecurrenceText(),
+                                  theme.colorScheme.primary,
+                                ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (task.isCompleted)
                       Icon(
-                        Icons.calendar_today,
-                        size: 14,
-                        color: _getDueDateColor(),
+                        Icons.check_circle_rounded,
+                        color: AppColors.success.withValues(alpha: 0.7),
+                        size: 24,
                       ),
-                      const SizedBox(width: 4),
-                      Text(
-                        _getDueDateText(),
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: _getDueDateColor(),
-                          fontWeight: task.isOverdue || task.isDueToday
-                              ? FontWeight.bold
-                              : null,
-                        ),
-                      ),
-                    ],
-                  ),
-                if (task.isRecurring)
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.repeat, size: 14, color: Colors.grey.shade600),
-                      const SizedBox(width: 4),
-                      Text(
-                        _getRecurrenceText(),
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                    ],
-                  ),
-              ],
+                  ],
+                ),
+              ),
             ),
           ],
         ),
-        trailing: task.isCompleted
-            ? Icon(Icons.check_circle, color: Colors.green.shade400)
-            : null,
       ),
+    );
+  }
+
+  Widget _buildInfoTag(
+    BuildContext context,
+    IconData icon,
+    String text,
+    Color color, {
+    bool isBold = false,
+  }) {
+    final theme = Theme.of(context);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 14, color: color),
+        const SizedBox(width: 4),
+        Text(
+          text,
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: color,
+            fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
+      ],
     );
   }
 }

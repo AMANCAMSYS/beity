@@ -10,16 +10,25 @@ final categoryRepositoryProvider = Provider<CategoryRepository>((ref) {
 });
 
 final categoriesProvider = FutureProvider.family<List<CategoryModel>, String?>((ref, homeId) async {
+  if (homeId != null && homeId.isEmpty) {
+    throw Exception('لم يتم تحديد المنزل بشكل صحيح');
+  }
   final repo = ref.read(categoryRepositoryProvider);
   return repo.getCategories(homeId: homeId);
 });
 
 final categoriesByTypeProvider = FutureProvider.family<List<CategoryModel>, ({String? homeId, String? type})>((ref, params) async {
+  if (params.homeId != null && params.homeId!.isEmpty) {
+    throw Exception('لم يتم تحديد المنزل بشكل صحيح');
+  }
   final repo = ref.read(categoryRepositoryProvider);
   return repo.getCategories(homeId: params.homeId, type: params.type);
 });
 
-final categoriesStreamProvider = StreamProvider.family<List<CategoryModel>, String?>((ref, homeId) {
+final categoriesStreamProvider = StreamProvider.autoDispose.family<List<CategoryModel>, String?>((ref, homeId) {
+  if (homeId != null && homeId.isEmpty) {
+    return Stream.value([]);
+  }
   final repo = ref.read(categoryRepositoryProvider);
   return repo.watchCategories(homeId: homeId);
 });
