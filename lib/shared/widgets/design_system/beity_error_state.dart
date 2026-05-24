@@ -28,7 +28,7 @@ class BeityErrorState extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 64, color: AppColors.error.withOpacity(0.5)),
+            Icon(icon, size: 64, color: AppColors.error.withValues(alpha: 0.5)),
             const SizedBox(height: AppSpacing.md),
             Text(
               title,
