@@ -94,7 +94,7 @@ class _QuickAddScreenState extends ConsumerState<QuickAddScreen> {
           icon: Icons.error_outline_rounded,
           isError: true,
           actionText: isArabic ? 'إعادة المحاولة' : 'Retry',
-          onActionPressed: () => ref.invalidate(itemTemplatesProvider(widget.homeId)),
+          onAction: () => ref.invalidate(itemTemplatesProvider(widget.homeId)),
         ),
       ),
     );

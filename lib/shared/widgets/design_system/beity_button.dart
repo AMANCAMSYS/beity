@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_spacing.dart';
 
-enum BeityButtonType { primary, secondary, outline, text }
+enum BeityButtonType { primary, secondary, outline, text, destructive }
 
 class BeityButton extends StatelessWidget {
   final String text;
@@ -12,6 +12,7 @@ class BeityButton extends StatelessWidget {
   final IconData? icon;
   final double? width;
   final EdgeInsetsGeometry? padding;
+  final bool fullWidth;
 
   const BeityButton({
     super.key,
@@ -22,6 +23,7 @@ class BeityButton extends StatelessWidget {
     this.icon,
     this.width,
     this.padding,
+    this.fullWidth = false,
   });
 
   @override
@@ -51,9 +53,12 @@ class BeityButton extends StatelessWidget {
         backgroundColor = Colors.transparent;
         foregroundColor = isDark ? AppColors.primaryLight : AppColors.primary;
         break;
+      case BeityButtonType.destructive:
+        backgroundColor = AppColors.error;
+        foregroundColor = Colors.white;
+        break;
     }
 
-    // Disable colors if onPressed is null and not loading
     if (onPressed == null && !isLoading) {
       backgroundColor = isDark ? Colors.grey[800]! : Colors.grey[300]!;
       foregroundColor = isDark ? Colors.grey[600]! : Colors.grey[500]!;
@@ -109,7 +114,8 @@ class BeityButton extends StatelessWidget {
           side: border ?? BorderSide.none,
         ),
       ),
-      elevation: WidgetStateProperty.all(type == BeityButtonType.primary && onPressed != null ? 2 : 0),
+      elevation: WidgetStateProperty.all(0),
+      minimumSize: WidgetStateProperty.all(const Size(0, 48)),
     );
 
     Widget button;
@@ -133,8 +139,11 @@ class BeityButton extends StatelessWidget {
       );
     }
 
-    if (width != null) {
-      return SizedBox(width: width, child: button);
+    if (fullWidth || width != null) {
+      return SizedBox(
+        width: fullWidth ? double.infinity : width,
+        child: button,
+      );
     }
     return button;
   }

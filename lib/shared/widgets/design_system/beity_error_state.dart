@@ -1,22 +1,21 @@
 import 'package:flutter/material.dart';
+import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_spacing.dart';
 
-class BeityEmptyState extends StatelessWidget {
+class BeityErrorState extends StatelessWidget {
   final String title;
   final String? message;
+  final VoidCallback? onRetry;
+  final String retryText;
   final IconData icon;
-  final bool isError;
-  final String? actionText;
-  final VoidCallback? onAction;
 
-  const BeityEmptyState({
+  const BeityErrorState({
     super.key,
-    required this.title,
+    this.title = 'حدث خطأ',
     this.message,
-    required this.icon,
-    this.isError = false,
-    this.actionText,
-    this.onAction,
+    this.onRetry,
+    this.retryText = 'إعادة المحاولة',
+    this.icon = Icons.error_outline_rounded,
   });
 
   @override
@@ -29,20 +28,11 @@ class BeityEmptyState extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              icon,
-              size: 72,
-              color: isError
-                  ? theme.colorScheme.error.withOpacity(0.4)
-                  : theme.colorScheme.onSurfaceVariant.withOpacity(0.3),
-            ),
-            const SizedBox(height: AppSpacing.lg),
+            Icon(icon, size: 64, color: AppColors.error.withOpacity(0.5)),
+            const SizedBox(height: AppSpacing.md),
             Text(
               title,
-              style: theme.textTheme.headlineSmall?.copyWith(
-                color: isError ? theme.colorScheme.error : theme.colorScheme.onSurfaceVariant,
-                fontWeight: FontWeight.w600,
-              ),
+              style: theme.textTheme.titleLarge?.copyWith(color: AppColors.error),
               textAlign: TextAlign.center,
             ),
             if (message != null) ...[
@@ -50,17 +40,17 @@ class BeityEmptyState extends StatelessWidget {
               Text(
                 message!,
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant.withOpacity(0.7),
+                  color: theme.colorScheme.onSurfaceVariant,
                 ),
                 textAlign: TextAlign.center,
               ),
             ],
-            if (actionText != null && onAction != null) ...[
+            if (onRetry != null) ...[
               const SizedBox(height: AppSpacing.lg),
               ElevatedButton.icon(
-                onPressed: onAction,
+                onPressed: onRetry,
                 icon: const Icon(Icons.refresh_rounded),
-                label: Text(actionText!),
+                label: Text(retryText),
               ),
             ],
           ],

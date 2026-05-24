@@ -118,7 +118,7 @@ class _EditItemScreenState extends ConsumerState<EditItemScreen> {
             icon: Icons.error_outline_rounded,
             isError: true,
             actionText: isArabic ? 'إعادة المحاولة' : 'Try Again',
-            onActionPressed: () => ref.invalidate(shoppingListByIdProvider(widget.listId)),
+            onAction: () => ref.invalidate(shoppingListByIdProvider(widget.listId)),
           ),
         );
       },

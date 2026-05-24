@@ -101,7 +101,7 @@ class _ExpenseSummaryScreenState extends ConsumerState<ExpenseSummaryScreen> {
               icon: Icons.error_outline_rounded,
               isError: true,
               actionText: isArabic ? 'إعادة المحاولة' : 'Try Again',
-              onActionPressed: () => setState(() {}),
+              onAction: () => setState(() {}),
             );
           }
 

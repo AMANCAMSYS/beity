@@ -102,7 +102,7 @@ class _HomesListScreenState extends ConsumerState<HomesListScreen> {
           icon: Icons.error_outline_rounded,
           isError: true,
           actionText: 'إعادة المحاولة',
-          onActionPressed: () => ref.read(homesNotifierProvider.notifier).loadHomes(),
+          onAction: () => ref.read(homesNotifierProvider.notifier).loadHomes(),
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
@@ -121,7 +121,7 @@ class _HomesListScreenState extends ConsumerState<HomesListScreen> {
       message: 'أنشئ منزلك الأول لتبدأ في إدارة احتياجاتك المنزلية مع عائلتك بكل سهولة.',
       icon: Icons.home_outlined,
       actionText: 'إنشاء منزلي الأول',
-      onActionPressed: () => context.push('/homes/create'),
+      onAction: () => context.push('/homes/create'),
     );
   }
 }

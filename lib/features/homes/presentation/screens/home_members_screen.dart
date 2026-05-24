@@ -142,7 +142,7 @@ class HomeMembersScreen extends ConsumerWidget {
           icon: Icons.error_outline_rounded,
           isError: true,
           actionText: 'إعادة المحاولة',
-          onActionPressed: () => ref.invalidate(homeMembersProvider(homeId)),
+          onAction: () => ref.invalidate(homeMembersProvider(homeId)),
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
@@ -166,7 +166,7 @@ class HomeMembersScreen extends ConsumerWidget {
       message: 'ابدأ بدعوة أفراد عائلتك لمشاركتك في إدارة المنزل والتسوق.',
       icon: Icons.group_add_outlined,
       actionText: 'إرسال أول دعوة',
-      onActionPressed: () {
+      onAction: () {
         final homes = homeAsync.valueOrNull ?? [];
         final home = homes.where((h) => h.id == homeId).firstOrNull;
         final homeName = home?.name ?? 'المنزل';

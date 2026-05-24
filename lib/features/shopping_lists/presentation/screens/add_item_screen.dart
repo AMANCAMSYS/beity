@@ -6,6 +6,8 @@ import 'package:beity/shared/widgets/design_system/beity_button.dart';
 import 'package:beity/shared/widgets/design_system/beity_text_field.dart';
 import 'package:beity/shared/widgets/design_system/beity_card.dart';
 import 'package:beity/shared/widgets/design_system/beity_empty_state.dart';
+import 'package:beity/shared/widgets/design_system/beity_snack_bar.dart';
+import 'package:beity/shared/widgets/design_system/beity_dialog.dart';
 import '../../../../core/utils/action_debouncer.dart';
 import '../providers/shopping_items_provider.dart';
 import '../providers/shopping_lists_provider.dart';
@@ -123,7 +125,7 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
             icon: Icons.error_outline_rounded,
             isError: true,
             actionText: isArabic ? 'إعادة المحاولة' : 'Try Again',
-            onActionPressed: () => ref.invalidate(shoppingListByIdProvider(widget.listId)),
+            onAction: () => ref.invalidate(shoppingListByIdProvider(widget.listId)),
           ),
         );
       },
@@ -363,12 +365,7 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
     } catch (e) {
       if (mounted) {
         final isArabic = Localizations.localeOf(context).languageCode == 'ar';
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${isArabic ? 'خطأ' : 'Error'}: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        BeitySnackBar.error(context, '${isArabic ? 'خطأ' : 'Error'}: $e');
       }
     } finally {
       if (mounted) {
@@ -378,40 +375,15 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
   }
 
   Future<bool?> _showDuplicateWarning(String itemName, bool isArabic) {
-    return showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(isArabic ? 'منتج مكرر' : 'Duplicate Item', textAlign: TextAlign.center),
-        titleTextStyle: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusLg)),
-        content: Text(
-          isArabic 
-              ? '"$itemName" موجود بالفعل في القائمة. هل تريد إضافته مرة أخرى؟'
-              : '"$itemName" is already in the list. Do you want to add it again?',
-          textAlign: TextAlign.center,
-        ),
-        actions: [
-          Row(
-            children: [
-                Expanded(
-                child: BeityButton(
-                  onPressed: () => Navigator.pop(context, false),
-                  text: isArabic ? 'إلغاء' : 'Cancel',
-                  type: BeityButtonType.secondary,
-                ),
-              ),
-              AppSpacing.gapMD,
-              Expanded(
-                child: BeityButton(
-                  onPressed: () => Navigator.pop(context, true),
-                  text: isArabic ? 'إضافة' : 'Add',
-                  type: BeityButtonType.primary,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+    return BeityDialog.show(
+      context,
+      title: isArabic ? 'منتج مكرر' : 'Duplicate Item',
+      message: isArabic
+          ? '"$itemName" موجود بالفعل في القائمة. هل تريد إضافته مرة أخرى؟'
+          : '"$itemName" is already in the list. Do you want to add it again?',
+      confirmText: isArabic ? 'إضافة' : 'Add',
+      cancelText: isArabic ? 'إلغاء' : 'Cancel',
+      icon: Icons.warning_amber_rounded,
     );
   }
 }

@@ -55,7 +55,7 @@ class BalancesScreen extends ConsumerWidget {
           icon: Icons.error_outline_rounded,
           isError: true,
           actionText: isArabic ? 'إعادة المحاولة' : 'Try Again',
-          onActionPressed: () => ref.invalidate(balancesProvider(homeId)),
+          onAction: () => ref.invalidate(balancesProvider(homeId)),
         ),
       ),
     );

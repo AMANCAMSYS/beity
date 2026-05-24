@@ -59,7 +59,7 @@ class InventoryScreen extends ConsumerWidget {
           icon: Icons.error_outline_rounded,
           isError: true,
           actionText: isArabic ? 'إعادة المحاولة' : 'Try Again',
-          onActionPressed: () => ref.invalidate(inventoryItemsProvider(homeId)),
+          onAction: () => ref.invalidate(inventoryItemsProvider(homeId)),
         ),
         data: (items) {
           if (items.isEmpty) {
@@ -70,7 +70,7 @@ class InventoryScreen extends ConsumerWidget {
                   : 'Add products you have at home to track them easily and know when they run out',
               icon: Icons.inventory_2_rounded,
               actionText: isArabic ? 'إضافة أول منتج' : 'Add First Product',
-              onActionPressed: () => context.push('/inventory/add', extra: homeId),
+              onAction: () => context.push('/inventory/add', extra: homeId),
             );
           }
           return _buildInventoryList(

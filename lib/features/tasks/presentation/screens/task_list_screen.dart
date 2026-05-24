@@ -195,7 +195,7 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
                     message: isArabic ? 'اضغط على الزر لإضافة مهمة جديدة' : 'Tap the button to add a new task',
                     icon: Icons.task_alt_rounded,
                     actionText: isArabic ? 'إضافة مهمة' : 'Add Task',
-                    onActionPressed: () => ActionDebouncer.execute(() => context.push('/home/${widget.homeId}/tasks/add')),
+                    onAction: () => ActionDebouncer.execute(() => context.push('/home/${widget.homeId}/tasks/add')),
                   );
                 }
 
@@ -299,7 +299,7 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
                 icon: Icons.error_outline_rounded,
                 isError: true,
                 actionText: isArabic ? 'إعادة المحاولة' : 'Try Again',
-                onActionPressed: () => ref.invalidate(tasksProvider),
+                onAction: () => ref.invalidate(tasksProvider),
               ),
             ),
           ),

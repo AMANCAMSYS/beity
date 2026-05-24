@@ -72,7 +72,7 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen> {
                   : 'Sorry, we couldn\'t find the details for this expense at the moment',
               icon: Icons.receipt_long_rounded,
               actionText: isArabic ? 'العودة' : 'Go Back',
-              onActionPressed: () => context.pop(),
+              onAction: () => context.pop(),
             );
           }
 
@@ -92,7 +92,7 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen> {
           icon: Icons.error_outline_rounded,
           isError: true,
           actionText: isArabic ? 'إعادة المحاولة' : 'Retry',
-          onActionPressed: () => ref.invalidate(expenseByIdProvider(widget.expenseId)),
+          onAction: () => ref.invalidate(expenseByIdProvider(widget.expenseId)),
         ),
       ),
     );

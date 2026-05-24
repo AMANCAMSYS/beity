@@ -107,7 +107,7 @@ class _ShoppingListsScreenState extends ConsumerState<ShoppingListsScreen>
           icon: Icons.error_outline_rounded,
           isError: true,
           actionText: isArabic ? 'إعادة المحاولة' : 'Try Again',
-          onActionPressed: () => ref.invalidate(shoppingListsProvider(homeId)),
+          onAction: () => ref.invalidate(shoppingListsProvider(homeId)),
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
@@ -137,7 +137,7 @@ class _ShoppingListsScreenState extends ConsumerState<ShoppingListsScreen>
                 : 'Start by creating your first list to organize your purchases easily.'),
         icon: isArchived ? Icons.archive_outlined : Icons.shopping_bag_outlined,
         actionText: !isArchived ? (isArabic ? 'إنشاء أول قائمة' : 'Create First List') : null,
-        onActionPressed: !isArchived 
+        onAction: !isArchived 
             ? () => ActionDebouncer.execute(() => context.push('/shopping-lists/create', extra: homeId))
             : null,
       );

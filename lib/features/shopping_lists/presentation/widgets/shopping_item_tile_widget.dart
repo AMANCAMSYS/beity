@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../../../app/theme/app_colors.dart';
+import '../../../../app/theme/app_spacing.dart';
+import '../../../../shared/widgets/design_system/beity_dialog.dart';
 import '../../domain/entities/shopping_item.dart';
 import '../../../offline_queue/presentation/widgets/pending_sync_indicator.dart';
 import '../../../../core/accessibility/semantics_helpers.dart';
@@ -79,6 +82,7 @@ class _ShoppingItemTileWidgetState extends State<ShoppingItemTileWidget>
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final tile = Dismissible(
       key: Key(widget.item.id),
       background: Container(
@@ -135,17 +139,17 @@ class _ShoppingItemTileWidgetState extends State<ShoppingItemTileWidget>
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: widget.item.isPurchased ? Colors.green : Colors.grey,
+                      color: widget.item.isPurchased
+                          ? AppColors.success
+                          : AppColors.textHintFor(theme.brightness),
                       width: 2,
                     ),
-                    color: widget.item.isPurchased ? Colors.green : Colors.transparent,
+                    color: widget.item.isPurchased
+                        ? AppColors.success
+                        : Colors.transparent,
                   ),
                   child: widget.item.isPurchased
-                      ? const Icon(
-                          Icons.check,
-                          size: 18,
-                          color: Colors.white,
-                        )
+                      ? const Icon(Icons.check, size: 18, color: Colors.white)
                       : null,
                 ),
               ),
@@ -155,7 +159,9 @@ class _ShoppingItemTileWidgetState extends State<ShoppingItemTileWidget>
           widget.item.name,
           style: TextStyle(
             decoration: widget.item.isPurchased ? TextDecoration.lineThrough : null,
-            color: widget.item.isPurchased ? Colors.grey : null,
+            color: widget.item.isPurchased
+                ? AppColors.textSecondaryFor(theme.brightness)
+                : null,
           ),
         ),
         subtitle: _buildSubtitle(context),
@@ -181,6 +187,7 @@ class _ShoppingItemTileWidgetState extends State<ShoppingItemTileWidget>
   }
 
   Widget? _buildSubtitle(BuildContext context) {
+    final theme = Theme.of(context);
     final isArabic = Localizations.localeOf(context).languageCode == 'ar';
     final parts = <String>[];
 
@@ -204,9 +211,9 @@ class _ShoppingItemTileWidgetState extends State<ShoppingItemTileWidget>
 
     return Text(
       parts.join(' • '),
-      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Colors.grey[600],
-          ),
+      style: theme.textTheme.bodySmall?.copyWith(
+        color: AppColors.textSecondaryFor(theme.brightness),
+      ),
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
     );
@@ -229,28 +236,16 @@ class _ShoppingItemTileWidgetState extends State<ShoppingItemTileWidget>
 
   Future<bool?> _showDeleteConfirmation(BuildContext context) {
     final isArabic = Localizations.localeOf(context).languageCode == 'ar';
-    return showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(isArabic ? 'حذف المنتج' : 'Delete Item'),
-        content: Text(isArabic 
-            ? 'هل أنت متأكد من حذف "${widget.item.name}"؟'
-            : 'Are you sure you want to delete "${widget.item.name}"?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(isArabic ? 'إلغاء' : 'Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.error,
-              foregroundColor: Theme.of(context).colorScheme.onError,
-            ),
-            child: Text(isArabic ? 'حذف' : 'Delete'),
-          ),
-        ],
-      ),
+    return BeityDialog.show(
+      context,
+      title: isArabic ? 'حذف المنتج' : 'Delete Item',
+      message: isArabic
+          ? 'هل أنت متأكد من حذف "${widget.item.name}"؟'
+          : 'Are you sure you want to delete "${widget.item.name}"?',
+      confirmText: isArabic ? 'حذف' : 'Delete',
+      cancelText: isArabic ? 'إلغاء' : 'Cancel',
+      isDestructive: true,
+      icon: Icons.delete_outline_rounded,
     );
   }
 }

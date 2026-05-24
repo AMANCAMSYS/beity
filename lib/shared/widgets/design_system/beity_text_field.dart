@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import '../../../../app/theme/app_colors.dart';
-import '../../../../app/theme/app_spacing.dart';
+import '../../../app/theme/app_spacing.dart';
 
 class BeityTextField extends StatelessWidget {
   final TextEditingController? controller;
   final String? labelText;
   final String? hintText;
+  final String? helperText;
+  final String? errorText;
   final IconData? prefixIcon;
   final Widget? suffixIcon;
   final bool obscureText;
@@ -15,16 +16,21 @@ class BeityTextField extends StatelessWidget {
   final void Function(String)? onSubmitted;
   final FocusNode? focusNode;
   final int maxLines;
+  final int? maxLength;
   final TextDirection? textDirection;
   final bool autofocus;
   final bool readOnly;
   final VoidCallback? onTap;
+  final bool enabled;
+  final TextInputAction? textInputAction;
 
   const BeityTextField({
     super.key,
     this.controller,
     this.labelText,
     this.hintText,
+    this.helperText,
+    this.errorText,
     this.prefixIcon,
     this.suffixIcon,
     this.obscureText = false,
@@ -34,10 +40,13 @@ class BeityTextField extends StatelessWidget {
     this.onSubmitted,
     this.focusNode,
     this.maxLines = 1,
+    this.maxLength,
     this.textDirection,
     this.autofocus = false,
     this.readOnly = false,
     this.onTap,
+    this.enabled = true,
+    this.textInputAction,
   });
 
   @override
@@ -54,25 +63,27 @@ class BeityTextField extends StatelessWidget {
         obscureText: obscureText,
         keyboardType: keyboardType,
         maxLines: maxLines,
-        textDirection: textDirection ?? TextDirection.rtl, // Default to RTL for Arabic
+        maxLength: maxLength,
+        textDirection: textDirection ?? TextDirection.rtl,
         autofocus: autofocus,
         readOnly: readOnly,
         onTap: onTap,
         onChanged: onChanged,
         onFieldSubmitted: onSubmitted,
         validator: validator,
+        enabled: enabled,
+        textInputAction: textInputAction,
         style: theme.textTheme.bodyLarge,
         decoration: InputDecoration(
           labelText: labelText,
           hintText: hintText,
+          helperText: helperText,
+          errorText: errorText,
           prefixIcon: prefixIcon != null
-              ? Icon(
-                  prefixIcon,
-                  color: isDark ? AppColors.textHintDark : AppColors.textHintLight,
-                )
+              ? Icon(prefixIcon, color: isDark ? null : theme.colorScheme.onSurfaceVariant)
               : null,
           suffixIcon: suffixIcon,
-          // Decoration relies on AppTheme's inputDecorationTheme
+          counterText: maxLength != null ? null : '',
         ),
       ),
     );

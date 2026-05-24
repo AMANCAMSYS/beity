@@ -10,6 +10,7 @@ import 'package:beity/shared/widgets/design_system/beity_button.dart';
 import 'package:beity/shared/widgets/design_system/beity_text_field.dart';
 import 'package:beity/shared/widgets/design_system/beity_card.dart';
 import 'package:beity/shared/widgets/design_system/beity_empty_state.dart';
+import 'package:beity/shared/widgets/design_system/beity_snack_bar.dart';
 import '../providers/shopping_items_provider.dart';
 import '../providers/shopping_lists_provider.dart';
 import '../providers/realtime_providers.dart';
@@ -274,7 +275,7 @@ class _ShoppingListDetailScreenState
                     icon: Icons.error_outline_rounded,
                     isError: true,
                     actionText: isArabic ? 'العودة للقوائم' : 'Back to Lists',
-                    onActionPressed: () => ActionDebouncer.execute(() async => context.go('/shopping-lists')),
+                    onAction: () => ActionDebouncer.execute(() async => context.go('/shopping-lists')),
                   );
                 }
                 
@@ -286,7 +287,7 @@ class _ShoppingListDetailScreenState
                     message: isArabic ? 'ابدأ بإضافة المنتجات التي تحتاج لشرائها' : 'Start by adding items you need to buy',
                     icon: Icons.shopping_basket_rounded,
                     actionText: isArabic ? 'إضافة أول منتج' : 'Add First Item',
-                    onActionPressed: () => ActionDebouncer.execute(() => context.push('/shopping-list/${widget.listId}/add-item')),
+                    onAction: () => ActionDebouncer.execute(() => context.push('/shopping-list/${widget.listId}/add-item')),
                   );
                 }
 
@@ -311,7 +312,7 @@ class _ShoppingListDetailScreenState
                     message: isArabic ? 'جرب البحث عن شيء آخر أو امسح الفلاتر' : 'Try searching for something else or clear filters',
                     icon: Icons.search_off_rounded,
                     actionText: isArabic ? 'مسح الفلاتر' : 'Clear Filters',
-                    onActionPressed: () {
+                    onAction: () {
                       setState(() {
                         _searchQuery = '';
                         _filterCategoryId = null;
@@ -468,7 +469,7 @@ class _ShoppingListDetailScreenState
                   icon: Icons.error_outline_rounded,
                   isError: true,
                   actionText: isArabic ? 'إعادة المحاولة' : 'Try Again',
-                  onActionPressed: () => ref.invalidate(shoppingItemsProvider(widget.listId)),
+                  onAction: () => ref.invalidate(shoppingItemsProvider(widget.listId)),
                 ),
               );
             },
@@ -479,7 +480,7 @@ class _ShoppingListDetailScreenState
               icon: Icons.error_outline_rounded,
               isError: true,
               actionText: isArabic ? 'إعادة المحاولة' : 'Try Again',
-              onActionPressed: () => ref.invalidate(shoppingListByIdProvider(widget.listId)),
+              onAction: () => ref.invalidate(shoppingListByIdProvider(widget.listId)),
             ),
           ),
         ),
@@ -677,12 +678,9 @@ class _ShoppingListDetailScreenState
     ref.invalidate(pendingCountProvider(homeId));
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          behavior: SnackBarBehavior.floating,
-          content: Text(isArabic ? 'جاري إعادة محاولة ${failedEntries.length} عنصر' : 'Retrying ${failedEntries.length} items'),
-          backgroundColor: Colors.blue,
-        ),
+      BeitySnackBar.info(
+        context,
+        isArabic ? 'جاري إعادة محاولة ${failedEntries.length} عنصر' : 'Retrying ${failedEntries.length} items',
       );
     }
   }

@@ -113,7 +113,7 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
               actionText: expenses.isEmpty
                   ? (isArabic ? 'إضافة أول مصروف' : 'Add First Expense')
                   : (isArabic ? 'مسح التصفية' : 'Clear Filters'),
-              onActionPressed: expenses.isEmpty
+              onAction: expenses.isEmpty
                   ? () => ActionDebouncer.execute(() => context.push('/expenses/add', extra: widget.homeId))
                   : () => setState(() {
                         _startDate = null;
@@ -146,7 +146,7 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
           icon: Icons.error_outline_rounded,
           isError: true,
           actionText: isArabic ? 'إعادة المحاولة' : 'Try Again',
-          onActionPressed: () => ref.invalidate(expensesProvider(widget.homeId)),
+          onAction: () => ref.invalidate(expensesProvider(widget.homeId)),
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(

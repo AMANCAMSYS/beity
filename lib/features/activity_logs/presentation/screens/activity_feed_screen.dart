@@ -193,7 +193,7 @@ class _ActivityFeedScreenState extends ConsumerState<ActivityFeedScreen> {
       icon: Icons.error_outline_rounded,
       isError: true,
       actionText: isArabic ? 'إعادة المحاولة' : 'Try Again',
-      onActionPressed: () => ref.invalidate(homeActivityProvider(widget.homeId)),
+      onAction: () => ref.invalidate(homeActivityProvider(widget.homeId)),
     );
   }
 

@@ -1,5 +1,6 @@
 import 'package:beity/app/theme/app_spacing.dart';
 import 'package:beity/shared/widgets/design_system/beity_empty_state.dart';
+import 'package:beity/shared/widgets/design_system/beity_filter_chips.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -14,6 +15,7 @@ import '../../../categories/presentation/providers/units_provider.dart';
 import '../../../categories/presentation/providers/categories_provider.dart';
 import '../../../inventory/presentation/providers/inventory_provider.dart';
 import '../widgets/shopping_category_group.dart';
+import '../widgets/shopping_progress_bar.dart';
 import '../widgets/shopping_quick_add_overlay.dart';
 import '../../../beta/data/beta_config.dart';
 import '../../../beta/presentation/satisfaction_survey_dialog.dart';
@@ -136,6 +138,11 @@ class _ShoppingModeScreenState extends ConsumerState<ShoppingModeScreen> {
       ),
       body: Column(
         children: [
+          // Progress bar (sticky)
+          ShoppingProgressBar(
+            purchasedCount: ref.watch(shoppingModePurchasedCountProvider(widget.listId)),
+            totalCount: ref.watch(shoppingModeTotalCountProvider(widget.listId)),
+          ),
           // Search bar
           if (_isSearchVisible)
             Padding(
@@ -169,34 +176,25 @@ class _ShoppingModeScreenState extends ConsumerState<ShoppingModeScreen> {
             ),
           // Category filter chips
           categoriesAsync.when(
-            data: (categories) => SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Row(
-                children: [
-                  FilterChip(
-                    label: Text(isArabic ? 'الكل' : 'All'),
-                    selected: _filterCategoryId == null,
-                    onSelected: (selected) {
-                      if (selected) setState(() => _filterCategoryId = null);
-                    },
-                  ),
-                  const SizedBox(width: 8),
-                  ...categories.map((cat) => Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: FilterChip(
-                      label: Text(cat.name == 'Other' ? (isArabic ? 'أخرى' : 'Other') : cat.name),
-                      selected: _filterCategoryId == cat.id,
-                      onSelected: (selected) {
-                        setState(() {
-                          _filterCategoryId = selected ? cat.id : null;
-                        });
-                      },
-                    ),
-                  )),
-                ],
-              ),
-            ),
+            data: (categories) {
+              final labels = [
+                isArabic ? 'الكل' : 'All',
+                ...categories.map((c) => c.name == 'Other' ? (isArabic ? 'أخرى' : 'Other') : c.name),
+              ];
+              final selectedIndex = _filterCategoryId == null
+                  ? 0
+                  : categories.indexWhere((c) => c.id == _filterCategoryId) + 1;
+              return BeityFilterChips(
+                labels: labels,
+                selectedIndex: selectedIndex,
+                onSelected: (index) {
+                  setState(() {
+                    _filterCategoryId = index == 0 ? null : categories[index - 1].id;
+                  });
+                },
+                compact: true,
+              );
+            },
             loading: () => const SizedBox.shrink(),
             error: (_, __) => const SizedBox.shrink(),
           ),
@@ -251,7 +249,7 @@ class _ShoppingModeScreenState extends ConsumerState<ShoppingModeScreen> {
                     actionText: _searchQuery.isNotEmpty || _filterCategoryId != null
                         ? (isArabic ? 'مسح الفلاتر' : 'Clear Filters')
                         : null,
-                    onActionPressed: _searchQuery.isNotEmpty || _filterCategoryId != null
+                    onAction: _searchQuery.isNotEmpty || _filterCategoryId != null
                         ? () {
                             setState(() {
                               _searchQuery = '';
@@ -290,7 +288,7 @@ class _ShoppingModeScreenState extends ConsumerState<ShoppingModeScreen> {
                 icon: Icons.error_outline_rounded,
                 isError: true,
                 actionText: isArabic ? 'إعادة المحاولة' : 'Retry',
-                onActionPressed: () => ref.invalidate(shoppingItemsProvider(widget.listId)),
+                onAction: () => ref.invalidate(shoppingItemsProvider(widget.listId)),
               ),
             ),
           ),
@@ -315,11 +313,14 @@ class _ShoppingModeScreenState extends ConsumerState<ShoppingModeScreen> {
         }),
         child: const Icon(Icons.add),
       ),
-      bottomNavigationBar: Container(
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        child: FilledButton(
-          onPressed: () => ActionDebouncer.execute(() async => _showExitConfirmation(context, isArabic)),
-          child: Text(isArabic ? 'إنهاء التسوق' : 'Done Shopping'),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: FilledButton(
+            onPressed: () => ActionDebouncer.execute(() async => _showExitConfirmation(context, isArabic)),
+            style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+            child: Text(isArabic ? 'إنهاء التسوق' : 'Done Shopping'),
+          ),
         ),
       ),
     );

@@ -27,7 +27,7 @@ class HomeCardWidget extends StatelessWidget {
     return BeityCard(
       onTap: onTap,
       margin: const EdgeInsets.only(bottom: AppSpacing.md),
-      hasBorder: isActive,
+      variant: isActive ? BeityCardVariant.outlined : BeityCardVariant.elevated,
       child: Row(
         children: [
           Container(

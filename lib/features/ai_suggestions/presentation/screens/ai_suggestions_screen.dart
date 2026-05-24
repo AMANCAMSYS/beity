@@ -173,7 +173,7 @@ class _AiSuggestionsScreenState extends ConsumerState<AiSuggestionsScreen> {
         icon: Icons.error_outline_rounded,
         isError: true,
         actionText: isArabic ? 'إعادة المحاولة' : 'Retry',
-        onActionPressed: () {
+        onAction: () {
           // The prompt input handles its own retry via notifier calls
         },
       );

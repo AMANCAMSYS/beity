@@ -23,9 +23,11 @@ import '../widgets/recent_activity_widget.dart';
 import '../widgets/home_selector_dropdown.dart';
 import '../widgets/app_drawer.dart';
 import 'package:beity/app/theme/app_spacing.dart';
+import 'package:beity/app/theme/app_colors.dart';
 import 'package:beity/shared/widgets/design_system/beity_card.dart';
 import 'package:beity/shared/widgets/design_system/beity_button.dart';
 import 'package:beity/shared/widgets/design_system/beity_empty_state.dart';
+import 'package:beity/shared/widgets/design_system/beity_snack_bar.dart';
 import 'package:beity/features/ai_suggestions/presentation/widgets/ai_list_selector_sheet.dart';
 import '../../../../core/config/feature_flags.dart';
 
@@ -247,7 +249,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               icon: Icons.error_outline_rounded,
               isError: true,
               actionText: 'إعادة المحاولة',
-              onActionPressed: () {
+              onAction: () {
                 ref.invalidate(userHomesProvider);
                 ref.invalidate(hasHomesProvider);
               },
@@ -263,7 +265,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           icon: Icons.error_outline_rounded,
           isError: true,
           actionText: 'إعادة المحاولة',
-          onActionPressed: () => ref.invalidate(hasHomesProvider),
+          onAction: () => ref.invalidate(hasHomesProvider),
         ),
       ),
     );
@@ -304,7 +306,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   icon: Icons.error_outline_rounded,
                   isError: true,
                   actionText: 'إعادة المحاولة',
-                  onActionPressed: () => ref.invalidate(shoppingListsProvider(homeId)),
+                  onAction: () => ref.invalidate(shoppingListsProvider(homeId)),
                 ),
               ),
               AppSpacing.gapXL,
@@ -346,13 +348,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 if (lists.isNotEmpty) {
                   context.push('/shopping-list/${lists.first.id}/add-item');
                 } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text('يجب إنشاء قائمة تسوق أولاً', textDirection: TextDirection.rtl),
-                      backgroundColor: theme.colorScheme.secondary,
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
+                  BeitySnackBar.warning(context, 'يجب إنشاء قائمة تسوق أولاً');
                 }
               });
             },
@@ -373,13 +369,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     'listName': lists.first.name,
                   });
                 } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text('لا توجد قوائم تسوق لتفعيل وضع التسوق', textDirection: TextDirection.rtl),
-                      backgroundColor: theme.colorScheme.secondary,
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
+                  BeitySnackBar.warning(context, 'لا توجد قوائم تسوق لتفعيل وضع التسوق');
                 }
               });
             },
@@ -613,7 +603,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       message: 'أنشئ قائمتك الأولى لتبدأ بتنظيم مشترياتك',
       icon: Icons.shopping_cart_outlined,
       actionText: 'إنشاء قائمة',
-      onActionPressed: () => context.push('/shopping-lists/create', extra: homeId),
+      onAction: () => context.push('/shopping-lists/create', extra: homeId),
     );
   }
 
@@ -667,10 +657,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   // ─── Helper methods ──────────────────────────────────────────────────
   Color _getProgressColor(double progress) {
-    if (progress >= 0.8) return const Color(0xFF66BB6A); // Modern soft emerald green
-    if (progress >= 0.5) return const Color(0xFF42A5F5); // Modern soft cyan blue
-    if (progress >= 0.3) return const Color(0xFFFFA726); // Modern warm amber
-    return const Color(0xFFEF5350); // Modern soft coral red
+    if (progress >= 0.8) return AppColors.success;
+    if (progress >= 0.5) return AppColors.info;
+    if (progress >= 0.3) return AppColors.warning;
+    return AppColors.error;
   }
 
   IconData _getIconData(String iconName) {
@@ -719,11 +709,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   Color _getActionColor(String? action) {
     switch (action) {
-      case 'item_added': return Colors.blue;
-      case 'item_purchased': return Colors.green;
-      case 'list_created': return Colors.purple;
-      case 'member_joined': return Colors.orange;
-      default: return Colors.grey;
+      case 'item_added': return AppColors.info;
+      case 'item_purchased': return AppColors.success;
+      case 'list_created': return AppColors.primary;
+      case 'member_joined': return AppColors.warning;
+      default: return AppColors.textSecondaryFor(Theme.of(context).brightness);
     }
   }
 

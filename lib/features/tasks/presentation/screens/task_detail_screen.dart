@@ -514,7 +514,7 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
           icon: Icons.error_outline_rounded,
           isError: true,
           actionText: 'إعادة المحاولة',
-          onActionPressed: () => ref.invalidate(taskByIdProvider(widget.taskId)),
+          onAction: () => ref.invalidate(taskByIdProvider(widget.taskId)),
         ),
       ),
     );

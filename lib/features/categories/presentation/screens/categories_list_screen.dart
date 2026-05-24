@@ -92,7 +92,7 @@ class _CategoriesListScreenState extends ConsumerState<CategoriesListScreen> {
                 icon: Icons.error_outline_rounded,
                 isError: true,
                 actionText: 'إعادة المحاولة',
-                onActionPressed: () => ref.invalidate(categoriesByTypeProvider),
+                onAction: () => ref.invalidate(categoriesByTypeProvider),
               ),
             ),
           ),

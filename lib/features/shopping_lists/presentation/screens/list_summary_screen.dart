@@ -50,7 +50,7 @@ class ListSummaryScreen extends ConsumerWidget {
           icon: Icons.error_outline_rounded,
           isError: true,
           actionText: isArabic ? 'إعادة المحاولة' : 'Retry',
-          onActionPressed: () => ref.invalidate(shoppingItemsProvider(listId)),
+          onAction: () => ref.invalidate(shoppingItemsProvider(listId)),
         ),
       ),
     );
