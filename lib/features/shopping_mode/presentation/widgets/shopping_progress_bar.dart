@@ -39,7 +39,7 @@ class ShoppingProgressBar extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           Text(
-            isArabic ? '$purchasedCount من $totalCount' : '$purchasedCount of $totalCount',
+            context.translate('items_ratio', arguments: {'purchased': purchasedCount.toString(), 'total': totalCount.toString()}),
             style: theme.textTheme.bodyLarge?.copyWith(
               color: isComplete
                   ? theme.colorScheme.primary

@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/utils/action_debouncer.dart';
+import 'package:beity/core/services/supabase_service.dart';
 import '../../domain/entities/ai_suggestion.dart';
 import '../../domain/entities/ai_suggestion_request.dart';
 import '../../domain/usecases/get_ai_suggestions.dart';
@@ -51,7 +51,7 @@ class AiSuggestionsAdding extends AiSuggestionsState {
 
 // --- Provider Setup ---
 final aiSuggestionRemoteDataSourceProvider = Provider<AiSuggestionRemoteDataSource>((ref) {
-  return AiSuggestionRemoteDataSource(supabaseClient: Supabase.instance.client);
+  return AiSuggestionRemoteDataSource(supabaseClient: SupabaseService.client);
 });
 
 final aiSuggestionRepositoryProvider = Provider<AiSuggestionRepositoryImpl>((ref) {

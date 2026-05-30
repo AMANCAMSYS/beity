@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../app/theme/app_colors.dart';
 import '../../../../core/utils/action_debouncer.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:beity/shared/widgets/design_system/beity_snack_bar.dart';
 import '../providers/categories_provider.dart';
+import 'package:beity/core/localization/app_localizations.dart';
 
 class CreateCategoryScreen extends ConsumerStatefulWidget {
   final String homeId;
@@ -48,27 +49,14 @@ class _CreateCategoryScreenState extends ConsumerState<CreateCategoryScreen> {
           );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'تم إنشاء التصنيف بنجاح',
-              textDirection: TextDirection.rtl,
-            ),
-            backgroundColor: AppColors.success,
-          ),
-        );
+        BeitySnackBar.success(context, context.translate('category_created_success'));
         context.pop();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              e.toString().replaceAll('Exception: ', ''),
-              textDirection: TextDirection.rtl,
-            ),
-            backgroundColor: AppColors.error,
-          ),
+        BeitySnackBar.error(
+          context,
+          e.toString().replaceAll('Exception: ', ''),
         );
       }
     } finally {
@@ -82,10 +70,7 @@ class _CreateCategoryScreenState extends ConsumerState<CreateCategoryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'إنشاء تصنيف جديد',
-          textDirection: TextDirection.rtl,
-        ),
+        title: Text(context.translate('create_new_category')),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
@@ -96,40 +81,39 @@ class _CreateCategoryScreenState extends ConsumerState<CreateCategoryScreen> {
             children: [
               TextFormField(
                 controller: _nameController,
-                textDirection: TextDirection.rtl,
-                decoration: const InputDecoration(
-                  labelText: 'اسم التصنيف',
-                  prefixIcon: Icon(Icons.category),
+                decoration: InputDecoration(
+                  labelText: context.translate('category_name'),
+                  prefixIcon: const Icon(Icons.category),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'يرجى إدخال اسم التصنيف';
+                    return context.translate('please_enter_category_name');
                   }
                   if (value.length > 100) {
-                    return 'اسم التصنيف طويل جداً';
+                    return context.translate('category_name_too_long');
                   }
                   return null;
                 },
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                value: _selectedType,
-                decoration: const InputDecoration(
-                  labelText: 'نوع التصنيف',
-                  prefixIcon: Icon(Icons.type_specimen),
+                initialValue: _selectedType,
+                decoration: InputDecoration(
+                  labelText: context.translate('category_type'),
+                  prefixIcon: const Icon(Icons.type_specimen),
                 ),
-                items: const [
+                items: [
                   DropdownMenuItem(
                     value: 'shopping',
-                    child: Text('تسوق'),
+                    child: Text(context.translate('shopping')),
                   ),
                   DropdownMenuItem(
                     value: 'inventory',
-                    child: Text('مخزون'),
+                    child: Text(context.translate('inventory_filter')),
                   ),
                   DropdownMenuItem(
                     value: 'expense',
-                    child: Text('مصروفات'),
+                    child: Text(context.translate('expense')),
                   ),
                 ],
                 onChanged: (value) {
@@ -140,11 +124,10 @@ class _CreateCategoryScreenState extends ConsumerState<CreateCategoryScreen> {
               ),
               const SizedBox(height: 16),
               TextFormField(
-                textDirection: TextDirection.ltr,
-                decoration: const InputDecoration(
-                  labelText: 'الأيقونة (اختياري)',
-                  hintText: 'مثال: 🛒',
-                  prefixIcon: Icon(Icons.emoji_emotions),
+                decoration: InputDecoration(
+                  labelText: context.translate('icon_optional'),
+                  hintText: '🛒',
+                  prefixIcon: const Icon(Icons.emoji_emotions),
                 ),
                 onChanged: (value) {
                   setState(() => _selectedIcon = value.isEmpty ? null : value);
@@ -152,11 +135,10 @@ class _CreateCategoryScreenState extends ConsumerState<CreateCategoryScreen> {
               ),
               const SizedBox(height: 16),
               TextFormField(
-                textDirection: TextDirection.ltr,
-                decoration: const InputDecoration(
-                  labelText: 'اللون (اختياري)',
-                  hintText: 'مثال: #FF5733',
-                  prefixIcon: Icon(Icons.color_lens),
+                decoration: InputDecoration(
+                  labelText: context.translate('color_optional'),
+                  hintText: '#FF5733',
+                  prefixIcon: const Icon(Icons.color_lens),
                 ),
                 onChanged: (value) {
                   setState(
@@ -175,9 +157,8 @@ class _CreateCategoryScreenState extends ConsumerState<CreateCategoryScreen> {
                           color: Colors.white,
                         ),
                       )
-                    : const Text(
-                        'إنشاء التصنيف',
-                        textDirection: TextDirection.rtl,
+                    : Text(
+                        context.translate('create_category'),
                       ),
               ),
             ],

@@ -56,8 +56,8 @@ SPEC 11 - Offline Queue (COMPLETED)
 SPEC 12 - MVP Hardening & Beta (COMPLETED)
 SPEC 13 - Inventory Phase (COMPLETED)
 SPEC 14 - Expenses Phase (COMPLETED)
-SPEC 15 - Tasks Phase (IN PROGRESS)
-SPEC 16 - AI Phase 1 (IN PROGRESS)
+SPEC 15 - Tasks Phase (COMPLETED)
+SPEC 16 - AI Phase 1 (COMPLETED)
 
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,

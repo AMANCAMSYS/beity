@@ -39,9 +39,7 @@ class ExpenseRemoteDataSource {
         .toList();
   }
 
-  Future<ExpenseModel?> getExpenseById({
-    required String expenseId,
-  }) async {
+  Future<ExpenseModel?> getExpenseById({required String expenseId}) async {
     final response = await _client
         .from('expenses')
         .select()
@@ -61,7 +59,7 @@ class ExpenseRemoteDataSource {
     String? categoryId,
     required String paidBy,
     String? shoppingListItemId,
-    String currencyCode = 'SAR',
+    String currencyCode = 'TRY',
     required int convertedAmount,
   }) async {
     final user = _client.auth.currentUser;
@@ -89,6 +87,41 @@ class ExpenseRemoteDataSource {
     return ExpenseModel.fromJson(response);
   }
 
+  Future<ExpenseModel> createExpenseWithSplits({
+    required String homeId,
+    required int amount,
+    required String description,
+    required DateTime date,
+    String? categoryId,
+    required String paidBy,
+    String? shoppingListItemId,
+    String currencyCode = 'TRY',
+    required int convertedAmount,
+    List<({String memberId, int amount})> splits = const [],
+  }) async {
+    final response = await _client.rpc(
+      'create_expense_with_splits',
+      params: {
+        'p_home_id': homeId,
+        'p_amount': amount,
+        'p_description': description,
+        'p_date': date.toIso8601String().split('T')[0],
+        'p_paid_by': paidBy,
+        'p_converted_amount': convertedAmount,
+        'p_category_id': categoryId,
+        'p_shopping_list_item_id': shoppingListItemId,
+        'p_currency_code': currencyCode,
+        'p_splits': splits
+            .map(
+              (split) => {'member_id': split.memberId, 'amount': split.amount},
+            )
+            .toList(),
+      },
+    );
+
+    return ExpenseModel.fromJson(Map<String, dynamic>.from(response as Map));
+  }
+
   Future<ExpenseModel> updateExpense({
     required String expenseId,
     int? amount,
@@ -105,7 +138,7 @@ class ExpenseRemoteDataSource {
       throw Exception('يجب تسجيل الدخول أولاً');
     }
 
-    final updates = <String, dynamic>{};
+    final updates = <String, dynamic>{'updated_by': user.id};
     if (amount != null) updates['amount'] = amount;
     if (description != null) updates['description'] = description;
     if (date != null) updates['date'] = date.toIso8601String().split('T')[0];
@@ -127,9 +160,7 @@ class ExpenseRemoteDataSource {
     return ExpenseModel.fromJson(response);
   }
 
-  Future<void> deleteExpense({
-    required String expenseId,
-  }) async {
+  Future<void> deleteExpense({required String expenseId}) async {
     final user = _client.auth.currentUser;
     if (user == null) {
       throw Exception('يجب تسجيل الدخول أولاً');
@@ -140,6 +171,8 @@ class ExpenseRemoteDataSource {
         .update({
           'deleted_at': DateTime.now().toIso8601String(),
           'status': 'cancelled',
+          'updated_by': user.id,
+          'cancelled_by': user.id,
         })
         .eq('id', expenseId);
   }
@@ -162,28 +195,27 @@ class ExpenseRemoteDataSource {
     required List<({String memberId, int amount})> splits,
   }) async {
     final inserts = splits
-        .map((split) => {
-              'expense_id': expenseId,
-              'member_id': split.memberId,
-              'amount': split.amount,
-            })
+        .map(
+          (split) => {
+            'expense_id': expenseId,
+            'member_id': split.memberId,
+            'amount': split.amount,
+          },
+        )
         .toList();
 
-    final response =
-        await _client.from('expense_splits').insert(inserts).select();
+    final response = await _client
+        .from('expense_splits')
+        .insert(inserts)
+        .select();
 
     return (response as List)
         .map((json) => ExpenseSplitModel.fromJson(json))
         .toList();
   }
 
-  Future<void> deleteExpenseSplits({
-    required String expenseId,
-  }) async {
-    await _client
-        .from('expense_splits')
-        .delete()
-        .eq('expense_id', expenseId);
+  Future<void> deleteExpenseSplits({required String expenseId}) async {
+    await _client.from('expense_splits').delete().eq('expense_id', expenseId);
   }
 
   Future<int> getExpenseTotal({
@@ -206,21 +238,26 @@ class ExpenseRemoteDataSource {
     }
 
     final response = await query;
-    return (response as List)
-        .fold<int>(0, (sum, json) => sum + (json['converted_amount'] as int));
+    return (response as List<dynamic>).fold<int>(
+      0,
+      (sum, json) {
+        final map = json as Map<String, dynamic>;
+        return sum + (map['converted_amount'] as int);
+      },
+    );
   }
 
-  Stream<List<ExpenseModel>> watchExpenses({
-    required String homeId,
-  }) {
+  Stream<List<ExpenseModel>> watchExpenses({required String homeId}) {
     return _client
         .from('expenses')
         .stream(primaryKey: ['id'])
         .eq('home_id', homeId)
         .order('date', ascending: false)
-        .map((response) => response
-            .map((json) => ExpenseModel.fromJson(json))
-            .where((expense) => expense.deletedAt == null)
-            .toList());
+        .map(
+          (response) => response
+              .map((json) => ExpenseModel.fromJson(json))
+              .where((expense) => expense.deletedAt == null)
+              .toList(),
+        );
   }
 }

@@ -23,7 +23,7 @@ class UpdateItemUseCase {
       throw Exception('الكمية يجب أن تكون أكبر من صفر');
     }
 
-    return await _repository.updateShoppingItem(
+    return _repository.updateShoppingItem(
       itemId: itemId,
       name: name?.trim(),
       quantity: quantity,

@@ -1,3 +1,4 @@
+import 'package:beity/core/errors/error_formatter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -9,6 +10,7 @@ import 'package:beity/app/theme/app_colors.dart';
 import 'package:beity/shared/widgets/design_system/beity_button.dart';
 import 'package:beity/shared/widgets/design_system/beity_text_field.dart';
 import '../providers/auth_provider.dart';
+import '../../../../core/localization/app_localizations.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -49,31 +51,18 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           );
 
       if (mounted) {
-        context.go('/');
+        final redirect = GoRouterState.of(context).uri.queryParameters['redirect'];
+        if (redirect != null && redirect.isNotEmpty) {
+          context.go(redirect);
+        } else {
+          context.go('/');
+        }
       }
     } catch (e) {
       if (mounted) {
-        String message = 'حدث خطأ، يرجى المحاولة مرة أخرى';
-        final errorStr = e.toString().toLowerCase();
-        if (errorStr.contains('already') ||
-            errorStr.contains('registered') ||
-            errorStr.contains('exists')) {
-          message = AuthErrorMessages.mapError('user_already_registered');
-        } else if (errorStr.contains('weak') ||
-            errorStr.contains('password') ||
-            errorStr.contains('short')) {
-          message = AuthErrorMessages.mapError('weak_password');
-        } else if (errorStr.contains('invalid') ||
-            errorStr.contains('email') ||
-            errorStr.contains('valid')) {
-          message = AuthErrorMessages.mapError('invalid_email');
-        } else if (errorStr.contains('confirm')) {
-          message = 'تم إرسال بريد تأكيد، يرجى לבדוק بريدك الإلكتروني';
-        }
-
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(message, textDirection: TextDirection.rtl),
+            content: Text(ErrorFormatter.format(e, context)),
             backgroundColor: AppColors.error,
           ),
         );
@@ -108,7 +97,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   ),
                   AppSpacing.gapMD,
                   Text(
-                    'بيتي',
+                    context.translate('beity'),
                     textAlign: TextAlign.center,
                     style: theme.textTheme.headlineLarge?.copyWith(
                           fontWeight: FontWeight.bold,
@@ -116,7 +105,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   ),
                   AppSpacing.gapSM,
                   Text(
-                    'إنشاء حساب جديد',
+                    context.translate('create_new_account'),
                     textAlign: TextAlign.center,
                     style: theme.textTheme.titleMedium?.copyWith(
                           color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
@@ -128,10 +117,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   BeityTextField(
                     controller: _nameController,
                     textDirection: TextDirection.rtl,
-                    labelText: 'الاسم الكامل',
+                    labelText: context.translate('full_name'),
                     prefixIcon: Icons.person_rounded,
                     validator: (value) {
-                      final error = AuthErrorMessages.validateName(value);
+                      final error = AuthErrorMessages.validateName(context, value);
                       return error.isEmpty ? null : error;
                     },
                   ),
@@ -142,11 +131,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
                     textDirection: TextDirection.ltr,
-                    labelText: 'البريد الإلكتروني',
+                    labelText: context.translate('email'),
                     hintText: 'example@email.com',
                     prefixIcon: Icons.email_rounded,
                     validator: (value) {
-                      final error = AuthErrorMessages.validateEmail(value);
+                      final error = AuthErrorMessages.validateEmail(context, value);
                       return error.isEmpty ? null : error;
                     },
                   ),
@@ -157,7 +146,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     controller: _passwordController,
                     obscureText: _obscurePassword,
                     textDirection: TextDirection.ltr,
-                    labelText: 'كلمة المرور',
+                    labelText: context.translate('password'),
                     prefixIcon: Icons.lock_rounded,
                     suffixIcon: IconButton(
                       icon: Icon(
@@ -173,7 +162,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       },
                     ),
                     validator: (value) {
-                      final error = AuthErrorMessages.validatePassword(value);
+                      final error = AuthErrorMessages.validatePassword(context, value);
                       return error.isEmpty ? null : error;
                     },
                   ),
@@ -184,7 +173,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     controller: _confirmPasswordController,
                     obscureText: _obscureConfirmPassword,
                     textDirection: TextDirection.ltr,
-                    labelText: 'تأكيد كلمة المرور',
+                    labelText: context.translate('confirm_password'),
                     prefixIcon: Icons.lock_outline_rounded,
                     suffixIcon: IconButton(
                       icon: Icon(
@@ -201,10 +190,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'يرجى تأكيد كلمة المرور';
+                        return context.translate('confirm_password_required');
                       }
                       if (value != _passwordController.text) {
-                        return 'كلمات المرور غير متطابقة';
+                        return context.translate('passwords_do_not_match');
                       }
                       return null;
                     },
@@ -213,7 +202,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
                   // Register Button
                   BeityButton(
-                    text: 'إنشاء حساب',
+                    text: context.translate('create_account'),
                     isLoading: _isLoading,
                     onPressed: () => ActionDebouncer.execute(_register),
                   ),
@@ -224,15 +213,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        'لديك حساب بالفعل؟',
-                        textDirection: TextDirection.rtl,
+                        context.translate('already_have_account'),
                         style: theme.textTheme.bodyMedium,
                       ),
                       TextButton(
                         onPressed: () => context.go('/login'),
                         child: Text(
-                          'تسجيل الدخول',
-                          textDirection: TextDirection.rtl,
+                          context.translate('login'),
                           style: theme.textTheme.bodyMedium?.copyWith(
                             color: theme.primaryColor,
                             fontWeight: FontWeight.bold,

@@ -7,6 +7,6 @@ class GetUserHomesUseCase {
   GetUserHomesUseCase(this._repository);
 
   Future<List<HomeModel>> call() async {
-    return await _repository.getUserHomes();
+    return _repository.getUserHomes();
   }
 }

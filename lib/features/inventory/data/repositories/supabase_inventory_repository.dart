@@ -1,12 +1,22 @@
+import 'dart:async';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../../core/services/sync_service.dart';
+import '../../../../core/services/local_cache_notifier.dart';
 import '../models/inventory_item_model.dart';
 import '../models/inventory_transaction_model.dart';
+import '../datasources/inventory_local_datasource.dart';
 import 'inventory_repository.dart';
 
 class SupabaseInventoryRepository implements InventoryRepository {
   final SupabaseClient _client;
+  final InventoryLocalDataSource _localDataSource;
+  final SyncService _syncService;
 
-  SupabaseInventoryRepository(this._client);
+  SupabaseInventoryRepository(
+    this._client,
+    this._localDataSource,
+    this._syncService,
+  );
 
   // Inventory Items
 
@@ -14,17 +24,34 @@ class SupabaseInventoryRepository implements InventoryRepository {
   Future<List<InventoryItemModel>> getInventoryItems({
     required String homeId,
   }) async {
-    final response = await _client
-        .from('inventory_items')
-        .select()
-        .eq('home_id', homeId)
-        .filter('deleted_at', 'is', null)
-        .order('category_id', ascending: true)
-        .order('name', ascending: true);
+    // 1. Try loading cached inventory first (Instant perceived loading)
+    final cached = await _localDataSource.getInventoryItems(homeId: homeId);
+    if (cached.isNotEmpty) {
+      return cached;
+    }
 
-    return (response as List)
-        .map((json) => InventoryItemModel.fromJson(json))
-        .toList();
+    // 2. Fetch from remote only if cache is empty
+    try {
+      final response = await _client
+          .from('inventory_items')
+          .select()
+          .eq('home_id', homeId)
+          .filter('deleted_at', 'is', null)
+          .order('category_id', ascending: true)
+          .order('name', ascending: true);
+
+      final items = (response as List)
+          .map((json) => InventoryItemModel.fromJson(json))
+          .toList();
+
+      // Save to local cache
+      await _localDataSource.saveInventoryItems(homeId: homeId, items: items);
+      await _localDataSource.saveInventoryItemsStreamCache(homeId: homeId, items: items);
+
+      return items;
+    } catch (_) {
+      return [];
+    }
   }
 
   @override
@@ -184,17 +211,21 @@ class SupabaseInventoryRepository implements InventoryRepository {
   @override
   Stream<List<InventoryItemModel>> watchInventoryItems({
     required String homeId,
-  }) {
-    return _client
-        .from('inventory_items')
-        .stream(primaryKey: ['id'])
-        .eq('home_id', homeId)
-        .order('category_id', ascending: true)
-        .order('name', ascending: true)
-        .map((response) => response
-            .map((json) => InventoryItemModel.fromJson(json))
-            .where((item) => item.deletedAt == null)
-            .toList());
+  }) async* {
+    // Helper to load cache
+    Future<List<InventoryItemModel>> loadCache() async {
+      return _localDataSource.getInventoryItemsStreamCache(homeId: homeId);
+    }
+
+    // 1. Emit cached inventory items instantly (0 network requests, instant perceived loading)
+    yield await loadCache();
+
+    // 2. React to local cache updates from background sync or local alterations
+    await for (final event in LocalCacheNotifier.stream) {
+      if (event.homeId == homeId && event.entityType == 'inventory_items') {
+        yield await loadCache();
+      }
+    }
   }
 
   // Inventory Transactions
@@ -249,6 +280,7 @@ class SupabaseInventoryRepository implements InventoryRepository {
   Stream<List<InventoryTransactionModel>> watchTransactions({
     required String inventoryItemId,
   }) {
+    // Keep transactions simple (online stream or fallback)
     return _client
         .from('inventory_transactions')
         .stream(primaryKey: ['id'])
@@ -257,5 +289,61 @@ class SupabaseInventoryRepository implements InventoryRepository {
         .map((response) => response
             .map((json) => InventoryTransactionModel.fromJson(json))
             .toList());
+  }
+
+  @override
+  Future<void> syncInventoryWithServer(String homeId) async {
+    try {
+      final serverUpdates = await _syncService.getServerLastUpdates(homeId);
+      final serverInventoryMaxUpdate = serverUpdates['inventory_items'];
+
+      if (serverInventoryMaxUpdate != null) {
+        final localSyncTime = _syncService.getLocalSyncTime(homeId, 'inventory_items');
+        final cachedItems = await _localDataSource.getInventoryItemsStreamCache(homeId: homeId);
+        final isCacheEmpty = cachedItems.isEmpty;
+
+        // Delta Sync check: Only pull if the server has newer updates OR local cache is empty!
+        if (isCacheEmpty || serverInventoryMaxUpdate.isAfter(localSyncTime)) {
+          final response = await _client
+              .from('inventory_items')
+              .select()
+              .eq('home_id', homeId)
+              .filter('deleted_at', 'is', null)
+              .order('category_id', ascending: true)
+              .order('name', ascending: true);
+
+          final items = (response as List)
+              .map((json) => InventoryItemModel.fromJson(json))
+              .toList();
+
+          // 1. Save pulled items into local stream cache
+          await _localDataSource.saveInventoryItemsStreamCache(homeId: homeId, items: items);
+
+          // 2. Save pulled items into local cache
+          await _localDataSource.saveInventoryItems(homeId: homeId, items: items);
+
+          // 3. Update the local sync time
+          DateTime maxTs = DateTime.fromMillisecondsSinceEpoch(0);
+          for (final i in items) {
+            if (i.updatedAt != null && i.updatedAt!.isAfter(maxTs)) {
+              maxTs = i.updatedAt!;
+            }
+            if (i.createdAt != null && i.createdAt!.isAfter(maxTs)) {
+              maxTs = i.createdAt!;
+            }
+          }
+          if (maxTs.year > 1970) {
+            await _syncService.updateLocalSyncTime(homeId, 'inventory_items', maxTs);
+          } else {
+            await _syncService.updateLocalSyncTime(homeId, 'inventory_items', DateTime.now());
+          }
+
+          // 4. Notify reactive UI stream that cache updated
+          LocalCacheNotifier.notify(homeId, 'inventory_items');
+        }
+      }
+    } catch (_) {
+      rethrow;
+    }
   }
 }

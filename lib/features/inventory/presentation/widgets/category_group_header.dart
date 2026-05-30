@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:beity/app/theme/app_spacing.dart';
-import 'package:beity/app/theme/app_colors.dart';
 
 class CategoryGroupHeader extends StatelessWidget {
   final String? categoryName;

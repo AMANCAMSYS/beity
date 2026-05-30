@@ -1,35 +1,37 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:timeago/timeago.dart' as timeago;
 
 import '../../../homes/presentation/providers/homes_provider.dart';
-import '../../../invitations/presentation/providers/invitations_provider.dart';
-import '../../../invitations/presentation/widgets/invitation_card_widget.dart';
-import '../../../notifications/presentation/widgets/notification_badge_widget.dart';
-import '../../../notifications/presentation/providers/notifications_provider.dart';
-import '../../../notifications/presentation/providers/unread_count_provider.dart';
-import '../../../notifications/presentation/providers/notification_preferences_provider.dart';
-import '../../../tasks/presentation/providers/task_filter_providers.dart';
 import '../../../activity_logs/presentation/providers/activity_logs_provider.dart';
-import '../../../categories/presentation/providers/categories_provider.dart';
-import '../../../categories/presentation/providers/units_provider.dart';
+import '../../../activity_logs/presentation/utils/activity_localizer.dart';
 import '../../../shopping_lists/presentation/providers/shopping_lists_provider.dart';
-import '../../../shopping_lists/presentation/providers/shopping_items_provider.dart';
+import '../../../shopping_lists/data/models/shopping_list_model.dart';
 import '../../../beta/data/beta_config.dart';
 import '../../../beta/presentation/beta_welcome_dialog.dart';
+import '../../../onboarding/data/onboarding_storage.dart';
+import '../../../onboarding/presentation/providers/app_tour_controller.dart';
 import '../widgets/shopping_list_tile.dart';
 import '../widgets/recent_activity_widget.dart';
-import '../widgets/home_selector_dropdown.dart';
 import '../widgets/app_drawer.dart';
+import '../../../homes/presentation/screens/onboarding_screen.dart';
+import '../widgets/home_quick_actions.dart';
+import '../widgets/home_active_list_card.dart';
+import '../widgets/home_header_sliver.dart';
 import 'package:beity/app/theme/app_spacing.dart';
 import 'package:beity/app/theme/app_colors.dart';
 import 'package:beity/shared/widgets/design_system/beity_card.dart';
-import 'package:beity/shared/widgets/design_system/beity_button.dart';
 import 'package:beity/shared/widgets/design_system/beity_empty_state.dart';
-import 'package:beity/shared/widgets/design_system/beity_snack_bar.dart';
-import 'package:beity/features/ai_suggestions/presentation/widgets/ai_list_selector_sheet.dart';
-import '../../../../core/config/feature_flags.dart';
+import 'package:beity/shared/widgets/design_system/beity_button.dart';
+import 'package:beity/core/localization/app_localizations.dart';
+import 'package:beity/core/services/startup_prefetch_provider.dart';
+import 'package:beity/core/services/sync_coordinator.dart';
+import 'package:beity/core/services/initial_data_hydration_service.dart';
+import 'package:beity/features/offline_queue/presentation/providers/connectivity_provider.dart';
+import '../../data/models/home_dashboard_snapshot.dart';
+import '../../data/datasources/home_dashboard_snapshot_datasource.dart';
+import '../providers/home_dashboard_snapshot_updater.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -39,6 +41,8 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
+  bool _tourScheduled = false;
+
   @override
   void initState() {
     super.initState();
@@ -50,241 +54,169 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
   }
 
-  String get _greeting {
-    final hour = DateTime.now().hour;
-    if (hour < 12) return 'صباح الخير';
-    if (hour < 17) return 'مساء الخير';
-    return 'مساء الخير';
-  }
-
-  String get _userName {
-    final user = Supabase.instance.client.auth.currentUser;
-    final name = user?.userMetadata?['full_name'] as String?;
-    if (name != null && name.isNotEmpty) return name;
-    return user?.email ?? 'المستخدم';
-  }
-
   @override
   Widget build(BuildContext context) {
-    final hasHomesAsync = ref.watch(hasHomesProvider);
-    final userHomesAsync = ref.watch(userHomesProvider);
-    final activeHomeIdAsync = ref.watch(activeHomeIdProvider);
+    // Start progressive prefetching of all user data in the background (Phase 3)
+    ref.watch(startupPrefetchProvider);
 
-    return hasHomesAsync.when(
-      data: (hasHomes) {
-        if (!hasHomes) {
-          final invitationsAsync = ref.watch(userInvitationsStreamProvider);
-          return Scaffold(
-            appBar: AppBar(
-              title: const Text('بيتي', style: TextStyle(fontWeight: FontWeight.bold)),
-              centerTitle: true,
-              actions: [
-                const NotificationBadgeWidget(),
-                IconButton(
-                  icon: const Icon(Icons.person_outline),
-                  onPressed: () => context.push('/profile'),
+    // Watch hydration state
+    final hydration = ref.watch(initialDataHydrationServiceProvider);
+
+    if (hydration.status == HydrationStatus.hydratingHomes ||
+        hydration.status == HydrationStatus.hydratingData) {
+      final locale = Localizations.localeOf(context).languageCode;
+      final titleText = locale == 'ar' ? 'جاري تجهيز بيانات منزلك...' : 'Preparing your home data...';
+      final subtitleText = locale == 'ar'
+          ? 'نعمل على مزامنة قوائمك وإعداداتك لتكون جاهزة للاستخدام فوراً.'
+          : 'We are syncing your lists and settings to be ready immediately.';
+      return Scaffold(
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.xl),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const CircularProgressIndicator(),
+                AppSpacing.gapXL,
+                Text(
+                  titleText,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+                AppSpacing.gapMD,
+                Text(
+                  subtitleText,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                  textAlign: TextAlign.center,
                 ),
               ],
             ),
-            drawer: const AppDrawer(),
-            body: SafeArea(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Welcome card
-                    BeityCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              CircleAvatar(
-                                radius: 28,
-                                backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.1),
-                                child: Icon(
-                                  Icons.home_outlined,
-                                  color: Theme.of(context).primaryColor,
-                                  size: 32,
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'مرحباً بك في بيتي 👋',
-                                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      _userName,
-                                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                            color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-                                          ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 20),
-                          Text(
-                            'أنت لست عضواً في أي منزل بعد. للبدء، يمكنك إنشاء منزل جديد أو الانضمام إلى منزل عبر الدعوات الواردة إليك.',
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  height: 1.5,
-                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                ),
-                          ),
-                          const SizedBox(height: 24),
-                          SizedBox(
-                            width: double.infinity,
-                            child: BeityButton(
-                              onPressed: () => context.push('/homes/create'),
-                              text: 'إنشاء منزل جديد',
-                              icon: Icons.add_home_outlined,
-                              type: BeityButtonType.primary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    // Invitations Section
-                    Text(
-                      'الدعوات الواردة',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                    ),
-                    const SizedBox(height: 12),
-                    invitationsAsync.when(
-                      data: (invitations) {
-                        final pendingInvitations = invitations.where((inv) => inv.isPending).toList();
-                        if (pendingInvitations.isEmpty) {
-                          return BeityCard(
-                            child: Center(
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 24),
-                                child: Column(
-                                  children: [
-                                    Icon(
-                                      Icons.mail_outline_rounded,
-                                      size: 48,
-                                      color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
-                                    ),
-                                    const SizedBox(height: 12),
-                                    Text(
-                                      'لا توجد دعوات معلقة حالياً',
-                                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                            color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
-                                          ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          );
-                        }
-                        return ListView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: pendingInvitations.length,
-                          itemBuilder: (context, index) {
-                            return InvitationCardWidget(
-                              invitation: pendingInvitations[index],
-                              isOwner: false,
-                            );
-                          },
-                        );
-                      },
-                      loading: () => const Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(24),
-                          child: CircularProgressIndicator(),
-                        ),
-                      ),
-                      error: (err, _) => BeityCard(
-                        child: Text(
-                          'خطأ في تحميل الدعوات: $err',
-                          style: TextStyle(color: Theme.of(context).colorScheme.error),
-                        ),
-                      ),
-                    ),
-                  ],
+          ),
+        ),
+      );
+    }
+
+    if (hydration.status == HydrationStatus.error) {
+      final locale = Localizations.localeOf(context).languageCode;
+      final errorTitle = locale == 'ar' ? 'فشلت المزامنة الأولية' : 'Initial sync failed';
+      final errorSubtitle = locale == 'ar'
+          ? 'يرجى التحقق من اتصال الشبكة وإعادة المحاولة.'
+          : 'Please check your network connection and try again.';
+      final retryText = locale == 'ar' ? 'إعادة المحاولة' : 'Retry';
+
+      return Scaffold(
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.xl),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.signal_wifi_off_rounded,
+                  size: 64,
+                  color: Theme.of(context).colorScheme.error,
                 ),
-              ),
-            ),
-          );
-        }
-
-        return userHomesAsync.when(
-          data: (homes) {
-            if (homes.isEmpty) {
-              return const Scaffold(body: Center(child: CircularProgressIndicator()));
-            }
-
-            final activeHomeId = activeHomeIdAsync.valueOrNull;
-            final activeHome = homes.firstWhere(
-              (h) => h.id == activeHomeId,
-              orElse: () => homes.first,
-            );
-
-            final homeId = activeHome.id;
-
-            return Scaffold(
-              drawer: const AppDrawer(),
-              body: _buildHomeContent(homeId, activeHome.name),
-            );
-          },
-          loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
-          error: (e, _) => Scaffold(
-            body: BeityEmptyState(
-              title: 'خطأ في تحميل المنازل',
-              message: e.toString(),
-              icon: Icons.error_outline_rounded,
-              isError: true,
-              actionText: 'إعادة المحاولة',
-              onAction: () {
-                ref.invalidate(userHomesProvider);
-                ref.invalidate(hasHomesProvider);
-              },
+                AppSpacing.gapXL,
+                Text(
+                  errorTitle,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+                AppSpacing.gapMD,
+                Text(
+                  hydration.error ?? errorSubtitle,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                  textAlign: TextAlign.center,
+                ),
+                AppSpacing.gapXXL,
+                BeityButton(
+                  text: retryText,
+                  onPressed: () {
+                    ref.read(initialDataHydrationServiceProvider.notifier).hydrate(force: true);
+                  },
+                ),
+              ],
             ),
           ),
-        );
-      },
-      loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
-      error: (e, _) => Scaffold(
-        body: BeityEmptyState(
-          title: 'خطأ في التحقق من الحساب',
-          message: e.toString(),
-          icon: Icons.error_outline_rounded,
-          isError: true,
-          actionText: 'إعادة المحاولة',
-          onAction: () => ref.invalidate(hasHomesProvider),
         ),
-      ),
+      );
+    }
+
+    // 1. Synchronous reads for instant WhatsApp-like rendering (Phase 1 & 6)
+    final homes = ref.watch(cachedUserHomesProvider);
+    final activeHomeId = ref.watch(cachedActiveHomeIdProvider);
+    final hasHomesAsync = ref.watch(hasHomesProvider);
+
+    final hasHomes = hasHomesAsync.valueOrNull ?? true;
+
+    // Trigger onboarding if initial sync completed and there are no homes
+    if (hasHomesAsync.valueOrNull == false || (!hasHomes && homes.isEmpty)) {
+      return const OnboardingScreen();
+    }
+
+    if (homes.isEmpty) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final activeHome = homes.firstWhere(
+      (h) => h.id == activeHomeId,
+      orElse: () => homes.first,
+    );
+
+    final homeId = activeHome.id;
+
+    // Start background updater to compile snapshots when live data changes (Phase 5)
+    ref.watch(homeDashboardSnapshotUpdaterProvider(homeId));
+
+    // Schedule tour trigger after rendering
+    if (!_tourScheduled && OnboardingStorage.shouldShowAppTour()) {
+      _tourScheduled = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        // Wait briefly for animations/layout to settle
+        Future.delayed(const Duration(milliseconds: 800), () {
+          if (mounted) {
+            ref.read(appTourControllerProvider.notifier).maybeStartTour(context);
+          }
+        });
+      });
+    }
+
+    return Scaffold(
+      drawer: const AppDrawer(),
+      body: _buildHomeContent(homeId, activeHome.name),
     );
   }
 
-  // ─── HOME CONTENT ────────────────────────────────────────────────────────
   Widget _buildHomeContent(String homeId, String homeName) {
     final shoppingListsAsync = ref.watch(shoppingListsProvider(homeId));
+    final snapshot = ref.watch(cachedHomeDashboardSnapshotProvider(homeId));
+    final syncState = ref.watch(syncCoordinatorProvider);
+    final connectivityAsync = ref.watch(connectivityStatusProvider);
+
+    final isOffline = connectivityAsync.valueOrNull?.isOffline ?? false;
 
     return CustomScrollView(
       physics: const BouncingScrollPhysics(),
       slivers: [
-        _buildHeader(homeId, homeName),
+        HomeHeaderSliver(homeId: homeId, homeName: homeName),
         SliverPadding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.lg),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.lg,
+            vertical: AppSpacing.lg,
+          ),
           sliver: SliverList(
             delegate: SliverChildListDelegate([
+              // ── Sync Status Micro Bar (Phase 8) ──
+              _buildSyncStatusBar(syncState, isOffline),
+
               // ── Quick actions ──
-              _buildQuickActions(homeId),
+              HomeQuickActions(homeId: homeId),
               AppSpacing.gapXL,
 
               // ── Active list summary ──
@@ -292,22 +224,33 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 data: (lists) {
                   if (lists.isEmpty) return _buildEmptyListCard(homeId);
                   final activeList = lists.first;
-                  return _buildActiveListSummary(activeList);
+                  return HomeActiveListCard(activeList: activeList);
                 },
-                loading: () => const BeityCard(
-                  child: Padding(
-                    padding: EdgeInsets.all(AppSpacing.xl),
-                    child: Center(child: CircularProgressIndicator()),
-                  ),
-                ),
-                error: (e, _) => BeityEmptyState(
-                  title: 'خطأ في تحميل القوائم',
-                  message: e.toString(),
-                  icon: Icons.error_outline_rounded,
-                  isError: true,
-                  actionText: 'إعادة المحاولة',
-                  onAction: () => ref.invalidate(shoppingListsProvider(homeId)),
-                ),
+                loading: () {
+                  // Fallback to cached dashboard snapshot for instant perceived loading
+                  if (snapshot != null && snapshot.activeListId != null) {
+                    return _buildActiveListSnapshotCard(snapshot);
+                  }
+                  return const BeityCard(
+                    child: Padding(
+                      padding: EdgeInsets.all(AppSpacing.xl),
+                      child: Center(child: CircularProgressIndicator()),
+                    ),
+                  );
+                },
+                error: (e, _) {
+                  if (snapshot != null && snapshot.activeListId != null) {
+                    return _buildActiveListSnapshotCard(snapshot);
+                  }
+                  return BeityEmptyState(
+                    title: context.translate('error_loading_lists'),
+                    message: e.toString(),
+                    icon: Icons.error_outline_rounded,
+                    isError: true,
+                    actionText: context.translate('retry'),
+                    onAction: () => ref.invalidate(shoppingListsProvider(homeId)),
+                  );
+                },
               ),
               AppSpacing.gapXL,
 
@@ -323,7 +266,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               AppSpacing.gapXL,
 
               // ── Recent activity ──
-              _buildRecentActivity(homeId),
+              _buildRecentActivity(homeId, snapshot),
               const SizedBox(height: 80),
             ]),
           ),
@@ -332,95 +275,118 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  // ─── Quick actions row ───────────────────────────────────────────────
-  Widget _buildQuickActions(String homeId) {
-    final theme = Theme.of(context);
-    return Row(
-      children: [
-        Expanded(
-          child: _buildActionCard(
-            icon: Icons.add_shopping_cart_rounded,
-            label: 'إضافة عنصر',
-            color: theme.colorScheme.primary,
-            onTap: () {
-              final listsAsync = ref.read(shoppingListsProvider(homeId));
-              listsAsync.whenData((lists) {
-                if (lists.isNotEmpty) {
-                  context.push('/shopping-list/${lists.first.id}/add-item');
-                } else {
-                  BeitySnackBar.warning(context, 'يجب إنشاء قائمة تسوق أولاً');
-                }
-              });
-            },
-          ),
-        ),
-        AppSpacing.gapMD,
-        Expanded(
-          child: _buildActionCard(
-            icon: Icons.shopping_bag_rounded,
-            label: 'وضع التسوق',
-            color: theme.colorScheme.tertiary,
-            onTap: () {
-              final listsAsync = ref.read(shoppingListsProvider(homeId));
-              listsAsync.whenData((lists) {
-                if (lists.isNotEmpty) {
-                  context.push('/shopping-list/${lists.first.id}/shopping-mode', extra: {
-                    'homeId': lists.first.homeId,
-                    'listName': lists.first.name,
-                  });
-                } else {
-                  BeitySnackBar.warning(context, 'لا توجد قوائم تسوق لتفعيل وضع التسوق');
-                }
-              });
-            },
-          ),
-        ),
-        if (FeatureFlags.enableAi) ...[
-          AppSpacing.gapMD,
-          Expanded(
-            child: _buildActionCard(
-              icon: Icons.auto_awesome_rounded,
-              label: 'اقتراحات ذكية',
-              color: AppColors.accent,
-              onTap: () => AiListSelectorSheet.show(context, homeId),
-            ),
-          ),
-        ],
-      ],
-    );
-  }
+  // ─── Active list snapshot fallback card (Phase 4 & 6) ──────────────────────────────────────────
+  Widget _buildActiveListSnapshotCard(HomeDashboardSnapshot snapshot) {
+    final total = snapshot.totalShoppingItemsCount;
+    final remaining = snapshot.remainingShoppingItemsCount;
+    final progress = total > 0 ? (total - remaining) / total : 0.0;
 
-  Widget _buildActionCard({
-    required IconData icon,
-    required String label,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    final theme = Theme.of(context);
     return BeityCard(
-      onTap: onTap,
+      onTap: () => context.push('/shopping-list/${snapshot.activeListId}'),
       padding: EdgeInsets.zero,
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg, horizontal: AppSpacing.sm),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                border: Border.all(color: color.withValues(alpha: 0.1)),
-              ),
-              child: Icon(icon, color: color, size: 24),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                  ),
+                  child: Icon(
+                    Icons.shopping_cart_rounded,
+                    color: Theme.of(context).colorScheme.primary,
+                    size: 24,
+                  ),
+                ),
+                AppSpacing.gapLG,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        snapshot.activeListName ?? '',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        remaining == 0
+                            ? context.translate('list_empty')
+                            : context.translate('items_remaining_count', arguments: {
+                                'remaining': remaining.toString(),
+                                'total': total.toString(),
+                              }),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (total > 0)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.xs),
+                    decoration: BoxDecoration(
+                      color: AppColors.success.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+                    ),
+                    child: Text(
+                      '${(progress * 100).round()}%',
+                      style: const TextStyle(
+                        color: AppColors.success,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+              ],
             ),
-            AppSpacing.gapSM,
-            Text(
-              label,
-              style: theme.textTheme.labelMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: theme.colorScheme.onSurface,
+            if (total > 0) ...[
+              AppSpacing.gapLG,
+              ClipRRect(
+                borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                child: LinearProgressIndicator(
+                  value: progress,
+                  minHeight: 8,
+                  backgroundColor: AppColors.success.withValues(alpha: 0.15),
+                  valueColor: const AlwaysStoppedAnimation<Color>(AppColors.success),
+                ),
               ),
-              textAlign: TextAlign.center,
+            ],
+            AppSpacing.gapLG,
+            Row(
+              children: [
+                Expanded(
+                  child: BeityButton(
+                    onPressed: () => context.push('/shopping-list/${snapshot.activeListId}'),
+                    text: context.translate('open_list'),
+                    type: BeityButtonType.secondary,
+                    icon: Icons.list_alt_rounded,
+                  ),
+                ),
+                AppSpacing.gapMD,
+                Expanded(
+                  child: BeityButton(
+                    onPressed: () {
+                      context.push(
+                        '/shopping-list/${snapshot.activeListId}/shopping-mode',
+                        extra: {
+                          'homeId': snapshot.homeId,
+                          'listName': snapshot.activeListName ?? '',
+                        },
+                      );
+                    },
+                    text: context.translate('shopping_mode'),
+                    type: BeityButtonType.primary,
+                    icon: Icons.shopping_bag_rounded,
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -428,143 +394,80 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  // ─── Active list summary (compact) ───────────────────────────────────
-  Widget _buildActiveListSummary(dynamic activeList) {
-    final itemsAsync = ref.watch(shoppingItemsProvider(activeList.id));
-
-    return itemsAsync.when(
-      data: (items) {
-        final total = items.length;
-        final purchased = items.where((i) => i.isPurchased).length;
-        final remaining = total - purchased;
-        final progress = total > 0 ? purchased / total : 0.0;
-
-        return BeityCard(
-          onTap: () => context.push('/shopping-list/${activeList.id}'),
-          padding: EdgeInsets.zero,
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header row
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(AppSpacing.md),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                      ),
-                      child: Icon(
-                        _getIconData(activeList.icon),
-                        color: Theme.of(context).colorScheme.primary,
-                        size: 24,
-                      ),
-                    ),
-                    AppSpacing.gapLG,
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            activeList.name,
-                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          Text(
-                            total == 0
-                                ? 'قائمة فارغة'
-                                : '$remaining متبقي من $total',
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    // Progress chip
-                    if (total > 0)
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.xs),
-                        decoration: BoxDecoration(
-                          color: _getProgressColor(progress).withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-                        ),
-                        child: Text(
-                          '${(progress * 100).round()}%',
-                          style: TextStyle(
-                            color: _getProgressColor(progress),
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-                // Progress bar
-                if (total > 0) ...[
-                  AppSpacing.gapLG,
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-                    child: LinearProgressIndicator(
-                      value: progress,
-                      minHeight: 8,
-                      backgroundColor: _getProgressColor(progress).withValues(alpha: 0.15),
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        _getProgressColor(progress),
-                      ),
-                    ),
-                  ),
-                ],
-                // Action buttons
-                AppSpacing.gapLG,
-                Row(
-                  children: [
-                    Expanded(
-                      child: BeityButton(
-                        onPressed: () => context.push('/shopping-list/${activeList.id}'),
-                        text: 'فتح القائمة',
-                        type: BeityButtonType.secondary,
-                        icon: Icons.list_alt_rounded,
-                      ),
-                    ),
-                    AppSpacing.gapMD,
-                    Expanded(
-                      child: BeityButton(
-                        onPressed: () {
-                          context.push('/shopping-list/${activeList.id}/shopping-mode', extra: {
-                            'homeId': activeList.homeId,
-                            'listName': activeList.name,
-                          });
-                        },
-                        text: 'وضع التسوق',
-                        type: BeityButtonType.primary,
-                        icon: Icons.shopping_bag_rounded,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-      loading: () => const Card(
-        child: Padding(
-          padding: EdgeInsets.all(24),
-          child: Center(child: CircularProgressIndicator()),
+  // ─── Sync Status Micro Bar Widget (Phase 8) ──────────────────────────────────────────
+  Widget _buildSyncStatusBar(SyncState syncState, bool isOffline) {
+    if (isOffline) {
+      final locale = Localizations.localeOf(context).languageCode;
+      final text = locale == 'ar'
+          ? 'أنت تعمل دون اتصال، سيتم حفظ التغييرات ومزامنتها لاحقاً'
+          : 'You are working offline. Changes will be synced later.';
+      return Container(
+        margin: const EdgeInsets.only(bottom: AppSpacing.md),
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm, horizontal: AppSpacing.md),
+        decoration: BoxDecoration(
+          color: AppColors.warning.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+          border: Border.all(color: AppColors.warning.withValues(alpha: 0.2)),
         ),
-      ),
-      error: (_, _) => const SizedBox.shrink(),
-    );
+        child: Row(
+          children: [
+            const Icon(Icons.wifi_off_rounded, color: AppColors.warning, size: 18),
+            AppSpacing.gapMD,
+            Expanded(
+              child: Text(
+                text,
+                style: const TextStyle(
+                  color: AppColors.warning,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (syncState.status == SyncStatus.syncing) {
+      final locale = Localizations.localeOf(context).languageCode;
+      final text = locale == 'ar' ? 'جاري تحديث البيانات...' : 'Updating data...';
+      return Container(
+        margin: const EdgeInsets.only(bottom: AppSpacing.md),
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm, horizontal: AppSpacing.md),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+        ),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 14,
+              height: 14,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.primary),
+              ),
+            ),
+            AppSpacing.gapMD,
+            Expanded(
+              child: Text(
+                text,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.primary,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return const SizedBox.shrink();
   }
 
   // ─── Shopping lists section ──────────────────────────────────────────
-  Widget _buildShoppingListsSection(List<dynamic> lists) {
+  Widget _buildShoppingListsSection(List<ShoppingListModel> lists) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -572,26 +475,30 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'قوائم المشتريات',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+              context.translate('shopping_lists'),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
             ),
             TextButton(
               onPressed: () => context.push('/shopping-lists'),
-              child: const Text('عرض الكل'),
+              child: Text(context.translate('view_all')),
             ),
           ],
         ),
         AppSpacing.gapSM,
-        ...lists.take(5).map((list) => Padding(
-          padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-          child: ShoppingListTile(
-            listId: list.id,
-            listName: list.name,
-            icon: list.icon,
-          ),
-        )),
+        ...lists
+            .take(5)
+            .map(
+              (list) => Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                child: ShoppingListTile(
+                  listId: list.id,
+                  listName: list.name,
+                  icon: list.icon,
+                ),
+              ),
+            ),
       ],
     );
   }
@@ -599,226 +506,149 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   // ─── Empty list card ─────────────────────────────────────────────────
   Widget _buildEmptyListCard(String homeId) {
     return BeityEmptyState(
-      title: 'لا توجد قوائم مشتريات',
-      message: 'أنشئ قائمتك الأولى لتبدأ بتنظيم مشترياتك',
+      title: context.translate('no_shopping_lists'),
+      message: context.translate('no_shopping_lists_desc'),
       icon: Icons.shopping_cart_outlined,
-      actionText: 'إنشاء قائمة',
+      actionText: context.translate('create_list'),
       onAction: () => context.push('/shopping-lists/create', extra: homeId),
     );
   }
 
   // ─── Recent activity ─────────────────────────────────────────────────
-  Widget _buildRecentActivity(String homeId) {
-    return FutureBuilder<List<Map<String, dynamic>>>(
-      future: Supabase.instance.client
-          .from('activity_logs')
-          .select()
-          .eq('home_id', homeId)
-          .order('created_at', ascending: false)
-          .limit(5)
-          .then((response) => List<Map<String, dynamic>>.from(response)),
-      builder: (context, snapshot) {
-        final activities = snapshot.data ?? [];
+  Widget _buildRecentActivity(String homeId, HomeDashboardSnapshot? snapshot) {
+    final recentActivityAsync = ref.watch(recentHomeActivityProvider(homeId));
 
+    return recentActivityAsync.when(
+      data: (activities) {
         if (activities.isEmpty) {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'آخر النشاطات',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                context.translate('recent_activity'),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
               ),
               AppSpacing.gapLG,
               BeityEmptyState(
-                title: 'لا توجد نشاطات بعد',
-                message: 'ستظهر هنا آخر التحديثات من أفراد منزلك',
+                title: context.translate('no_activities_yet'),
+                message: context.translate('no_activities_desc'),
                 icon: Icons.history_rounded,
               ),
             ],
           );
         }
 
+        final localeCode = Localizations.localeOf(context).languageCode;
+
         return RecentActivityWidget(
-          activities: activities.map((a) => ActivityItem(
-            userName: a['actor_name'] ?? 'مستخدم',
-            action: _getActionText(a['action']),
-            itemName: a['entity_name'] ?? '',
-            icon: _getActionIcon(a['action']),
-            color: _getActionColor(a['action']),
-            timeAgo: _getTimeAgo(a['created_at']),
-          )).toList(),
+          activities: activities
+              .map(
+                (a) => ActivityItem(
+                  userName: a.actorName ?? context.translate('user_label'),
+                  action: a.getLocalizedDescription(context).replaceAll(a.entityName ?? '', '').trim(),
+                  itemName: a.entityName ?? '',
+                  icon: _getActionIcon(a.action.value),
+                  color: _getActionColor(a.action.value),
+                  timeAgo: timeago.format(a.createdAt, locale: localeCode),
+                ),
+              )
+              .toList(),
           onViewAll: () => context.push('/activity'),
+        );
+      },
+      loading: () {
+        if (snapshot != null && snapshot.lastActivityText != null) {
+          return _buildRecentActivitySnapshotWidget(snapshot.lastActivityText!);
+        }
+        return const Padding(
+          padding: EdgeInsets.symmetric(vertical: AppSpacing.xl),
+          child: Center(child: CircularProgressIndicator()),
+        );
+      },
+      error: (e, _) {
+        if (snapshot != null && snapshot.lastActivityText != null) {
+          return _buildRecentActivitySnapshotWidget(snapshot.lastActivityText!);
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              context.translate('recent_activity'),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            AppSpacing.gapLG,
+            BeityEmptyState(
+              title: context.translate('error_loading_activities', arguments: {'error': e.toString()}),
+              message: e.toString(),
+              icon: Icons.error_outline_rounded,
+              isError: true,
+              actionText: context.translate('retry'),
+              onAction: () => ref.invalidate(recentHomeActivityProvider(homeId)),
+            ),
+          ],
         );
       },
     );
   }
 
-  // ─── Helper methods ──────────────────────────────────────────────────
-  Color _getProgressColor(double progress) {
-    if (progress >= 0.8) return AppColors.success;
-    if (progress >= 0.5) return AppColors.info;
-    if (progress >= 0.3) return AppColors.warning;
-    return AppColors.error;
-  }
-
-  IconData _getIconData(String iconName) {
-    switch (iconName) {
-      case 'shopping_cart': return Icons.shopping_cart_rounded;
-      case 'shopping_bag': return Icons.shopping_bag_rounded;
-      case 'local_grocery_store': return Icons.local_grocery_store_rounded;
-      case 'local_pharmacy': return Icons.local_pharmacy_rounded;
-      case 'local_hospital': return Icons.local_hospital_rounded;
-      case 'restaurant': return Icons.restaurant_rounded;
-      case 'local_cafe': return Icons.local_cafe_rounded;
-      case 'home': return Icons.home_rounded;
-      case 'hardware': return Icons.hardware_rounded;
-      case 'build': return Icons.build_rounded;
-      case 'child_care': return Icons.child_care_rounded;
-      case 'pets': return Icons.pets_rounded;
-      case 'card_giftcard': return Icons.card_giftcard_rounded;
-      case 'celebration': return Icons.celebration_rounded;
-      case 'school': return Icons.school_rounded;
-      case 'fitness_center': return Icons.fitness_center_rounded;
-      case 'cleaning_services': return Icons.cleaning_services_rounded;
-      case 'local_florist': return Icons.local_florist_rounded;
-      default: return Icons.shopping_cart_rounded;
-    }
-  }
-
-  String _getActionText(String? action) {
-    switch (action) {
-      case 'item_added': return 'أضاف';
-      case 'item_purchased': return 'اشترى';
-      case 'list_created': return 'أنشأ';
-      case 'member_joined': return 'انضم';
-      default: return 'قام بإجراء';
-    }
+  // ─── Recent activity snapshot fallback widget (Phase 4 & 6) ──────────────────────────────────────────
+  Widget _buildRecentActivitySnapshotWidget(String text) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          context.translate('recent_activity'),
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+        ),
+        AppSpacing.gapLG,
+        RecentActivityWidget(
+          activities: [
+            ActivityItem(
+              userName: '',
+              action: text,
+              itemName: '',
+              icon: Icons.history_rounded,
+              color: AppColors.info,
+              timeAgo: '',
+            ),
+          ],
+          onViewAll: () => context.push('/activity'),
+        ),
+      ],
+    );
   }
 
   IconData _getActionIcon(String? action) {
     switch (action) {
-      case 'item_added': return Icons.add_circle_outline;
-      case 'item_purchased': return Icons.check_circle_outline;
-      case 'list_created': return Icons.create_outlined;
-      case 'member_joined': return Icons.person_add_outlined;
-      default: return Icons.info_outline;
+      case 'item_added':
+        return Icons.add_circle_outline;
+      case 'item_purchased':
+        return Icons.check_circle_outline;
+      case 'list_created':
+        return Icons.create_outlined;
+      case 'member_joined':
+        return Icons.person_add_outlined;
+      default:
+        return Icons.info_outline;
     }
   }
 
   Color _getActionColor(String? action) {
     switch (action) {
-      case 'item_added': return AppColors.info;
-      case 'item_purchased': return AppColors.success;
-      case 'list_created': return AppColors.primary;
-      case 'member_joined': return AppColors.warning;
-      default: return AppColors.textSecondaryFor(Theme.of(context).brightness);
+      case 'item_added':
+        return AppColors.info;
+      case 'item_purchased':
+        return AppColors.success;
+      case 'list_created':
+        return AppColors.primary;
+      case 'member_joined':
+        return AppColors.warning;
+      default:
+        return AppColors.textSecondaryFor(Theme.of(context).brightness);
     }
-  }
-
-  String _getTimeAgo(String? dateStr) {
-    if (dateStr == null) return '';
-    final date = DateTime.parse(dateStr);
-    final now = DateTime.now();
-    final diff = now.difference(date);
-
-    if (diff.inMinutes < 1) return 'الآن';
-    if (diff.inMinutes < 60) return 'منذ ${diff.inMinutes} دقيقة';
-    if (diff.inHours < 24) return 'منذ ${diff.inHours} ساعة';
-    if (diff.inDays < 7) return 'منذ ${diff.inDays} يوم';
-    return 'منذ ${(diff.inDays / 7).floor()} أسبوع';
-  }
-
-  // ─── HEADER ──────────────────────────────────────────────────────────
-  Widget _buildHeader(String homeId, String homeName) {
-    final userHomesAsync = ref.watch(userHomesProvider);
-    final theme = Theme.of(context);
-
-    return SliverAppBar(
-      floating: true,
-      pinned: true,
-      elevation: 0,
-      scrolledUnderElevation: 2,
-      backgroundColor: theme.scaffoldBackgroundColor,
-      surfaceTintColor: Colors.transparent,
-      leading: Builder(
-        builder: (context) => IconButton(
-          icon: Icon(Icons.menu_rounded, color: theme.colorScheme.onSurface),
-          onPressed: () => Scaffold.of(context).openDrawer(),
-        ),
-      ),
-      title: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            '$_greeting، $_userName',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 2),
-          userHomesAsync.when(
-            data: (homes) => HomeSelectorDropdown(
-              currentHomeName: homeName,
-              homes: homes.map((h) => HomeOption(
-                id: h.id,
-                name: h.name,
-                memberCount: 0,
-                isActive: h.id == homeId,
-              )).toList(),
-              onHomeSelected: (selectedHomeId) {
-                final selectedHome = homes.firstWhere((h) => h.id == selectedHomeId);
-                ref.read(homeLocalDataSourceProvider).setActiveHome(selectedHomeId, selectedHome.name);
-                ref.invalidate(activeHomeIdProvider);
-                // Invalidate home-scoped providers to refresh for new home
-                ref.invalidate(notificationsProvider);
-                ref.invalidate(unreadCountProvider);
-                ref.invalidate(notificationPreferencesProvider);
-                ref.invalidate(taskFilterProvider);
-                ref.invalidate(activityFilterProvider);
-                ref.invalidate(categoryNotifierProvider);
-                ref.invalidate(unitNotifierProvider);
-              },
-              onManageHomes: () => context.push('/homes'),
-            ),
-            loading: () => Text(
-              homeName,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: theme.colorScheme.onSurface,
-              ),
-            ),
-            error: (_, _) => Text(
-              homeName,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: theme.colorScheme.onSurface,
-              ),
-            ),
-          ),
-        ],
-      ),
-      actions: [
-        if (FeatureFlags.enableAi)
-          IconButton(
-            icon: const Icon(Icons.auto_awesome_rounded, color: AppColors.accent),
-            onPressed: () => AiListSelectorSheet.show(context, homeId),
-            tooltip: 'المساعد الذكي',
-          ),
-        NotificationBadgeWidget(
-          onTap: () => context.push('/notifications'),
-        ),
-        IconButton(
-          icon: Icon(Icons.person_outline_rounded, color: theme.colorScheme.onSurface),
-          onPressed: () => context.push('/profile'),
-        ),
-        AppSpacing.gapSM,
-      ],
-    );
   }
 }

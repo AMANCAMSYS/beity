@@ -47,7 +47,7 @@ class ShoppingCategoryGroup extends StatelessWidget {
                 const SizedBox(width: 8),
                 Text(
                   group.categoryName == 'Other' 
-                      ? (isArabic ? 'أخرى' : 'Other') 
+                      ? context.translate('other') 
                       : group.categoryName,
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
@@ -56,9 +56,7 @@ class ShoppingCategoryGroup extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  isArabic 
-                      ? '${group.items.where((i) => i.isPurchased).length} من ${group.items.length}' 
-                      : '${group.items.where((i) => i.isPurchased).length} of ${group.items.length}',
+                  context.translate('items_ratio', arguments: {'purchased': group.items.where((i) => i.isPurchased).length.toString(), 'total': group.items.length.toString()}),
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),

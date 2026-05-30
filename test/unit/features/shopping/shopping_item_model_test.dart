@@ -129,7 +129,7 @@ void main() {
     });
 
     test('copyWithModel overrides specified fields', () {
-      final original = ShoppingItemModel(
+      const original = ShoppingItemModel(
         id: 'item-1',
         shoppingListId: 'list-1',
         name: 'Milk',
@@ -149,7 +149,7 @@ void main() {
     });
 
     test('toJson produces correct database column names', () {
-      final item = ShoppingItemModel(
+      const item = ShoppingItemModel(
         id: 'item-1',
         shoppingListId: 'list-1',
         name: 'Milk',

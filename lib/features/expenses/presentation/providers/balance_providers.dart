@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:beity/core/services/supabase_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../data/datasources/settlement_remote_datasource.dart';
 import '../../data/repositories/settlement_repository_impl.dart';
@@ -8,7 +9,7 @@ import '../../domain/repositories/settlement_repository.dart';
 
 final settlementRemoteDataSourceProvider =
     Provider<SettlementRemoteDataSource>((ref) {
-  final client = Supabase.instance.client;
+  final client = SupabaseService.client;
   return SettlementRemoteDataSource(client);
 });
 

@@ -1,43 +1,115 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:beity/core/services/supabase_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../data/models/activity_log_model.dart';
 import '../../data/repositories/activity_log_repository.dart';
 import '../../data/repositories/supabase_activity_log_repository.dart';
 import '../../domain/entities/activity_log.dart';
 
+import '../../../invitations/presentation/providers/roles_provider.dart';
+
 final activityLogRepositoryProvider = Provider<ActivityLogRepository>((ref) {
-  final client = Supabase.instance.client;
+  final client = SupabaseService.client;
   return SupabaseActivityLogRepository(client);
 });
 
-final homeActivityProvider =
-    FutureProvider.autoDispose.family<List<ActivityLogModel>, String>((ref, homeId) async {
-  final repository = ref.watch(activityLogRepositoryProvider);
-  return repository.getActivityLogs(homeId: homeId, limit: 50);
-});
+final homeActivityProvider = StreamProvider.autoDispose
+    .family<List<ActivityLogModel>, String>((ref, homeId) {
+      final repository = ref.watch(activityLogRepositoryProvider);
+      final membersAsync = ref.watch(homeMembersProvider(homeId));
 
-final listActivityProvider =
-    FutureProvider.autoDispose.family<List<ActivityLogModel>, List<String>>((ref, params) async {
-  final repository = ref.watch(activityLogRepositoryProvider);
-  final homeId = params[0];
-  final listId = params[1];
-  final logs = await repository.getActivityLogs(homeId: homeId, limit: 100);
-  return logs.where((log) =>
-      (log.entityType == EntityType.shoppingList && log.entityId == listId) ||
-      (log.metadata != null && log.metadata!['list_id'] == listId)
-  ).toList();
-});
+      return repository.watchHomeActivity(homeId: homeId, limit: 50).map((logs) {
+        return membersAsync.when(
+          data: (members) {
+            final memberMap = {for (final m in members) m.userId: m.userName};
+            return logs.map((log) {
+              if (log.actorName == null || log.actorName == 'مستخدم' || log.actorName!.isEmpty) {
+                final cachedName = memberMap[log.userId];
+                if (cachedName != null && cachedName.isNotEmpty) {
+                  return log.copyWithModel(actorName: cachedName);
+                }
+              }
+              return log;
+            }).toList();
+          },
+          loading: () => logs,
+          error: (error, stack) => logs,
+        );
+      });
+    });
+
+final recentHomeActivityProvider = StreamProvider.autoDispose
+    .family<List<ActivityLogModel>, String>((ref, homeId) {
+      final repository = ref.watch(activityLogRepositoryProvider);
+      final membersAsync = ref.watch(homeMembersProvider(homeId));
+
+      return repository.watchHomeActivity(homeId: homeId, limit: 5).map((logs) {
+        return membersAsync.when(
+          data: (members) {
+            final memberMap = {for (final m in members) m.userId: m.userName};
+            return logs.map((log) {
+              if (log.actorName == null || log.actorName == 'مستخدم' || log.actorName!.isEmpty) {
+                final cachedName = memberMap[log.userId];
+                if (cachedName != null && cachedName.isNotEmpty) {
+                  return log.copyWithModel(actorName: cachedName);
+                }
+              }
+              return log;
+            }).toList();
+          },
+          loading: () => logs,
+          error: (error, stack) => logs,
+        );
+      });
+    });
+
+typedef ListActivityParams = ({String homeId, String listId});
+
+final listActivityProvider = FutureProvider.autoDispose
+    .family<List<ActivityLogModel>, ListActivityParams>((ref, params) async {
+      final repository = ref.watch(activityLogRepositoryProvider);
+      final homeId = params.homeId;
+      final listId = params.listId;
+      final logs = await repository.getActivityLogs(homeId: homeId, limit: 100);
+      final filteredLogs = logs
+          .where(
+            (log) =>
+                (log.entityType == EntityType.shoppingList &&
+                    log.entityId == listId) ||
+                (log.metadata != null && log.metadata!['list_id'] == listId),
+          )
+          .toList();
+
+      // Try to enrich names using homeMembersProvider
+      final membersAsync = ref.watch(homeMembersProvider(homeId));
+      return membersAsync.when(
+        data: (members) {
+          final memberMap = {for (final m in members) m.userId: m.userName};
+          return filteredLogs.map((log) {
+            if (log.actorName == null || log.actorName == 'مستخدم' || log.actorName!.isEmpty) {
+              final cachedName = memberMap[log.userId];
+              if (cachedName != null && cachedName.isNotEmpty) {
+                return log.copyWithModel(actorName: cachedName);
+              }
+            }
+            return log;
+          }).toList();
+        },
+        loading: () => filteredLogs,
+        error: (error, stack) => filteredLogs,
+      );
+    });
 
 final activityActorsProvider =
     FutureProvider.family<List<ActivityActor>, String>((ref, homeId) {
-  final repository = ref.watch(activityLogRepositoryProvider);
-  return repository.getHomeActors(homeId: homeId);
-});
+      final repository = ref.watch(activityLogRepositoryProvider);
+      return repository.getHomeActors(homeId: homeId);
+    });
 
 final activityFilterProvider =
     StateNotifierProvider<ActivityFilterNotifier, ActivityFilter>((ref) {
-  return ActivityFilterNotifier();
-});
+      return ActivityFilterNotifier();
+    });
 
 class ActivityFilter {
   final String? actorId;
@@ -53,8 +125,7 @@ class ActivityFilter {
   }) {
     return ActivityFilter(
       actorId: clearActor ? null : (actorId ?? this.actorId),
-      actionTypes:
-          clearActions ? null : (actionTypes ?? this.actionTypes),
+      actionTypes: clearActions ? null : (actionTypes ?? this.actionTypes),
     );
   }
 
@@ -69,8 +140,7 @@ class ActivityFilterNotifier extends StateNotifier<ActivityFilter> {
   }
 
   void setActionTypes(List<ActionType>? types) {
-    state =
-        state.copyWith(actionTypes: types, clearActions: types == null);
+    state = state.copyWith(actionTypes: types, clearActions: types == null);
   }
 
   void clear() {

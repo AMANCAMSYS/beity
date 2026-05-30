@@ -69,4 +69,6 @@ abstract class InventoryRepository {
   Stream<List<InventoryTransactionModel>> watchTransactions({
     required String inventoryItemId,
   });
+
+  Future<void> syncInventoryWithServer(String homeId);
 }

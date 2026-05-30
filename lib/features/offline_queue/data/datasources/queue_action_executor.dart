@@ -9,22 +9,60 @@ class QueueActionExecutor {
 
   QueueActionExecutor(this._client);
 
-  Future<void> execute(QueueEntry entry) async {
+  Future<String?> execute(QueueEntry entry) async {
+    final user = _client.auth.currentUser;
+    
+    // 1. Pre-check idempotency key to prevent duplicate execution
+    if (user != null) {
+      try {
+        final existingLog = await _client
+            .from('sync_operations_log')
+            .select('idempotency_key')
+            .eq('idempotency_key', entry.idempotencyKey)
+            .maybeSingle();
+
+        if (existingLog != null) {
+          // Operation already executed! Return the entity ID immediately.
+          return entry.entityId;
+        }
+      } catch (_) {
+        // Fallback: if the idempotency log table isn't created or queried, proceed with best effort execution
+      }
+    }
+
+    // 2. Execute the actual database transaction
+    String? resultId;
     switch (entry.entityType) {
       case EntityType.shoppingItem:
-        await _executeShoppingItemAction(entry);
+        resultId = await _executeShoppingItemAction(entry);
         break;
       case EntityType.shoppingList:
-        await _executeShoppingListAction(entry);
+        resultId = await _executeShoppingListAction(entry);
         break;
     }
+
+    // 3. Register the idempotency key upon successful execution
+    if (user != null) {
+      try {
+        await _client.from('sync_operations_log').insert({
+          'idempotency_key': entry.idempotencyKey,
+          'user_id': user.id,
+          'entity_type': entry.entityType.tableName,
+          'entity_id': entry.entityId,
+          'operation_type': entry.actionType.name,
+        });
+      } catch (_) {
+        // If writing to the log table fails, proceed anyway so the sync queue isn't blocked
+      }
+    }
+
+    return resultId ?? entry.entityId;
   }
 
-  Future<void> _executeShoppingItemAction(QueueEntry entry) async {
+  Future<String?> _executeShoppingItemAction(QueueEntry entry) async {
     switch (entry.actionType) {
       case ActionType.addItem:
-        await _executeAddItem(entry);
-        break;
+        return _executeAddItem(entry);
       case ActionType.updateItem:
         await _executeUpdateItem(entry);
         break;
@@ -38,14 +76,15 @@ class QueueActionExecutor {
         await _executeUpdateQuantity(entry);
         break;
     }
+    return null;
   }
 
-  Future<void> _executeShoppingListAction(QueueEntry entry) async {
+  Future<String?> _executeShoppingListAction(QueueEntry entry) async {
     // Shopping list actions are handled online only
     throw Exception('Shopping list actions not supported in offline queue');
   }
 
-  Future<void> _executeAddItem(QueueEntry entry) async {
+  Future<String?> _executeAddItem(QueueEntry entry) async {
     final payload = entry.payload;
     final user = _client.auth.currentUser;
     if (user == null) throw Exception('User not authenticated');
@@ -53,7 +92,7 @@ class QueueActionExecutor {
     final table = entry.entityType.tableName;
     // Use upsert with the pre-generated ID so that subsequent
     // update/delete/markPurchased entries referencing this ID work correctly
-    await _client.from(table).upsert({
+    final result = await _client.from(table).upsert({
       'id': entry.entityId,
       'list_id': payload['list_id'],
       'name': payload['name'],
@@ -64,7 +103,9 @@ class QueueActionExecutor {
       'currency': payload['currency'] ?? 'SAR',
       'note': payload['note'],
       'created_by': user.id,
-    }, onConflict: 'id');
+    }, onConflict: 'id').select('id').maybeSingle();
+
+    return result?['id'] as String?;
   }
 
   Future<void> _executeUpdateItem(QueueEntry entry) async {

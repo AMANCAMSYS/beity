@@ -20,7 +20,7 @@ void main() {
             expenseId: 'expense-123',
           )).thenAnswer((_) async {});
 
-      await useCase(DeleteExpenseParams(
+      await useCase(const DeleteExpenseParams(
         expenseId: 'expense-123',
       ));
 
@@ -35,7 +35,7 @@ void main() {
           )).thenThrow(Exception('Expense not found'));
 
       expect(
-        () => useCase(DeleteExpenseParams(expenseId: 'non-existent')),
+        () => useCase(const DeleteExpenseParams(expenseId: 'non-existent')),
         throwsException,
       );
     });

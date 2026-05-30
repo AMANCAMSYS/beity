@@ -11,7 +11,7 @@ class SignUpUseCase {
     required String password,
     required String fullName,
   }) async {
-    return await _repository.signUp(
+    return _repository.signUp(
       email: email,
       password: password,
       fullName: fullName,

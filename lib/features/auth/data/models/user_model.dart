@@ -11,6 +11,9 @@ class UserModel {
   final String? phone;
   @JsonKey(name: 'avatar_url')
   final String? avatarUrl;
+  final String? country;
+  final String? dialect;
+  final String? language;
   @JsonKey(name: 'created_at')
   final DateTime createdAt;
   @JsonKey(name: 'updated_at')
@@ -22,6 +25,9 @@ class UserModel {
     required this.email,
     this.phone,
     this.avatarUrl,
+    this.country,
+    this.dialect,
+    this.language,
     required this.createdAt,
     this.updatedAt,
   });

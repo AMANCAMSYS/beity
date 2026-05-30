@@ -4,7 +4,7 @@ import 'package:beity/features/ai_suggestions/domain/entities/ai_suggestion.dart
 import 'package:beity/features/ai_suggestions/domain/entities/ai_suggestion_request.dart';
 import 'package:beity/features/ai_suggestions/domain/repositories/ai_suggestion_repository.dart';
 import 'package:beity/features/ai_suggestions/domain/usecases/get_ai_suggestions.dart';
-import 'package:beity/core/error/exceptions.dart';
+import 'package:beity/core/errors/app_exception.dart';
 
 class MockAiSuggestionRepository extends Mock implements AiSuggestionRepository {}
 
@@ -14,7 +14,7 @@ void main() {
 
   setUp(() {
     mockRepository = MockAiSuggestionRepository();
-    useCase = GetAiSuggestions(repository: mockRepository);
+    useCase = GetAiSuggestions(mockRepository);
     
     registerFallbackValue(const AiSuggestionRequest(
       prompt: '',

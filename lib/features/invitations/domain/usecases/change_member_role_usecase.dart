@@ -19,7 +19,7 @@ class ChangeMemberRoleUseCase {
       throw Exception('الدور غير صالح');
     }
 
-    return await _repository.changeMemberRole(
+    return _repository.changeMemberRole(
       homeId: homeId,
       userId: userId,
       newRole: newRole,

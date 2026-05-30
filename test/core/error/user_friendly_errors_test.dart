@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   group('User Friendly Errors', () {
     test('Format exception is converted to friendly message', () {
-      final rawError = FormatException('Unexpected character');
+      const rawError = FormatException('Unexpected character');
       final friendlyError = ErrorHandler.getFriendlyMessage(rawError);
       
       expect(friendlyError.contains('FormatException'), false);
@@ -12,8 +12,8 @@ void main() {
 
     test('TypeError is converted to friendly message', () {
       try {
-        dynamic a = 1;
-        a.substring(1); // throws TypeError or NoSuchMethodError
+        const Object a = 1;
+        final String _ = a as String; // throws TypeError
       } catch (e) {
         final friendlyError = ErrorHandler.getFriendlyMessage(e);
         expect(friendlyError.contains('TypeError'), false);

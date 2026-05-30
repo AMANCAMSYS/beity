@@ -1,5 +1,4 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:beity/features/ai_suggestions/data/datasources/ai_suggestion_remote_data_source.dart';
 import 'package:beity/features/ai_suggestions/data/models/ai_suggestion_request_model.dart';
 import 'package:beity/features/ai_suggestions/domain/entities/ai_suggestion_request.dart';
 import 'package:mocktail/mocktail.dart';
@@ -11,14 +10,12 @@ class MockFunctionsClient extends Mock implements FunctionsClient {}
 void main() {
   late MockSupabaseClient mockSupabase;
   late MockFunctionsClient mockFunctions;
-  late AiSuggestionRemoteDataSource dataSource;
-
   setUp(() {
     mockSupabase = MockSupabaseClient();
     mockFunctions = MockFunctionsClient();
     when(() => mockSupabase.functions).thenReturn(mockFunctions);
-    dataSource = AiSuggestionRemoteDataSourceImpl(mockSupabase);
   });
+  
 
   group('AI Data Source Security', () {
     test('Request payload does not contain any API keys or tokens', () {

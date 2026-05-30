@@ -5,6 +5,7 @@ import '../providers/ai_assistant_provider.dart';
 import 'ai_status_badge.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_spacing.dart';
+import '../../../../core/localization/app_localizations.dart';
 
 /// Vertical ingredient checklist with status badges and selection.
 class AiRecipeChecklist extends ConsumerWidget {
@@ -39,7 +40,7 @@ class AiRecipeChecklist extends ConsumerWidget {
     return Directionality(
       textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
       child: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 100),
         children: [
           // Meal header
           _buildMealHeader(context, isDark, isArabic),
@@ -51,7 +52,7 @@ class AiRecipeChecklist extends ConsumerWidget {
 
           // Required ingredients section
           Text(
-            isArabic ? 'المكونات الأساسية' : 'Required Ingredients',
+            context.translate('required_ingredients'),
             style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
@@ -63,7 +64,7 @@ class AiRecipeChecklist extends ConsumerWidget {
           if (optionalIngredients.isNotEmpty) ...[
             const SizedBox(height: 20),
             Text(
-              isArabic ? 'مكونات اختيارية' : 'Optional Ingredients',
+              context.translate('optional_ingredients'),
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.bold,
                 color: AppColors.warning,
@@ -77,7 +78,7 @@ class AiRecipeChecklist extends ConsumerWidget {
           if (cookingStepsPreview.isNotEmpty) ...[
             const SizedBox(height: 20),
             Text(
-              isArabic ? 'خطوات الطبخ' : 'Cooking Steps',
+              context.translate('cooking_steps'),
               style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
@@ -92,7 +93,7 @@ class AiRecipeChecklist extends ConsumerWidget {
                       color: AppColors.primary.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
-                    child: Center(child: Text('${e.key + 1}', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary))),
+                    child: Center(child: Text('${e.key + 1}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary))),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
@@ -129,9 +130,9 @@ class AiRecipeChecklist extends ConsumerWidget {
           const SizedBox(height: 10),
           Row(
             children: [
-              _infoChip(Icons.timer_outlined, '${meal.estimatedTimeMinutes} ${isArabic ? 'د' : 'min'}', isDark),
+              _infoChip(Icons.timer_outlined, '${meal.estimatedTimeMinutes} ${context.translate('minutes_short')}', isDark),
               const SizedBox(width: 8),
-              _infoChip(Icons.people_outline, '${meal.servings} ${isArabic ? 'أشخاص' : 'servings'}', isDark),
+              _infoChip(Icons.people_outline, '${meal.servings} ${context.translate('servings_count')}', isDark),
               if (meal.difficulty.isNotEmpty) ...[
                 const SizedBox(width: 8),
                 _infoChip(Icons.signal_cellular_alt, meal.difficulty, isDark),
@@ -146,11 +147,11 @@ class AiRecipeChecklist extends ConsumerWidget {
   Widget _buildSummaryBar(BuildContext context, bool isDark, bool isArabic) {
     return Row(
       children: [
-        _summaryChip(AppColors.success, '${shoppingSummary.availableCount}', isArabic ? 'موجود' : 'Available'),
+        _summaryChip(AppColors.success, '${shoppingSummary.availableCount}', context.translate('available')),
         const SizedBox(width: 8),
-        _summaryChip(AppColors.error, '${shoppingSummary.missingCount}', isArabic ? 'ناقص' : 'Missing'),
+        _summaryChip(AppColors.error, '${shoppingSummary.missingCount}', context.translate('missing')),
         const SizedBox(width: 8),
-        _summaryChip(AppColors.info, '${shoppingSummary.alreadyInListCount}', isArabic ? 'في القائمة' : 'In List'),
+        _summaryChip(AppColors.info, '${shoppingSummary.alreadyInListCount}', context.translate('already_in_list')),
       ],
     );
   }
@@ -170,7 +171,7 @@ class AiRecipeChecklist extends ConsumerWidget {
         title: Row(
           children: [
             Expanded(
-              child: Text(ing.name, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 15)),
+              child: Text(ing.displayName ?? ing.name, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 15)),
             ),
             AiStatusBadge(status: ing.status),
           ],
@@ -183,7 +184,7 @@ class AiRecipeChecklist extends ConsumerWidget {
               Row(
                 children: [
                   Text(
-                    '${ing.quantity} ${ing.unit ?? (isArabic ? 'قطعة' : 'pcs')}',
+                    '${ing.quantity} ${ing.unit ?? context.translate('piece_unit')}',
                     style: TextStyle(fontSize: 13, color: isDark ? Colors.white54 : Colors.grey.shade600),
                   ),
                   if (ing.category != null) ...[
@@ -233,17 +234,17 @@ class AiRecipeChecklist extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(ing.name, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
+                Text(ing.displayName ?? ing.name, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
                 Text(
-                  '${ing.quantity} ${ing.unit ?? (isArabic ? 'قطعة' : 'pcs')}',
+                  '${ing.quantity} ${ing.unit ?? context.translate('piece_unit')}',
                   style: TextStyle(fontSize: 12, color: isDark ? Colors.white54 : Colors.grey.shade600),
                 ),
                 if (ing.reason != null)
-                  Text(ing.reason!, style: TextStyle(fontSize: 11, fontStyle: FontStyle.italic, color: AppColors.warning)),
+                  Text(ing.reason!, style: const TextStyle(fontSize: 11, fontStyle: FontStyle.italic, color: AppColors.warning)),
               ],
             ),
           ),
-          AiStatusBadge(status: IngredientStatus.optional),
+          const AiStatusBadge(status: IngredientStatus.optional),
         ],
       ),
     );

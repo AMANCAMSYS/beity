@@ -6,28 +6,22 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../homes/presentation/providers/homes_provider.dart';
 import '../providers/notification_preferences_provider.dart';
 import '../widgets/notification_preference_toggle.dart';
+import 'package:beity/core/localization/app_localizations.dart';
 
 class NotificationPreferencesScreen extends ConsumerWidget {
   const NotificationPreferencesScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final activeHomeId = ref.watch(activeHomeIdProvider);
+    final activeHomeId = ref.watch(cachedActiveHomeIdProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('إعدادات الإشعارات'),
+        title: Text(context.translate('notification_settings')),
       ),
-      body: activeHomeId.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, _) => _buildNoHomeState(context),
-        data: (homeId) {
-          if (homeId == null || homeId.isEmpty) {
-            return _buildNoHomeState(context);
-          }
-          return _buildPreferencesBody(context, ref);
-        },
-      ),
+      body: activeHomeId == null || activeHomeId.isEmpty
+          ? _buildNoHomeState(context)
+          : _buildPreferencesBody(context, ref),
     );
   }
 
@@ -40,23 +34,21 @@ class NotificationPreferencesScreen extends ConsumerWidget {
           children: [
             Icon(Icons.home_outlined, size: 64, color: Colors.grey[400]),
             const SizedBox(height: 16),
-            const Text(
-              'لا يوجد منزل نشط',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              textDirection: TextDirection.rtl,
+            Text(
+              context.translate('no_active_home'),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
-              'يرجى اختيار منزل أولًا لتعديل إعدادات الإشعارات.',
+              context.translate('select_active_home_for_notifications'),
               style: TextStyle(color: Colors.grey[600], fontSize: 14),
-              textDirection: TextDirection.rtl,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
             ElevatedButton.icon(
               onPressed: () => context.push('/homes'),
               icon: const Icon(Icons.home),
-              label: const Text('اختيار منزل'),
+              label: Text(context.translate('select_home')),
             ),
           ],
         ),
@@ -71,7 +63,7 @@ class NotificationPreferencesScreen extends ConsumerWidget {
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, _) {
         final message = error.toString();
-        final isNoHome = message.contains('لا يوجد منزل نشط');
+        final isNoHome = message.contains('لا يوجد منزل نشط') || message.contains('no active home');
 
         return Center(
           child: Padding(
@@ -86,18 +78,16 @@ class NotificationPreferencesScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  isNoHome ? 'لا يوجد منزل نشط' : 'تعذّر تحميل إعدادات الإشعارات',
+                  isNoHome ? context.translate('no_active_home') : context.translate('failed_load_notifications'),
                   style: const TextStyle(
                       fontSize: 18, fontWeight: FontWeight.bold),
-                  textDirection: TextDirection.rtl,
                 ),
                 const SizedBox(height: 8),
                 Text(
                   isNoHome
-                      ? 'يرجى اختيار منزل أولًا لتعديل إعدادات الإشعارات.'
-                      : 'حدث خطأ غير متوقع. يرجى المحاولة مجدداً.',
+                      ? context.translate('select_active_home_for_notifications')
+                      : context.translate('unexpected_error_retry'),
                   style: TextStyle(color: Colors.grey[600], fontSize: 14),
-                  textDirection: TextDirection.rtl,
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 24),
@@ -105,14 +95,14 @@ class NotificationPreferencesScreen extends ConsumerWidget {
                   ElevatedButton.icon(
                     onPressed: () => context.push('/homes'),
                     icon: const Icon(Icons.home),
-                    label: const Text('اختيار منزل'),
+                    label: Text(context.translate('select_home')),
                   )
                 else
                   ElevatedButton.icon(
                     onPressed: () =>
                         ref.invalidate(notificationPreferencesProvider),
                     icon: const Icon(Icons.refresh),
-                    label: const Text('إعادة المحاولة'),
+                    label: Text(context.translate('retry')),
                   ),
               ],
             ),
@@ -124,20 +114,20 @@ class NotificationPreferencesScreen extends ConsumerWidget {
           padding: const EdgeInsets.all(16),
           children: [
             Text(
-              'فئات الإشعارات',
+              context.translate('notification_categories'),
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
             ),
             const SizedBox(height: 8),
             Text(
-              'اختر أنواع الإشعارات التي تريد استلامها.',
+              context.translate('notification_categories_desc'),
               style: TextStyle(color: Colors.grey[600]),
             ),
             const SizedBox(height: 24),
             NotificationPreferenceToggle(
-              label: 'إضافة صنف',
-              description: 'إشعار عند إضافة أصناف جديدة للقوائم',
+              label: context.translate('pref_item_added'),
+              description: context.translate('pref_item_added_desc'),
               icon: Icons.add_circle_outline,
               value: prefs.itemAdded,
               onChanged: (v) => ref
@@ -145,8 +135,8 @@ class NotificationPreferencesScreen extends ConsumerWidget {
                   .updateField('item_added', v),
             ),
             NotificationPreferenceToggle(
-              label: 'إكمال صنف',
-              description: 'إشعار عند إكمال أصناف من القوائم',
+              label: context.translate('pref_item_completed'),
+              description: context.translate('pref_item_completed_desc'),
               icon: Icons.check_circle_outline,
               value: prefs.itemCompleted,
               onChanged: (v) => ref
@@ -154,8 +144,8 @@ class NotificationPreferencesScreen extends ConsumerWidget {
                   .updateField('item_completed', v),
             ),
             NotificationPreferenceToggle(
-              label: 'مخزون منخفض',
-              description: 'إشعار عند انخفاض المخزون',
+              label: context.translate('pref_low_stock'),
+              description: context.translate('pref_low_stock_desc'),
               icon: Icons.warning_amber_outlined,
               value: prefs.lowStock,
               onChanged: (v) => ref
@@ -163,8 +153,8 @@ class NotificationPreferencesScreen extends ConsumerWidget {
                   .updateField('low_stock', v),
             ),
             NotificationPreferenceToggle(
-              label: 'تنبيه انتهاء الصلاحية',
-              description: 'إشعار عند اقتراب انتهاء صلاحية المنتجات',
+              label: context.translate('pref_expiry_alert'),
+              description: context.translate('pref_expiry_alert_desc'),
               icon: Icons.event_busy,
               value: prefs.expiryAlert,
               onChanged: (v) => ref
@@ -172,8 +162,8 @@ class NotificationPreferencesScreen extends ConsumerWidget {
                   .updateField('expiry_alert', v),
             ),
             NotificationPreferenceToggle(
-              label: 'إضافة مصروف',
-              description: 'إشعار عند إضافة مصروفات جديدة',
+              label: context.translate('pref_expense_added'),
+              description: context.translate('pref_expense_added_desc'),
               icon: Icons.attach_money,
               value: prefs.expenseAdded,
               onChanged: (v) => ref
@@ -181,8 +171,8 @@ class NotificationPreferencesScreen extends ConsumerWidget {
                   .updateField('expense_added', v),
             ),
             NotificationPreferenceToggle(
-              label: 'موعد المهمة',
-              description: 'تذكير بمواعيد المهام المستحقة',
+              label: context.translate('pref_task_due'),
+              description: context.translate('pref_task_due_desc'),
               icon: Icons.schedule,
               value: prefs.taskDue,
               onChanged: (v) => ref

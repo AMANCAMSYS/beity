@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../providers/invitations_provider.dart';
 import '../widgets/invitation_card_widget.dart';
+import '../../../../core/localization/app_localizations.dart';
 
 class InvitationsListScreen extends ConsumerWidget {
   final String? homeId;
@@ -29,7 +30,7 @@ class InvitationsListScreen extends ConsumerWidget {
           if (previous?.isLoading == true) {
             ScaffoldMessenger.of(
               context,
-            ).showSnackBar(const SnackBar(content: Text('تمت العملية بنجاح')));
+            ).showSnackBar(SnackBar(content: Text(context.translate('action_success'))));
           }
         },
       );
@@ -38,8 +39,7 @@ class InvitationsListScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          homeId != null ? 'دعوات المنزل' : 'دعواتي',
-          textDirection: TextDirection.rtl,
+          homeId != null ? context.translate('home_invitations') : context.translate('my_invitations'),
         ),
       ),
       body: invitationsAsync.when(
@@ -53,22 +53,20 @@ class InvitationsListScreen extends ConsumerWidget {
                   const SizedBox(height: 16),
                   Text(
                     homeId != null
-                        ? 'لا توجد دعوات معلقة لهذا المنزل'
-                        : 'ليس لديك دعوات معلقة',
+                        ? context.translate('no_pending_invitations_home')
+                        : context.translate('no_pending_invitations_user'),
                     style: Theme.of(
                       context,
                     ).textTheme.titleMedium?.copyWith(color: Colors.grey[600]),
-                    textDirection: TextDirection.rtl,
                   ),
                   const SizedBox(height: 8),
                   Text(
                     homeId != null
-                        ? 'يمكنك دعوة أعضاء جدد من إعدادات المنزل'
-                        : 'ستظهر هنا الدعوات الواردة لك',
+                        ? context.translate('invite_members_from_settings')
+                        : context.translate('received_invitations_here'),
                     style: Theme.of(
                       context,
                     ).textTheme.bodyMedium?.copyWith(color: Colors.grey[500]),
-                    textDirection: TextDirection.rtl,
                     textAlign: TextAlign.center,
                   ),
                 ],
@@ -96,8 +94,7 @@ class InvitationsListScreen extends ConsumerWidget {
               const Icon(Icons.error_outline, size: 48, color: AppColors.error),
               const SizedBox(height: 16),
               Text(
-                'حدث خطأ أثناء تحميل الدعوات',
-                textDirection: TextDirection.rtl,
+                context.translate('load_invitations_failed'),
               ),
               const SizedBox(height: 8),
               ElevatedButton(
@@ -106,7 +103,7 @@ class InvitationsListScreen extends ConsumerWidget {
                       ? homeInvitationsStreamProvider(homeId!)
                       : userInvitationsStreamProvider,
                 ),
-                child: const Text('إعادة المحاولة'),
+                child: Text(context.translate('retry')),
               ),
             ],
           ),

@@ -22,7 +22,7 @@ class UpdateCategoryUseCase {
       throw Exception('اسم التصنيف طويل جداً');
     }
 
-    return await _repository.updateCategory(
+    return _repository.updateCategory(
       categoryId: categoryId,
       name: name,
       icon: icon,

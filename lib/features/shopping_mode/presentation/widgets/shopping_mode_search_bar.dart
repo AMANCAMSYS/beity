@@ -26,7 +26,7 @@ class ShoppingModeSearchBar extends StatelessWidget {
       child: TextField(
         autofocus: false,
         decoration: InputDecoration(
-          hintText: isArabic ? 'بحث في العناصر...' : 'Search items...',
+          hintText: context.translate('search_items_placeholder'),
           prefixIcon: const Icon(Icons.search),
           suffixIcon: IconButton(
             icon: const Icon(Icons.clear),

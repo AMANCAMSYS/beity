@@ -43,9 +43,8 @@ fi
 
 echo "🔍 جاري البحث عن الهاتف المتصل..."
 
-# استخراج الأجهزة المتصلة بدقة. بعض هواتف Android عبر Wi-Fi تظهر مرتين:
-# مرة بعنوان IP صالح، ومرة باسم mDNS مثل adb-..._adb-tls-connect._tcp،
-# وFlutter قد يفشل عند محاولة قراءة خصائص اسم mDNS.
+# استخراج الأجهزة المتصلة بدقة.
+# نفضّل IP:port لأنه الأكثر ثباتاً، ثم USB، ثم mDNS كخيار أخير.
 mapfile -t DEVICE_IDS < <(
     "$ADB_CMD" devices |
         tail -n +2 |
@@ -53,14 +52,6 @@ mapfile -t DEVICE_IDS < <(
         sed '/^[[:space:]]*$/d'
 )
 
-# افصل مداخل mDNS المكررة إن وجدت حتى لا يحاول Flutter فحصها.
-for stale_id in "${DEVICE_IDS[@]}"; do
-    if [[ "$stale_id" == *"_adb-tls-connect._tcp"* ]]; then
-        "$ADB_CMD" disconnect "$stale_id" >/dev/null 2>&1 || true
-    fi
-done
-
-# فضّل الاتصال المباشر عبر IP:port، ثم USB، وتجاهل mDNS كاختيار افتراضي.
 DEVICE_ID=""
 for id in "${DEVICE_IDS[@]}"; do
     if [[ "$id" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+:[0-9]+$ ]]; then
@@ -73,6 +64,16 @@ if [ -z "$DEVICE_ID" ]; then
     for id in "${DEVICE_IDS[@]}"; do
         if [[ "$id" != *"_adb-tls-connect._tcp"* ]]; then
             DEVICE_ID="$id"
+            break
+        fi
+    done
+fi
+
+if [ -z "$DEVICE_ID" ]; then
+    for id in "${DEVICE_IDS[@]}"; do
+        if [[ "$id" == *"_adb-tls-connect._tcp"* ]]; then
+            DEVICE_ID="$id"
+            echo "ℹ️ تم العثور على الهاتف عبر mDNS. للحصول على اسم ثابت استخدم adb connect IP:PORT."
             break
         fi
     done

@@ -5,6 +5,7 @@ import '../../../../app/theme/app_colors.dart';
 import '../../data/models/activity_log_model.dart';
 import '../providers/activity_logs_provider.dart';
 import '../widgets/activity_log_tile_widget.dart';
+import 'package:beity/core/localization/app_localizations.dart';
 
 class ListActivityScreen extends ConsumerWidget {
   final String homeId;
@@ -20,12 +21,14 @@ class ListActivityScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final activityAsync =
-        ref.watch(listActivityProvider([homeId, listId]));
+    final activityParams = (homeId: homeId, listId: listId);
+    final activityAsync = ref.watch(listActivityProvider(activityParams));
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('نشاطات $listName'),
+        title: Text(
+          context.translate('list_activities_title', arguments: {'listName': listName}),
+        ),
       ),
       body: activityAsync.when(
         data: (logs) {
@@ -41,10 +44,13 @@ class ListActivityScreen extends ConsumerWidget {
   }
 
   Widget _buildList(
-      BuildContext context, WidgetRef ref, List<ActivityLogModel> logs) {
+    BuildContext context,
+    WidgetRef ref,
+    List<ActivityLogModel> logs,
+  ) {
     return RefreshIndicator(
       onRefresh: () async {
-        ref.invalidate(listActivityProvider([homeId, listId]));
+        ref.invalidate(listActivityProvider((homeId: homeId, listId: listId)));
       },
       child: ListView.builder(
         padding: const EdgeInsets.symmetric(vertical: 8),
@@ -67,29 +73,23 @@ class ListActivityScreen extends ConsumerWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.history,
-              size: 80,
-              color: Colors.grey[400],
-            ),
+            Icon(Icons.history, size: 80, color: Colors.grey[400]),
             const SizedBox(height: 24),
             Text(
-              'لا توجد نشاطات لهذه القائمة',
+              context.translate('no_activities_for_list'),
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    color: Colors.grey[700],
-                    fontWeight: FontWeight.bold,
-                  ),
+                color: Colors.grey[700],
+                fontWeight: FontWeight.bold,
+              ),
               textAlign: TextAlign.center,
-              textDirection: TextDirection.rtl,
             ),
             const SizedBox(height: 8),
             Text(
-              'ستظهر النشاطات عند إضافة أو تعديل أو شراء المنتجات',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey[600],
-                  ),
+              context.translate('activities_for_list_desc'),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
               textAlign: TextAlign.center,
-              textDirection: TextDirection.rtl,
             ),
           ],
         ),
@@ -97,8 +97,7 @@ class ListActivityScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildErrorState(
-      BuildContext context, WidgetRef ref, String error) {
+  Widget _buildErrorState(BuildContext context, WidgetRef ref, String error) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -108,10 +107,10 @@ class ListActivityScreen extends ConsumerWidget {
             const Icon(Icons.error_outline, size: 64, color: AppColors.error),
             const SizedBox(height: 16),
             Text(
-              'حدث خطأ',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: Colors.grey[700],
-                  ),
+              context.translate('error_occurred'),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(color: Colors.grey[700]),
             ),
             const SizedBox(height: 8),
             Text(
@@ -122,9 +121,10 @@ class ListActivityScreen extends ConsumerWidget {
             const SizedBox(height: 16),
             ElevatedButton.icon(
               onPressed: () => ref.invalidate(
-                  listActivityProvider([homeId, listId])),
+                listActivityProvider((homeId: homeId, listId: listId)),
+              ),
               icon: const Icon(Icons.refresh),
-              label: const Text('إعادة المحاولة'),
+              label: Text(context.translate('retry')),
             ),
           ],
         ),

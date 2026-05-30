@@ -5,7 +5,7 @@ import 'package:beity/features/ai_suggestions/data/models/ai_suggestion_model.da
 import 'package:beity/features/ai_suggestions/data/models/ai_suggestion_request_model.dart';
 import 'package:beity/features/ai_suggestions/data/repositories/ai_suggestion_repository_impl.dart';
 import 'package:beity/features/ai_suggestions/domain/entities/ai_suggestion_request.dart';
-import 'package:beity/core/error/exceptions.dart';
+import 'package:beity/core/errors/app_exception.dart';
 
 class MockAiSuggestionRemoteDataSource extends Mock implements AiSuggestionRemoteDataSource {}
 
@@ -70,7 +70,7 @@ void main() {
       when(() => mockRemoteDataSource.fetchSuggestions(any()))
           .thenThrow(Exception('Unexpected error'));
 
-      expect(() => repository.getSuggestions(tRequest), throwsA(isA<ServerException>()));
+      expect(() => repository.getSuggestions(tRequest), throwsA(isA<DatabaseException>()));
     });
   });
 }

@@ -1,3 +1,4 @@
+import '../../../../core/errors/app_exception.dart';
 import '../entities/unit.dart';
 import '../../data/repositories/unit_repository.dart';
 
@@ -13,28 +14,28 @@ class CreateUnitUseCase {
   }) async {
     // Validate name
     if (name.isEmpty) {
-      throw Exception('يرجى إدخال اسم الوحدة');
+      throw const ValidationException(message: 'please_enter_unit_name_validation');
     }
 
     if (name.length > 50) {
-      throw Exception('اسم الوحدة طويل جداً');
+      throw const ValidationException(message: 'unit_name_too_long');
     }
 
     // Validate symbol
     if (symbol.isEmpty) {
-      throw Exception('يرجى إدخال رمز الوحدة');
+      throw const ValidationException(message: 'please_enter_unit_symbol_validation');
     }
 
     if (symbol.length > 10) {
-      throw Exception('رمز الوحدة طويل جداً');
+      throw const ValidationException(message: 'unit_symbol_too_long');
     }
 
     // Validate type
     if (!_isValidType(type)) {
-      throw Exception('نوع الوحدة غير صالح');
+      throw const ValidationException(message: 'invalid_unit_type');
     }
 
-    return await _repository.createUnit(
+    return _repository.createUnit(
       name: name,
       symbol: symbol,
       type: type,

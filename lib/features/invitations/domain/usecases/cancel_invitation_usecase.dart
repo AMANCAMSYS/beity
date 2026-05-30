@@ -11,6 +11,6 @@ class CancelInvitationUseCase {
       throw Exception('معرف الدعوة غير صالح');
     }
 
-    return await _repository.cancelInvitation(invitationId: invitationId);
+    return _repository.cancelInvitation(invitationId: invitationId);
   }
 }

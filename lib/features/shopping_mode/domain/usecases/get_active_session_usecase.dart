@@ -10,7 +10,7 @@ class GetActiveSessionUseCase {
     required String userId,
     required String listId,
   }) async {
-    return await _repository.getActiveSession(
+    return _repository.getActiveSession(
       userId: userId,
       listId: listId,
     );

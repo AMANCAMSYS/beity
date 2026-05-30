@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import '../../../categories/data/models/category_model.dart';
 
 class CategoryFilterWidget extends StatelessWidget {
-  final List<dynamic> categories;
+  final List<CategoryModel> categories;
   final String? selectedCategoryId;
   final ValueChanged<String?> onCategorySelected;
 
@@ -16,10 +17,10 @@ class CategoryFilterWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final isArabic = Localizations.localeOf(context).languageCode == 'ar';
     return SizedBox(
-      height: 40,
+      height: 48,
       child: ListView(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsetsDirectional.fromSTEB(16, 4, 16, 4),
         children: [
           _buildFilterChip(
             context,
@@ -27,12 +28,14 @@ class CategoryFilterWidget extends StatelessWidget {
             isSelected: selectedCategoryId == null,
             onTap: () => onCategorySelected(null),
           ),
-          ...categories.map((category) => _buildFilterChip(
-                context,
-                label: category.name,
-                isSelected: selectedCategoryId == category.id,
-                onTap: () => onCategorySelected(category.id),
-              )),
+          ...categories.map(
+            (category) => _buildFilterChip(
+              context,
+              label: category.name,
+              isSelected: selectedCategoryId == category.id,
+              onTap: () => onCategorySelected(category.id),
+            ),
+          ),
         ],
       ),
     );
@@ -50,6 +53,8 @@ class CategoryFilterWidget extends StatelessWidget {
         label: Text(label),
         selected: isSelected,
         onSelected: (_) => onTap(),
+        visualDensity: VisualDensity.compact,
+        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
         selectedColor: Theme.of(context).primaryColor.withValues(alpha: 0.2),
         checkmarkColor: Theme.of(context).primaryColor,
       ),

@@ -32,7 +32,7 @@ void main() {
             title: 'تنظيف المطبخ',
           )).thenAnswer((_) async => testTask);
 
-      final result = await useCase(CreateTaskParams(
+      final result = await useCase(const CreateTaskParams(
         homeId: 'home-123',
         title: 'تنظيف المطبخ',
       ));
@@ -111,7 +111,7 @@ void main() {
             recurrenceType: 'daily',
           )).thenAnswer((_) async => recurringTask);
 
-      final result = await useCase(CreateTaskParams(
+      final result = await useCase(const CreateTaskParams(
         homeId: 'home-123',
         title: 'تنظيف المطبخ',
         recurrenceType: 'daily',

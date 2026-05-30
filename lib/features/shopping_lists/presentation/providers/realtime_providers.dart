@@ -1,14 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:beity/core/services/supabase_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/services/realtime_service.dart';
-import '../../../offline_queue/domain/entities/action_type.dart';
-import '../../../offline_queue/domain/entities/entity_type.dart';
-import '../../../offline_queue/domain/entities/queue_entry.dart';
+import '../../../../core/services/sync_coordinator.dart';
 import '../../../offline_queue/presentation/providers/offline_queue_provider.dart';
 import '../../../homes/presentation/providers/homes_provider.dart';
 
 final realtimeServiceProvider = Provider<RealtimeService>((ref) {
-  final service = RealtimeService(Supabase.instance.client);
+  final service = RealtimeService(SupabaseService.client);
   ref.onDispose(() => service.disposeAll());
   return service;
 });
@@ -32,7 +31,11 @@ final offlineQueueFlushProvider = Provider<void>((ref) {
       final activeHomeId = await localDataSource.getActiveHomeId();
       
       if (activeHomeId != null && activeHomeId.isNotEmpty) {
+        // 1. Flush offline outbox queue first
         await syncUseCase.execute(activeHomeId);
+        
+        // 2. Trigger global background delta sync when connection is restored
+        ref.read(syncCoordinatorProvider.notifier).syncAll(activeHomeId, force: true);
       }
     }
   });

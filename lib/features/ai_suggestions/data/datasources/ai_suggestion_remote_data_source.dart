@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:beity/core/services/supabase_service.dart';
 import '../../domain/entities/ai_response.dart';
 import '../../domain/entities/ai_assistant_request.dart';
 import '../models/ai_assistant_request_model.dart';
@@ -26,7 +27,7 @@ class AiSuggestionRemoteDataSource {
   final SupabaseClient _supabaseClient;
 
   AiSuggestionRemoteDataSource({SupabaseClient? supabaseClient})
-      : _supabaseClient = supabaseClient ?? Supabase.instance.client;
+      : _supabaseClient = supabaseClient ?? SupabaseService.client;
 
   /// New method: Fetch AI response for the advanced assistant.
   Future<AiResponse> fetchAssistantResponse(AiAssistantRequest request) async {

@@ -1,9 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:beity/core/services/supabase_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../data/models/shopping_item_model.dart';
 import '../../data/models/item_template_model.dart';
-import '../../data/repositories/shopping_list_repository.dart';
-import '../../data/repositories/supabase_shopping_list_repository.dart';
 import '../../../../core/services/realtime_service.dart';
 import 'realtime_providers.dart';
 
@@ -29,7 +28,7 @@ final unpurchasedItemsProvider =
   return items.when(
     data: (data) => data.where((item) => !item.isPurchased).toList(),
     loading: () => [],
-    error: (_, __) => [],
+    error: (e, s) => [],
   );
 });
 
@@ -39,7 +38,7 @@ final purchasedItemsProvider =
   return items.when(
     data: (data) => data.where((item) => item.isPurchased).toList(),
     loading: () => [],
-    error: (_, __) => [],
+    error: (e, s) => [],
   );
 });
 
@@ -76,7 +75,7 @@ final groupedItemsProvider =
       return map;
     },
     loading: () => {},
-    error: (_, __) => {},
+    error: (e, s) => {},
   );
 });
 
@@ -89,7 +88,7 @@ final unpurchasedTotalProvider =
         .where((item) => !item.isPurchased && item.price != null)
         .fold<double>(0, (sum, item) => sum + item.price!),
     loading: () => 0,
-    error: (_, __) => 0,
+    error: (e, s) => 0,
   );
 });
 
@@ -123,7 +122,7 @@ class AutocompleteSuggestion {
 final presenceProvider =
     StreamProvider.autoDispose.family<Map<String, PresenceState>, String>((ref, listId) {
   final service = ref.watch(realtimeServiceProvider);
-  final currentUser = Supabase.instance.client.auth.currentUser;
+  final currentUser = SupabaseService.client.auth.currentUser;
   if (currentUser == null) {
     return Stream.value({});
   }

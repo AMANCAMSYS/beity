@@ -36,7 +36,7 @@ void main() {
             amount: 15000,
           )).thenAnswer((_) async => updatedExpense);
 
-      final result = await useCase(EditExpenseParams(
+      final result = await useCase(const EditExpenseParams(
         expenseId: 'expense-123',
         amount: 15000,
       ));
@@ -57,7 +57,7 @@ void main() {
             description: 'Weekly groceries',
           )).thenAnswer((_) async => updatedExpense);
 
-      final result = await useCase(EditExpenseParams(
+      final result = await useCase(const EditExpenseParams(
         expenseId: 'expense-123',
         description: 'Weekly groceries',
       ));
@@ -74,7 +74,7 @@ void main() {
             categoryId: 'cat-456',
           )).thenAnswer((_) async => updatedExpense);
 
-      final result = await useCase(EditExpenseParams(
+      final result = await useCase(const EditExpenseParams(
         expenseId: 'expense-123',
         categoryId: 'cat-456',
       ));

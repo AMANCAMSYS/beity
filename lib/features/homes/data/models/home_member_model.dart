@@ -34,8 +34,21 @@ class HomeMemberModel {
     this.userEmail,
   });
 
-  factory HomeMemberModel.fromJson(Map<String, dynamic> json) =>
-      _$HomeMemberModelFromJson(json);
+  factory HomeMemberModel.fromJson(Map<String, dynamic> json) {
+    final userData = json['users'] as Map<String, dynamic>?;
+    final member = _$HomeMemberModelFromJson(json);
+    return HomeMemberModel(
+      id: member.id,
+      homeId: member.homeId,
+      userId: member.userId,
+      role: member.role,
+      status: member.status,
+      joinedAt: member.joinedAt,
+      deletedAt: member.deletedAt,
+      userName: member.userName ?? userData?['full_name'] as String?,
+      userEmail: member.userEmail ?? userData?['email'] as String?,
+    );
+  }
 
   Map<String, dynamic> toJson() => _$HomeMemberModelToJson(this);
 

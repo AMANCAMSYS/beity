@@ -16,7 +16,7 @@ class CreateShoppingListUseCase {
       throw Exception('اسم القائمة مطلوب');
     }
 
-    return await _repository.createShoppingList(
+    return _repository.createShoppingList(
       homeId: homeId,
       name: name.trim(),
       description: description?.trim(),

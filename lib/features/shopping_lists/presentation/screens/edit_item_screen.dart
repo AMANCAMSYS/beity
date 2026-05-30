@@ -1,17 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:beity/app/theme/app_colors.dart';
 import 'package:beity/app/theme/app_spacing.dart';
 import 'package:beity/shared/widgets/design_system/beity_button.dart';
 import 'package:beity/shared/widgets/design_system/beity_text_field.dart';
 import 'package:beity/shared/widgets/design_system/beity_card.dart';
 import 'package:beity/shared/widgets/design_system/beity_empty_state.dart';
+import 'package:beity/shared/widgets/design_system/beity_snack_bar.dart';
 import '../../../../core/utils/action_debouncer.dart';
 import '../providers/shopping_items_provider.dart';
 import '../providers/shopping_lists_provider.dart';
 import '../../domain/usecases/update_item_usecase.dart';
 import '../../../categories/presentation/providers/units_provider.dart';
 import '../../../categories/presentation/providers/categories_provider.dart';
+import '../../../../core/localization/app_localizations.dart';
+import 'package:beity/core/errors/error_formatter.dart';
+import '../../../categories/data/models/category_model.dart';
+import '../../../categories/data/models/unit_model.dart';
+import 'package:beity/core/utils/arabic_number_parser.dart';
 
 class EditItemScreen extends ConsumerStatefulWidget {
   final String listId;
@@ -76,9 +81,8 @@ class _EditItemScreenState extends ConsumerState<EditItemScreen> {
   @override
   Widget build(BuildContext context) {
     if (!_isInitialized) {
-      final isArabic = Localizations.localeOf(context).languageCode == 'ar';
       return Scaffold(
-        appBar: AppBar(title: Text(isArabic ? 'تعديل المنتج' : 'Edit Item')),
+        appBar: AppBar(title: Text(context.translate('edit_item'))),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
@@ -89,10 +93,9 @@ class _EditItemScreenState extends ConsumerState<EditItemScreen> {
     return listAsync.when(
       data: (list) {
         if (list == null) {
-          final isArabic = Localizations.localeOf(context).languageCode == 'ar';
           return Scaffold(
-            appBar: AppBar(title: Text(isArabic ? 'تعديل المنتج' : 'Edit Item')),
-            body: Center(child: Text(isArabic ? 'القائمة غير موجودة' : 'List not found')),
+            appBar: AppBar(title: Text(context.translate('edit_item'))),
+            body: Center(child: Text(context.translate('list_not_found'))),
           );
         }
         
@@ -103,22 +106,20 @@ class _EditItemScreenState extends ConsumerState<EditItemScreen> {
         return _buildScreen(context, unitsAsync, categoriesAsync);
       },
       loading: () {
-        final isArabic = Localizations.localeOf(context).languageCode == 'ar';
         return Scaffold(
-          appBar: AppBar(title: Text(isArabic ? 'تعديل المنتج' : 'Edit Item')),
+          appBar: AppBar(title: Text(context.translate('edit_item'))),
           body: const Center(child: CircularProgressIndicator()),
         );
       },
       error: (error, _) {
-        final isArabic = Localizations.localeOf(context).languageCode == 'ar';
         return Scaffold(
-          appBar: AppBar(title: Text(isArabic ? 'تعديل المنتج' : 'Edit Item')),
+          appBar: AppBar(title: Text(context.translate('edit_item'))),
           body: BeityEmptyState(
-            title: isArabic ? 'حدث خطأ' : 'An error occurred',
+            title: context.translate('error_title'),
             message: error.toString(),
             icon: Icons.error_outline_rounded,
             isError: true,
-            actionText: isArabic ? 'إعادة المحاولة' : 'Try Again',
+            actionText: context.translate('retry'),
             onAction: () => ref.invalidate(shoppingListByIdProvider(widget.listId)),
           ),
         );
@@ -128,15 +129,12 @@ class _EditItemScreenState extends ConsumerState<EditItemScreen> {
 
   Widget _buildScreen(
     BuildContext context,
-    AsyncValue<List<dynamic>> unitsAsync,
-    AsyncValue<List<dynamic>> categoriesAsync,
+    AsyncValue<List<UnitModel>> unitsAsync,
+    AsyncValue<List<CategoryModel>> categoriesAsync,
   ) {
-    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
-    final theme = Theme.of(context);
-
     return Scaffold(
       appBar: AppBar(
-        title: Text(isArabic ? 'تعديل المنتج' : 'Edit Item', style: const TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(context.translate('edit_item'), style: const TextStyle(fontWeight: FontWeight.bold)),
       ),
       body: Form(
         key: _formKey,
@@ -150,12 +148,12 @@ class _EditItemScreenState extends ConsumerState<EditItemScreen> {
                 children: [
                   BeityTextField(
                     controller: _nameController,
-                    labelText: isArabic ? 'اسم المنتج *' : 'Item Name *',
+                    labelText: context.translate('item_name_required_label'),
                     prefixIcon: Icons.shopping_basket_outlined,
                     autofocus: true,
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
-                        return isArabic ? 'اسم المنتج مطلوب' : 'Item name is required';
+                        return context.translate('item_name_required_msg');
                       }
                       return null;
                     },
@@ -166,16 +164,16 @@ class _EditItemScreenState extends ConsumerState<EditItemScreen> {
                       Expanded(
                         child: BeityTextField(
                           controller: _quantityController,
-                          labelText: isArabic ? 'الكمية' : 'Quantity',
+                          labelText: context.translate('quantity'),
                           prefixIcon: Icons.numbers,
                           keyboardType: TextInputType.number,
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return isArabic ? 'الكمية مطلوبة' : 'Quantity is required';
+                              return context.translate('quantity_required');
                             }
-                            final quantity = double.tryParse(value);
+                            final quantity = value.tryParseDouble();
                             if (quantity == null || quantity <= 0) {
-                              return isArabic ? 'الكمية غير صالحة' : 'Invalid quantity';
+                              return context.translate('quantity_invalid');
                             }
                             return null;
                           },
@@ -185,9 +183,9 @@ class _EditItemScreenState extends ConsumerState<EditItemScreen> {
                       Expanded(
                         child: unitsAsync.when(
                           data: (units) => DropdownButtonFormField<String>(
-                            value: _selectedUnitId,
+                            initialValue: _selectedUnitId,
                             decoration: InputDecoration(
-                              labelText: isArabic ? 'الوحدة' : 'Unit',
+                              labelText: context.translate('unit'),
                               prefixIcon: const Icon(Icons.straighten),
                               filled: true,
                               fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
@@ -197,7 +195,7 @@ class _EditItemScreenState extends ConsumerState<EditItemScreen> {
                               ),
                             ),
                             items: [
-                              DropdownMenuItem(value: null, child: Text(isArabic ? 'بدون وحدة' : 'No Unit')),
+                              DropdownMenuItem(value: null, child: Text(context.translate('no_unit'))),
                               ...units.map((unit) => DropdownMenuItem(
                                     value: unit.id,
                                     child: Text('${unit.name} (${unit.symbol})'),
@@ -210,7 +208,7 @@ class _EditItemScreenState extends ConsumerState<EditItemScreen> {
                             },
                           ),
                           loading: () => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
-                          error: (_, __) => Text(isArabic ? 'خطأ في تحميل الوحدات' : 'Error loading units'),
+                          error: (e, s) => Text(context.translate('load_units_failed')),
                         ),
                       ),
                     ],
@@ -218,19 +216,19 @@ class _EditItemScreenState extends ConsumerState<EditItemScreen> {
                   AppSpacing.gapLG,
                   BeityTextField(
                     controller: _priceController,
-                    labelText: isArabic ? 'السعر (اختياري)' : 'Price (Optional)',
+                    labelText: context.translate('price_optional'),
                     hintText: '0.00',
                     prefixIcon: Icons.attach_money,
                     suffixIcon: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                      child: Text(isArabic ? 'ر.س' : 'SAR', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                      child: Text(context.translate('currency_symbol'), style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
                     ),
                     keyboardType: TextInputType.number,
                     validator: (value) {
                       if (value != null && value.isNotEmpty) {
-                        final price = double.tryParse(value);
+                        final price = value.tryParseDouble();
                         if (price == null || price < 0) {
-                          return isArabic ? 'السعر غير صالح' : 'Invalid price';
+                          return context.translate('price_invalid');
                         }
                       }
                       return null;
@@ -247,9 +245,9 @@ class _EditItemScreenState extends ConsumerState<EditItemScreen> {
                 children: [
                   categoriesAsync.when(
                     data: (categories) => DropdownButtonFormField<String>(
-                      value: _selectedCategoryId,
+                      initialValue: _selectedCategoryId,
                       decoration: InputDecoration(
-                        labelText: isArabic ? 'التصنيف' : 'Category',
+                        labelText: context.translate('category'),
                         prefixIcon: const Icon(Icons.category_outlined),
                         filled: true,
                         fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
@@ -259,10 +257,10 @@ class _EditItemScreenState extends ConsumerState<EditItemScreen> {
                         ),
                       ),
                       items: [
-                        DropdownMenuItem(value: null, child: Text(isArabic ? 'بدون تصنيف' : 'No Category')),
+                        DropdownMenuItem(value: null, child: Text(context.translate('no_category'))),
                         ...categories.map((category) => DropdownMenuItem(
                               value: category.id,
-                                child: Text(category.name == 'Other' ? (isArabic ? 'أخرى' : 'Other') : category.name),
+                              child: Text(category.name == 'Other' ? context.translate('other') : category.name),
                             )),
                       ],
                       onChanged: (value) {
@@ -272,12 +270,12 @@ class _EditItemScreenState extends ConsumerState<EditItemScreen> {
                       },
                     ),
                     loading: () => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
-                    error: (_, __) => Text(isArabic ? 'خطأ في تحميل التصنيفات' : 'Error loading categories'),
+                    error: (e, s) => Text(context.translate('load_categories_failed')),
                   ),
                   AppSpacing.gapLG,
                   BeityTextField(
                     controller: _notesController,
-                    labelText: isArabic ? 'ملاحظات (اختياري)' : 'Notes (Optional)',
+                    labelText: context.translate('notes_optional'),
                     prefixIcon: Icons.notes_outlined,
                     maxLines: 2,
                   ),
@@ -287,8 +285,8 @@ class _EditItemScreenState extends ConsumerState<EditItemScreen> {
             AppSpacing.gapXXL,
             BeityButton(
               text: _isLoading 
-                  ? (isArabic ? 'جاري الحفظ...' : 'Saving...') 
-                  : (isArabic ? 'حفظ التعديلات' : 'Save Changes'),
+                  ? context.translate('saving') 
+                  : context.translate('save_changes'),
               icon: Icons.save_rounded,
               isLoading: _isLoading,
               onPressed: () => ActionDebouncer.execute(_saveItem),
@@ -313,26 +311,24 @@ class _EditItemScreenState extends ConsumerState<EditItemScreen> {
       await useCase(
         itemId: widget.itemId,
         name: _nameController.text,
-        quantity: double.parse(_quantityController.text),
+        quantity: _quantityController.text.parseDouble(),
         unitId: _selectedUnitId,
         categoryId: _selectedCategoryId,
         price: _priceController.text.isNotEmpty
-            ? double.parse(_priceController.text)
+            ? _priceController.text.parseDouble()
             : null,
         notes: _notesController.text.isNotEmpty ? _notesController.text : null,
       );
 
       if (mounted) {
+        BeitySnackBar.success(context, context.translate('item_updated_success'));
         Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
-        final isArabic = Localizations.localeOf(context).languageCode == 'ar';
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${isArabic ? 'خطأ' : 'Error'}: $e'),
-            backgroundColor: AppColors.error,
-          ),
+        BeitySnackBar.error(
+          context,
+          '${context.translate('error')}: ${ErrorFormatter.format(e, context)}',
         );
       }
     } finally {

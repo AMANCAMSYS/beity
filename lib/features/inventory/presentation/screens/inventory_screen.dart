@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:beity/app/theme/app_spacing.dart';
 import 'package:beity/app/theme/app_colors.dart';
-import 'package:beity/shared/widgets/design_system/beity_button.dart';
 import 'package:beity/shared/widgets/design_system/beity_empty_state.dart';
 import '../providers/inventory_provider.dart';
 import '../widgets/inventory_item_tile.dart';
@@ -14,21 +13,35 @@ import '../../domain/usecases/update_inventory_quantity_usecase.dart';
 import '../../data/models/inventory_item_model.dart';
 import '../../../categories/presentation/providers/categories_provider.dart';
 import '../../../categories/presentation/providers/units_provider.dart';
-import '../../../home/presentation/widgets/app_drawer.dart';
+import 'package:beity/core/localization/app_localizations.dart';
+import 'package:beity/core/errors/error_formatter.dart';
+import '../../../onboarding/presentation/providers/app_tour_controller.dart';
+import '../../../onboarding/presentation/providers/app_tour_target_registry.dart';
 
-class InventoryScreen extends ConsumerWidget {
+class InventoryScreen extends ConsumerStatefulWidget {
   final String homeId;
 
   const InventoryScreen({super.key, required this.homeId});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final inventoryAsync = ref.watch(inventoryItemsProvider(homeId));
-    final groupedItems = ref.watch(groupedInventoryItemsProvider(homeId));
-    final categoriesAsync = ref.watch(categoriesProvider(homeId));
+  ConsumerState<InventoryScreen> createState() => _InventoryScreenState();
+}
+
+class _InventoryScreenState extends ConsumerState<InventoryScreen> {
+  bool _showOnlyLowStock = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final inventoryAsync = ref.watch(inventoryItemsProvider(widget.homeId));
+    final groupedItems = ref.watch(groupedInventoryItemsProvider(widget.homeId));
+    final categoriesAsync = ref.watch(categoriesProvider(widget.homeId));
     final unitsAsync = ref.watch(unitsProvider(null));
-    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
     final theme = Theme.of(context);
+
+    // Trigger the tour after the build is complete.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(appTourControllerProvider.notifier).maybeStartInventoryTour(context);
+    });
 
     // Build category name map
     final categoryNames = <String, String>{};
@@ -48,33 +61,61 @@ class InventoryScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(isArabic ? 'المخزون' : 'Inventory', style: const TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(context.translate('inventory'), style: const TextStyle(fontWeight: FontWeight.bold)),
       ),
-      drawer: const AppDrawer(),
       body: inventoryAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => BeityEmptyState(
-          title: isArabic ? 'عذراً، حدث خطأ' : 'Oops, something went wrong',
+          title: context.translate('error_occurred'),
           message: error.toString(),
           icon: Icons.error_outline_rounded,
           isError: true,
-          actionText: isArabic ? 'إعادة المحاولة' : 'Try Again',
-          onAction: () => ref.invalidate(inventoryItemsProvider(homeId)),
+          actionText: context.translate('retry'),
+          onAction: () => ref.invalidate(inventoryItemsProvider(widget.homeId)),
         ),
         data: (items) {
           if (items.isEmpty) {
             return BeityEmptyState(
-              title: isArabic ? 'المخزون فارغ' : 'Inventory is empty',
-              message: isArabic 
-                  ? 'أضف المنتجات التي لديك في المنزل لتتبعها بسهولة وتعرف متى تنفذ' 
-                  : 'Add products you have at home to track them easily and know when they run out',
+              title: context.translate('inventory_empty'),
+              message: context.translate('inventory_empty_desc'),
               icon: Icons.inventory_2_rounded,
-              actionText: isArabic ? 'إضافة أول منتج' : 'Add First Product',
-              onAction: () => context.push('/inventory/add', extra: homeId),
+              actionText: context.translate('add_first_product'),
+              onAction: () => context.push('/inventory/add', extra: widget.homeId),
             );
           }
-          return _buildInventoryList(
-              context, ref, groupedItems, categoryNames, unitNames);
+          return Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.md),
+                child: SegmentedButton<bool>(
+                  key: AppTourTargetRegistry.inventoryFilterKey,
+                  segments: [
+                    ButtonSegment(
+                      value: false,
+                      icon: const Icon(Icons.inventory_2_rounded),
+                      label: Text(context.translate('all')),
+                    ),
+                    ButtonSegment(
+                      value: true,
+                      icon: const Icon(Icons.warning_amber_rounded),
+                      label: Text(context.translate('low_stock')),
+                    ),
+                  ],
+                  selected: {_showOnlyLowStock},
+                  showSelectedIcon: false,
+                  onSelectionChanged: (selection) {
+                    setState(() {
+                      _showOnlyLowStock = selection.first;
+                    });
+                  },
+                ),
+              ),
+              Expanded(
+                child: _buildInventoryList(
+                    context, ref, groupedItems, categoryNames, unitNames),
+              ),
+            ],
+          );
         },
       ),
       floatingActionButton: Padding(
@@ -85,6 +126,7 @@ class InventoryScreen extends ConsumerWidget {
           children: [
             // Quick add button
             FloatingActionButton.small(
+              key: AppTourTargetRegistry.inventoryAddKey,
               heroTag: 'quick_add',
               onPressed: () => _showQuickAdd(context),
               backgroundColor: AppColors.primary,
@@ -96,7 +138,7 @@ class InventoryScreen extends ConsumerWidget {
             // Full add button
             FloatingActionButton(
               heroTag: 'full_add',
-              onPressed: () => context.push('/inventory/add', extra: homeId),
+              onPressed: () => context.push('/inventory/add', extra: widget.homeId),
               backgroundColor: theme.colorScheme.primaryContainer,
               foregroundColor: theme.colorScheme.onPrimaryContainer,
               elevation: 4,
@@ -108,8 +150,6 @@ class InventoryScreen extends ConsumerWidget {
     );
   }
 
-
-
   Widget _buildInventoryList(
     BuildContext context,
     WidgetRef ref,
@@ -117,7 +157,28 @@ class InventoryScreen extends ConsumerWidget {
     Map<String, String> categoryNames,
     Map<String, String> unitNames,
   ) {
-    final categoryKeys = groupedItems.keys.toList()
+    // Apply low stock filter if _showOnlyLowStock is true
+    final filteredGroupedItems = <String?, List<InventoryItemModel>>{};
+    groupedItems.forEach((catId, list) {
+      final filteredList = _showOnlyLowStock
+          ? list.where((item) => item.isLowStock).toList()
+          : list;
+      if (filteredList.isNotEmpty) {
+        filteredGroupedItems[catId] = filteredList;
+      }
+    });
+
+    if (filteredGroupedItems.isEmpty) {
+      return BeityEmptyState(
+        title: context.translate('no_matching_items'),
+        message: _showOnlyLowStock
+            ? context.translate('no_low_stock_desc')
+            : context.translate('inventory_empty_desc'),
+        icon: Icons.check_circle_outline_rounded,
+      );
+    }
+
+    final categoryKeys = filteredGroupedItems.keys.toList()
       ..sort((a, b) {
         if (a == null) return 1;
         if (b == null) return -1;
@@ -127,11 +188,11 @@ class InventoryScreen extends ConsumerWidget {
     return ListView.builder(
       padding: const EdgeInsets.only(bottom: 100), // Space for FAB
       itemCount: categoryKeys.fold<int>(
-          0, (sum, key) => sum + 1 + (groupedItems[key]?.length ?? 0)),
+          0, (sum, key) => sum + 1 + (filteredGroupedItems[key]?.length ?? 0)),
       itemBuilder: (context, index) {
         var currentIndex = 0;
         for (final categoryId in categoryKeys) {
-          final items = groupedItems[categoryId] ?? [];
+          final items = filteredGroupedItems[categoryId] ?? [];
           if (currentIndex == index) {
             return CategoryGroupHeader(
               categoryName:
@@ -148,13 +209,13 @@ class InventoryScreen extends ConsumerWidget {
                 unitName: item.unitId != null ? unitNames[item.unitId] : null,
                 onTap: () => context.push(
                   '/inventory/${item.id}',
-                  extra: {'homeId': homeId},
+                  extra: {'homeId': widget.homeId},
                 ),
                 onDelete: () => _deleteItem(context, ref, item),
                 onQuantityIncrement: () =>
-                    _adjustQuantity(context, ref, item, 1),
+                    _adjustQuantity(context, ref, item, 1, item.unitId != null ? unitNames[item.unitId] : null),
                 onQuantityDecrement: () =>
-                    _adjustQuantity(context, ref, item, -1),
+                    _adjustQuantity(context, ref, item, -1, item.unitId != null ? unitNames[item.unitId] : null),
               );
             }
             currentIndex++;
@@ -170,18 +231,17 @@ class InventoryScreen extends ConsumerWidget {
     WidgetRef ref,
     InventoryItemModel item,
   ) async {
-    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
     try {
       final useCase = DeleteInventoryItemUseCase(
         ref.read(inventoryRepositoryProvider),
       );
-      await useCase(itemId: item.id, homeId: homeId);
-      ref.invalidate(inventoryItemsProvider(homeId));
+      await useCase(itemId: item.id, homeId: widget.homeId);
+      ref.invalidate(inventoryItemsProvider(widget.homeId));
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(isArabic ? 'خطأ في حذف المنتج: $e' : 'Error deleting item: $e'),
+            content: Text(context.translate('error_delete_item', arguments: {'error': ErrorFormatter.format(e, context)})),
             backgroundColor: AppColors.error,
             behavior: SnackBarBehavior.floating,
           ),
@@ -195,10 +255,10 @@ class InventoryScreen extends ConsumerWidget {
     WidgetRef ref,
     InventoryItemModel item,
     double direction,
+    String? unitName,
   ) async {
-    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
     try {
-      final step = _getStep(item.unitId);
+      final step = _getStep(unitName);
       final newQty = item.quantity + (step * direction);
       if (newQty < 0) return;
 
@@ -207,15 +267,15 @@ class InventoryScreen extends ConsumerWidget {
       );
       await useCase(
         itemId: item.id,
-        homeId: homeId,
+        homeId: widget.homeId,
         newQuantity: newQty,
       );
-      ref.invalidate(inventoryItemsProvider(homeId));
+      ref.invalidate(inventoryItemsProvider(widget.homeId));
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(isArabic ? 'خطأ في تحديث الكمية: $e' : 'Error updating quantity: $e'),
+            content: Text(context.translate('error_update_quantity', arguments: {'error': ErrorFormatter.format(e, context)})),
             backgroundColor: AppColors.error,
             behavior: SnackBarBehavior.floating,
           ),
@@ -224,9 +284,23 @@ class InventoryScreen extends ConsumerWidget {
     }
   }
 
-  double _getStep(String? unitId) {
-    // TODO: Determine step based on unit type (fractional: 0.5, whole: 1)
-    return 1;
+  double _getStep(String? unitName) {
+    if (unitName == null) return 1.0;
+    final lowerUnit = unitName.toLowerCase();
+    if (lowerUnit.contains('kg') || 
+        lowerUnit.contains('كجم') || 
+        lowerUnit.contains('كيلو') ||
+        lowerUnit.contains('kilo') ||
+        lowerUnit.contains('g') || 
+        lowerUnit.contains('جرام') || 
+        lowerUnit.contains('gram') ||
+        lowerUnit.contains('liter') || 
+        lowerUnit.contains('litre') || 
+        lowerUnit.contains('لتر') ||
+        lowerUnit.contains('ltr')) {
+      return 0.25;
+    }
+    return 1.0;
   }
 
   void _showQuickAdd(BuildContext context) {
@@ -235,7 +309,7 @@ class InventoryScreen extends ConsumerWidget {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => InventoryQuickAddSheet(
-        homeId: homeId,
+        homeId: widget.homeId,
         onItemAdded: () {
           // Refresh is handled inside the sheet
         },

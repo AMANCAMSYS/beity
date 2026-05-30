@@ -3,6 +3,8 @@ enum IngredientStatus {
   available('available', 'موجود', 'Available'),
   missing('missing', 'ناقص', 'Missing'),
   alreadyInList('already_in_list', 'موجود في القائمة', 'Already in list'),
+  inCurrentList('in_current_list', 'في القائمة الحالية', 'In current list'),
+  inOtherList('in_other_list', 'في قائمة أخرى', 'In other list'),
   optional('optional', 'اختياري', 'Optional'),
   unknown('unknown', 'غير معروف', 'Unknown');
 
@@ -26,6 +28,8 @@ enum IngredientStatus {
 /// A single ingredient in a recipe, with status and metadata.
 class AiRecipeIngredient {
   final String name;
+  final String? foodKey;
+  final String? displayName;
   final double quantity;
   final String? unit;
   final String? category;
@@ -33,9 +37,12 @@ class AiRecipeIngredient {
   final IngredientStatus status;
   final String? reason;
   final String? note;
+  final String? sourceListName;
 
   const AiRecipeIngredient({
     required this.name,
+    this.foodKey,
+    this.displayName,
     this.quantity = 1,
     this.unit,
     this.category,
@@ -43,11 +50,40 @@ class AiRecipeIngredient {
     this.status = IngredientStatus.missing,
     this.reason,
     this.note,
+    this.sourceListName,
   });
+
+  AiRecipeIngredient copyWith({
+    String? name,
+    String? foodKey,
+    String? displayName,
+    double? quantity,
+    String? unit,
+    String? category,
+    bool? required,
+    IngredientStatus? status,
+    String? reason,
+    String? note,
+    String? sourceListName,
+  }) {
+    return AiRecipeIngredient(
+      name: name ?? this.name,
+      foodKey: foodKey ?? this.foodKey,
+      displayName: displayName ?? this.displayName,
+      quantity: quantity ?? this.quantity,
+      unit: unit ?? this.unit,
+      category: category ?? this.category,
+      required: required ?? this.required,
+      status: status ?? this.status,
+      reason: reason ?? this.reason,
+      note: note ?? this.note,
+      sourceListName: sourceListName ?? this.sourceListName,
+    );
+  }
 
   /// Whether this ingredient should be selected by default for adding to the shopping list.
   bool get isSelectedByDefault =>
-      status == IngredientStatus.missing && required;
+      (status == IngredientStatus.missing || status == IngredientStatus.unknown) && required;
 }
 
 /// Meal metadata for a recipe ingredients response.

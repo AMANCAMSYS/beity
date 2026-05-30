@@ -1,4 +1,3 @@
-import 'package:beity/app/theme/app_spacing.dart';
 import 'package:beity/shared/widgets/design_system/beity_empty_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../providers/categories_provider.dart';
 import '../widgets/category_card_widget.dart';
+import 'package:beity/core/localization/app_localizations.dart';
 
 class CategoriesListScreen extends ConsumerStatefulWidget {
   final String? homeId;
@@ -28,10 +28,7 @@ class _CategoriesListScreenState extends ConsumerState<CategoriesListScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'التصنيفات',
-          textDirection: TextDirection.rtl,
-        ),
+        title: Text(context.translate('categories')),
         actions: [
           if (widget.homeId != null)
             IconButton(
@@ -50,13 +47,13 @@ class _CategoriesListScreenState extends ConsumerState<CategoriesListScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Row(
               children: [
-                _buildFilterChip(null, 'الكل'),
+                _buildFilterChip(null, context.translate('all')),
                 const SizedBox(width: 8),
-                _buildFilterChip('shopping', 'تسوق'),
+                _buildFilterChip('shopping', context.translate('shopping')),
                 const SizedBox(width: 8),
-                _buildFilterChip('inventory', 'مخزون'),
+                _buildFilterChip('inventory', context.translate('inventory_filter')),
                 const SizedBox(width: 8),
-                _buildFilterChip('expense', 'مصروفات'),
+                _buildFilterChip('expense', context.translate('expense')),
               ],
             ),
           ),
@@ -66,8 +63,8 @@ class _CategoriesListScreenState extends ConsumerState<CategoriesListScreen> {
               data: (categories) {
                 if (categories.isEmpty) {
                   return BeityEmptyState(
-                    title: 'لا توجد تصنيفات',
-                    message: 'سيتم عرض التصنيفات الافتراضية هنا',
+                    title: context.translate('no_categories'),
+                    message: context.translate('default_categories_desc'),
                     icon: Icons.category_outlined,
                   );
                 }
@@ -87,11 +84,11 @@ class _CategoriesListScreenState extends ConsumerState<CategoriesListScreen> {
               loading: () =>
                   const Center(child: CircularProgressIndicator()),
               error: (error, stack) => BeityEmptyState(
-                title: 'حدث خطأ',
+                title: context.translate('error_occurred'),
                 message: error.toString(),
                 icon: Icons.error_outline_rounded,
                 isError: true,
-                actionText: 'إعادة المحاولة',
+                actionText: context.translate('retry'),
                 onAction: () => ref.invalidate(categoriesByTypeProvider),
               ),
             ),

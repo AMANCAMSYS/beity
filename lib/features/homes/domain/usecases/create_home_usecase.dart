@@ -11,7 +11,7 @@ class CreateHomeUseCase {
     required String type,
     String? defaultCurrency,
   }) async {
-    return await _repository.createHome(
+    return _repository.createHome(
       name: name,
       type: type,
       defaultCurrency: defaultCurrency,

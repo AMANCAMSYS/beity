@@ -15,18 +15,35 @@ class ActivityLogModel extends ActivityLog {
   });
 
   factory ActivityLogModel.fromJson(Map<String, dynamic> json) {
+    final userData = json['users'] as Map<String, dynamic>?;
+    final metadataMap = json['metadata'] != null
+        ? Map<String, dynamic>.from(json['metadata'] as Map)
+        : null;
+
+    // Fallback for entity name from metadata if null in database
+    String? entityNameFallback = json['entity_name'] as String?;
+    if (entityNameFallback == null && metadataMap != null) {
+      if (metadataMap.containsKey('name')) {
+        entityNameFallback = metadataMap['name'] as String?;
+      } else if (metadataMap.containsKey('title')) {
+        entityNameFallback = metadataMap['title'] as String?;
+      } else if (metadataMap.containsKey('new_title')) {
+        entityNameFallback = metadataMap['new_title'] as String?;
+      } else if (metadataMap.containsKey('member_name')) {
+        entityNameFallback = metadataMap['member_name'] as String?;
+      }
+    }
+
     return ActivityLogModel(
       id: json['id'] as String,
       homeId: json['home_id'] as String,
       userId: json['user_id'] as String,
-      actorName: json['actor_name'] as String?,
+      actorName: json['actor_name'] as String? ?? userData?['full_name'] as String?,
       action: ActionType.fromString(json['action'] as String),
       entityType: EntityType.fromString(json['entity_type'] as String),
       entityId: json['entity_id'] as String?,
-      entityName: json['entity_name'] as String?,
-      metadata: json['metadata'] != null
-          ? Map<String, dynamic>.from(json['metadata'] as Map)
-          : null,
+      entityName: entityNameFallback,
+      metadata: metadataMap,
       createdAt: DateTime.parse(json['created_at'] as String),
     );
   }

@@ -11,7 +11,7 @@ class UpdateProfileUseCase {
     String? phone,
     String? avatarUrl,
   }) async {
-    return await _repository.updateProfile(
+    return _repository.updateProfile(
       fullName: fullName,
       phone: phone,
       avatarUrl: avatarUrl,

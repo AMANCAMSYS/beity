@@ -1,3 +1,4 @@
+import 'package:beity/core/errors/error_formatter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -9,6 +10,8 @@ import 'package:beity/shared/widgets/design_system/beity_button.dart';
 import 'package:beity/shared/widgets/design_system/beity_text_field.dart';
 import 'package:beity/shared/widgets/design_system/beity_card.dart';
 import '../providers/auth_provider.dart';
+import '../../data/models/user_model.dart';
+import '../../../../core/localization/app_localizations.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -31,13 +34,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   void _loadUserData() {
-    final currentUser = ref.read(currentUserProvider);
-    currentUser.whenData((user) {
-      if (user != null) {
-        _nameController.text = user.fullName;
-        _phoneController.text = user.phone ?? '';
-      }
-    });
+    final user = ref.read(cachedCurrentUserProvider);
+    if (user != null) {
+      _nameController.text = user.fullName;
+      _phoneController.text = user.phone ?? '';
+    }
   }
 
   Future<void> _updateProfile() async {
@@ -57,10 +58,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text(
-              'تم تحديث الملف الشخصي بنجاح',
-              textDirection: TextDirection.rtl,
+              context.translate('profile_updated_success'),
             ),
             backgroundColor: AppColors.success,
           ),
@@ -71,8 +71,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'فشل تحديث الملف الشخصي: ${e.toString()}',
-              textDirection: TextDirection.rtl,
+              context.translate('profile_update_failed', arguments: {'error': ErrorFormatter.format(e, context)}),
             ),
             backgroundColor: AppColors.error,
           ),
@@ -94,61 +93,50 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final currentUser = ref.watch(currentUserProvider);
+    final user = ref.watch(cachedCurrentUserProvider);
     final theme = Theme.of(context);
+
+    if (user == null) {
+      return Scaffold(
+        appBar: AppBar(
+          title: Text(context.translate('profile')),
+          centerTitle: true,
+        ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.person_off_rounded, size: 64, color: theme.colorScheme.outline),
+              AppSpacing.gapMD,
+              Text(context.translate('no_user_data')),
+            ],
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('الملف الشخصي'),
+        title: Text(context.translate('profile')),
         centerTitle: true,
         actions: [
           if (!_isEditing)
             IconButton(
               icon: const Icon(Icons.edit_rounded),
               onPressed: () => setState(() => _isEditing = true),
-              tooltip: 'تعديل الملف الشخصي',
+              tooltip: context.translate('edit_profile'),
             ),
         ],
       ),
-      body: currentUser.when(
-        data: (user) {
-          if (user == null) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.person_off_rounded, size: 64, color: theme.colorScheme.outline),
-                  AppSpacing.gapMD,
-                  const Text('لا يوجد بيانات مستخدم', textDirection: TextDirection.rtl),
-                ],
-              ),
-            );
-          }
-
-          return SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            child: _isEditing
-                ? _buildEditForm()
-                : _buildProfileView(user),
-          );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.error_outline_rounded, size: 64, color: theme.colorScheme.error),
-              AppSpacing.gapMD,
-              Text('خطأ: ${error.toString()}', textDirection: TextDirection.rtl),
-            ],
-          ),
-        ),
+      body: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        child: _isEditing ? _buildEditForm() : _buildProfileView(user),
       ),
     );
   }
 
-  Widget _buildProfileView(dynamic user) {
+  Widget _buildProfileView(UserModel user) {
     final theme = Theme.of(context);
     
     return Column(
@@ -162,11 +150,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ),
           child: CircleAvatar(
             radius: 56,
-            backgroundColor: theme.colorScheme.primaryContainer,
-            child: Icon(
-              Icons.person_rounded,
-              size: 64,
-              color: theme.colorScheme.onPrimaryContainer,
+            backgroundColor: theme.colorScheme.primary,
+            child: Text(
+              user.fullName.characters.isNotEmpty
+                  ? user.fullName.characters.take(1).toString()
+                  : '?',
+              style: theme.textTheme.headlineLarge?.copyWith(
+                color: theme.colorScheme.onPrimary,
+                fontWeight: FontWeight.bold,
+                fontSize: 48,
+              ),
             ),
           ),
         ),
@@ -187,18 +180,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           padding: const EdgeInsets.all(AppSpacing.lg),
           child: Column(
             children: [
-              _buildInfoRow(Icons.person_outline_rounded, 'الاسم', user.fullName),
+              _buildInfoRow(Icons.person_outline_rounded, context.translate('name'), user.fullName),
               Divider(height: AppSpacing.xl, color: theme.colorScheme.outlineVariant),
-              _buildInfoRow(Icons.email_outlined, 'البريد الإلكتروني', user.email),
+              _buildInfoRow(Icons.email_outlined, context.translate('email'), user.email),
               Divider(height: AppSpacing.xl, color: theme.colorScheme.outlineVariant),
-              _buildInfoRow(Icons.phone_outlined, 'رقم الهاتف', user.phone ?? 'غير محدد'),
+              _buildInfoRow(Icons.phone_outlined, context.translate('phone'), user.phone ?? context.translate('not_specified')),
             ],
           ),
         ),
         AppSpacing.gapXL,
         BeityButton(
           onPressed: () => ActionDebouncer.execute(() => ref.read(authNotifierProvider.notifier).signOut()),
-          text: 'تسجيل الخروج',
+          text: context.translate('sign_out'),
           type: BeityButtonType.secondary,
           icon: Icons.logout_rounded,
         ),
@@ -248,10 +241,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 BeityTextField(
                   controller: _nameController,
                   textDirection: TextDirection.rtl,
-                  labelText: 'الاسم الكامل',
+                  labelText: context.translate('full_name'),
                   prefixIcon: Icons.person_rounded,
                   validator: (value) {
-                    final error = AuthErrorMessages.validateName(value);
+                    final error = AuthErrorMessages.validateName(context, value);
                     return error.isEmpty ? null : error;
                   },
                 ),
@@ -260,7 +253,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
                   textDirection: TextDirection.ltr,
-                  labelText: 'رقم الهاتف (اختياري)',
+                  labelText: context.translate('phone_optional'),
                   prefixIcon: Icons.phone_rounded,
                   hintText: '+90 xxx xxx xxxx',
                 ),
@@ -278,7 +271,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           setState(() => _isEditing = false);
                           _loadUserData();
                         },
-                  text: 'إلغاء',
+                  text: context.translate('cancel'),
                   type: BeityButtonType.secondary,
                 ),
               ),
@@ -286,7 +279,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               Expanded(
                 child: BeityButton(
                   onPressed: () => ActionDebouncer.execute(_updateProfile),
-                  text: 'حفظ',
+                  text: context.translate('save'),
                   isLoading: _isLoading,
                   type: BeityButtonType.primary,
                 ),

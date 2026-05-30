@@ -19,7 +19,7 @@ void main() {
       when(() => mockRepository.deleteTask(taskId: 'task-123'))
           .thenAnswer((_) async {});
 
-      await useCase(ArchiveTaskParams(taskId: 'task-123'));
+      await useCase(const ArchiveTaskParams(taskId: 'task-123'));
 
       verify(() => mockRepository.deleteTask(taskId: 'task-123')).called(1);
     });
@@ -28,7 +28,7 @@ void main() {
       when(() => mockRepository.deleteTask(taskId: 'task-456'))
           .thenAnswer((_) async {});
 
-      await useCase(ArchiveTaskParams(taskId: 'task-456'));
+      await useCase(const ArchiveTaskParams(taskId: 'task-456'));
 
       verify(() => mockRepository.deleteTask(taskId: 'task-456')).called(1);
     });

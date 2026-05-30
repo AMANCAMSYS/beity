@@ -6,6 +6,6 @@ class MarkNotificationsReadUseCase {
   MarkNotificationsReadUseCase(this._repository);
 
   Future<int> call(List<String> notificationIds) async {
-    return await _repository.markAsRead(notificationIds);
+    return _repository.markAsRead(notificationIds);
   }
 }

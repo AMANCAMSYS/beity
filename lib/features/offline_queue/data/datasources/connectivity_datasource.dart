@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:beity/core/services/supabase_service.dart';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -13,7 +14,7 @@ class ConnectivityDataSource {
     Connectivity? connectivity,
     SupabaseClient? supabase,
   })  : _connectivity = connectivity ?? Connectivity(),
-        _supabase = supabase ?? Supabase.instance.client;
+        _supabase = supabase ?? SupabaseService.client;
 
   Future<DeviceSyncStatus> getCurrentStatus() async {
     final connectivityResult = await _connectivity.checkConnectivity();

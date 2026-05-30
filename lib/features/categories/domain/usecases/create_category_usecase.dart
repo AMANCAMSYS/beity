@@ -1,3 +1,4 @@
+import '../../../../core/errors/app_exception.dart';
 import '../entities/category.dart';
 import '../../data/repositories/category_repository.dart';
 
@@ -16,19 +17,19 @@ class CreateCategoryUseCase {
   }) async {
     // Validate name
     if (name.isEmpty) {
-      throw Exception('يرجى إدخال اسم التصنيف');
+      throw const ValidationException(message: 'please_enter_category_name_validation');
     }
 
     if (name.length > 100) {
-      throw Exception('اسم التصنيف طويل جداً');
+      throw const ValidationException(message: 'category_name_too_long');
     }
 
     // Validate type
     if (!_isValidType(type)) {
-      throw Exception('نوع التصنيف غير صالح');
+      throw const ValidationException(message: 'invalid_category_type');
     }
 
-    return await _repository.createCategory(
+    return _repository.createCategory(
       homeId: homeId,
       name: name,
       type: type,

@@ -63,21 +63,18 @@ class ShoppingQuantityControls extends StatelessWidget {
     required IconData icon,
     required VoidCallback onTap,
   }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-        ),
-        child: Icon(
-          icon,
-          size: 20,
-          color: Theme.of(context).colorScheme.primary,
-        ),
+    final theme = Theme.of(context);
+    return IconButton(
+      onPressed: onTap,
+      iconSize: 20,
+      color: theme.colorScheme.primary,
+      style: IconButton.styleFrom(
+        backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
+        padding: EdgeInsets.zero,
+        minimumSize: const Size(40, 40),
+        maximumSize: const Size(40, 40),
       ),
+      icon: Icon(icon),
     );
   }
 

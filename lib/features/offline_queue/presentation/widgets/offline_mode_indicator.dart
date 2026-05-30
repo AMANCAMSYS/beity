@@ -21,15 +21,15 @@ class OfflineModeIndicator extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
+          const Icon(
             Icons.cloud_off,
             size: 16,
             color: AppColors.warning,
           ),
           const SizedBox(width: 8),
-          Text(
+          const Text(
             'أنت غير متصل',
-            style: const TextStyle(
+            style: TextStyle(
               color: AppColors.warning,
               fontWeight: FontWeight.w500,
               fontSize: 14,

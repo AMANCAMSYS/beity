@@ -9,14 +9,14 @@ import 'package:beity/app/theme/app_spacing.dart';
 import 'package:beity/app/theme/app_colors.dart';
 import '../providers/expense_providers.dart';
 import '../widgets/expense_card.dart';
+import '../../../../core/localization/app_localizations.dart';
+import '../../../onboarding/presentation/providers/app_tour_controller.dart';
+import '../../../onboarding/presentation/providers/app_tour_target_registry.dart';
 
 class ExpenseListScreen extends ConsumerStatefulWidget {
   final String homeId;
 
-  const ExpenseListScreen({
-    super.key,
-    required this.homeId,
-  });
+  const ExpenseListScreen({super.key, required this.homeId});
 
   @override
   ConsumerState<ExpenseListScreen> createState() => _ExpenseListScreenState();
@@ -32,15 +32,26 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
   Widget build(BuildContext context) {
     final expensesAsync = ref.watch(expensesProvider(widget.homeId));
     final theme = Theme.of(context);
-    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+
+    // Trigger the tour after the build is complete.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(appTourControllerProvider.notifier).maybeStartExpensesTour(context);
+    });
 
     return Scaffold(
+      backgroundColor: theme.colorScheme.surface,
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
         title: Row(
           children: [
             Text(
-              isArabic ? 'المصروفات' : 'Expenses',
-              style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              context.translate('expenses'),
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
             AppSpacing.gapSM,
             Container(
@@ -50,7 +61,7 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
                 borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
               ),
               child: Text(
-                isArabic ? 'تجريبي' : 'Beta',
+                context.translate('beta'),
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: AppColors.warning,
                   fontWeight: FontWeight.bold,
@@ -61,14 +72,19 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
         ),
         actions: [
           IconButton(
+            key: AppTourTargetRegistry.expensesSummaryKey,
             icon: const Icon(Icons.pie_chart_rounded),
-            tooltip: isArabic ? 'ملخص المصروفات' : 'Expense Summary',
-            onPressed: () => ActionDebouncer.execute(() => context.push('/expenses/summary', extra: widget.homeId)),
+            tooltip: context.translate('expense_summary'),
+            onPressed: () => ActionDebouncer.execute(
+              () => context.push('/expenses/summary', extra: widget.homeId),
+            ),
           ),
           IconButton(
             icon: const Icon(Icons.account_balance_wallet_rounded),
-            tooltip: isArabic ? 'الأرصدة' : 'Balances',
-            onPressed: () => ActionDebouncer.execute(() => context.push('/expenses/balances', extra: widget.homeId)),
+            tooltip: context.translate('balances'),
+            onPressed: () => ActionDebouncer.execute(
+              () => context.push('/expenses/balances', extra: widget.homeId),
+            ),
           ),
           IconButton(
             icon: const Icon(Icons.filter_list_rounded),
@@ -76,91 +92,121 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
           ),
         ],
       ),
-      body: expensesAsync.when(
-        data: (expenses) {
-          var filteredExpenses = expenses;
+      body: SafeArea(
+        top: false,
+        child: ColoredBox(
+          color: theme.colorScheme.surface,
+          child: expensesAsync.when(
+            data: (expenses) {
+              var filteredExpenses = expenses;
 
-          if (_startDate != null) {
-            filteredExpenses = filteredExpenses
-                .where((e) => e.date.isAfter(_startDate!))
-                .toList();
-          }
-          if (_endDate != null) {
-            filteredExpenses = filteredExpenses
-                .where((e) => e.date.isBefore(_endDate!.add(const Duration(days: 1))))
-                .toList();
-          }
-          if (_selectedCategoryId != null) {
-            filteredExpenses = filteredExpenses
-                .where((e) => e.categoryId == _selectedCategoryId)
-                .toList();
-          }
-          if (_selectedMemberId != null) {
-            filteredExpenses = filteredExpenses
-                .where((e) => e.paidBy == _selectedMemberId)
-                .toList();
-          }
+              if (_startDate != null) {
+                filteredExpenses = filteredExpenses
+                    .where((e) => e.date.isAfter(_startDate!))
+                    .toList();
+              }
+              if (_endDate != null) {
+                filteredExpenses = filteredExpenses
+                    .where(
+                      (e) => e.date.isBefore(
+                        _endDate!.add(const Duration(days: 1)),
+                      ),
+                    )
+                    .toList();
+              }
+              if (_selectedCategoryId != null) {
+                filteredExpenses = filteredExpenses
+                    .where((e) => e.categoryId == _selectedCategoryId)
+                    .toList();
+              }
+              if (_selectedMemberId != null) {
+                filteredExpenses = filteredExpenses
+                    .where((e) => e.paidBy == _selectedMemberId)
+                    .toList();
+              }
 
-          if (filteredExpenses.isEmpty) {
-            return BeityEmptyState(
-              title: expenses.isEmpty
-                  ? (isArabic ? 'لا توجد مصروفات بعد' : 'No expenses yet')
-                  : (isArabic ? 'لا توجد نتائج بحث' : 'No search results'),
-              message: expenses.isEmpty
-                  ? (isArabic ? 'ابدأ بتتبع مصروفات منزلك وتوزيعها بين الأعضاء بكل سهولة' : 'Start tracking your home expenses and splitting them easily')
-                  : (isArabic ? 'جرب تغيير خيارات التصفية أو مسحها للوصول لما تبحث عنه' : 'Try changing or clearing filters to find what you are looking for'),
-              icon: Icons.receipt_long_rounded,
-              actionText: expenses.isEmpty
-                  ? (isArabic ? 'إضافة أول مصروف' : 'Add First Expense')
-                  : (isArabic ? 'مسح التصفية' : 'Clear Filters'),
-              onAction: expenses.isEmpty
-                  ? () => ActionDebouncer.execute(() => context.push('/expenses/add', extra: widget.homeId))
-                  : () => setState(() {
-                        _startDate = null;
-                        _endDate = null;
-                        _selectedCategoryId = null;
-                        _selectedMemberId = null;
-                      }),
-            );
-          }
+              if (filteredExpenses.isEmpty) {
+                return BeityEmptyState(
+                  title: expenses.isEmpty
+                      ? context.translate('no_expenses_yet')
+                      : context.translate('no_search_results'),
+                  message: expenses.isEmpty
+                      ? context.translate('expenses_empty_desc')
+                      : context.translate('expenses_filter_empty_desc'),
+                  icon: Icons.receipt_long_rounded,
+                  actionText: expenses.isEmpty
+                      ? context.translate('add_first_expense')
+                      : context.translate('clear_filters_action'),
+                  onAction: expenses.isEmpty
+                      ? () => ActionDebouncer.execute(
+                          () => context.push(
+                            '/expenses/add',
+                            extra: widget.homeId,
+                          ),
+                        )
+                      : () => setState(() {
+                          _startDate = null;
+                          _endDate = null;
+                          _selectedCategoryId = null;
+                          _selectedMemberId = null;
+                        }),
+                );
+              }
 
-          return ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.lg),
-            itemCount: filteredExpenses.length,
-            itemBuilder: (context, index) {
-              final expense = filteredExpenses[index];
-              return Padding(
-                padding: const EdgeInsets.only(bottom: AppSpacing.md),
-                child: ExpenseCard(
-                  expense: expense,
-                  onTap: () => context.push('/expenses/${expense.id}'),
+              return RefreshIndicator(
+                onRefresh: () async =>
+                    ref.invalidate(expensesProvider(widget.homeId)),
+                child: ListView.builder(
+                  padding: EdgeInsetsDirectional.fromSTEB(
+                    AppSpacing.lg,
+                    AppSpacing.lg,
+                    AppSpacing.lg,
+                    AppSpacing.lg + MediaQuery.of(context).padding.bottom + 80,
+                  ),
+                  itemCount: filteredExpenses.length,
+                  itemBuilder: (context, index) {
+                    final expense = filteredExpenses[index];
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                      child: ExpenseCard(
+                        expense: expense,
+                        onTap: () => context.push('/expenses/${expense.id}'),
+                      ),
+                    );
+                  },
                 ),
               );
             },
-          );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => BeityEmptyState(
-          title: isArabic ? 'عذراً، حدث خطأ' : 'Oops, something went wrong',
-          message: error.toString(),
-          icon: Icons.error_outline_rounded,
-          isError: true,
-          actionText: isArabic ? 'إعادة المحاولة' : 'Try Again',
-          onAction: () => ref.invalidate(expensesProvider(widget.homeId)),
+            loading: () => Center(
+              child: CircularProgressIndicator(
+                color: theme.colorScheme.primary,
+              ),
+            ),
+            error: (error, stack) => BeityEmptyState(
+              title: context.translate('error_title'),
+              message: error.toString(),
+              icon: Icons.error_outline_rounded,
+              isError: true,
+              actionText: context.translate('retry'),
+              onAction: () => ref.invalidate(expensesProvider(widget.homeId)),
+            ),
+          ),
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => ActionDebouncer.execute(() => context.push('/expenses/add', extra: widget.homeId)),
+        key: AppTourTargetRegistry.expensesAddKey,
+        onPressed: () => ActionDebouncer.execute(
+          () => context.push('/expenses/add', extra: widget.homeId),
+        ),
         icon: const Icon(Icons.add_rounded),
-        label: Text(isArabic ? 'إضافة مصروف' : 'Add Expense'),
+        label: Text(context.translate('add_expense')),
       ),
     );
   }
 
   Future<void> _showFilterDialog() async {
-    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
     final theme = Theme.of(context);
-    
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -168,11 +214,13 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
       builder: (context) => Container(
         decoration: BoxDecoration(
           color: theme.colorScheme.surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusXl)),
+          borderRadius: const BorderRadius.vertical(
+            top: Radius.circular(AppSpacing.radiusXl),
+          ),
         ),
         child: StatefulBuilder(
           builder: (context, setDialogState) => Padding(
-            padding: EdgeInsets.fromLTRB(
+            padding: EdgeInsetsDirectional.fromSTEB(
               AppSpacing.lg,
               AppSpacing.lg,
               AppSpacing.lg,
@@ -187,8 +235,10 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
                     width: 40,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                      color: theme.colorScheme.onSurfaceVariant.withValues(
+                        alpha: 0.2,
+                      ),
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
                     ),
                   ),
                 ),
@@ -196,26 +246,33 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
                 Row(
                   children: [
                     Text(
-                      isArabic ? 'تصفية المصروفات' : 'Filter Expenses',
-                      style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                      context.translate('filter_expenses'),
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const Spacer(),
                     IconButton(
                       icon: const Icon(Icons.close_rounded),
                       onPressed: () => Navigator.pop(context),
                       style: IconButton.styleFrom(
-                        backgroundColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                        backgroundColor: theme
+                            .colorScheme
+                            .surfaceContainerHighest
+                            .withValues(alpha: 0.5),
                       ),
                     ),
                   ],
                 ),
                 AppSpacing.gapXL,
                 _buildFilterTile(
-                  title: isArabic ? 'من تاريخ' : 'From Date',
+                  title: context.translate('from_date'),
                   value: _startDate != null
                       ? '${_startDate!.day}/${_startDate!.month}/${_startDate!.year}'
-                      : (isArabic ? 'غير محدد' : 'Not set'),
-                  onClear: _startDate != null ? () => setDialogState(() => _startDate = null) : null,
+                      : context.translate('not_set'),
+                  onClear: _startDate != null
+                      ? () => setDialogState(() => _startDate = null)
+                      : null,
                   onTap: () async {
                     final picked = await showDatePicker(
                       context: context,
@@ -230,11 +287,13 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
                 ),
                 AppSpacing.gapMD,
                 _buildFilterTile(
-                  title: isArabic ? 'إلى تاريخ' : 'To Date',
+                  title: context.translate('to_date'),
                   value: _endDate != null
                       ? '${_endDate!.day}/${_endDate!.month}/${_endDate!.year}'
-                      : (isArabic ? 'غير محدد' : 'Not set'),
-                  onClear: _endDate != null ? () => setDialogState(() => _endDate = null) : null,
+                      : context.translate('not_set'),
+                  onClear: _endDate != null
+                      ? () => setDialogState(() => _endDate = null)
+                      : null,
                   onTap: () async {
                     final picked = await showDatePicker(
                       context: context,
@@ -253,7 +312,7 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
                     Expanded(
                       child: BeityButton(
                         type: BeityButtonType.secondary,
-                        text: isArabic ? 'مسح الفلاتر' : 'Clear All',
+                        text: context.translate('clear_all'),
                         onPressed: () {
                           setState(() {
                             _startDate = null;
@@ -266,7 +325,7 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
                     AppSpacing.gapMD,
                     Expanded(
                       child: BeityButton(
-                        text: isArabic ? 'تطبيق' : 'Apply',
+                        text: context.translate('apply'),
                         onPressed: () {
                           setState(() {});
                           Navigator.pop(context);
@@ -304,7 +363,11 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
                 color: theme.colorScheme.primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
               ),
-              child: Icon(Icons.calendar_today_rounded, size: 20, color: theme.colorScheme.primary),
+              child: Icon(
+                Icons.calendar_today_rounded,
+                size: 20,
+                color: theme.colorScheme.primary,
+              ),
             ),
             AppSpacing.gapLG,
             Expanded(
@@ -321,7 +384,9 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
                   AppSpacing.gapXS,
                   Text(
                     value,
-                    style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ],
               ),
@@ -331,7 +396,9 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
                 icon: const Icon(Icons.close_rounded, size: 20),
                 onPressed: onClear,
                 style: IconButton.styleFrom(
-                  backgroundColor: theme.colorScheme.error.withValues(alpha: 0.1),
+                  backgroundColor: theme.colorScheme.error.withValues(
+                    alpha: 0.1,
+                  ),
                   iconSize: 18,
                 ),
               ),

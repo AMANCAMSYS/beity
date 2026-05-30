@@ -1,11 +1,11 @@
+import 'package:beity/shared/widgets/design_system/beity_snack_bar.dart';
 import 'package:beity/shared/widgets/design_system/beity_empty_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:beity/app/theme/app_spacing.dart';
-import 'package:beity/app/theme/app_colors.dart';
-import 'package:beity/shared/widgets/design_system/beity_button.dart';
+import 'package:beity/core/localization/app_localizations.dart';
 import '../providers/homes_provider.dart';
 import '../widgets/home_card_widget.dart';
 import '../../../notifications/presentation/providers/notifications_provider.dart';
@@ -35,18 +35,18 @@ class _HomesListScreenState extends ConsumerState<HomesListScreen> {
   @override
   Widget build(BuildContext context) {
     final homesAsync = ref.watch(homesNotifierProvider);
-    final activeHomeIdAsync = ref.watch(activeHomeIdProvider);
+    final activeHomeId = ref.watch(cachedActiveHomeIdProvider);
     final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('المنازل'),
+        title: Text(context.translate('homes')),
         centerTitle: true,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
             onPressed: () => ref.read(homesNotifierProvider.notifier).refreshHomes(),
-            tooltip: 'تحديث القائمة',
+            tooltip: context.translate('refresh_list'),
           ),
         ],
       ),
@@ -55,8 +55,6 @@ class _HomesListScreenState extends ConsumerState<HomesListScreen> {
           if (homes.isEmpty) {
             return _buildEmptyState(context);
           }
-
-          final activeHomeId = activeHomeIdAsync.valueOrNull;
 
           return RefreshIndicator(
             onRefresh: () async {
@@ -88,6 +86,12 @@ class _HomesListScreenState extends ConsumerState<HomesListScreen> {
                       ref.invalidate(activityFilterProvider);
                       ref.invalidate(categoryNotifierProvider);
                       ref.invalidate(unitNotifierProvider);
+                      if (context.mounted) {
+                        BeitySnackBar.success(
+                          context,
+                          context.translate('home_switched_success', arguments: {'name': home.name}),
+                        );
+                      }
                     },
                   ),
                 );
@@ -97,17 +101,17 @@ class _HomesListScreenState extends ConsumerState<HomesListScreen> {
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stack) => BeityEmptyState(
-          title: 'عذراً، حدث خطأ',
+          title: context.translate('error_occurred'),
           message: error.toString(),
           icon: Icons.error_outline_rounded,
           isError: true,
-          actionText: 'إعادة المحاولة',
+          actionText: context.translate('retry'),
           onAction: () => ref.read(homesNotifierProvider.notifier).loadHomes(),
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.push('/homes/create'),
-        label: const Text('منزل جديد'),
+        label: Text(context.translate('new_home')),
         icon: const Icon(Icons.add_rounded),
         backgroundColor: theme.colorScheme.primary,
         foregroundColor: theme.colorScheme.onPrimary,
@@ -117,10 +121,10 @@ class _HomesListScreenState extends ConsumerState<HomesListScreen> {
 
   Widget _buildEmptyState(BuildContext context) {
     return BeityEmptyState(
-      title: 'لا توجد منازل حتى الآن',
-      message: 'أنشئ منزلك الأول لتبدأ في إدارة احتياجاتك المنزلية مع عائلتك بكل سهولة.',
+      title: context.translate('no_homes_yet'),
+      message: context.translate('create_first_home_guideline'),
       icon: Icons.home_outlined,
-      actionText: 'إنشاء منزلي الأول',
+      actionText: context.translate('create_first_home'),
       onAction: () => context.push('/homes/create'),
     );
   }

@@ -11,6 +11,6 @@ class DeclineInvitationUseCase {
       throw Exception('رمز الدعوة غير صالح');
     }
 
-    return await _repository.declineInvitation(token: token);
+    return _repository.declineInvitation(token: token);
   }
 }

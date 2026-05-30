@@ -3,6 +3,8 @@ import 'package:timeago/timeago.dart' as timeago;
 import '../../../../app/theme/app_colors.dart';
 import '../../data/models/activity_log_model.dart';
 import '../../domain/entities/activity_log.dart';
+import 'package:beity/core/localization/app_localizations.dart';
+import '../utils/activity_localizer.dart';
 
 class ActivityLogTileWidget extends StatelessWidget {
   final ActivityLogModel log;
@@ -16,35 +18,31 @@ class ActivityLogTileWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: _actionColor.withValues(alpha: 0.1),
-          child: Icon(_actionIcon, color: _actionColor, size: 20),
-        ),
-        title: RichText(
-          textDirection: TextDirection.rtl,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          text: TextSpan(
-            style: DefaultTextStyle.of(context).style,
-            children: [
-              TextSpan(
-                text: log.actorName ?? 'مستخدم',
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const TextSpan(text: ' '),
-              TextSpan(text: log.actionDescription),
-            ],
-          ),
-        ),
-        subtitle: Text(
-          _formatRelativeTime(log.createdAt),
-          style: TextStyle(color: Colors.grey[500], fontSize: 12),
-        ),
-        onTap: onTap,
+    return ListTile(
+      leading: CircleAvatar(
+        backgroundColor: _actionColor.withValues(alpha: 0.1),
+        child: Icon(_actionIcon, color: _actionColor, size: 20),
       ),
+      title: RichText(
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        text: TextSpan(
+          style: DefaultTextStyle.of(context).style,
+          children: [
+            TextSpan(
+              text: log.actorName ?? context.translate('user_label'),
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const TextSpan(text: ' '),
+            TextSpan(text: log.getLocalizedDescription(context)),
+          ],
+        ),
+      ),
+      subtitle: Text(
+        _formatRelativeTime(context, log.createdAt),
+        style: TextStyle(color: Colors.grey[500], fontSize: 12),
+      ),
+      onTap: onTap,
     );
   }
 
@@ -114,7 +112,8 @@ class ActivityLogTileWidget extends StatelessWidget {
     }
   }
 
-  String _formatRelativeTime(DateTime date) {
-    return timeago.format(date, locale: 'ar');
+  String _formatRelativeTime(BuildContext context, DateTime date) {
+    final localeCode = Localizations.localeOf(context).languageCode;
+    return timeago.format(date, locale: localeCode);
   }
 }

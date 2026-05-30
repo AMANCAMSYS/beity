@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:beity/shared/widgets/design_system/beity_snack_bar.dart';
+import 'package:beity/core/localization/app_localizations.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../data/models/category_model.dart';
 import '../../domain/entities/category.dart';
@@ -34,8 +36,12 @@ class CategoryCardWidget extends ConsumerWidget {
           ),
           child: Center(
             child: Text(
-              category.icon ?? '📦',
-              style: const TextStyle(fontSize: 24),
+              _getCategoryAbbreviation(),
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: _getCategoryColor(),
+              ),
             ),
           ),
         ),
@@ -45,7 +51,7 @@ class CategoryCardWidget extends ConsumerWidget {
           textDirection: TextDirection.rtl,
         ),
         subtitle: Text(
-          _getTypeName(),
+          _getTypeName(context),
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
@@ -74,14 +80,45 @@ class CategoryCardWidget extends ConsumerWidget {
     return Colors.grey;
   }
 
-  String _getTypeName() {
+  String _getTypeName(BuildContext context) {
     switch (category.type) {
       case CategoryType.shopping:
-        return 'تسوق';
+        return context.translate('shopping');
       case CategoryType.inventory:
-        return 'مخزون';
+        return context.translate('inventory_filter');
       case CategoryType.expense:
-        return 'مصروفات';
+        return context.translate('expense');
+    }
+  }
+
+  String _getCategoryAbbreviation() {
+    final name = category.name.trim();
+    if (name.isEmpty) return '??';
+
+    // Check if the name starts with Arabic characters
+    final isArabic = RegExp(r'^[\u0600-\u06FF]').hasMatch(name);
+
+    if (isArabic) {
+      final words = name.split(RegExp(r'\s+'));
+      if (words.length >= 2) {
+        // Take first letter of first word and first letter of second word (e.g. "خ ف" for "خضروات وفواكه")
+        final first = words[0].substring(0, 1);
+        final second = words[1].substring(0, 1);
+        return '$first $second';
+      } else {
+        // Take the first two letters of the single word (e.g. "من" for "منظفات")
+        return name.length >= 2 ? name.substring(0, 2) : name;
+      }
+    } else {
+      // Latin script (English, Turkish, etc.)
+      final words = name.split(RegExp(r'\s+'));
+      if (words.length >= 2) {
+        final first = words[0].substring(0, 1).toUpperCase();
+        final second = words[1].substring(0, 1).toUpperCase();
+        return '$first$second';
+      } else {
+        return name.length >= 2 ? name.substring(0, 2).toUpperCase() : name.toUpperCase();
+      }
     }
   }
 
@@ -89,18 +126,18 @@ class CategoryCardWidget extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text(
-          'حذف التصنيف',
+        title: Text(
+          context.translate('delete_category'),
           textDirection: TextDirection.rtl,
         ),
         content: Text(
-          'هل أنت متأكد من حذف "${category.name}"؟',
+          context.translate('delete_category_confirm', arguments: {'name': category.name}),
           textDirection: TextDirection.rtl,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('إلغاء'),
+            child: Text(context.translate('cancel')),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -110,26 +147,13 @@ class CategoryCardWidget extends ConsumerWidget {
                     .read(categoryNotifierProvider.notifier)
                     .deleteCategory(categoryId: category.id);
                 if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'تم حذف التصنيف بنجاح',
-                        textDirection: TextDirection.rtl,
-                      ),
-                      backgroundColor: AppColors.success,
-                    ),
-                  );
+                  BeitySnackBar.success(context, context.translate('category_deleted_success'));
                 }
               } catch (e) {
                 if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        e.toString().replaceAll('Exception: ', ''),
-                        textDirection: TextDirection.rtl,
-                      ),
-                      backgroundColor: AppColors.error,
-                    ),
+                  BeitySnackBar.error(
+                    context,
+                    e.toString().replaceAll('Exception: ', ''),
                   );
                 }
               }
@@ -138,7 +162,7 @@ class CategoryCardWidget extends ConsumerWidget {
               backgroundColor: AppColors.error,
               foregroundColor: Colors.white,
             ),
-            child: const Text('حذف'),
+            child: Text(context.translate('delete')),
           ),
         ],
       ),

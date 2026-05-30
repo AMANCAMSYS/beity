@@ -1,3 +1,4 @@
+import 'package:uuid/uuid.dart';
 import 'action_type.dart';
 import 'entity_type.dart';
 import 'sync_status.dart';
@@ -14,8 +15,9 @@ class QueueEntry {
   final int retryCount;
   final DateTime? lastRetryAt;
   final String? errorMessage;
+  final String idempotencyKey;
 
-  const QueueEntry({
+  QueueEntry({
     this.id,
     required this.actionType,
     required this.entityType,
@@ -27,7 +29,8 @@ class QueueEntry {
     this.retryCount = 0,
     this.lastRetryAt,
     this.errorMessage,
-  });
+    String? idempotencyKey,
+  }) : idempotencyKey = idempotencyKey ?? const Uuid().v4();
 
   QueueEntry copyWith({
     int? id,
@@ -41,6 +44,7 @@ class QueueEntry {
     int? retryCount,
     DateTime? lastRetryAt,
     String? errorMessage,
+    String? idempotencyKey,
   }) {
     return QueueEntry(
       id: id ?? this.id,
@@ -54,6 +58,7 @@ class QueueEntry {
       retryCount: retryCount ?? this.retryCount,
       lastRetryAt: lastRetryAt ?? this.lastRetryAt,
       errorMessage: errorMessage ?? this.errorMessage,
+      idempotencyKey: idempotencyKey ?? this.idempotencyKey,
     );
   }
 
@@ -79,6 +84,7 @@ class QueueEntry {
       'retryCount': retryCount,
       'lastRetryAt': lastRetryAt?.toIso8601String(),
       'errorMessage': errorMessage,
+      'idempotencyKey': idempotencyKey,
     };
   }
 
@@ -97,6 +103,7 @@ class QueueEntry {
           ? DateTime.parse(json['lastRetryAt'] as String)
           : null,
       errorMessage: json['errorMessage'] as String?,
+      idempotencyKey: json['idempotencyKey'] as String? ?? const Uuid().v4(),
     );
   }
 }

@@ -10,7 +10,7 @@ class GetShoppingListsUseCase {
     required String homeId,
     String? status,
   }) async {
-    return await _repository.getShoppingLists(
+    return _repository.getShoppingLists(
       homeId: homeId,
       status: status,
     );

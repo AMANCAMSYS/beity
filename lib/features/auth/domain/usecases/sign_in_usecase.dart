@@ -10,7 +10,7 @@ class SignInUseCase {
     required String email,
     required String password,
   }) async {
-    return await _repository.signIn(
+    return _repository.signIn(
       email: email,
       password: password,
     );

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../providers/ai_suggestions_provider.dart';
 import '../../domain/entities/ai_suggestion.dart';
+import '../../../../core/localization/app_localizations.dart';
 
 class AiSuggestionTile extends ConsumerWidget {
   final int index;
@@ -50,7 +51,7 @@ class AiSuggestionTile extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
-                  isArabic ? 'موجود بالفعل' : 'Already in list',
+                  context.translate('already_in_list_badge'),
                   style: const TextStyle(fontSize: 10, color: AppColors.warning),
                 ),
               ),
@@ -112,7 +113,7 @@ class AiSuggestionTile extends ConsumerWidget {
             padding: const EdgeInsets.only(top: 4.0),
             child: Text(
               suggestion.reason!,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 12,
                 color: AppColors.info,
                 fontStyle: FontStyle.italic,

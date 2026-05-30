@@ -16,7 +16,7 @@ void main() {
   });
 
   group('EditTask', () {
-    final originalTask = Task(
+    const originalTask = Task(
       id: 'task-123',
       homeId: 'home-123',
       title: 'تنظيف المطبخ',
@@ -33,7 +33,7 @@ void main() {
             title: 'تنظيف الحمام',
           )).thenAnswer((_) async => updatedTask);
 
-      final result = await useCase(EditTaskParams(
+      final result = await useCase(const EditTaskParams(
         taskId: 'task-123',
         title: 'تنظيف الحمام',
       ));
@@ -50,7 +50,7 @@ void main() {
             description: 'وصف جديد',
           )).thenAnswer((_) async => updatedTask);
 
-      final result = await useCase(EditTaskParams(
+      final result = await useCase(const EditTaskParams(
         taskId: 'task-123',
         description: 'وصف جديد',
       ));
@@ -83,7 +83,7 @@ void main() {
             assignedTo: 'user-456',
           )).thenAnswer((_) async => updatedTask);
 
-      final result = await useCase(EditTaskParams(
+      final result = await useCase(const EditTaskParams(
         taskId: 'task-123',
         assignedTo: 'user-456',
       ));
@@ -99,7 +99,7 @@ void main() {
             recurrenceType: 'monthly',
           )).thenAnswer((_) async => updatedTask);
 
-      final result = await useCase(EditTaskParams(
+      final result = await useCase(const EditTaskParams(
         taskId: 'task-123',
         recurrenceType: 'monthly',
       ));
@@ -109,15 +109,12 @@ void main() {
     });
 
     test('should disable recurrence by setting null', () async {
-      final recurringTask =
-          originalTask.copyWith(recurrenceType: 'weekly');
-
       when(() => mockRepository.updateTask(
             taskId: 'task-123',
             recurrenceType: null,
           )).thenAnswer((_) async => originalTask);
 
-      final result = await useCase(EditTaskParams(
+      final result = await useCase(const EditTaskParams(
         taskId: 'task-123',
         recurrenceType: null,
       ));

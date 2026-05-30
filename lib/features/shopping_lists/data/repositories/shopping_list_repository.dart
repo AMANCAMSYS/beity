@@ -121,4 +121,6 @@ abstract class ShoppingListRepository {
     String? unitId,
     String? categoryId,
   });
+
+  Future<void> syncShoppingWithServer(String homeId);
 }

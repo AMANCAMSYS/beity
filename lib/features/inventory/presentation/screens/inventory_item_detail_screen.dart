@@ -6,9 +6,13 @@ import 'package:beity/app/theme/app_spacing.dart';
 import 'package:beity/app/theme/app_colors.dart';
 import 'package:beity/shared/widgets/design_system/beity_card.dart';
 import 'package:beity/shared/widgets/design_system/beity_button.dart';
+import 'package:beity/shared/widgets/design_system/beity_snack_bar.dart';
 import '../providers/inventory_provider.dart';
 import '../../domain/usecases/delete_inventory_item_usecase.dart';
+import '../../domain/entities/inventory_item.dart';
 import '../../data/models/inventory_transaction_model.dart';
+import 'package:beity/core/localization/app_localizations.dart';
+import 'package:beity/core/errors/error_formatter.dart';
 
 class InventoryItemDetailScreen extends ConsumerStatefulWidget {
   final String itemId;
@@ -56,16 +60,19 @@ class _InventoryItemDetailScreenState
   @override
   Widget build(BuildContext context) {
     final itemAsync = ref.watch(inventoryItemByIdProvider(widget.itemId));
-    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
     final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(isArabic ? 'تفاصيل المنتج' : 'Item Details', style: const TextStyle(fontWeight: FontWeight.bold)),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: Text(context.translate('item_details'), style: const TextStyle(fontWeight: FontWeight.bold)),
         actions: [
           IconButton(
             icon: const Icon(Icons.edit_rounded),
-            tooltip: isArabic ? 'تعديل' : 'Edit',
+            tooltip: context.translate('edit'),
             onPressed: () {
               context.push('/inventory/${widget.itemId}/edit', extra: {
                 'homeId': widget.homeId,
@@ -73,8 +80,8 @@ class _InventoryItemDetailScreenState
             },
           ),
           IconButton(
-            icon: Icon(Icons.delete_outline_rounded, color: AppColors.error),
-            onPressed: () => _confirmDelete(context, isArabic),
+            icon: const Icon(Icons.delete_outline_rounded, color: AppColors.error),
+            onPressed: () => _confirmDelete(context),
           ),
           AppSpacing.gapSM,
         ],
@@ -85,14 +92,14 @@ class _InventoryItemDetailScreenState
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.error_outline_rounded, size: 64, color: AppColors.error),
+              const Icon(Icons.error_outline_rounded, size: 64, color: AppColors.error),
               AppSpacing.gapLG,
-              Text(isArabic ? 'عذراً، حدث خطأ' : 'Sorry, an error occurred', style: const TextStyle(fontWeight: FontWeight.bold)),
+              Text(context.translate('error_occurred'), style: const TextStyle(fontWeight: FontWeight.bold)),
               AppSpacing.gapSM,
-              Text('$e', textAlign: TextAlign.center, style: TextStyle(color: theme.colorScheme.onSurfaceVariant)),
+              Text(ErrorFormatter.format(e, context), textAlign: TextAlign.center, style: TextStyle(color: theme.colorScheme.onSurfaceVariant)),
               AppSpacing.gapXL,
               BeityButton(
-                text: isArabic ? 'إعادة المحاولة' : 'Retry',
+                text: context.translate('retry'),
                 width: 160,
                 onPressed: () => ref.invalidate(inventoryItemByIdProvider(widget.itemId)),
               ),
@@ -110,14 +117,14 @@ class _InventoryItemDetailScreenState
                     Icon(Icons.inventory_2_outlined, size: 64, color: theme.colorScheme.outline),
                     AppSpacing.gapLG,
                     Text(
-                      isArabic ? 'المنتج غير موجود' : 'Item not found',
+                      context.translate('item_not_found'),
                       style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                     ),
                     AppSpacing.gapLG,
                     BeityButton(
-                      text: isArabic ? 'العودة' : 'Go Back',
+                      text: context.translate('go_back'),
                       type: BeityButtonType.secondary,
-                      onPressed: () => context.pop(),
+                      onPressed: () => Navigator.of(context).pop(),
                     ),
                   ],
                 ),
@@ -127,7 +134,7 @@ class _InventoryItemDetailScreenState
           return ListView(
             padding: const EdgeInsets.all(AppSpacing.lg),
             children: [
-              _buildItemCard(item, isArabic, theme),
+              _buildItemCard(item, context, theme),
               AppSpacing.gapXL,
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
@@ -143,14 +150,14 @@ class _InventoryItemDetailScreenState
                     ),
                     AppSpacing.gapMD,
                     Text(
-                      isArabic ? 'سجل التغييرات' : 'Change Logs',
+                      context.translate('change_logs'),
                       style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
               ),
               AppSpacing.gapLG,
-              _buildTransactionsList(isArabic, theme),
+              _buildTransactionsList(context, theme),
               AppSpacing.gapXXL,
             ],
           );
@@ -159,7 +166,7 @@ class _InventoryItemDetailScreenState
     );
   }
 
-  Widget _buildItemCard(dynamic item, bool isArabic, ThemeData theme) {
+  Widget _buildItemCard(InventoryItem item, BuildContext context, ThemeData theme) {
     return BeityCard(
       padding: const EdgeInsets.all(AppSpacing.xl),
       child: Column(
@@ -189,7 +196,7 @@ class _InventoryItemDetailScreenState
                     ),
                     AppSpacing.gapXXS,
                     Text(
-                      isArabic ? 'بيانات المنتج الأساسية' : 'Primary Product Data',
+                      context.translate('primary_product_data'),
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                         fontWeight: FontWeight.bold,
@@ -205,29 +212,29 @@ class _InventoryItemDetailScreenState
           AppSpacing.gapXL,
           _infoRow(
             Icons.numbers_rounded,
-            isArabic ? 'الكمية الحالية' : 'Current Quantity',
-            _formatQuantity(item.quantity, isArabic),
+            context.translate('current_quantity'),
+            _formatQuantity(item.quantity),
             theme,
             valueColor: item.isLowStock ? theme.colorScheme.error : AppColors.primary,
           ),
           if (item.minQuantity != null)
             _infoRow(
               Icons.warning_amber_rounded,
-              isArabic ? 'الحد الأدنى' : 'Min Quantity',
-              _formatQuantity(item.minQuantity!, isArabic),
+              context.translate('min_quantity'),
+              _formatQuantity(item.minQuantity!),
               theme,
             ),
           if (item.notes != null && item.notes!.isNotEmpty)
             _infoRow(
               Icons.notes_rounded,
-              isArabic ? 'ملاحظات' : 'Notes',
+              context.translate('additional_notes'),
               item.notes!,
               theme,
             ),
           _infoRow(
             Icons.event_available_rounded,
-            isArabic ? 'تاريخ الإضافة' : 'Date Added',
-            _formatDate(item.createdAt, isArabic),
+            context.translate('date_added'),
+            _formatDate(context, item.createdAt),
             theme,
           ),
         ],
@@ -274,7 +281,7 @@ class _InventoryItemDetailScreenState
     );
   }
 
-  Widget _buildTransactionsList(bool isArabic, ThemeData theme) {
+  Widget _buildTransactionsList(BuildContext context, ThemeData theme) {
     if (_loadingTransactions) {
       return const Center(
         child: Padding(
@@ -296,7 +303,7 @@ class _InventoryItemDetailScreenState
             ),
             AppSpacing.gapLG,
             Text(
-              isArabic ? 'لا توجد تغييرات مسجلة' : 'No logs found',
+              context.translate('no_logs_found'),
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
                 fontWeight: FontWeight.w500,
@@ -337,14 +344,14 @@ class _InventoryItemDetailScreenState
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      _getTransactionLabel(txn.changeReason, isArabic),
+                      _getTransactionLabel(context, txn.changeReason),
                       style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
                     ),
                     AppSpacing.gapXXS,
                     Row(
                       children: [
                         Text(
-                          '${_formatQuantity(txn.previousQuantity, isArabic)} ',
+                          '${_formatQuantity(txn.previousQuantity)} ',
                           style: theme.textTheme.bodySmall?.copyWith(
                             decoration: TextDecoration.lineThrough,
                             color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
@@ -354,7 +361,7 @@ class _InventoryItemDetailScreenState
                         Icon(Icons.east_rounded, size: 10, color: theme.colorScheme.outline),
                         AppSpacing.gapXXS,
                         Text(
-                          _formatQuantity(txn.newQuantity, isArabic),
+                          _formatQuantity(txn.newQuantity),
                           style: theme.textTheme.bodySmall?.copyWith(
                             fontWeight: FontWeight.bold,
                             color: theme.colorScheme.primary,
@@ -366,7 +373,7 @@ class _InventoryItemDetailScreenState
                 ),
               ),
               Text(
-                _formatDate(txn.createdAt, isArabic),
+                _formatDate(context, txn.createdAt),
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
@@ -378,16 +385,17 @@ class _InventoryItemDetailScreenState
     );
   }
 
-  String _formatQuantity(double q, bool isArabic) {
+  String _formatQuantity(double q) {
     if (q == q.roundToDouble() && q < 1000) {
       return q.toInt().toString();
     }
     return q.toStringAsFixed(1);
   }
 
-  String _formatDate(DateTime? date, bool isArabic) {
+  String _formatDate(BuildContext context, DateTime? date) {
     if (date == null) return '';
-    return DateFormat.yMd(isArabic ? 'ar' : 'en').add_jm().format(date);
+    final lang = Localizations.localeOf(context).languageCode;
+    return DateFormat.yMd(lang).add_jm().format(date);
   }
 
   IconData _getTransactionIcon(String reason) {
@@ -424,24 +432,20 @@ class _InventoryItemDetailScreenState
     }
   }
 
-  String _getTransactionLabel(String reason, bool isArabic) {
+  String _getTransactionLabel(BuildContext context, String reason) {
     switch (reason) {
       case 'initial_add':
-        return isArabic ? 'إضافة أولية' : 'Initial Add';
       case 'manual_update':
-        return isArabic ? 'تعديل يدوي' : 'Manual Update';
       case 'shopping_restock':
-        return isArabic ? 'تجديد من التسوق' : 'Shopping Restock';
       case 'zero_removal':
-        return isArabic ? 'إزالة (صفر كمية)' : 'Auto Removal (Zero)';
       case 'delete':
-        return isArabic ? 'حذف' : 'Delete';
+        return context.translate(reason);
       default:
         return reason;
     }
   }
 
-  void _confirmDelete(BuildContext context, bool isArabic) {
+  void _confirmDelete(BuildContext context) {
     final theme = Theme.of(context);
     showDialog(
       context: context,
@@ -453,23 +457,23 @@ class _InventoryItemDetailScreenState
           children: [
             Icon(Icons.warning_amber_rounded, color: theme.colorScheme.error),
             AppSpacing.gapMD,
-            Text(isArabic ? 'حذف المنتج' : 'Delete Product', style: const TextStyle(fontWeight: FontWeight.bold)),
+            Text(context.translate('delete_product'), style: const TextStyle(fontWeight: FontWeight.bold)),
           ],
         ),
         content: Text(
-          isArabic ? 'هل أنت متأكد من حذف هذا المنتج نهائياً من المخزون؟ سيتم حذف سجل التغييرات أيضاً.' : 'Are you sure you want to permanently delete this item? Its history will also be removed.',
+          context.translate('delete_product_confirm'),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
             child: Text(
-              isArabic ? 'إلغاء' : 'Cancel',
+              context.translate('cancel'),
               style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontWeight: FontWeight.bold),
             ),
           ),
           BeityButton(
             width: 100,
-            text: isArabic ? 'حذف' : 'Delete',
+            text: context.translate('delete'),
             type: BeityButtonType.secondary,
             onPressed: () async {
               Navigator.pop(ctx);
@@ -482,15 +486,15 @@ class _InventoryItemDetailScreenState
                   homeId: widget.homeId,
                 );
                 ref.invalidate(inventoryItemsProvider(widget.homeId));
-                if (context.mounted) Navigator.pop(context);
+                if (context.mounted) {
+                  BeitySnackBar.success(context, context.translate('inventory_item_deleted_success'));
+                  Navigator.pop(context);
+                }
               } catch (e) {
                 if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(isArabic ? 'خطأ في الحذف: $e' : 'Error deleting: $e'),
-                      backgroundColor: AppColors.error,
-                      behavior: SnackBarBehavior.floating,
-                    ),
+                  BeitySnackBar.error(
+                    context,
+                    context.translate('error_delete_item', arguments: {'error': ErrorFormatter.format(e, context)}),
                   );
                 }
               }

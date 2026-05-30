@@ -1,10 +1,12 @@
+import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:beity/core/services/supabase_service.dart';
+import 'package:beity/core/services/shared_prefs_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../data/repositories/auth_repository.dart';
 import '../../data/models/user_model.dart';
 import '../../../homes/presentation/providers/homes_provider.dart';
-import '../../../shopping_lists/presentation/providers/shopping_items_provider.dart';
 import '../../../shopping_lists/presentation/providers/shopping_lists_provider.dart';
 import '../../../shopping_lists/presentation/providers/realtime_providers.dart';
 import '../../../offline_queue/presentation/providers/offline_queue_provider.dart';
@@ -16,14 +18,48 @@ import '../../../activity_logs/presentation/providers/activity_logs_provider.dar
 import '../../../categories/presentation/providers/categories_provider.dart';
 import '../../../categories/presentation/providers/units_provider.dart';
 import '../../../../core/services/notification_service.dart';
+import '../../../../core/monitoring/monitoring_service.dart';
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
-  return AuthRepositoryImpl(Supabase.instance.client);
+  return AuthRepositoryImpl(SupabaseService.client);
 });
 
 final currentUserProvider = FutureProvider<UserModel?>((ref) async {
   final repo = ref.read(authRepositoryProvider);
   return repo.getCurrentUser();
+});
+
+final cachedCurrentUserProvider = Provider<UserModel?>((ref) {
+  UserModel? authUser;
+  try {
+    // Supabase.instance throws an assertion or state error if not initialized (like in widget tests)
+    Supabase.instance;
+    authUser = ref.watch(authNotifierProvider).valueOrNull;
+  } catch (_) {
+    // Fallback if Supabase is not initialized
+  }
+  
+  if (authUser != null) {
+    return authUser;
+  }
+  
+  final futureUser = ref.watch(currentUserProvider).valueOrNull;
+  if (futureUser != null) {
+    return futureUser;
+  }
+
+  try {
+    final userId = SupabaseService.currentUser?.id;
+    if (userId != null) {
+      final prefs = AppPreferences.instance;
+      final cached = prefs.getString('${userId}_cached_profile');
+      if (cached != null) {
+        return UserModel.fromJson(jsonDecode(cached) as Map<String, dynamic>);
+      }
+    }
+  } catch (_) {}
+  
+  return null;
 });
 
 final authStateProvider = StreamProvider<AuthState>((ref) {
@@ -78,13 +114,14 @@ class AuthNotifier extends StateNotifier<AsyncValue<UserModel?>> {
     state = const AsyncValue.loading();
     try {
       // 0. Capture current user ID BEFORE signing out (Supabase clears it on signOut)
-      final userId = Supabase.instance.client.auth.currentUser?.id;
+      final userId = SupabaseService.client.auth.currentUser?.id;
 
       // 1. Remove device token BEFORE signing out from Supabase (requires auth to delete)
       try {
         await NotificationService.removeToken();
-      } catch (e) {
+      } catch (e, s) {
         // Just log and continue, don't let token removal failure block sign out
+        await MonitoringService().logError(e, s, reason: 'Failed to remove notification token during signout');
       }
 
       // 2. Clear offline queue for the captured user
@@ -93,7 +130,9 @@ class AuthNotifier extends StateNotifier<AsyncValue<UserModel?>> {
           final queueDataSource = _ref.read(sharedPreferencesQueueDataSourceProvider);
           await queueDataSource.clearQueueForUser(userId);
         }
-      } catch (_) {}
+      } catch (e, s) {
+        await MonitoringService().logError(e, s, reason: 'Failed to clear offline queue during signout');
+      }
 
       // 3. Clear local storage data for the captured user
       try {
@@ -101,7 +140,9 @@ class AuthNotifier extends StateNotifier<AsyncValue<UserModel?>> {
           final localDataSource = _ref.read(homeLocalDataSourceProvider);
           await localDataSource.clearAllUserDataForUser(userId);
         }
-      } catch (_) {}
+      } catch (e, s) {
+        await MonitoringService().logError(e, s, reason: 'Failed to clear local user data during signout');
+      }
 
       // 4. Sign out from Supabase
       await _repo.signOut();
@@ -165,6 +206,9 @@ class AuthNotifier extends StateNotifier<AsyncValue<UserModel?>> {
     String? fullName,
     String? phone,
     String? avatarUrl,
+    String? country,
+    String? dialect,
+    String? language,
   }) async {
     state = const AsyncValue.loading();
     try {
@@ -172,6 +216,9 @@ class AuthNotifier extends StateNotifier<AsyncValue<UserModel?>> {
         fullName: fullName,
         phone: phone,
         avatarUrl: avatarUrl,
+        country: country,
+        dialect: dialect,
+        language: language,
       );
       state = AsyncValue.data(user);
     } catch (e) {

@@ -1,11 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:integration_test/integration_test.dart';
 
 void main() {
-  IntegrationTestWidgetsFlutterBinding.ensureInitialized();
-
   group('Concurrent Edits', () {
-    testWidgets('Two users editing different items simultaneously', (tester) async {
+    testWidgets('Two users editing different items simultaneously', (
+      tester,
+    ) async {
       // Test scenario:
       // 1. User A and User B are both viewing the same shopping list
       // 2. User A edits item 1 (changes quantity)

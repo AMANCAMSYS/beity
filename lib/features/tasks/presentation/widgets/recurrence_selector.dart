@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:beity/core/localization/app_localizations.dart';
 
 class RecurrenceSelector extends StatelessWidget {
   final String? selectedRecurrence;
@@ -15,31 +16,31 @@ class RecurrenceSelector extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'التكرار (اختياري)',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+        Text(
+          context.translate('recurrence_optional'),
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
         ),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
           children: [
             ChoiceChip(
-              label: const Text('بدون'),
+              label: Text(context.translate('none')),
               selected: selectedRecurrence == null,
               onSelected: (_) => onChanged(null),
             ),
             ChoiceChip(
-              label: const Text('يومياً'),
+              label: Text(context.translate('daily')),
               selected: selectedRecurrence == 'daily',
               onSelected: (_) => onChanged('daily'),
             ),
             ChoiceChip(
-              label: const Text('أسبوعياً'),
+              label: Text(context.translate('weekly')),
               selected: selectedRecurrence == 'weekly',
               onSelected: (_) => onChanged('weekly'),
             ),
             ChoiceChip(
-              label: const Text('شهرياً'),
+              label: Text(context.translate('monthly')),
               selected: selectedRecurrence == 'monthly',
               onSelected: (_) => onChanged('monthly'),
             ),

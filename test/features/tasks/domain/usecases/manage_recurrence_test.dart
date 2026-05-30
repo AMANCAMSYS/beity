@@ -16,7 +16,7 @@ void main() {
   });
 
   group('ManageRecurrence', () {
-    final testTask = Task(
+    const testTask = Task(
       id: 'task-123',
       homeId: 'home-123',
       title: 'تنظيف المطبخ',
@@ -32,7 +32,7 @@ void main() {
             recurrenceType: 'daily',
           )).thenAnswer((_) async => recurringTask);
 
-      final result = await useCase.setRecurrence(SetRecurrenceParams(
+      final result = await useCase.setRecurrence(const SetRecurrenceParams(
         taskId: 'task-123',
         recurrenceType: 'daily',
       ));
@@ -49,7 +49,7 @@ void main() {
             recurrenceType: 'weekly',
           )).thenAnswer((_) async => recurringTask);
 
-      final result = await useCase.setRecurrence(SetRecurrenceParams(
+      final result = await useCase.setRecurrence(const SetRecurrenceParams(
         taskId: 'task-123',
         recurrenceType: 'weekly',
       ));
@@ -65,7 +65,7 @@ void main() {
             recurrenceType: 'monthly',
           )).thenAnswer((_) async => recurringTask);
 
-      final result = await useCase.setRecurrence(SetRecurrenceParams(
+      final result = await useCase.setRecurrence(const SetRecurrenceParams(
         taskId: 'task-123',
         recurrenceType: 'monthly',
       ));
@@ -74,15 +74,13 @@ void main() {
     });
 
     test('should disable recurrence', () async {
-      final recurringTask = testTask.copyWith(recurrenceType: 'weekly');
-
       when(() => mockRepository.updateTask(
             taskId: 'task-123',
             recurrenceType: null,
           )).thenAnswer((_) async => testTask);
 
       final result = await useCase
-          .disableRecurrence(DisableRecurrenceParams(taskId: 'task-123'));
+          .disableRecurrence(const DisableRecurrenceParams(taskId: 'task-123'));
 
       expect(result.isRecurring, false);
     });

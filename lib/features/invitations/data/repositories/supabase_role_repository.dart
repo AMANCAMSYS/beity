@@ -25,7 +25,7 @@ class SupabaseRoleRepository implements RoleRepository {
         .select('role')
         .eq('home_id', homeId)
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
     if (currentMembership == null || currentMembership['role'] != 'owner') {
       throw Exception('فقط المالك يمكنه تغيير الأدوار');
@@ -37,7 +37,7 @@ class SupabaseRoleRepository implements RoleRepository {
         .select('role')
         .eq('home_id', homeId)
         .eq('user_id', userId)
-        .single();
+        .maybeSingle();
 
     if (targetMembership != null && targetMembership['role'] == 'owner') {
       throw Exception('لا يمكن تغيير دور المالك');
@@ -85,7 +85,7 @@ class SupabaseRoleRepository implements RoleRepository {
         .select('role')
         .eq('home_id', homeId)
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
     if (currentMembership == null) {
       throw Exception('أنت لست عضواً في هذا المنزل');
@@ -96,7 +96,7 @@ class SupabaseRoleRepository implements RoleRepository {
         .select('role')
         .eq('home_id', homeId)
         .eq('user_id', userId)
-        .single();
+        .maybeSingle();
 
     if (targetMembership == null) {
       throw Exception('العضو غير موجود');
@@ -156,7 +156,7 @@ class SupabaseRoleRepository implements RoleRepository {
         .select('role')
         .eq('home_id', homeId)
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
     if (currentMembership == null || currentMembership['role'] != 'owner') {
       throw Exception('فقط المالك يمكنه نقل الملكية');
@@ -168,7 +168,7 @@ class SupabaseRoleRepository implements RoleRepository {
         .select('role')
         .eq('home_id', homeId)
         .eq('user_id', newOwnerId)
-        .single();
+        .maybeSingle();
 
     if (newOwnerMembership == null) {
       throw Exception('المالك الجديد يجب أن يكون عضواً في المنزل');

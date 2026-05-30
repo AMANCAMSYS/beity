@@ -31,10 +31,14 @@ class SplitExpense {
 
     final baseAmount = totalAmount ~/ memberIds.length;
     final remainder = totalAmount % memberIds.length;
+    final remainderMember = memberIds.contains(payerId)
+        ? payerId
+        : memberIds.first;
 
     return memberIds.map((memberId) {
-      // Give remainder to payer
-      final amount = memberId == payerId ? baseAmount + remainder : baseAmount;
+      final amount = memberId == remainderMember
+          ? baseAmount + remainder
+          : baseAmount;
       return (memberId: memberId, amount: amount);
     }).toList();
   }
@@ -52,8 +56,7 @@ class SplitExpense {
     required List<({String memberId, int amount})> splits,
   }) {
     final splitsTotal = splits.fold<int>(0, (sum, split) => sum + split.amount);
-    // Allow 1 cent tolerance for rounding
-    return (splitsTotal - totalAmount).abs() <= 1;
+    return splitsTotal == totalAmount;
   }
 }
 
@@ -61,8 +64,5 @@ class SplitExpenseParams {
   final String expenseId;
   final List<({String memberId, int amount})> splits;
 
-  const SplitExpenseParams({
-    required this.expenseId,
-    required this.splits,
-  });
+  const SplitExpenseParams({required this.expenseId, required this.splits});
 }

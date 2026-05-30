@@ -11,7 +11,7 @@ class UpdateNotificationPreferencesUseCase {
     required String field,
     required bool value,
   }) async {
-    return await _repository.updatePreference(
+    return _repository.updatePreference(
       homeId: homeId,
       field: field,
       value: value,

@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient, type SupabaseClient } from "jsr:@supabase/supabase-js@2";
+import { templates } from "../_shared/templates.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -58,23 +59,7 @@ async function requireActiveHomeMember(
   return null;
 }
 
-// Notification content templates
-const templates: Record<string, Record<string, { title: string; body: string }>> = {
-  en: {
-    item_added: { title: "{actor} added {item}", body: "{actor} added {item} to {list}" },
-    item_completed: { title: "{actor} purchased {item}", body: "{actor} marked {item} as purchased in {list}" },
-    item_updated: { title: "{actor} updated {item}", body: "{actor} updated {item} in {list}" },
-    member_joined: { title: "New member joined", body: "{actor} joined {home}" },
-    invitation_received: { title: "Invitation", body: "You've been invited to {home} by {actor}" },
-  },
-  ar: {
-    item_added: { title: "{actor} أضاف {item}", body: "{actor} أضاف {item} إلى {list}" },
-    item_completed: { title: "{actor} اشترى {item}", body: "{actor} وضع علامة شراء على {item} في {list}" },
-    item_updated: { title: "{actor} حدّث {item}", body: "{actor} حدّث {item} في {list}" },
-    member_joined: { title: "عضو جديد", body: "{actor} انضم إلى {home}" },
-    invitation_received: { title: "دعوة", body: "تمت دعوتك إلى {home} من قبل {actor}" },
-  },
-};
+// Notification content templates imported from shared folder
 
 function getPreferenceColumnForEvent(eventType: string): string | null {
   switch (eventType) {

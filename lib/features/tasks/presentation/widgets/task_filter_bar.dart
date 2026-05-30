@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/task_filter_providers.dart';
+import 'package:beity/core/localization/app_localizations.dart';
 
 class TaskFilterBar extends ConsumerWidget {
   const TaskFilterBar({super.key});
@@ -14,7 +15,7 @@ class TaskFilterBar extends ConsumerWidget {
       child: Row(
         children: [
           FilterChip(
-            label: const Text('اليوم'),
+            label: Text(context.translate('today')),
             selected: filter.dueDateFilter == 'today',
             onSelected: (selected) {
               ref.read(taskFilterProvider.notifier).setDueDateFilter(
@@ -24,7 +25,7 @@ class TaskFilterBar extends ConsumerWidget {
           ),
           const SizedBox(width: 8),
           FilterChip(
-            label: const Text('هذا الأسبوع'),
+            label: Text(context.translate('this_week')),
             selected: filter.dueDateFilter == 'this_week',
             onSelected: (selected) {
               ref.read(taskFilterProvider.notifier).setDueDateFilter(
@@ -34,7 +35,7 @@ class TaskFilterBar extends ConsumerWidget {
           ),
           const SizedBox(width: 8),
           FilterChip(
-            label: const Text('متأخرة'),
+            label: Text(context.translate('overdue')),
             selected: filter.dueDateFilter == 'overdue',
             onSelected: (selected) {
               ref.read(taskFilterProvider.notifier).setDueDateFilter(
@@ -50,7 +51,7 @@ class TaskFilterBar extends ConsumerWidget {
               onPressed: () {
                 ref.read(taskFilterProvider.notifier).clearFilters();
               },
-              child: const Text('مسح الفلاتر'),
+              child: Text(context.translate('clear_filters')),
             ),
         ],
       ),

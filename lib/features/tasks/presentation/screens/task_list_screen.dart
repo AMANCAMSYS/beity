@@ -1,7 +1,5 @@
-import 'package:beity/app/theme/app_spacing.dart';
-import 'package:beity/app/theme/app_colors.dart';
-import 'package:beity/shared/widgets/design_system/beity_button.dart';
-import 'package:beity/shared/widgets/design_system/beity_card.dart';
+import 'package:beity/shared/widgets/design_system/beity_snack_bar.dart';
+import 'package:beity/core/services/supabase_service.dart';
 import 'package:beity/shared/widgets/design_system/beity_empty_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,12 +7,12 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:beity/core/utils/action_debouncer.dart';
 import '../../../homes/presentation/providers/homes_provider.dart';
-import '../../../home/presentation/widgets/app_drawer.dart';
 import '../providers/task_providers.dart';
 import '../providers/task_filter_providers.dart';
 import '../widgets/task_card.dart';
 import '../widgets/task_tabs.dart';
-import '../widgets/task_filter_bar.dart';
+import 'package:beity/core/localization/app_localizations.dart';
+import 'package:beity/core/errors/error_formatter.dart';
 
 class TaskListScreen extends ConsumerStatefulWidget {
   final String homeId;
@@ -30,9 +28,52 @@ class TaskListScreen extends ConsumerStatefulWidget {
 
 class _TaskListScreenState extends ConsumerState<TaskListScreen> {
   int _currentTab = 0;
+  final _quickTaskController = TextEditingController();
+  bool _isQuickAdding = false;
 
   String? get _currentUserId =>
-      Supabase.instance.client.auth.currentUser?.id;
+      SupabaseService.client.auth.currentUser?.id;
+
+  @override
+  void dispose() {
+    _quickTaskController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submitQuickTask() async {
+    final title = _quickTaskController.text.trim();
+    if (title.isEmpty) return;
+
+    setState(() => _isQuickAdding = true);
+    try {
+      final repository = ref.read(taskRepositoryProvider);
+      await repository.createTask(
+        homeId: widget.homeId,
+        title: title,
+        description: '',
+        dueDate: null,
+        assignedTo: null,
+      );
+
+      _quickTaskController.clear();
+      ref.invalidate(tasksProvider);
+
+      if (mounted) {
+        BeitySnackBar.success(context, context.translate('task_created_success'));
+      }
+    } catch (e) {
+      if (mounted) {
+        BeitySnackBar.error(
+          context,
+          '${context.translate('error')}: ${ErrorFormatter.format(e, context)}',
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isQuickAdding = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -50,17 +91,17 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
     membersAsync.whenData((members) {
       for (final member in members) {
         memberNames[member.userId] =
-            member.userName ?? member.userEmail ?? 'عضو';
+            member.userName ?? member.userEmail ?? context.translate('member');
       }
     });
 
-    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
-    final theme = Theme.of(context);
-
     return Scaffold(
-      drawer: const AppDrawer(),
       appBar: AppBar(
-        title: Text(isArabic ? 'المهام' : 'Tasks', style: const TextStyle(fontWeight: FontWeight.bold)),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: Text(context.translate('tasks'), style: const TextStyle(fontWeight: FontWeight.bold)),
         actions: [
           PopupMenuButton<String>(
             icon: const Icon(Icons.sort_rounded),
@@ -90,25 +131,25 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
                 value: 'due_date_asc',
                 checked: filter.sortBy == TaskSortBy.dueDate &&
                     filter.sortOrder == TaskSortOrder.ascending,
-                child: Text(isArabic ? 'تاريخ الاستحقاق (أولاً)' : 'Due Date (Earliest)'),
+                child: Text(context.translate('due_date_earliest')),
               ),
               CheckedPopupMenuItem<String>(
                 value: 'due_date_desc',
                 checked: filter.sortBy == TaskSortBy.dueDate &&
                     filter.sortOrder == TaskSortOrder.descending,
-                child: Text(isArabic ? 'تاريخ الاستحقاق (آخراً)' : 'Due Date (Latest)'),
+                child: Text(context.translate('due_date_latest')),
               ),
               CheckedPopupMenuItem<String>(
                 value: 'created_asc',
                 checked: filter.sortBy == TaskSortBy.createdAt &&
                     filter.sortOrder == TaskSortOrder.ascending,
-                child: Text(isArabic ? 'تاريخ الإنشاء (الأقدم)' : 'Created (Oldest)'),
+                child: Text(context.translate('created_oldest')),
               ),
               CheckedPopupMenuItem<String>(
                 value: 'created_desc',
                 checked: filter.sortBy == TaskSortBy.createdAt &&
                     filter.sortOrder == TaskSortOrder.descending,
-                child: Text(isArabic ? 'تاريخ الإنشاء (الأحدث)' : 'Created (Newest)'),
+                child: Text(context.translate('created_newest')),
               ),
             ],
           ),
@@ -130,7 +171,71 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
               });
             },
           ),
-          const TaskFilterBar(),
+          // ── Quick Task Addition Field ──
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _quickTaskController,
+                    decoration: InputDecoration(
+                      hintText: context.translate('add_quick_task'),
+                      prefixIcon: const Icon(Icons.playlist_add_rounded),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    ),
+                    onSubmitted: (_) => _submitQuickTask(),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton.filled(
+                  onPressed: _isQuickAdding ? null : _submitQuickTask,
+                  icon: _isQuickAdding
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Icon(Icons.send_rounded),
+                ),
+              ],
+            ),
+          ),
+          // ── Segmented Due Date Filters ──
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: SegmentedButton<String>(
+              segments: [
+                ButtonSegment(
+                  value: 'today',
+                  icon: const Icon(Icons.today_rounded),
+                  label: Text(context.translate('today')),
+                ),
+                ButtonSegment(
+                  value: 'this_week',
+                  icon: const Icon(Icons.date_range_rounded),
+                  label: Text(context.translate('this_week')),
+                ),
+                ButtonSegment(
+                  value: 'all',
+                  icon: const Icon(Icons.select_all_rounded),
+                  label: Text(context.translate('all')),
+                ),
+              ],
+              selected: {filter.dueDateFilter ?? 'all'},
+              showSelectedIcon: false,
+              onSelectionChanged: (selection) {
+                final selected = selection.first;
+                ref.read(taskFilterProvider.notifier).setDueDateFilter(
+                      selected == 'all' ? null : selected,
+                    );
+              },
+            ),
+          ),
+          const SizedBox(height: 8),
           Expanded(
             child: tasksAsync.when(
               data: (tasks) {
@@ -190,11 +295,11 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
                 if (filteredTasks.isEmpty) {
                   return BeityEmptyState(
                     title: _currentTab == 0
-                        ? (isArabic ? 'لا توجد مهام مسندة إليك' : 'No tasks assigned to you')
-                        : (isArabic ? 'لا توجد مهام' : 'No tasks found'),
-                    message: isArabic ? 'اضغط على الزر لإضافة مهمة جديدة' : 'Tap the button to add a new task',
+                        ? context.translate('no_tasks_assigned')
+                        : context.translate('no_tasks_found'),
+                    message: context.translate('add_task_guideline'),
                     icon: Icons.task_alt_rounded,
-                    actionText: isArabic ? 'إضافة مهمة' : 'Add Task',
+                    actionText: context.translate('add_task'),
                     onAction: () => ActionDebouncer.execute(() => context.push('/home/${widget.homeId}/tasks/add')),
                   );
                 }
@@ -210,7 +315,7 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
                       Padding(
                         padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                         child: Text(
-                          'قيد التنفيذ (${incompleteTasks.length})',
+                          context.translate('in_progress_count', arguments: {'count': incompleteTasks.length.toString()}),
                           style:
                               Theme.of(context).textTheme.titleSmall?.copyWith(
                                     color: Colors.grey.shade600,
@@ -238,10 +343,17 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
                                     taskId: task.id);
                               }
                               ref.invalidate(tasksProvider);
+                              if (context.mounted) {
+                                BeitySnackBar.success(
+                                  context,
+                                  context.translate('task_completed_success'),
+                                );
+                              }
                             } catch (e) {
-                              if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('خطأ: $e')),
+                              if (context.mounted) {
+                                BeitySnackBar.error(
+                                  context,
+                                  '${context.translate('error_occurred')}: ${ErrorFormatter.format(e, context)}',
                                 );
                               }
                             }
@@ -253,7 +365,7 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
                       Padding(
                         padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                         child: Text(
-                          'مكتملة (${completedTasks.length})',
+                          context.translate('completed_count', arguments: {'count': completedTasks.length.toString()}),
                           style:
                               Theme.of(context).textTheme.titleSmall?.copyWith(
                                     color: Colors.grey.shade600,
@@ -277,10 +389,17 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
                                   ref.read(taskRepositoryProvider);
                               await repository.uncompleteTask(taskId: task.id);
                               ref.invalidate(tasksProvider);
+                              if (context.mounted) {
+                                BeitySnackBar.success(
+                                  context,
+                                  context.translate('task_uncompleted_success'),
+                                );
+                              }
                             } catch (e) {
-                              if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('خطأ: $e')),
+                              if (context.mounted) {
+                                BeitySnackBar.error(
+                                  context,
+                                  '${context.translate('error_occurred')}: ${ErrorFormatter.format(e, context)}',
                                 );
                               }
                             }
@@ -294,11 +413,11 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
               loading: () =>
                   const Center(child: CircularProgressIndicator()),
               error: (error, _) => BeityEmptyState(
-                title: isArabic ? 'عذراً، حدث خطأ' : 'Oops, something went wrong',
+                title: context.translate('error_occurred'),
                 message: error.toString(),
                 icon: Icons.error_outline_rounded,
                 isError: true,
-                actionText: isArabic ? 'إعادة المحاولة' : 'Try Again',
+                actionText: context.translate('retry'),
                 onAction: () => ref.invalidate(tasksProvider),
               ),
             ),

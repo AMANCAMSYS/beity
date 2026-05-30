@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../../../app/theme/app_colors.dart';
-import '../../../../app/theme/app_spacing.dart';
 import '../../../../shared/widgets/design_system/beity_dialog.dart';
 import '../../domain/entities/shopping_item.dart';
 import '../../../offline_queue/presentation/widgets/pending_sync_indicator.dart';
 import '../../../../core/accessibility/semantics_helpers.dart';
+import 'package:flutter/services.dart';
 
 class ShoppingItemTileWidget extends StatefulWidget {
   final ShoppingItem item;
@@ -13,8 +13,12 @@ class ShoppingItemTileWidget extends StatefulWidget {
   final VoidCallback? onTogglePurchased;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
+  final VoidCallback? onDelete;
   final DateTime? highlightUntil;
   final bool showPendingIndicator;
+  final bool isCompact;
+  final bool hapticsEnabled;
+  final bool soundsEnabled;
 
   const ShoppingItemTileWidget({
     super.key,
@@ -26,6 +30,9 @@ class ShoppingItemTileWidget extends StatefulWidget {
     this.onDelete,
     this.highlightUntil,
     this.showPendingIndicator = false,
+    this.isCompact = false,
+    this.hapticsEnabled = true,
+    this.soundsEnabled = true,
   });
 
   @override
@@ -105,10 +112,12 @@ class _ShoppingItemTileWidgetState extends State<ShoppingItemTileWidget>
       ),
       confirmDismiss: (direction) async {
         if (direction == DismissDirection.startToEnd) {
+          if (widget.hapticsEnabled) HapticFeedback.lightImpact();
           widget.onEdit?.call();
           return false;
         } else {
-          return await _showDeleteConfirmation(context);
+          if (widget.hapticsEnabled) HapticFeedback.lightImpact();
+          return _showDeleteConfirmation(context);
         }
       },
       child: Semantics(
@@ -127,15 +136,22 @@ class _ShoppingItemTileWidgetState extends State<ShoppingItemTileWidget>
               itemName: widget.item.name,
               currentlyPurchased: widget.item.isPurchased,
             ),
-            child: GestureDetector(
-              onTap: widget.onTogglePurchased,
+            child: InkResponse(
+              onTap: () {
+                if (widget.hapticsEnabled) HapticFeedback.selectionClick();
+                if (widget.soundsEnabled) SystemSound.play(SystemSoundType.click);
+                widget.onTogglePurchased?.call();
+              },
+              radius: widget.isCompact ? 18 : 22,
+              splashColor: AppColors.success.withValues(alpha: 0.2),
+              highlightColor: Colors.transparent,
               child: Container(
-                width: 44,
-                height: 44,
+                width: widget.isCompact ? 36 : 44,
+                height: widget.isCompact ? 36 : 44,
                 alignment: Alignment.center,
                 child: Container(
-                  width: 28,
-                  height: 28,
+                  width: widget.isCompact ? 24 : 28,
+                  height: widget.isCompact ? 24 : 28,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(
@@ -166,6 +182,10 @@ class _ShoppingItemTileWidgetState extends State<ShoppingItemTileWidget>
         ),
         subtitle: _buildSubtitle(context),
         trailing: _buildTrailing(context),
+        dense: widget.isCompact,
+        contentPadding: widget.isCompact 
+            ? const EdgeInsets.symmetric(horizontal: 16, vertical: -4)
+            : const EdgeInsets.symmetric(horizontal: 16),
         ),
       ),
     );
@@ -203,7 +223,6 @@ class _ShoppingItemTileWidgetState extends State<ShoppingItemTileWidget>
     }
 
     if (widget.item.isPurchased && widget.item.purchasedAt != null) {
-      final isArabic = Localizations.localeOf(context).languageCode == 'ar';
       parts.add(isArabic ? 'تم الشراء' : 'Purchased');
     }
 

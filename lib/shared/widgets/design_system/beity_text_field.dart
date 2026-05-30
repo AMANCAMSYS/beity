@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../app/theme/app_spacing.dart';
 
 class BeityTextField extends StatelessWidget {
   final TextEditingController? controller;
@@ -9,6 +8,7 @@ class BeityTextField extends StatelessWidget {
   final String? errorText;
   final IconData? prefixIcon;
   final Widget? suffixIcon;
+  final String? suffixText;
   final bool obscureText;
   final TextInputType? keyboardType;
   final String? Function(String?)? validator;
@@ -33,6 +33,7 @@ class BeityTextField extends StatelessWidget {
     this.errorText,
     this.prefixIcon,
     this.suffixIcon,
+    this.suffixText,
     this.obscureText = false,
     this.keyboardType,
     this.validator,
@@ -69,10 +70,32 @@ class BeityTextField extends StatelessWidget {
         readOnly: readOnly,
         onTap: onTap,
         onChanged: onChanged,
-        onFieldSubmitted: onSubmitted,
+        onFieldSubmitted: (value) {
+          if (onSubmitted != null) {
+            onSubmitted!(value);
+          }
+
+          if (maxLines > 1 || keyboardType == TextInputType.multiline) {
+            return;
+          }
+
+          final effectiveAction = textInputAction ?? TextInputAction.next;
+
+          if (effectiveAction == TextInputAction.next) {
+            final didMove = FocusScope.of(context).nextFocus();
+            if (!didMove) {
+              FocusScope.of(context).unfocus();
+            }
+          } else if (effectiveAction == TextInputAction.done ||
+                     effectiveAction == TextInputAction.send ||
+                     effectiveAction == TextInputAction.search ||
+                     effectiveAction == TextInputAction.go) {
+            FocusScope.of(context).unfocus();
+          }
+        },
         validator: validator,
         enabled: enabled,
-        textInputAction: textInputAction,
+        textInputAction: textInputAction ?? (maxLines == 1 ? TextInputAction.next : null),
         style: theme.textTheme.bodyLarge,
         decoration: InputDecoration(
           labelText: labelText,
@@ -83,6 +106,7 @@ class BeityTextField extends StatelessWidget {
               ? Icon(prefixIcon, color: isDark ? null : theme.colorScheme.onSurfaceVariant)
               : null,
           suffixIcon: suffixIcon,
+          suffixText: suffixText,
           counterText: maxLength != null ? null : '',
         ),
       ),

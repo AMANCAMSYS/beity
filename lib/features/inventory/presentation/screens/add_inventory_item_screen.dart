@@ -5,12 +5,15 @@ import 'package:beity/app/theme/app_colors.dart';
 import 'package:beity/shared/widgets/design_system/beity_button.dart';
 import 'package:beity/shared/widgets/design_system/beity_text_field.dart';
 import 'package:beity/shared/widgets/design_system/beity_card.dart';
+import 'package:beity/shared/widgets/design_system/beity_snack_bar.dart';
 import 'package:beity/core/utils/action_debouncer.dart';
 import '../providers/inventory_provider.dart';
 import '../../domain/usecases/add_inventory_item_usecase.dart';
 import '../../data/models/inventory_item_model.dart';
 import '../../../categories/presentation/providers/categories_provider.dart';
 import '../../../categories/presentation/providers/units_provider.dart';
+import 'package:beity/core/localization/app_localizations.dart';
+import 'package:beity/core/errors/error_formatter.dart';
 
 class AddInventoryItemScreen extends ConsumerStatefulWidget {
   final String homeId;
@@ -62,7 +65,6 @@ class _AddInventoryItemScreenState
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
 
     setState(() => _isSubmitting = true);
 
@@ -95,25 +97,19 @@ class _AddInventoryItemScreenState
           ref.invalidate(inventoryItemsProvider(widget.homeId));
 
           if (mounted) {
-            Navigator.pop(context);
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(isArabic ? 'تمت إضافة "$name" إلى المخزون' : 'Added "$name" to inventory'),
-                backgroundColor: AppColors.success,
-                behavior: SnackBarBehavior.floating,
-              ),
+            BeitySnackBar.success(
+              context,
+              context.translate('added_to_inventory_success_msg', arguments: {'name': name}),
             );
+            Navigator.pop(context);
           }
         },
       );
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(isArabic ? 'خطأ: $e' : 'Error: $e'),
-            backgroundColor: AppColors.error,
-            behavior: SnackBarBehavior.floating,
-          ),
+        BeitySnackBar.error(
+          context,
+          '${context.translate('error_occurred')}: ${ErrorFormatter.format(e, context)}',
         );
       }
     } finally {
@@ -125,12 +121,15 @@ class _AddInventoryItemScreenState
   Widget build(BuildContext context) {
     final categoriesAsync = ref.watch(categoriesProvider(widget.homeId));
     final unitsAsync = ref.watch(unitsProvider(null));
-    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
     final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(isArabic ? 'إضافة منتج' : 'Add Product', style: const TextStyle(fontWeight: FontWeight.bold)),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: Text(context.translate('add_product'), style: const TextStyle(fontWeight: FontWeight.bold)),
       ),
       body: Form(
         key: _formKey,
@@ -154,7 +153,7 @@ class _AddInventoryItemScreenState
                       ),
                       AppSpacing.gapMD,
                       Text(
-                        isArabic ? 'تفاصيل المنتج' : 'Product Details',
+                        context.translate('product_details'),
                         style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                       ),
                     ],
@@ -164,13 +163,13 @@ class _AddInventoryItemScreenState
                   // Name field with suggestions
                   BeityTextField(
                     controller: _nameController,
-                    labelText: isArabic ? 'اسم المنتج' : 'Product Name',
-                    hintText: isArabic ? 'مثال: أرز، حليب، زيت' : 'e.g. Rice, Milk, Oil',
+                    labelText: context.translate('product_name'),
+                    hintText: context.translate('product_name_hint'),
                     prefixIcon: Icons.inventory_2_rounded,
                     onChanged: _onNameChanged,
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
-                        return isArabic ? 'الرجاء إدخال اسم المنتج' : 'Please enter product name';
+                        return context.translate('please_enter_product_name');
                       }
                       return null;
                     },
@@ -219,13 +218,13 @@ class _AddInventoryItemScreenState
                   // Quantity
                   BeityTextField(
                     controller: _quantityController,
-                    labelText: isArabic ? 'الكمية المتوفرة' : 'Available Quantity',
+                    labelText: context.translate('available_quantity'),
                     prefixIcon: Icons.numbers_rounded,
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     validator: (value) {
-                      if (value == null || value.isEmpty) return isArabic ? 'الرجاء إدخال الكمية' : 'Please enter quantity';
+                      if (value == null || value.isEmpty) return context.translate('please_enter_quantity');
                       final q = double.tryParse(value);
-                      if (q == null || q < 0) return isArabic ? 'الرجاء إدخال كمية صحيحة' : 'Please enter a valid quantity';
+                      if (q == null || q < 0) return context.translate('please_enter_valid_quantity');
                       return null;
                     },
                   ),
@@ -234,16 +233,16 @@ class _AddInventoryItemScreenState
                   // Category dropdown
                   categoriesAsync.when(
                     loading: () => const LinearProgressIndicator(),
-                    error: (e, _) => Text(isArabic ? 'خطأ في تحميل التصنيفات: $e' : 'Error loading categories: $e', style: TextStyle(color: AppColors.error)),
+                    error: (e, _) => Text(context.translate('error_loading_categories', arguments: {'error': e.toString()}), style: const TextStyle(color: AppColors.error)),
                     data: (categories) => _buildDropdown(
-                      label: isArabic ? 'التصنيف' : 'Category',
+                      label: context.translate('category'),
                       value: _selectedCategoryId,
-                      hint: isArabic ? 'اختر تصنيفاً (اختياري)' : 'Select category (optional)',
+                      hint: context.translate('select_category_optional'),
                       icon: Icons.category_rounded,
                       items: [
                         DropdownMenuItem(
                           value: null,
-                          child: Text(isArabic ? 'بدون تصنيف' : 'No Category'),
+                          child: Text(context.translate('no_category')),
                         ),
                         ...categories.map((cat) => DropdownMenuItem(
                               value: cat.id,
@@ -252,7 +251,6 @@ class _AddInventoryItemScreenState
                       ],
                       onChanged: (value) => setState(() => _selectedCategoryId = value),
                       theme: theme,
-                      isArabic: isArabic,
                     ),
                   ),
                   AppSpacing.gapLG,
@@ -260,16 +258,16 @@ class _AddInventoryItemScreenState
                   // Unit dropdown
                   unitsAsync.when(
                     loading: () => const LinearProgressIndicator(),
-                    error: (e, _) => Text(isArabic ? 'خطأ في تحميل الوحدات: $e' : 'Error loading units: $e', style: TextStyle(color: AppColors.error)),
+                    error: (e, _) => Text(context.translate('error_loading_units', arguments: {'error': e.toString()}), style: const TextStyle(color: AppColors.error)),
                     data: (units) => _buildDropdown(
-                      label: isArabic ? 'الوحدة' : 'Unit',
+                      label: context.translate('unit'),
                       value: _selectedUnitId,
-                      hint: isArabic ? 'اختر وحدة (اختياري)' : 'Select unit (optional)',
+                      hint: context.translate('select_unit_optional'),
                       icon: Icons.straighten_rounded,
                       items: [
                         DropdownMenuItem(
                           value: null,
-                          child: Text(isArabic ? 'بدون وحدة' : 'No Unit'),
+                          child: Text(context.translate('no_unit')),
                         ),
                         ...units.map((unit) => DropdownMenuItem(
                               value: unit.id,
@@ -278,7 +276,6 @@ class _AddInventoryItemScreenState
                       ],
                       onChanged: (value) => setState(() => _selectedUnitId = value),
                       theme: theme,
-                      isArabic: isArabic,
                     ),
                   ),
                   AppSpacing.gapLG,
@@ -286,8 +283,8 @@ class _AddInventoryItemScreenState
                   // Min quantity threshold
                   BeityTextField(
                     controller: _minQuantityController,
-                    labelText: isArabic ? 'تنبيه نقص المخزون' : 'Low Stock Alert',
-                    hintText: isArabic ? 'أقل كمية قبل التنبيه' : 'Min quantity for alert',
+                    labelText: context.translate('low_stock_alert'),
+                    hintText: context.translate('min_quantity_alert'),
                     prefixIcon: Icons.notification_important_rounded,
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   ),
@@ -296,8 +293,8 @@ class _AddInventoryItemScreenState
                   // Notes
                   BeityTextField(
                     controller: _notesController,
-                    labelText: isArabic ? 'ملاحظات إضافية' : 'Additional Notes',
-                    hintText: isArabic ? 'مكان التخزين، العلامة التجارية...' : 'Storage location, brand...',
+                    labelText: context.translate('additional_notes'),
+                    hintText: context.translate('notes_placeholder'),
                     prefixIcon: Icons.description_rounded,
                     maxLines: 2,
                   ),
@@ -308,7 +305,7 @@ class _AddInventoryItemScreenState
 
             // Submit button
             BeityButton(
-              text: isArabic ? 'إضافة إلى المخزون' : 'Add to Inventory',
+              text: context.translate('add_to_inventory'),
               onPressed: _submit,
               isLoading: _isSubmitting,
               icon: Icons.add_rounded,
@@ -335,7 +332,6 @@ class _AddInventoryItemScreenState
     required List<DropdownMenuItem<String?>> items,
     required ValueChanged<String?> onChanged,
     required ThemeData theme,
-    required bool isArabic,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -349,7 +345,7 @@ class _AddInventoryItemScreenState
         ),
         AppSpacing.gapXS,
         DropdownButtonFormField<String?>(
-          value: value,
+          initialValue: value,
           style: theme.textTheme.bodyLarge,
           icon: Icon(Icons.expand_more_rounded, color: theme.colorScheme.onSurfaceVariant),
           decoration: InputDecoration(

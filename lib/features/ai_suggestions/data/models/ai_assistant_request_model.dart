@@ -12,6 +12,14 @@ class AiAssistantRequestModel {
       'language': entity.language,
     };
 
+    // Include homeId and listId for home membership verification
+    if (entity.homeId != null && entity.homeId!.isNotEmpty) {
+      json['homeId'] = entity.homeId;
+    }
+    if (entity.listId != null && entity.listId!.isNotEmpty) {
+      json['listId'] = entity.listId;
+    }
+
     // Only include non-null, non-empty optional fields
     if (entity.homeType != null && entity.homeType!.isNotEmpty) {
       json['homeType'] = entity.homeType;
@@ -63,6 +71,15 @@ class AiAssistantRequestModel {
     }
     if (entity.cookingSkillLevel != null && entity.cookingSkillLevel!.isNotEmpty) {
       json['cookingSkillLevel'] = entity.cookingSkillLevel;
+    }
+    if (entity.country != null && entity.country!.isNotEmpty) {
+      json['country'] = entity.country;
+    }
+    if (entity.dialect != null && entity.dialect!.isNotEmpty) {
+      json['dialect'] = entity.dialect;
+    }
+    if (entity.userTerms.isNotEmpty) {
+      json['user_terms'] = entity.userTerms;
     }
 
     return json;

@@ -57,15 +57,13 @@ class ShoppingExitSummary extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
-                    isArabic ? 'تم التسوق!' : 'Shopping Done!',
+                    context.translate('shopping_done'),
                     style: theme.textTheme.headlineSmall,
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    isArabic
-                        ? '${session.itemsPurchasedCount} من ${session.itemsTotalCount} عنصر تم شراؤه'
-                        : '${session.itemsPurchasedCount} of ${session.itemsTotalCount} items purchased',
+                    context.translate('items_purchased_ratio', arguments: {'purchased': session.itemsPurchasedCount.toString(), 'total': session.itemsTotalCount.toString()}),
                     style: theme.textTheme.bodyLarge?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
@@ -74,7 +72,7 @@ class ShoppingExitSummary extends ConsumerWidget {
                   const SizedBox(height: 24),
                   if (purchasedItems.isNotEmpty) ...[
                     Text(
-                      isArabic ? 'العناصر المشتراة' : 'Purchased Items',
+                      context.translate('purchased_items'),
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
@@ -85,7 +83,7 @@ class ShoppingExitSummary extends ConsumerWidget {
                           .where((c) => c.id == entry.key)
                           .firstOrNull;
                       final categoryName = category?.name == 'Other' || category == null
-                          ? (isArabic ? 'أخرى' : 'Other')
+                          ? context.translate('other')
                           : category.name;
 
                       return Column(
@@ -131,7 +129,7 @@ class ShoppingExitSummary extends ConsumerWidget {
                   const SizedBox(height: 24),
                   FilledButton(
                     onPressed: onDismiss,
-                    child: Text(isArabic ? 'العودة إلى القائمة' : 'Back to List'),
+                    child: Text(context.translate('back_to_list')),
                   ),
                 ],
               ),

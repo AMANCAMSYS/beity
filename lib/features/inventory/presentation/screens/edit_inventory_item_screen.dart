@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:beity/app/theme/app_spacing.dart';
-import 'package:beity/app/theme/app_colors.dart';
 import 'package:beity/shared/widgets/design_system/beity_button.dart';
 import 'package:beity/shared/widgets/design_system/beity_text_field.dart';
 import 'package:beity/shared/widgets/design_system/beity_card.dart';
+import 'package:beity/shared/widgets/design_system/beity_snack_bar.dart';
 import 'package:beity/core/utils/action_debouncer.dart';
 import '../providers/inventory_provider.dart';
 import '../widgets/quantity_adjuster_widget.dart';
+import 'package:beity/core/localization/app_localizations.dart';
+import 'package:beity/core/errors/error_formatter.dart';
 
 class EditInventoryItemScreen extends ConsumerStatefulWidget {
   final String itemId;
@@ -88,7 +90,6 @@ class _EditInventoryItemScreenState
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
 
     setState(() => _isSubmitting = true);
 
@@ -125,24 +126,15 @@ class _EditInventoryItemScreenState
           ref.invalidate(inventoryItemsProvider(widget.homeId));
 
           if (mounted) {
+            BeitySnackBar.success(context, context.translate('product_updated_success'));
             Navigator.pop(context);
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(isArabic ? 'تم تحديث المنتج' : 'Product updated successfully'),
-                backgroundColor: AppColors.success,
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
           }
         });
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(isArabic ? 'خطأ: $e' : 'Error: $e'),
-            backgroundColor: AppColors.error,
-            behavior: SnackBarBehavior.floating,
-          ),
+        BeitySnackBar.error(
+          context,
+          '${context.translate('error_occurred')}: ${ErrorFormatter.format(e, context)}',
         );
       }
     } finally {
@@ -152,19 +144,18 @@ class _EditInventoryItemScreenState
 
   @override
   Widget build(BuildContext context) {
-    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
     final theme = Theme.of(context);
 
     if (_isLoading) {
       return Scaffold(
-        appBar: AppBar(title: Text(isArabic ? 'تعديل المنتج' : 'Edit Product', style: const TextStyle(fontWeight: FontWeight.bold))),
+        appBar: AppBar(title: Text(context.translate('edit_product'), style: const TextStyle(fontWeight: FontWeight.bold))),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     if (_itemNotFound) {
       return Scaffold(
-        appBar: AppBar(title: Text(isArabic ? 'تعديل المنتج' : 'Edit Product', style: const TextStyle(fontWeight: FontWeight.bold))),
+        appBar: AppBar(title: Text(context.translate('edit_product'), style: const TextStyle(fontWeight: FontWeight.bold))),
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(AppSpacing.xxl),
@@ -181,18 +172,18 @@ class _EditInventoryItemScreenState
                 ),
                 AppSpacing.gapLG,
                 Text(
-                  isArabic ? 'المنتج غير موجود' : 'Item not found',
+                  context.translate('item_not_found'),
                   style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 AppSpacing.gapSM,
                 Text(
-                  isArabic ? 'قد يكون تم حذف هذا المنتج' : 'This product might have been deleted',
+                  context.translate('item_not_found_deleted'),
                   style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                   textAlign: TextAlign.center,
                 ),
                 AppSpacing.gapXL,
                 BeityButton(
-                  text: isArabic ? 'العودة' : 'Go Back',
+                  text: context.translate('go_back'),
                   onPressed: () => Navigator.pop(context),
                   type: BeityButtonType.secondary,
                   width: 160,
@@ -206,7 +197,11 @@ class _EditInventoryItemScreenState
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(isArabic ? 'تعديل المنتج' : 'Edit Product', style: const TextStyle(fontWeight: FontWeight.bold)),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: Text(context.translate('edit_product'), style: const TextStyle(fontWeight: FontWeight.bold)),
       ),
       body: Form(
         key: _formKey,
@@ -230,7 +225,7 @@ class _EditInventoryItemScreenState
                       ),
                       AppSpacing.gapMD,
                       Text(
-                        isArabic ? 'تعديل البيانات' : 'Edit Details',
+                        context.translate('edit_details'),
                         style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                       ),
                     ],
@@ -240,11 +235,11 @@ class _EditInventoryItemScreenState
                   // Name field
                   BeityTextField(
                     controller: _nameController,
-                    labelText: isArabic ? 'اسم المنتج' : 'Product Name',
+                    labelText: context.translate('product_name'),
                     prefixIcon: Icons.inventory_2_rounded,
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
-                        return isArabic ? 'الرجاء إدخال اسم المنتج' : 'Please enter product name';
+                        return context.translate('please_enter_product_name');
                       }
                       return null;
                     },
@@ -267,7 +262,7 @@ class _EditInventoryItemScreenState
                             Icon(Icons.numbers_rounded, size: 16, color: theme.colorScheme.onSurfaceVariant),
                             AppSpacing.gapSM,
                             Text(
-                              isArabic ? 'تعديل الكمية الحالية' : 'Adjust Current Quantity',
+                              context.translate('adjust_current_quantity'),
                               style: theme.textTheme.labelMedium?.copyWith(
                                 color: theme.colorScheme.onSurfaceVariant,
                                 fontWeight: FontWeight.bold,
@@ -291,8 +286,8 @@ class _EditInventoryItemScreenState
                   // Min quantity threshold
                   BeityTextField(
                     controller: _minQuantityController,
-                    labelText: isArabic ? 'تنبيه نقص المخزون' : 'Low Stock Alert',
-                    hintText: isArabic ? 'أقل كمية قبل التنبيه' : 'Min quantity for alert',
+                    labelText: context.translate('low_stock_alert'),
+                    hintText: context.translate('min_quantity_alert'),
                     prefixIcon: Icons.notification_important_rounded,
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   ),
@@ -301,7 +296,7 @@ class _EditInventoryItemScreenState
                   // Notes
                   BeityTextField(
                     controller: _notesController,
-                    labelText: isArabic ? 'ملاحظات إضافية' : 'Additional Notes',
+                    labelText: context.translate('additional_notes'),
                     prefixIcon: Icons.description_rounded,
                     maxLines: 2,
                   ),
@@ -312,7 +307,7 @@ class _EditInventoryItemScreenState
 
             // Submit button
             BeityButton(
-              text: isArabic ? 'حفظ التعديلات' : 'Save Changes',
+              text: context.translate('save_changes'),
               onPressed: _submit,
               isLoading: _isSubmitting,
               icon: Icons.check_rounded,

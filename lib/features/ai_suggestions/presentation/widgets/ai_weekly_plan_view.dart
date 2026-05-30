@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../../domain/entities/ai_weekly_plan.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_spacing.dart';
+import '../../../../core/localization/app_localizations.dart';
+import '../../../../core/widgets/beity_cached_image.dart';
 
 /// Displays a weekly meal plan with expandable day sections.
 class AiWeeklyPlanView extends StatefulWidget {
@@ -83,7 +85,7 @@ class _AiWeeklyPlanViewState extends State<AiWeeklyPlanView> {
                           child: Center(
                             child: Text(
                               day.day.length > 2 ? day.day.substring(0, 2) : day.day,
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.primary),
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.primary),
                             ),
                           ),
                         ),
@@ -94,7 +96,7 @@ class _AiWeeklyPlanViewState extends State<AiWeeklyPlanView> {
                             children: [
                               Text(day.day, style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
                               Text(
-                                '${day.meals.length} ${isArabic ? 'وجبات' : 'meals'}',
+                                context.translate('meals_count', arguments: {'count': day.meals.length.toString()}),
                                 style: TextStyle(fontSize: 12, color: isDark ? Colors.white54 : Colors.grey.shade500),
                               ),
                             ],
@@ -129,10 +131,11 @@ class _AiWeeklyPlanViewState extends State<AiWeeklyPlanView> {
                               borderRadius: BorderRadius.circular(8),
                               child: SizedBox(
                                 width: 50, height: 50,
-                                child: Image.network(
-                                  'https://tse2.mm.bing.net/th?q=${Uri.encodeComponent('${meal.name} food recipe')}&w=150&h=150&c=7&rs=1&p=0',
+                                child: BeityCachedImage(
+                                  imageUrl: 'https://tse2.mm.bing.net/th?q=${Uri.encodeComponent('${meal.name} food recipe')}&w=150&h=150&c=7&rs=1&p=0',
                                   fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) => Container(
+                                  backgroundColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade100,
+                                  errorWidget: Container(
                                     color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade100,
                                     child: const Icon(Icons.restaurant_rounded, size: 20, color: Colors.grey),
                                   ),
@@ -152,7 +155,7 @@ class _AiWeeklyPlanViewState extends State<AiWeeklyPlanView> {
                                         borderRadius: BorderRadius.circular(8),
                                       ),
                                       child: Text(
-                                        _mealTypeLabel(meal.mealType, isArabic),
+                                        _mealTypeLabel(meal.mealType),
                                         style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: _mealTypeColor(meal.mealType)),
                                       ),
                                     ),
@@ -173,7 +176,7 @@ class _AiWeeklyPlanViewState extends State<AiWeeklyPlanView> {
                             Icon(Icons.timer_outlined, size: 14, color: isDark ? Colors.white38 : Colors.grey.shade500),
                             const SizedBox(width: 4),
                             Text(
-                              '${meal.estimatedTimeMinutes} ${isArabic ? 'د' : 'min'}',
+                              '${meal.estimatedTimeMinutes} ${context.translate('minutes_short')}',
                               style: TextStyle(fontSize: 12, color: isDark ? Colors.white38 : Colors.grey.shade500),
                             ),
                             const Spacer(),
@@ -181,8 +184,8 @@ class _AiWeeklyPlanViewState extends State<AiWeeklyPlanView> {
                               GestureDetector(
                                 onTap: () => widget.onShowIngredients!(meal.name, meal.description, meal.mainIngredients, meal.estimatedTimeMinutes, 4),
                                 child: Text(
-                                  isArabic ? 'عرض المكونات' : 'Ingredients',
-                                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.primary),
+                                  context.translate('show_ingredients'),
+                                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.primary),
                                 ),
                               ),
                           ],
@@ -209,14 +212,14 @@ class _AiWeeklyPlanViewState extends State<AiWeeklyPlanView> {
     }
   }
 
-  String _mealTypeLabel(String type, bool isArabic) {
-    if (!isArabic) return type;
+  String _mealTypeLabel(String type) {
     switch (type.toLowerCase()) {
-      case 'breakfast': return 'فطور';
-      case 'lunch': return 'غداء';
-      case 'dinner': return 'عشاء';
-      case 'snack': return 'سناك';
-      case 'dessert': return 'حلى';
+      case 'breakfast':
+      case 'lunch':
+      case 'dinner':
+      case 'snack':
+      case 'dessert':
+        return context.translate(type.toLowerCase());
       default: return type;
     }
   }

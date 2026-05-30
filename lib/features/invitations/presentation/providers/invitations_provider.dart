@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:beity/core/services/supabase_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../homes/presentation/providers/homes_provider.dart';
@@ -7,7 +8,7 @@ import '../../data/repositories/invitation_repository.dart';
 import '../../data/repositories/supabase_invitation_repository.dart';
 
 final invitationRepositoryProvider = Provider<InvitationRepository>((ref) {
-  return SupabaseInvitationRepository(Supabase.instance.client);
+  return SupabaseInvitationRepository(SupabaseService.client);
 });
 
 final userInvitationsProvider = FutureProvider<List<InvitationModel>>((ref) async {

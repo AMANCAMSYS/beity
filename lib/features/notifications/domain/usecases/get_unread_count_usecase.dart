@@ -6,6 +6,6 @@ class GetUnreadCountUseCase {
   GetUnreadCountUseCase(this._repository);
 
   Future<int> call() async {
-    return await _repository.getUnreadCount();
+    return _repository.getUnreadCount();
   }
 }

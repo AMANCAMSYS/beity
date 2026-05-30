@@ -10,7 +10,7 @@ class GetCategoriesUseCase {
     String? homeId,
     String? type,
   }) async {
-    return await _repository.getCategories(
+    return _repository.getCategories(
       homeId: homeId,
       type: type,
     );

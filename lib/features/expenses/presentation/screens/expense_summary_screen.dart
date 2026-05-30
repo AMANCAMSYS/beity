@@ -4,16 +4,18 @@ import 'package:beity/app/theme/app_spacing.dart';
 import 'package:beity/app/theme/app_colors.dart';
 import 'package:beity/shared/widgets/design_system/beity_card.dart';
 import 'package:beity/shared/widgets/design_system/beity_empty_state.dart';
+import 'package:beity/core/services/sync_coordinator.dart';
+import '../../../categories/presentation/providers/categories_provider.dart';
+import '../../../homes/data/models/home_member_model.dart';
+import '../../../homes/presentation/providers/homes_provider.dart';
 import '../providers/expense_providers.dart';
 import '../../domain/usecases/get_expense_summary.dart';
+import '../../../../core/localization/app_localizations.dart';
 
 class ExpenseSummaryScreen extends ConsumerStatefulWidget {
   final String homeId;
 
-  const ExpenseSummaryScreen({
-    super.key,
-    required this.homeId,
-  });
+  const ExpenseSummaryScreen({super.key, required this.homeId});
 
   @override
   ConsumerState<ExpenseSummaryScreen> createState() =>
@@ -29,6 +31,13 @@ class _ExpenseSummaryScreenState extends ConsumerState<ExpenseSummaryScreen> {
   void initState() {
     super.initState();
     _updateDateRange();
+    
+    // Trigger silent background prefetch/sync to ensure cache is populated with members, categories, and expenses
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ref.read(syncCoordinatorProvider.notifier).syncAll(widget.homeId, force: false);
+      }
+    });
   }
 
   void _updateDateRange() {
@@ -52,26 +61,101 @@ class _ExpenseSummaryScreenState extends ConsumerState<ExpenseSummaryScreen> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
-    final theme = Theme.of(context);
-    final repository = ref.read(expenseRepositoryProvider);
-    final summaryFuture = GetExpenseSummary(repository)(
-      GetExpenseSummaryParams(
-        homeId: widget.homeId,
-        startDate: _startDate,
-        endDate: _endDate,
+  Widget _buildSyncIndicator(WidgetRef ref, ThemeData theme) {
+    final syncState = ref.watch(syncCoordinatorProvider);
+    if (syncState.status == SyncStatus.idle || syncState.status == SyncStatus.success) {
+      return const SizedBox.shrink();
+    }
+
+    Color color = theme.colorScheme.primary;
+    String text = context.translate('syncing');
+    IconData icon = Icons.sync_rounded;
+
+    if (syncState.status == SyncStatus.partiallySynced) {
+      color = Colors.orange;
+      text = context.translate('partially_synced');
+      icon = Icons.warning_amber_rounded;
+    } else if (syncState.status == SyncStatus.error) {
+      color = Colors.red;
+      text = context.translate('sync_error');
+      icon = Icons.cloud_off_rounded;
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: AppSpacing.md),
+      color: color.withValues(alpha: 0.08),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 12, color: color),
+          const SizedBox(width: 6),
+          Text(
+            text,
+            style: TextStyle(
+              color: color,
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
       ),
     );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final categoriesAsync = ref.watch(categoriesStreamProvider(widget.homeId));
+    final membersAsync = ref.watch(homeMembersProvider(widget.homeId));
+    final categoryNames = categoriesAsync.when(
+      data: (categories) => {
+        for (final category in categories)
+          category.id: category.name == 'Other'
+              ? context.translate('other')
+              : category.name,
+      },
+      loading: () => const <String, String>{},
+      error: (error, stackTrace) => const <String, String>{},
+    );
+    final memberNames = membersAsync.when(
+      data: (members) => _memberNames(members),
+      loading: () => const <String, String>{},
+      error: (error, stackTrace) => const <String, String>{},
+    );
+
+    final summaryAsync = ref.watch(expenseSummaryProvider((
+      homeId: widget.homeId,
+      startDate: _startDate,
+      endDate: _endDate,
+    )));
+
+    final initialSyncCompletedAsync = ref.watch(initialSyncCompletedExpensesProvider(widget.homeId));
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(isArabic ? 'ملخص المصروفات' : 'Expense Summary', style: const TextStyle(fontWeight: FontWeight.bold)),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: Text(
+          context.translate('expense_summary'),
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh_rounded),
+            tooltip: context.translate('refresh'),
+            onPressed: () => ref.read(syncCoordinatorProvider.notifier).syncAll(
+              widget.homeId,
+              force: true,
+              targetDomain: 'expenses',
+            ),
+          ),
           PopupMenuButton<String>(
             icon: const Icon(Icons.calendar_today_rounded),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusMd)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+            ),
             onSelected: (value) {
               setState(() {
                 _selectedPeriod = value;
@@ -79,68 +163,112 @@ class _ExpenseSummaryScreenState extends ConsumerState<ExpenseSummaryScreen> {
               });
             },
             itemBuilder: (context) => [
-              PopupMenuItem(value: 'week', child: Text(isArabic ? 'هذا الأسبوع' : 'This Week')),
-              PopupMenuItem(value: 'month', child: Text(isArabic ? 'هذا الشهر' : 'This Month')),
-              PopupMenuItem(value: 'year', child: Text(isArabic ? 'هذا العام' : 'This Year')),
-              PopupMenuItem(value: 'custom', child: Text(isArabic ? 'فترة مخصصة' : 'Custom Period')),
+              PopupMenuItem(
+                value: 'week',
+                child: Text(context.translate('this_week')),
+              ),
+              PopupMenuItem(
+                value: 'month',
+                child: Text(context.translate('this_month')),
+              ),
+              PopupMenuItem(
+                value: 'year',
+                child: Text(context.translate('this_year')),
+              ),
+              PopupMenuItem(
+                value: 'custom',
+                child: Text(context.translate('custom_period')),
+              ),
             ],
           ),
         ],
       ),
-      body: FutureBuilder<ExpenseSummary>(
-        future: summaryFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+      body: Column(
+        children: [
+          _buildSyncIndicator(ref, Theme.of(context)),
+          Expanded(
+            child: summaryAsync.when(
+              data: (summary) {
+                if (summary.expenseCount == 0) {
+                  final isSyncCompleted = initialSyncCompletedAsync.value ?? false;
+                  if (!isSyncCompleted) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  return RefreshIndicator(
+                    onRefresh: () => ref.read(syncCoordinatorProvider.notifier).syncAll(
+                      widget.homeId,
+                      force: true,
+                      targetDomain: 'expenses',
+                    ),
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      child: Container(
+                        height: MediaQuery.of(context).size.height * 0.7,
+                        alignment: Alignment.center,
+                        child: BeityEmptyState(
+                          title: context.translate('no_data_for_period'),
+                          message: context.translate('no_data_for_period_desc'),
+                          icon: Icons.analytics_rounded,
+                        ),
+                      ),
+                    ),
+                  );
+                }
 
-          if (snapshot.hasError) {
-            return BeityEmptyState(
-              title: isArabic ? 'عذراً، حدث خطأ' : 'Oops, something went wrong',
-              message: snapshot.error.toString(),
-              icon: Icons.error_outline_rounded,
-              isError: true,
-              actionText: isArabic ? 'إعادة المحاولة' : 'Try Again',
-              onAction: () => setState(() {}),
-            );
-          }
-
-          final summary = snapshot.data!;
-
-          if (summary.expenseCount == 0) {
-            return BeityEmptyState(
-              title: isArabic ? 'لا توجد بيانات لهذه الفترة' : 'No data for this period',
-              message: isArabic 
-                  ? 'حاول تغيير الفترة الزمنية أو إضافة مصروفات جديدة' 
-                  : 'Try changing the time period or adding new expenses',
-              icon: Icons.analytics_rounded,
-            );
-          }
-
-          return ListView(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            children: [
-              _buildTotalCard(summary, isArabic),
-              AppSpacing.gapLG,
-              _buildCategoryBreakdown(summary, isArabic),
-              AppSpacing.gapLG,
-              _buildMemberBreakdown(summary, isArabic),
-              AppSpacing.gapXXL,
-            ],
-          );
-        },
+                return RefreshIndicator(
+                  onRefresh: () => ref.read(syncCoordinatorProvider.notifier).syncAll(
+                    widget.homeId,
+                    force: true,
+                    targetDomain: 'expenses',
+                  ),
+                  child: ListView(
+                    padding: const EdgeInsets.all(AppSpacing.lg),
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    children: [
+                      _buildTotalCard(summary),
+                      AppSpacing.gapLG,
+                      _buildCategoryBreakdown(summary, categoryNames),
+                      AppSpacing.gapLG,
+                      _buildMemberBreakdown(summary, memberNames),
+                      AppSpacing.gapXXL,
+                    ],
+                  ),
+                );
+              },
+              loading: () {
+                final isSyncCompleted = initialSyncCompletedAsync.value ?? false;
+                if (!isSyncCompleted) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                return const Center(child: CircularProgressIndicator());
+              },
+              error: (error, stackTrace) => BeityEmptyState(
+                title: context.translate('error_title'),
+                message: error.toString(),
+                icon: Icons.error_outline_rounded,
+                isError: true,
+                actionText: context.translate('retry'),
+                onAction: () => ref.read(syncCoordinatorProvider.notifier).syncAll(
+                  widget.homeId,
+                  force: true,
+                  targetDomain: 'expenses',
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildTotalCard(ExpenseSummary summary, bool isArabic) {
+  Widget _buildTotalCard(ExpenseSummary summary) {
     final theme = Theme.of(context);
     return BeityCard(
       padding: const EdgeInsets.all(AppSpacing.xl),
       child: Column(
         children: [
           Text(
-            isArabic ? 'إجمالي المصروفات' : 'Total Expenses',
+            context.translate('total_expenses'),
             style: theme.textTheme.labelLarge?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
               fontWeight: FontWeight.bold,
@@ -148,7 +276,7 @@ class _ExpenseSummaryScreenState extends ConsumerState<ExpenseSummaryScreen> {
           ),
           AppSpacing.gapMD,
           Text(
-            '${(summary.totalAmount / 100).toStringAsFixed(2)} ${isArabic ? 'ر.س' : 'SAR'}',
+            '${(summary.totalAmount / 100).toStringAsFixed(2)} ${context.translate('currency_symbol')}',
             style: theme.textTheme.headlineMedium?.copyWith(
               fontWeight: FontWeight.bold,
               color: AppColors.primary,
@@ -164,10 +292,16 @@ class _ExpenseSummaryScreenState extends ConsumerState<ExpenseSummaryScreen> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.receipt_long_rounded, size: 14, color: AppColors.primary),
+                const Icon(
+                  Icons.receipt_long_rounded,
+                  size: 14,
+                  color: AppColors.primary,
+                ),
                 AppSpacing.gapXS,
                 Text(
-                  isArabic ? '${summary.expenseCount} مصروف' : '${summary.expenseCount} expenses',
+                  context.translate('expenses_count_label', arguments: {
+                    'count': summary.expenseCount.toString(),
+                  }),
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: AppColors.primary,
                     fontWeight: FontWeight.bold,
@@ -181,7 +315,43 @@ class _ExpenseSummaryScreenState extends ConsumerState<ExpenseSummaryScreen> {
     );
   }
 
-  Widget _buildCategoryBreakdown(ExpenseSummary summary, bool isArabic) {
+  Map<String, String> _memberNames(
+    List<HomeMemberModel> members,
+  ) {
+    final names = <String, String>{};
+    for (final member in members) {
+      final displayName = (member.userName?.trim().isNotEmpty ?? false)
+          ? member.userName!.trim()
+          : ((member.userEmail?.trim().isNotEmpty ?? false)
+                ? member.userEmail!.trim()
+                : context.translate('member'));
+      names[member.userId] = displayName;
+      names[member.id] = displayName;
+    }
+    return names;
+  }
+
+  String _categoryLabel(
+    String categoryId,
+    Map<String, String> categoryNames,
+  ) {
+    if (categoryId == 'uncategorized' || categoryId.isEmpty) {
+      return context.translate('uncategorized');
+    }
+    return categoryNames[categoryId] ?? context.translate('unknown_category');
+  }
+
+  String _memberLabel(
+    String memberId,
+    Map<String, String> memberNames,
+  ) {
+    return memberNames[memberId] ?? context.translate('unknown_member');
+  }
+
+  Widget _buildCategoryBreakdown(
+    ExpenseSummary summary,
+    Map<String, String> categoryNames,
+  ) {
     if (summary.categoryBreakdown.isEmpty) return const SizedBox.shrink();
 
     final theme = Theme.of(context);
@@ -189,8 +359,10 @@ class _ExpenseSummaryScreenState extends ConsumerState<ExpenseSummaryScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          isArabic ? 'حسب الفئة' : 'By Category',
-          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+          context.translate('by_category'),
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
         ),
         AppSpacing.gapMD,
         BeityCard(
@@ -200,10 +372,14 @@ class _ExpenseSummaryScreenState extends ConsumerState<ExpenseSummaryScreen> {
               for (int i = 0; i < summary.categoryBreakdown.length; i++) ...[
                 _buildBreakdownRow(
                   icon: Icons.category_rounded,
-                  label: summary.categoryBreakdown.keys.elementAt(i),
+                  label: _categoryLabel(
+                    summary.categoryBreakdown.keys.elementAt(i),
+                    categoryNames,
+                  ),
                   amount: summary.categoryBreakdown.values.elementAt(i),
-                  percentage: summary.categoryPercentages[summary.categoryBreakdown.keys.elementAt(i)],
-                  isArabic: isArabic,
+                  percentage:
+                      summary.categoryPercentages[summary.categoryBreakdown.keys
+                          .elementAt(i)],
                   theme: theme,
                 ),
                 if (i < summary.categoryBreakdown.length - 1)
@@ -216,7 +392,10 @@ class _ExpenseSummaryScreenState extends ConsumerState<ExpenseSummaryScreen> {
     );
   }
 
-  Widget _buildMemberBreakdown(ExpenseSummary summary, bool isArabic) {
+  Widget _buildMemberBreakdown(
+    ExpenseSummary summary,
+    Map<String, String> memberNames,
+  ) {
     if (summary.memberBreakdown.isEmpty) return const SizedBox.shrink();
 
     final theme = Theme.of(context);
@@ -224,8 +403,10 @@ class _ExpenseSummaryScreenState extends ConsumerState<ExpenseSummaryScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          isArabic ? 'حسب العضو' : 'By Member',
-          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+          context.translate('by_member_label'),
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
         ),
         AppSpacing.gapMD,
         BeityCard(
@@ -235,9 +416,11 @@ class _ExpenseSummaryScreenState extends ConsumerState<ExpenseSummaryScreen> {
               for (int i = 0; i < summary.memberBreakdown.length; i++) ...[
                 _buildBreakdownRow(
                   icon: Icons.person_rounded,
-                  label: summary.memberBreakdown.keys.elementAt(i),
+                  label: _memberLabel(
+                    summary.memberBreakdown.keys.elementAt(i),
+                    memberNames,
+                  ),
                   amount: summary.memberBreakdown.values.elementAt(i),
-                  isArabic: isArabic,
                   theme: theme,
                 ),
                 if (i < summary.memberBreakdown.length - 1)
@@ -255,7 +438,6 @@ class _ExpenseSummaryScreenState extends ConsumerState<ExpenseSummaryScreen> {
     required String label,
     required int amount,
     double? percentage,
-    required bool isArabic,
     required ThemeData theme,
   }) {
     return Padding(
@@ -277,7 +459,9 @@ class _ExpenseSummaryScreenState extends ConsumerState<ExpenseSummaryScreen> {
               children: [
                 Text(
                   label,
-                  style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 if (percentage != null) ...[
                   AppSpacing.gapXS,
@@ -285,7 +469,8 @@ class _ExpenseSummaryScreenState extends ConsumerState<ExpenseSummaryScreen> {
                     borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
                     child: LinearProgressIndicator(
                       value: percentage / 100,
-                      backgroundColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                      backgroundColor: theme.colorScheme.surfaceContainerHighest
+                          .withValues(alpha: 0.5),
                       color: AppColors.primary,
                       minHeight: 6,
                     ),
@@ -299,8 +484,10 @@ class _ExpenseSummaryScreenState extends ConsumerState<ExpenseSummaryScreen> {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                '${(amount / 100).toStringAsFixed(2)} ${isArabic ? 'ر.س' : 'SAR'}',
-                style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
+                '${(amount / 100).toStringAsFixed(2)} ${context.translate('currency_symbol')}',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               if (percentage != null)
                 Text(

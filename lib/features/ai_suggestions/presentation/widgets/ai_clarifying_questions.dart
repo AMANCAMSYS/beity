@@ -29,7 +29,7 @@ class AiClarifyingQuestions extends StatelessWidget {
             // Header
             Row(
               children: [
-                Icon(Icons.help_outline_rounded, color: AppColors.info, size: 22),
+                const Icon(Icons.help_outline_rounded, color: AppColors.info, size: 22),
                 const SizedBox(width: 8),
                 Text(
                   isArabic ? 'نحتاج بعض التفاصيل' : 'We need some details',
@@ -97,7 +97,7 @@ class AiClarifyingQuestions extends StatelessWidget {
                         ),
                         child: Text(
                           option,
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
                             color: AppColors.primary,

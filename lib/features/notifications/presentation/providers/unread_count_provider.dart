@@ -16,14 +16,14 @@ class UnreadCountNotifier extends AsyncNotifier<int> {
   @override
   Future<int> build() async {
     final useCase = ref.read(getUnreadCountUseCaseProvider);
-    return await useCase.call();
+    return useCase.call();
   }
 
   Future<void> refresh() async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
       final useCase = ref.read(getUnreadCountUseCaseProvider);
-      return await useCase.call();
+      return useCase.call();
     });
   }
 

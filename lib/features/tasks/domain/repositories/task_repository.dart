@@ -60,4 +60,6 @@ abstract class TaskRepository {
     String? assignedTo,
     bool activeOnly = true,
   });
+
+  Future<void> syncTasksWithServer(String homeId);
 }

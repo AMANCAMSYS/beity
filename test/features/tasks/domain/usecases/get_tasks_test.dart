@@ -52,7 +52,7 @@ void main() {
             activeOnly: true,
           )).thenAnswer((_) async => testTasks);
 
-      final result = await useCase(GetTasksParams(
+      final result = await useCase(const GetTasksParams(
         homeId: 'home-123',
       ));
 
@@ -71,7 +71,7 @@ void main() {
             activeOnly: true,
           )).thenAnswer((_) async => assignedTasks);
 
-      final result = await useCase(GetTasksParams(
+      final result = await useCase(const GetTasksParams(
         homeId: 'home-123',
         assignedTo: 'user-456',
       ));
@@ -89,7 +89,7 @@ void main() {
             activeOnly: true,
           )).thenAnswer((_) async => completedTasks);
 
-      final result = await useCase(GetTasksParams(
+      final result = await useCase(const GetTasksParams(
         homeId: 'home-123',
         status: 'completed',
       ));
@@ -114,7 +114,7 @@ void main() {
             activeOnly: true,
           )).thenAnswer((_) async => [todayTask, ...testTasks]);
 
-      final result = await useCase(GetTasksParams(
+      final result = await useCase(const GetTasksParams(
         homeId: 'home-123',
         dueDateFilter: 'today',
       ));
@@ -129,7 +129,7 @@ void main() {
             activeOnly: true,
           )).thenAnswer((_) async => testTasks);
 
-      final result = await useCase(GetTasksParams(
+      final result = await useCase(const GetTasksParams(
         homeId: 'home-123',
         dueDateFilter: 'overdue',
       ));
@@ -144,7 +144,7 @@ void main() {
             activeOnly: true,
           )).thenAnswer((_) async => testTasks);
 
-      final result = await useCase(GetTasksParams(
+      final result = await useCase(const GetTasksParams(
         homeId: 'home-123',
         sortBy: 'due_date',
         sortAscending: true,
@@ -160,7 +160,7 @@ void main() {
             activeOnly: true,
           )).thenAnswer((_) async => testTasks);
 
-      final result = await useCase(GetTasksParams(
+      final result = await useCase(const GetTasksParams(
         homeId: 'home-123',
         sortBy: 'created_at',
         sortAscending: false,

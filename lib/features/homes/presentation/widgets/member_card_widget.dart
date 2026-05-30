@@ -7,8 +7,15 @@ import '../../data/models/home_member_model.dart';
 
 class MemberCardWidget extends StatelessWidget {
   final HomeMemberModel member;
+  final VoidCallback? onRemove;
+  final bool isCurrentUserOwner;
 
-  const MemberCardWidget({super.key, required this.member});
+  const MemberCardWidget({
+    super.key,
+    required this.member,
+    this.onRemove,
+    this.isCurrentUserOwner = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -72,6 +79,24 @@ class MemberCardWidget extends StatelessWidget {
                         AppColors.primary,
                         Icons.admin_panel_settings_rounded,
                       ),
+                    if (isCurrentUserOwner && !isOwner && onRemove != null) ...[
+                      AppSpacing.gapXS,
+                      GestureDetector(
+                        onTap: onRemove,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: AppColors.error.withValues(alpha: 0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.remove_circle_outline_rounded,
+                            size: 18,
+                            color: AppColors.error,
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
                 AppSpacing.gapXXS,

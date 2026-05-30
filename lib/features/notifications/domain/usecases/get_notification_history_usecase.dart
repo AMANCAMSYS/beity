@@ -13,7 +13,7 @@ class GetNotificationHistoryUseCase {
     String? category,
     bool unreadOnly = false,
   }) async {
-    return await _repository.getNotificationHistory(
+    return _repository.getNotificationHistory(
       limit: limit,
       offset: offset,
       homeId: homeId,

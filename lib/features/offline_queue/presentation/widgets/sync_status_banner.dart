@@ -6,6 +6,7 @@ class SyncStatusBanner extends StatelessWidget {
   final int pendingCount;
   final int failedCount;
   final bool isOffline;
+  final bool canSyncNow;
   final VoidCallback? onRetryAll;
 
   const SyncStatusBanner({
@@ -13,6 +14,7 @@ class SyncStatusBanner extends StatelessWidget {
     required this.pendingCount,
     this.failedCount = 0,
     this.isOffline = false,
+    this.canSyncNow = true,
     this.onRetryAll,
   });
 
@@ -22,12 +24,14 @@ class SyncStatusBanner extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    final color = isOffline
+    final isPausedForWifi = !isOffline && !canSyncNow && pendingCount > 0;
+
+    final color = isOffline || isPausedForWifi
         ? AppColors.warning
         : failedCount > 0
             ? AppColors.error
             : AppColors.info;
-    final backgroundColor = isOffline
+    final backgroundColor = isOffline || isPausedForWifi
         ? AppColors.warningContainer
         : failedCount > 0
             ? AppColors.errorContainer
@@ -35,9 +39,11 @@ class SyncStatusBanner extends StatelessWidget {
 
     final message = isOffline
         ? 'أنت غير متصل - سيتم المزامنة عند الاتصال'
-        : failedCount > 0
-            ? 'فشلت مزامنة $failedCount عنصر'
-            : '$pendingCount عنصر في انتظار المزامنة';
+        : isPausedForWifi
+            ? 'المزامنة متوقفة حتى الاتصال بالواي فاي'
+            : failedCount > 0
+                ? 'فشلت مزامنة $failedCount عنصر'
+                : '$pendingCount عنصر في انتظار المزامنة';
 
     return Container(
       width: double.infinity,
@@ -51,7 +57,7 @@ class SyncStatusBanner extends StatelessWidget {
       child: Row(
         children: [
           Icon(
-            isOffline
+            isOffline || isPausedForWifi
                 ? Icons.cloud_off
                 : failedCount > 0
                     ? Icons.error_outline

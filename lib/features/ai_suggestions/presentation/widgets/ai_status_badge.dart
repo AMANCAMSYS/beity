@@ -34,6 +34,10 @@ class AiStatusBadge extends StatelessWidget {
         return (AppColors.error, AppColors.error.withValues(alpha: 0.12), isArabic ? 'ناقص' : 'Missing');
       case IngredientStatus.alreadyInList:
         return (AppColors.info, AppColors.info.withValues(alpha: 0.12), isArabic ? 'في القائمة' : 'In List');
+      case IngredientStatus.inCurrentList:
+        return (AppColors.info, AppColors.info.withValues(alpha: 0.12), isArabic ? 'في القائمة الحالية' : 'In Current List');
+      case IngredientStatus.inOtherList:
+        return (AppColors.warning, AppColors.warning.withValues(alpha: 0.12), isArabic ? 'في قائمة أخرى' : 'In Other List');
       case IngredientStatus.optional:
         return (AppColors.warning, AppColors.warning.withValues(alpha: 0.12), isArabic ? 'اختياري' : 'Optional');
       case IngredientStatus.unknown:

@@ -22,7 +22,7 @@ class StartShoppingSessionUseCase {
       return existing;
     }
 
-    return await _repository.startSession(
+    return _repository.startSession(
       listId: listId,
       userId: userId,
       homeId: homeId,

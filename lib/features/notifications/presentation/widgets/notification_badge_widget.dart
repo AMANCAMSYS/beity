@@ -20,7 +20,7 @@ class NotificationBadgeWidget extends ConsumerWidget {
         icon: const Icon(Icons.notifications_outlined),
         onPressed: onTap,
       ),
-      error: (_, __) => IconButton(
+      error: (e, s) => IconButton(
         icon: const Icon(Icons.notifications_outlined),
         onPressed: onTap,
       ),

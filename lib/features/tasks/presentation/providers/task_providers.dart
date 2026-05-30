@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:beity/core/services/supabase_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:beity/core/services/sync_service.dart';
 import '../../data/datasources/task_remote_datasource.dart';
 import '../../data/datasources/task_comment_remote_datasource.dart';
 import '../../data/repositories/task_repository_impl.dart';
@@ -9,20 +11,28 @@ import '../../domain/entities/task_comment.dart';
 import '../../domain/repositories/task_repository.dart';
 import '../../domain/repositories/task_comment_repository.dart';
 
+import '../../data/datasources/task_local_datasource.dart';
+
 final taskRemoteDataSourceProvider = Provider<TaskRemoteDataSource>((ref) {
-  final client = Supabase.instance.client;
+  final client = SupabaseService.client;
   return TaskRemoteDataSource(client);
+});
+
+final taskLocalDataSourceProvider = Provider<TaskLocalDataSource>((ref) {
+  return SharedPreferencesTaskLocalDataSource();
 });
 
 final taskCommentRemoteDataSourceProvider =
     Provider<TaskCommentRemoteDataSource>((ref) {
-  final client = Supabase.instance.client;
+  final client = SupabaseService.client;
   return TaskCommentRemoteDataSource(client);
 });
 
 final taskRepositoryProvider = Provider<TaskRepository>((ref) {
   final dataSource = ref.watch(taskRemoteDataSourceProvider);
-  return TaskRepositoryImpl(dataSource);
+  final localDataSource = ref.watch(taskLocalDataSourceProvider);
+  final syncService = ref.watch(syncServiceProvider);
+  return TaskRepositoryImpl(dataSource, localDataSource, syncService);
 });
 
 final taskCommentRepositoryProvider = Provider<TaskCommentRepository>((ref) {

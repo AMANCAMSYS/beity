@@ -26,7 +26,7 @@ void main() {
       await syncService.seedData([item]);
 
       // Offline update
-      expect(() async => await syncService.updateItemOffline('item_1', {'is_completed': true}), returnsNormally);
+      expect(() async => syncService.updateItemOffline('item_1', {'is_completed': true}), returnsNormally);
       
       // Verify local state reflects update
       final items = await syncService.getItems('home1');

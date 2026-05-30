@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:beity/core/services/supabase_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -6,10 +7,13 @@ import 'package:beity/app/theme/app_spacing.dart';
 import 'package:beity/shared/widgets/design_system/beity_button.dart';
 import 'package:beity/shared/widgets/design_system/beity_text_field.dart';
 import 'package:beity/shared/widgets/design_system/beity_card.dart';
+import 'package:beity/shared/widgets/design_system/beity_snack_bar.dart';
 import '../../../homes/presentation/providers/homes_provider.dart';
 import '../providers/task_providers.dart';
 import '../widgets/recurrence_selector.dart';
 import '../../../../core/utils/action_debouncer.dart';
+import 'package:beity/core/localization/app_localizations.dart';
+import 'package:beity/core/errors/error_formatter.dart';
 
 class AddTaskScreen extends ConsumerStatefulWidget {
   final String homeId;
@@ -57,12 +61,10 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final user = Supabase.instance.client.auth.currentUser;
+    final user = SupabaseService.client.auth.currentUser;
     if (user == null) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('يجب تسجيل الدخول أولاً')),
-        );
+        BeitySnackBar.warning(context, context.translate('must_login_first'));
       }
       return;
     }
@@ -84,12 +86,14 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
       );
 
       if (mounted) {
+        BeitySnackBar.success(context, context.translate('task_created_success'));
         context.pop();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('خطأ: $e')),
+        BeitySnackBar.error(
+          context,
+          '${context.translate('error_occurred')}: ${ErrorFormatter.format(e, context)}',
         );
       }
     } finally {
@@ -101,13 +105,16 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
     final theme = Theme.of(context);
     final membersAsync = ref.watch(homeMembersProvider(widget.homeId));
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(isArabic ? 'إضافة مهمة' : 'Add Task', style: const TextStyle(fontWeight: FontWeight.bold)),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: Text(context.translate('add_task'), style: const TextStyle(fontWeight: FontWeight.bold)),
       ),
       body: Form(
         key: _formKey,
@@ -120,22 +127,22 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    isArabic ? 'تفاصيل المهمة' : 'Task Details',
+                    context.translate('task_details'),
                     style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                   ),
                   AppSpacing.gapLG,
                   BeityTextField(
                     controller: _titleController,
-                    labelText: isArabic ? 'عنوان المهمة' : 'Task Title',
-                    hintText: isArabic ? 'ماذا يجب أن نفعل؟' : 'What needs to be done?',
+                    labelText: context.translate('task_title'),
+                    hintText: context.translate('task_title_hint'),
                     prefixIcon: Icons.task_alt_rounded,
                     autofocus: true,
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
-                        return isArabic ? 'الرجاء إدخال عنوان المهمة' : 'Please enter task title';
+                        return context.translate('please_enter_task_title');
                       }
                       if (value.trim().length > 200) {
-                        return isArabic ? 'العنوان طويل جداً' : 'Title is too long';
+                        return context.translate('title_too_long');
                       }
                       return null;
                     },
@@ -143,13 +150,13 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                   AppSpacing.gapLG,
                   BeityTextField(
                     controller: _descriptionController,
-                    labelText: isArabic ? 'الوصف (اختياري)' : 'Description (Optional)',
-                    hintText: isArabic ? 'تفاصيل إضافية...' : 'Additional details...',
+                    labelText: context.translate('description_optional'),
+                    hintText: context.translate('additional_details_placeholder'),
                     prefixIcon: Icons.notes_rounded,
                     maxLines: 3,
                     validator: (value) {
                       if (value != null && value.length > 2000) {
-                        return isArabic ? 'الوصف طويل جداً' : 'Description is too long';
+                        return context.translate('description_too_long');
                       }
                       return null;
                     },
@@ -165,14 +172,14 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    isArabic ? 'التوقيت والإسناد' : 'Timing & Assignment',
+                    context.translate('timing_assignment'),
                     style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                   ),
                   AppSpacing.gapLG,
                   
                   // Date Picker
                   Text(
-                    isArabic ? 'تاريخ الاستحقاق' : 'Due Date',
+                    context.translate('due_date'),
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                       fontWeight: FontWeight.bold,
@@ -196,7 +203,7 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                           Text(
                             _selectedDueDate != null
                                 ? '${_selectedDueDate!.day}/${_selectedDueDate!.month}/${_selectedDueDate!.year}'
-                                : (isArabic ? 'لم يتم التحديد' : 'Not specified'),
+                                : context.translate('not_specified'),
                             style: theme.textTheme.bodyLarge?.copyWith(
                               fontWeight: _selectedDueDate != null ? FontWeight.bold : FontWeight.normal,
                               color: _selectedDueDate != null ? null : theme.colorScheme.onSurfaceVariant,
@@ -220,9 +227,9 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                   membersAsync.when(
                     data: (members) {
                       return DropdownButtonFormField<String>(
-                        value: _selectedAssignedTo,
+                        initialValue: _selectedAssignedTo,
                         decoration: InputDecoration(
-                          labelText: isArabic ? 'إسناد إلى' : 'Assign to',
+                          labelText: context.translate('assign_to'),
                           prefixIcon: const Icon(Icons.person_outline_rounded),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
@@ -231,18 +238,18 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                         items: [
                           DropdownMenuItem<String>(
                             value: null,
-                            child: Text(isArabic ? 'غير مسند' : 'Unassigned'),
+                            child: Text(context.translate('unassigned')),
                           ),
                           ...members.map((member) => DropdownMenuItem<String>(
                                 value: member.userId,
-                                child: Text(member.userName ?? member.userEmail ?? (isArabic ? 'عضو' : 'Member')),
+                                child: Text(member.userName ?? member.userEmail ?? context.translate('member')),
                               )),
                         ],
                         onChanged: (value) => setState(() => _selectedAssignedTo = value),
                       );
                     },
                     loading: () => const LinearProgressIndicator(),
-                    error: (e, _) => Text(isArabic ? 'خطأ في تحميل الأعضاء' : 'Error loading members'),
+                    error: (e, _) => Text(context.translate('error_occurred')),
                   ),
                 ],
               ),
@@ -259,7 +266,7 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
             AppSpacing.gapXXL,
 
             BeityButton(
-              text: isArabic ? 'حفظ المهمة' : 'Save Task',
+              text: context.translate('save_task'),
               icon: Icons.check_rounded,
               isLoading: _isLoading,
               onPressed: () => ActionDebouncer.execute(_submit),

@@ -114,20 +114,20 @@
 
 ### Tests for User Story 3
 
-- [ ] T037 [P] [US3] Unit test for equal split calculation in test/features/expenses/domain/usecases/split_expense_equal_test.dart
-- [ ] T038 [P] [US3] Unit test for custom split calculation in test/features/expenses/domain/usecases/split_expense_custom_test.dart
-- [ ] T039 [P] [US3] Unit test for rounding handling in test/features/expenses/domain/usecases/split_expense_rounding_test.dart
+- [x] T037 [P] [US3] Unit test for equal split calculation in test/features/expenses/domain/usecases/split_expense_test.dart
+- [x] T038 [P] [US3] Unit test for custom split calculation in test/features/expenses/domain/usecases/split_expense_test.dart
+- [x] T039 [P] [US3] Unit test for rounding handling in test/features/expenses/domain/usecases/split_expense_test.dart
 
 ### Implementation for User Story 3
 
 - [x] T040 [US3] Create SplitExpense use case in lib/features/expenses/domain/usecases/split_expense.dart
 - [x] T041 [US3] Create SplitSelector widget in lib/features/expenses/presentation/widgets/split_selector.dart
-- [ ] T042 [US3] Implement equal split mode with member selection
-- [ ] T043 [US3] Implement custom split mode with amount per member
-- [ ] T044 [US3] Add split validation (sum must equal expense amount)
-- [ ] T045 [US3] Handle single-member split as personal expense (no split record)
-- [ ] T046 [US3] Implement rounding logic (remainder assigned to payer)
-- [ ] T047 [US3] Add split details view to ExpenseDetailScreen
+- [x] T042 [US3] Implement equal split mode with member selection
+- [x] T043 [US3] Implement custom split mode with amount per member
+- [x] T044 [US3] Add split validation (sum must equal expense amount)
+- [x] T045 [US3] Handle single-member split as personal expense (no split record)
+- [x] T046 [US3] Implement rounding logic (remainder assigned to payer)
+- [x] T047 [US3] Add split details view to ExpenseDetailScreen
 
 **Checkpoint**: At this point, User Stories 1, 2, AND 3 should all work independently
 
@@ -149,8 +149,8 @@
 - [x] T050 [US4] Create CalculateBalances use case in lib/features/expenses/domain/usecases/calculate_balances.dart
 - [x] T051 [US4] Create BalancesScreen in lib/features/expenses/presentation/screens/balances_screen.dart
 - [x] T052 [US4] Create BalanceCard widget in lib/features/expenses/presentation/widgets/balance_card.dart
-- [ ] T053 [US4] Implement "All settled up" empty state
-- [ ] T054 [US4] Integrate with Supabase RPC function calculate_home_balances
+- [x] T053 [US4] Implement "All settled up" empty state
+- [x] T054 [US4] Integrate with Supabase RPC function calculate_home_balances
 
 **Checkpoint**: Balance tracking is now functional
 
@@ -171,10 +171,10 @@
 
 - [x] T057 [US5] Create RecordSettlement use case in lib/features/expenses/domain/usecases/record_settlement.dart
 - [x] T058 [US5] Create SettlementForm widget in lib/features/expenses/presentation/widgets/settlement_form.dart
-- [ ] T059 [US5] Implement settlement recording with from/to member selection
-- [ ] T060 [US5] Add payment method selection (cash, transfer, other)
-- [ ] T061 [US5] Implement partial settlement support
-- [ ] T062 [US5] Update balances screen to show settlement history
+- [x] T059 [US5] Implement settlement recording with from/to member selection
+- [x] T060 [US5] Add payment method selection (cash, transfer, other)
+- [x] T061 [US5] Implement partial settlement support
+- [x] T062 [US5] Update balances screen to show settlement history
 
 **Checkpoint**: Settlement recording is now functional
 

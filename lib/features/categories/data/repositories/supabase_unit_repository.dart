@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'package:beity/core/services/shared_prefs_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/unit_model.dart';
 import 'unit_repository.dart';
@@ -11,19 +13,42 @@ class SupabaseUnitRepository implements UnitRepository {
   Future<List<UnitModel>> getUnits({
     String? type,
   }) async {
-    var query = _client
-        .from('units')
-        .select()
-        .eq('is_default', true);
+    final cacheKey = 'cached_units_${type ?? 'none'}';
+    try {
+      var query = _client
+          .from('units')
+          .select()
+          .eq('is_default', true);
 
-    if (type != null) {
-      query = query.eq('type', type);
+      if (type != null) {
+        query = query.eq('type', type);
+      }
+
+      final response = await query.order('name', ascending: true);
+      final units = (response as List)
+          .map((json) => UnitModel.fromJson(json))
+          .toList();
+
+      // Cache units
+      try {
+        final prefs = AppPreferences.instance;
+        final rawJson = jsonEncode(units.map((u) => u.toJson()).toList());
+        await prefs.setString(cacheKey, rawJson);
+      } catch (_) {}
+
+      return units;
+    } catch (e) {
+      // Fallback to cache if offline
+      try {
+        final prefs = AppPreferences.instance;
+        final cached = prefs.getString(cacheKey);
+        if (cached != null) {
+          final List<dynamic> list = jsonDecode(cached);
+          return list.map((json) => UnitModel.fromJson(json)).toList();
+        }
+      } catch (_) {}
+      rethrow;
     }
-
-    final response = await query.order('name', ascending: true);
-    return (response as List)
-        .map((json) => UnitModel.fromJson(json))
-        .toList();
   }
 
   @override
@@ -152,16 +177,42 @@ class SupabaseUnitRepository implements UnitRepository {
   @override
   Stream<List<UnitModel>> watchUnits({
     String? type,
-  }) {
-    return _client
-        .from('units')
-        .stream(primaryKey: ['id'])
-        .order('name', ascending: true)
-        .map((response) => response
+  }) async* {
+    final cacheKey = 'cached_units_${type ?? 'none'}';
+
+    // 1. Emit cached units immediately
+    try {
+      final prefs = AppPreferences.instance;
+      final cached = prefs.getString(cacheKey);
+      if (cached != null) {
+        final List<dynamic> list = jsonDecode(cached);
+        yield list.map((json) => UnitModel.fromJson(json)).toList();
+      }
+    } catch (_) {}
+
+    // 2. Subscribe to remote stream
+    try {
+      await for (final response in _client
+          .from('units')
+          .stream(primaryKey: ['id'])
+          .order('name', ascending: true)) {
+        final list = response
             .map((json) => UnitModel.fromJson(json))
             .where((unit) =>
                 unit.isDefault &&
                 (type == null || unit.type.name == type))
-            .toList());
+            .toList();
+
+        try {
+          final prefs = AppPreferences.instance;
+          final rawJson = jsonEncode(list.map((u) => u.toJson()).toList());
+          await prefs.setString(cacheKey, rawJson);
+        } catch (_) {}
+
+        yield list;
+      }
+    } catch (_) {
+      // Absorb stream errors when offline
+    }
   }
 }

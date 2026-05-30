@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:beity/core/services/supabase_service.dart';
 
 import '../../../core/monitoring/device_info_service.dart';
 import '../../../core/monitoring/app_log_buffer.dart';
@@ -12,7 +13,7 @@ class FeedbackRepository {
     SupabaseClient? supabase,
     DeviceInfoService? deviceInfoService,
     AppLogBuffer? logBuffer,
-  })  : _supabase = supabase ?? Supabase.instance.client,
+  })  : _supabase = supabase ?? SupabaseService.client,
         _deviceInfoService = deviceInfoService ?? DeviceInfoService(),
         _logBuffer = logBuffer ?? AppLogBuffer();
 
@@ -37,11 +38,13 @@ class FeedbackRepository {
       },
     );
 
+    final data = response.data as Map<String, dynamic>?;
+
     if (response.status != 201) {
-      final error = response.data?['error'] ?? 'Unknown error';
+      final error = data?['error'] ?? 'Unknown error';
       throw Exception('Failed to submit feedback: $error');
     }
 
-    return response.data['id'] as String;
+    return data?['id'] as String? ?? '';
   }
 }

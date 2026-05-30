@@ -35,4 +35,6 @@ abstract class CategoryRepository {
     String? homeId,
     String? type,
   });
+
+  Future<void> syncCategoriesWithServer(String homeId);
 }

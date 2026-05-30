@@ -10,9 +10,7 @@ abstract class ExpenseRepository {
     String? memberId,
   });
 
-  Future<Expense?> getExpenseById({
-    required String expenseId,
-  });
+  Future<Expense?> getExpenseById({required String expenseId});
 
   Future<Expense> createExpense({
     required String homeId,
@@ -22,8 +20,21 @@ abstract class ExpenseRepository {
     String? categoryId,
     required String paidBy,
     String? shoppingListItemId,
-    String currencyCode = 'SAR',
+    String currencyCode = 'TRY',
     required int convertedAmount,
+  });
+
+  Future<Expense> createExpenseWithSplits({
+    required String homeId,
+    required int amount,
+    required String description,
+    required DateTime date,
+    String? categoryId,
+    required String paidBy,
+    String? shoppingListItemId,
+    String currencyCode = 'TRY',
+    required int convertedAmount,
+    List<({String memberId, int amount})> splits = const [],
   });
 
   Future<Expense> updateExpense({
@@ -38,22 +49,16 @@ abstract class ExpenseRepository {
     int? convertedAmount,
   });
 
-  Future<void> deleteExpense({
-    required String expenseId,
-  });
+  Future<void> deleteExpense({required String expenseId});
 
-  Future<List<ExpenseSplit>> getExpenseSplits({
-    required String expenseId,
-  });
+  Future<List<ExpenseSplit>> getExpenseSplits({required String expenseId});
 
   Future<List<ExpenseSplit>> createExpenseSplits({
     required String expenseId,
     required List<({String memberId, int amount})> splits,
   });
 
-  Future<void> deleteExpenseSplits({
-    required String expenseId,
-  });
+  Future<void> deleteExpenseSplits({required String expenseId});
 
   Future<int> getExpenseTotal({
     required String homeId,
@@ -61,7 +66,15 @@ abstract class ExpenseRepository {
     DateTime? endDate,
   });
 
-  Stream<List<Expense>> watchExpenses({
-    required String homeId,
-  });
+  Stream<List<Expense>> watchExpenses({required String homeId});
+
+  Future<void> syncExpensesWithServer(String homeId);
+
+  Future<bool> isInitialSyncCompleted({required String homeId});
+
+  Future<void> setInitialSyncCompleted({required String homeId, required bool completed});
+
+  Future<Expense?> getCachedExpenseById({required String expenseId});
+
+  Future<void> syncExpenseByIdIfMissing({required String expenseId});
 }

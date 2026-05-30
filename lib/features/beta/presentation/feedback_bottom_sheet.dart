@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
 
+import 'package:beity/core/localization/app_localizations.dart';
 import '../../../app/theme/app_colors.dart';
 import '../data/feedback_repository.dart';
 
 class FeedbackBottomSheet extends StatefulWidget {
-  const FeedbackBottomSheet({super.key});
+  final String? screenRoute;
+
+  const FeedbackBottomSheet({super.key, this.screenRoute});
 
   static Future<void> show(BuildContext context) {
+    // Capture active screen route name before pushing the modal route
+    final route = ModalRoute.of(context)?.settings.name ?? 'unknown_screen';
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (context) => const FeedbackBottomSheet(),
+      builder: (context) => FeedbackBottomSheet(screenRoute: route),
     );
   }
 
@@ -32,7 +37,7 @@ class _FeedbackBottomSheetState extends State<FeedbackBottomSheet> {
 
   Future<void> _submit() async {
     if (_descriptionController.text.trim().isEmpty) {
-      setState(() => _error = 'يرجى وصف ما حدث');
+      setState(() => _error = context.translate('please_describe_issue'));
       return;
     }
 
@@ -46,6 +51,7 @@ class _FeedbackBottomSheetState extends State<FeedbackBottomSheet> {
       await repository.submitFeedback(
         feedbackType: _feedbackType,
         description: _descriptionController.text.trim(),
+        screenRoute: widget.screenRoute,
       );
 
       if (mounted) {
@@ -74,10 +80,11 @@ class _FeedbackBottomSheetState extends State<FeedbackBottomSheet> {
         right: 16,
         top: 16,
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -99,29 +106,26 @@ class _FeedbackBottomSheetState extends State<FeedbackBottomSheet> {
           // Type selector
           Semantics(
             label: 'Feedback type selector',
-            child: Row(
-              children: [
-                Expanded(
-                  child: RadioListTile<String>(
-                    title: const Text('مشكلة'),
-                    value: 'bug',
-                    groupValue: _feedbackType,
-                    onChanged: (value) {
-                      setState(() => _feedbackType = value!);
-                    },
-                  ),
+            child: SegmentedButton<String>(
+              segments: const [
+                ButtonSegment(
+                  value: 'bug',
+                  icon: Icon(Icons.bug_report_rounded),
+                  label: Text('مشكلة'),
                 ),
-                Expanded(
-                  child: RadioListTile<String>(
-                    title: const Text('اقتراح'),
-                    value: 'survey',
-                    groupValue: _feedbackType,
-                    onChanged: (value) {
-                      setState(() => _feedbackType = value!);
-                    },
-                  ),
+                ButtonSegment(
+                  value: 'survey',
+                  icon: Icon(Icons.lightbulb_rounded),
+                  label: Text('اقتراح'),
                 ),
               ],
+              selected: {_feedbackType},
+              showSelectedIcon: false,
+              onSelectionChanged: (selection) {
+                setState(() {
+                  _feedbackType = selection.first;
+                });
+              },
             ),
           ),
           const SizedBox(height: 16),
@@ -147,8 +151,18 @@ class _FeedbackBottomSheetState extends State<FeedbackBottomSheet> {
             ),
           ],
           const SizedBox(height: 8),
+          if (widget.screenRoute != null && widget.screenRoute != 'unknown_screen') ...[
+            Text(
+              'الشاشة الحالية: ${widget.screenRoute}',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Colors.grey[600],
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
+            const SizedBox(height: 4),
+          ],
           Text(
-            'يتم إرفاق معلومات الجهاز وإصدار التطبيق تلقائياً',
+            'يتم إرفاق معلومات الجهاز وإصدار التطبيق وسجل العمليات تلقائياً',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Colors.grey[600],
                 ),
@@ -171,6 +185,7 @@ class _FeedbackBottomSheetState extends State<FeedbackBottomSheet> {
           const SizedBox(height: 16),
         ],
       ),
+     ),
     );
   }
 }

@@ -9,6 +9,8 @@ import '../providers/shopping_items_provider.dart';
 import '../../domain/usecases/add_item_usecase.dart';
 import '../../domain/usecases/delete_item_usecase.dart';
 import '../../data/models/item_template_model.dart';
+import '../../../../core/localization/app_localizations.dart';
+import 'package:beity/core/errors/error_formatter.dart';
 
 class QuickAddScreen extends ConsumerStatefulWidget {
   final String listId;
@@ -37,19 +39,18 @@ class _QuickAddScreenState extends ConsumerState<QuickAddScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
     final templatesAsync = ref.watch(itemTemplatesProvider(widget.homeId));
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(isArabic ? 'إضافة سريعة' : 'Quick Add', style: const TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(context.translate('quick_add'), style: const TextStyle(fontWeight: FontWeight.bold)),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(80),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.lg),
             child: BeityTextField(
               controller: _searchController,
-              hintText: isArabic ? 'بحث في المنتجات...' : 'Search items...',
+              hintText: context.translate('search_items_placeholder'),
               prefixIcon: Icons.search_rounded,
               onChanged: (value) {
                 setState(() {
@@ -71,10 +72,10 @@ class _QuickAddScreenState extends ConsumerState<QuickAddScreen> {
 
           if (filtered.isEmpty) {
             return BeityEmptyState(
-              title: isArabic ? 'لا توجد منتجات' : 'No Items Found',
+              title: context.translate('no_items'),
               message: _searchQuery.isEmpty 
-                  ? (isArabic ? 'ستظهر هنا المنتجات التي تشتريها بكثرة' : 'Products you buy frequently will appear here')
-                  : (isArabic ? 'لم يتم العثور على نتائج للبحث' : 'No results found for your search'),
+                  ? context.translate('no_templates_desc')
+                  : context.translate('no_results_search'),
               icon: Icons.bookmark_outline_rounded,
             );
           }
@@ -84,24 +85,24 @@ class _QuickAddScreenState extends ConsumerState<QuickAddScreen> {
             itemCount: filtered.length,
             itemBuilder: (context, index) {
               final template = filtered[index];
-              return _buildTemplateTile(context, template, isArabic);
+              return _buildTemplateTile(context, template);
             },
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => BeityEmptyState(
-          title: isArabic ? 'حدث خطأ' : 'An error occurred',
+          title: context.translate('error_title'),
           message: error.toString(),
           icon: Icons.error_outline_rounded,
           isError: true,
-          actionText: isArabic ? 'إعادة المحاولة' : 'Retry',
+          actionText: context.translate('retry'),
           onAction: () => ref.invalidate(itemTemplatesProvider(widget.homeId)),
         ),
       ),
     );
   }
 
-  Widget _buildTemplateTile(BuildContext context, ItemTemplateModel template, bool isArabic) {
+  Widget _buildTemplateTile(BuildContext context, ItemTemplateModel template) {
     final theme = Theme.of(context);
     
     return ListTile(
@@ -123,7 +124,11 @@ class _QuickAddScreenState extends ConsumerState<QuickAddScreen> {
         style: const TextStyle(fontWeight: FontWeight.bold),
       ),
       subtitle: Text(
-        isArabic ? 'الكمية: ${template.defaultQuantity}' : 'Qty: ${template.defaultQuantity}',
+        context.translate('qty_label', arguments: {
+          'qty': template.defaultQuantity == template.defaultQuantity.roundToDouble()
+              ? template.defaultQuantity.toInt().toString()
+              : template.defaultQuantity.toStringAsFixed(1),
+        }),
         style: theme.textTheme.bodySmall?.copyWith(
           color: theme.colorScheme.onSurfaceVariant,
         ),
@@ -138,7 +143,7 @@ class _QuickAddScreenState extends ConsumerState<QuickAddScreen> {
               borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
             ),
             child: Text(
-              isArabic ? '${template.usageCount} مرة' : '${template.usageCount}x',
+              context.translate('usage_count_times', arguments: {'count': template.usageCount.toString()}),
               style: theme.textTheme.labelSmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
                 fontWeight: FontWeight.bold,
@@ -152,11 +157,11 @@ class _QuickAddScreenState extends ConsumerState<QuickAddScreen> {
           ),
         ],
       ),
-      onTap: () => ActionDebouncer.execute(() => _addFromTemplate(template, isArabic)),
+      onTap: () => ActionDebouncer.execute(() => _addFromTemplate(template)),
     );
   }
 
-  Future<void> _addFromTemplate(ItemTemplateModel template, bool isArabic) async {
+  Future<void> _addFromTemplate(ItemTemplateModel template) async {
     try {
       final repository = ref.read(shoppingItemRepositoryProvider);
       final addItemUseCase = AddItemUseCase(repository);
@@ -179,9 +184,9 @@ class _QuickAddScreenState extends ConsumerState<QuickAddScreen> {
         ScaffoldMessenger.of(context).clearSnackBars();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(isArabic ? 'تم إضافة ${template.name}' : 'Added ${template.name}'),
+            content: Text(context.translate('added_item_success', arguments: {'name': template.name})),
             action: SnackBarAction(
-              label: isArabic ? 'تراجع' : 'Undo',
+              label: context.translate('undo'),
               onPressed: () => ActionDebouncer.execute(_undoAdd),
             ),
           ),
@@ -191,7 +196,7 @@ class _QuickAddScreenState extends ConsumerState<QuickAddScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('خطأ: $e'),
+            content: Text('${context.translate('error')}: ${ErrorFormatter.format(e, context)}'),
             backgroundColor: AppColors.error,
           ),
         );
@@ -210,14 +215,14 @@ class _QuickAddScreenState extends ConsumerState<QuickAddScreen> {
       if (mounted) {
         setState(() => _lastAddedItemId = null);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم التراجع')),
+          SnackBar(content: Text(context.translate('undo_success'))),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('خطأ في التراجع: $e'),
+            content: Text(context.translate('undo_failed', arguments: {'error': ErrorFormatter.format(e, context)})),
             backgroundColor: AppColors.error,
           ),
         );

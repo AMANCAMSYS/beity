@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/task_providers.dart';
+import 'package:beity/core/localization/app_localizations.dart';
+import 'package:beity/core/errors/error_formatter.dart';
 
 class CommentThread extends ConsumerStatefulWidget {
   final String taskId;
@@ -41,7 +43,7 @@ class _CommentThreadState extends ConsumerState<CommentThread> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('خطأ: $e')),
+          SnackBar(content: Text('${context.translate('error_occurred')}: ${ErrorFormatter.format(e, context)}')),
         );
       }
     } finally {
@@ -59,7 +61,7 @@ class _CommentThreadState extends ConsumerState<CommentThread> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'التعليقات',
+          context.translate('comments'),
           style: Theme.of(context).textTheme.titleMedium,
         ),
         const SizedBox(height: 8),
@@ -69,7 +71,7 @@ class _CommentThreadState extends ConsumerState<CommentThread> {
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 child: Text(
-                  'لا توجد تعليقات بعد',
+                  context.translate('no_comments_yet'),
                   style: TextStyle(color: Colors.grey.shade600),
                 ),
               );
@@ -97,7 +99,7 @@ class _CommentThreadState extends ConsumerState<CommentThread> {
             );
           },
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (error, _) => Text('خطأ: $error'),
+          error: (error, _) => Text('${context.translate('error_occurred')}: ${ErrorFormatter.format(error, context)}'),
         ),
         const SizedBox(height: 8),
         Row(
@@ -105,11 +107,11 @@ class _CommentThreadState extends ConsumerState<CommentThread> {
             Expanded(
               child: TextField(
                 controller: _commentController,
-                decoration: const InputDecoration(
-                  hintText: 'أضف تعليقاً...',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  hintText: context.translate('add_comment_placeholder'),
+                  border: const OutlineInputBorder(),
                   contentPadding:
-                      EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 ),
                 maxLines: null,
               ),

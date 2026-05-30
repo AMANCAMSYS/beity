@@ -8,6 +8,7 @@ import 'package:beity/shared/widgets/design_system/beity_button.dart';
 import 'package:beity/core/utils/action_debouncer.dart';
 import '../providers/inventory_provider.dart';
 import '../../domain/usecases/add_inventory_item_usecase.dart';
+import 'package:beity/core/errors/error_formatter.dart';
 
 class InventoryQuickAddSheet extends ConsumerStatefulWidget {
   final String homeId;
@@ -77,7 +78,7 @@ class _InventoryQuickAddSheetState extends ConsumerState<InventoryQuickAddSheet>
           }
         } catch (e) {
           if (mounted) {
-            setState(() => _error = e.toString().replaceAll('Exception: ', ''));
+            setState(() => _error = ErrorFormatter.format(e, context));
           }
         } finally {
           if (mounted) setState(() => _isSubmitting = false);

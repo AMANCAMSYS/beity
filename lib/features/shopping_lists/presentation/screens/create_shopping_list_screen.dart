@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:beity/app/theme/app_colors.dart';
 import 'package:beity/app/theme/app_spacing.dart';
 import 'package:beity/shared/widgets/design_system/beity_button.dart';
 import 'package:beity/shared/widgets/design_system/beity_text_field.dart';
 import 'package:beity/shared/widgets/design_system/beity_card.dart';
 import '../../../../core/utils/action_debouncer.dart';
 import 'package:go_router/go_router.dart';
+import 'package:beity/core/errors/error_formatter.dart';
 
+import 'package:beity/shared/widgets/design_system/beity_snack_bar.dart';
 import '../../domain/usecases/create_shopping_list_usecase.dart';
 import '../providers/shopping_lists_provider.dart';
+import '../../../../core/localization/app_localizations.dart';
 
 class CreateShoppingListScreen extends ConsumerStatefulWidget {
   final String homeId;
@@ -27,24 +29,24 @@ class _CreateShoppingListScreenState extends ConsumerState<CreateShoppingListScr
   bool _isLoading = false;
 
   static const _iconOptions = [
-    {'icon': 'shopping_cart', 'ar': 'مشتريات', 'en': 'Groceries', 'data': Icons.shopping_cart},
-    {'icon': 'shopping_bag', 'ar': 'تسوق', 'en': 'Shopping', 'data': Icons.shopping_bag},
-    {'icon': 'local_grocery_store', 'ar': 'بقالة', 'en': 'Store', 'data': Icons.local_grocery_store},
-    {'icon': 'local_pharmacy', 'ar': 'صيدلية', 'en': 'Pharmacy', 'data': Icons.local_pharmacy},
-    {'icon': 'local_hospital', 'ar': 'صحة', 'en': 'Health', 'data': Icons.local_hospital},
-    {'icon': 'restaurant', 'ar': 'مطعم', 'en': 'Restaurant', 'data': Icons.restaurant},
-    {'icon': 'local_cafe', 'ar': 'مقهى', 'en': 'Cafe', 'data': Icons.local_cafe},
-    {'icon': 'home', 'ar': 'منزل', 'en': 'Home', 'data': Icons.home},
-    {'icon': 'hardware', 'ar': 'أدوات', 'en': 'Tools', 'data': Icons.hardware},
-    {'icon': 'build', 'ar': 'صيانة', 'en': 'Build', 'data': Icons.build},
-    {'icon': 'child_care', 'ar': 'أطفال', 'en': 'Baby', 'data': Icons.child_care},
-    {'icon': 'pets', 'ar': 'حيوانات', 'en': 'Pets', 'data': Icons.pets},
-    {'icon': 'card_giftcard', 'ar': 'هدايا', 'en': 'Gifts', 'data': Icons.card_giftcard},
-    {'icon': 'celebration', 'ar': 'احتفال', 'en': 'Celebration', 'data': Icons.celebration},
-    {'icon': 'school', 'ar': 'مدرسة', 'en': 'School', 'data': Icons.school},
-    {'icon': 'fitness_center', 'ar': 'رياضة', 'en': 'Fitness', 'data': Icons.fitness_center},
-    {'icon': 'cleaning_services', 'ar': 'تنظيف', 'en': 'Cleaning', 'data': Icons.cleaning_services},
-    {'icon': 'local_florist', 'ar': 'زهور', 'en': 'Flowers', 'data': Icons.local_florist},
+    {'icon': 'shopping_cart', 'key': 'cat_groceries', 'data': Icons.shopping_cart},
+    {'icon': 'shopping_bag', 'key': 'cat_shopping', 'data': Icons.shopping_bag},
+    {'icon': 'local_grocery_store', 'key': 'cat_store', 'data': Icons.local_grocery_store},
+    {'icon': 'local_pharmacy', 'key': 'cat_pharmacy', 'data': Icons.local_pharmacy},
+    {'icon': 'local_hospital', 'key': 'cat_health', 'data': Icons.local_hospital},
+    {'icon': 'restaurant', 'key': 'cat_restaurant', 'data': Icons.restaurant},
+    {'icon': 'local_cafe', 'key': 'cat_cafe', 'data': Icons.local_cafe},
+    {'icon': 'home', 'key': 'cat_home', 'data': Icons.home},
+    {'icon': 'hardware', 'key': 'cat_tools', 'data': Icons.hardware},
+    {'icon': 'build', 'key': 'cat_build', 'data': Icons.build},
+    {'icon': 'child_care', 'key': 'cat_baby', 'data': Icons.child_care},
+    {'icon': 'pets', 'key': 'cat_pets', 'data': Icons.pets},
+    {'icon': 'card_giftcard', 'key': 'cat_gifts', 'data': Icons.card_giftcard},
+    {'icon': 'celebration', 'key': 'cat_celebration', 'data': Icons.celebration},
+    {'icon': 'school', 'key': 'cat_school', 'data': Icons.school},
+    {'icon': 'fitness_center', 'key': 'cat_fitness', 'data': Icons.fitness_center},
+    {'icon': 'cleaning_services', 'key': 'cat_cleaning', 'data': Icons.cleaning_services},
+    {'icon': 'local_florist', 'key': 'cat_flowers', 'data': Icons.local_florist},
   ];
 
   @override
@@ -75,17 +77,15 @@ class _CreateShoppingListScreenState extends ConsumerState<CreateShoppingListScr
       );
 
       if (mounted) {
+        BeitySnackBar.success(context, context.translate('list_created_success'));
         context.pop();
         context.push('/shopping-list/${list.id}');
       }
     } catch (e) {
       if (mounted) {
-        final isArabic = Localizations.localeOf(context).languageCode == 'ar';
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${isArabic ? 'فشل إنشاء القائمة' : 'Failed to create list'}: ${e.toString()}'),
-            backgroundColor: AppColors.error,
-          ),
+        BeitySnackBar.error(
+          context,
+          '${context.translate('create_list_failed')}: ${ErrorFormatter.format(e, context)}',
         );
       }
     } finally {
@@ -95,12 +95,11 @@ class _CreateShoppingListScreenState extends ConsumerState<CreateShoppingListScr
 
   @override
   Widget build(BuildContext context) {
-    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
     final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(isArabic ? 'إنشاء قائمة تسوق' : 'Create Shopping List', style: const TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(context.translate('create_shopping_list'), style: const TextStyle(fontWeight: FontWeight.bold)),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(AppSpacing.lg),
@@ -133,7 +132,7 @@ class _CreateShoppingListScreenState extends ConsumerState<CreateShoppingListScr
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      isArabic ? 'اختر أيقونة القائمة' : 'Choose List Icon',
+                      context.translate('choose_list_icon'),
                       style: theme.textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
@@ -144,9 +143,10 @@ class _CreateShoppingListScreenState extends ConsumerState<CreateShoppingListScr
                       runSpacing: AppSpacing.sm,
                       children: _iconOptions.map((option) {
                         final isSelected = _selectedIcon == option['icon'];
-                        return GestureDetector(
+                        return InkWell(
                           onTap: () => setState(() => _selectedIcon = option['icon'] as String),
-                          child: Container(
+                          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                          child: Ink(
                             width: 60,
                             height: 60,
                             decoration: BoxDecoration(
@@ -170,7 +170,7 @@ class _CreateShoppingListScreenState extends ConsumerState<CreateShoppingListScr
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  (isArabic ? option['ar'] : option['en']) as String,
+                                  context.translate(option['key'] as String),
                                   style: TextStyle(
                                     fontSize: 10,
                                     color: isSelected
@@ -195,13 +195,13 @@ class _CreateShoppingListScreenState extends ConsumerState<CreateShoppingListScr
                 padding: const EdgeInsets.all(AppSpacing.lg),
                 child: BeityTextField(
                   controller: _nameController,
-                  labelText: isArabic ? 'اسم القائمة' : 'List Name',
-                  hintText: isArabic ? 'مثال: مشتريات الأسبوع' : 'e.g. Weekly Groceries',
+                  labelText: context.translate('list_name'),
+                  hintText: context.translate('list_name_hint'),
                   prefixIcon: Icons.list_alt_rounded,
                   autofocus: true,
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return isArabic ? 'اسم القائمة مطلوب' : 'List name is required';
+                      return context.translate('list_name_required');
                     }
                     return null;
                   },
@@ -212,8 +212,8 @@ class _CreateShoppingListScreenState extends ConsumerState<CreateShoppingListScr
               // Create button
               BeityButton(
                 text: _isLoading 
-                    ? (isArabic ? 'جاري الإنشاء...' : 'Creating...') 
-                    : (isArabic ? 'إنشاء القائمة' : 'Create List'),
+                    ? context.translate('creating') 
+                    : context.translate('create_list'),
                 icon: Icons.add_task_rounded,
                 isLoading: _isLoading,
                 onPressed: () => ActionDebouncer.execute(_createList),

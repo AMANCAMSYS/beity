@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient, type SupabaseClient } from "jsr:@supabase/supabase-js@2";
+import { suggestionMessages } from "../_shared/templates.ts";
 
 declare const Deno: any;
 
@@ -12,14 +13,20 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-async function requireUser(req: Request, admin: SupabaseClient) {
+// Localized message resolver
+function getMessage(key: string, lang: string): string {
+  const l = (lang === 'tr' || lang === 'en' || lang === 'ar') ? lang : 'ar';
+  return suggestionMessages[l]?.[key] || suggestionMessages.ar[key] || key;
+}
+
+async function requireUser(req: Request, admin: SupabaseClient, lang: string) {
   const authHeader = req.headers.get("Authorization") ?? "";
   const token = authHeader.replace(/^Bearer\s+/i, "");
 
   if (!token) {
     return {
       response: new Response(
-        JSON.stringify({ type: 'error', error: "Missing authorization token", message_ar: "مطلوب مصادقة" }),
+        JSON.stringify({ type: 'error', error: "Missing authorization token", message_ar: getMessage('missing_auth', lang) }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       ),
     };
@@ -29,7 +36,7 @@ async function requireUser(req: Request, admin: SupabaseClient) {
   if (error || !data.user) {
     return {
       response: new Response(
-        JSON.stringify({ type: 'error', error: "Invalid authorization token", message_ar: "رمز المصادقة غير صالح" }),
+        JSON.stringify({ type: 'error', error: "Invalid authorization token", message_ar: getMessage('invalid_auth', lang) }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       ),
     };
@@ -42,6 +49,7 @@ async function requireActiveHomeMember(
   admin: SupabaseClient,
   homeId: string,
   userId: string,
+  lang: string,
 ): Promise<Response | null> {
   const { data, error } = await admin
     .from("home_members")
@@ -54,7 +62,7 @@ async function requireActiveHomeMember(
 
   if (error || !data) {
     return new Response(
-      JSON.stringify({ type: 'error', error: "Access denied", message_ar: "مرفوض" }),
+      JSON.stringify({ type: 'error', error: "Access denied", message_ar: getMessage('access_denied', lang) }),
       { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   }
@@ -103,15 +111,17 @@ function stripPII(text: string): string {
 }
 
 // --- System Prompt Builder ---
-function buildSystemPrompt(mode: string, context: any, language: string): string {
-  const lang = language === 'ar' ? 'Arabic' : 'English';
-  
+function buildSystemPrompt(mode: string, context: any, language: string, userTerms: Record<string, string>): string {
+  let lang = 'Arabic';
+  if (language === 'en') lang = 'English';
+  if (language === 'tr') lang = 'Turkish';
+
   let modeInstruction = '';
-  
+
   switch (mode) {
     case 'shopping_suggestions': modeInstruction = 'Suggest grocery items. Type: shopping_suggestions.'; break;
     case 'what_to_cook': modeInstruction = 'Suggest meal ideas. Type: meal_suggestions.'; break;
-    case 'recipe_ingredients': modeInstruction = 'Full ingredient list & steps for a meal. Type: recipe_ingredients.'; break;
+    case 'recipe_ingredients': modeInstruction = 'Full ingredient list & steps for a meal. Type: recipe_ingredients. You MUST generate real, detailed cooking instructions step-by-step in the steps/st array. Do not use generic fallback text.'; break;
     case 'cook_by_vegetables': modeInstruction = 'Meals using specific vegetables. Type: meal_suggestions.'; break;
     case 'cook_by_spices': modeInstruction = 'Meals based on spices. Type: meal_suggestions.'; break;
     case 'cook_by_available': modeInstruction = 'Pantry meals with minimal extras. Type: pantry_based_meals.'; break;
@@ -121,7 +131,7 @@ function buildSystemPrompt(mode: string, context: any, language: string): string
     case 'kids_meals': modeInstruction = 'Mild, child-friendly meals. Type: meal_suggestions.'; break;
     case 'guest_meals': modeInstruction = 'Impressive meals for guests. Type: meal_suggestions.'; break;
     case 'weekly_meal_plan': modeInstruction = '7-day meal plan (Sat-Fri). Type: weekly_meal_plan.'; break;
-    case 'ramadan_list': modeInstruction = 'Ramadan (Iftar/Suhoor) items. Type: meal_suggestions.'; break;
+    case 'ramadan_list': modeInstruction = 'Ramadan grocery shopping list for Iftar and Suhoor. Type: shopping_suggestions.'; break;
     case 'travel_list': modeInstruction = 'Travel-friendly supplies. Type: shopping_suggestions.'; break;
     case 'cleaning_list': modeInstruction = 'Cleaning supplies. Type: shopping_suggestions.'; break;
   }
@@ -138,62 +148,85 @@ function buildSystemPrompt(mode: string, context: any, language: string): string
   if (context.mealType) contextSection += `\n- Meal type: ${context.mealType}`;
   if (context.cookingSkillLevel) contextSection += `\n- Cooking skill: ${context.cookingSkillLevel}`;
   if (context.occasion) contextSection += `\n- Occasion: ${context.occasion}`;
-  
+
   if (Array.isArray(context.existingShoppingItems) && context.existingShoppingItems.length > 0) {
     contextSection += `\n- Items already in shopping list: ${context.existingShoppingItems.join(', ')}`;
   }
   if (Array.isArray(context.inventoryItems) && context.inventoryItems.length > 0) {
     contextSection += `\n- Items available in home inventory: ${context.inventoryItems.join(', ')}`;
   }
-  if (Array.isArray(context.availableVegetables) && context.availableVegetables.length > 0) {
-    contextSection += `\n- Available vegetables: ${context.availableVegetables.join(', ')}`;
-  }
-  if (Array.isArray(context.availableSpices) && context.availableSpices.length > 0) {
-    contextSection += `\n- Available spices: ${context.availableSpices.join(', ')}`;
-  }
-  if (Array.isArray(context.availableProteins) && context.availableProteins.length > 0) {
-    contextSection += `\n- Available proteins: ${context.availableProteins.join(', ')}`;
-  }
-  if (Array.isArray(context.availableCarbs) && context.availableCarbs.length > 0) {
-    contextSection += `\n- Available carbs: ${context.availableCarbs.join(', ')}`;
-  }
   if (Array.isArray(context.excludedIngredients) && context.excludedIngredients.length > 0) {
     contextSection += `\n- Excluded ingredients (avoid these): ${context.excludedIngredients.join(', ')}`;
   }
 
+  // Add userTerms mappings
+  let userTermsSection = '';
+  if (userTerms && Object.keys(userTerms).length > 0) {
+    userTermsSection = `\n- Preferred User Ingredient Names Mapping (user_terms):\n${JSON.stringify(userTerms, null, 2)}`;
+  }
+
+  let dialectInstruction = '';
+  if (context.dialect || context.country) {
+    const d = context.dialect || '';
+    const c = context.country || '';
+    dialectInstruction = `
+Dialect/Tone & Naming Preferences:
+- Country location of user: ${c}
+- Preferred AI dialect/dialect: ${d} (e.g. Gulf/Saudi dialect, Egyptian dialect, Levantine dialect, Turkish)
+- CRITICAL: You MUST use the exact localized names, dialect, and naming conventions for ingredients and dishes for this country and dialect (e.g. if Saudi/Gulf: use Gulf terms like "طماطم", "كوسا", "باذنجان", "رز"; if Egypt: use Egyptian terms like "طماطم" or "قوطة", "كوسة", "بتنجان"; if Turkey: use Turkish standard names). Write all recipes, descriptions, and instructions in the chosen dialect/tone (${d}) rather than standard formal Arabic where appropriate, keeping it friendly, premium, and natural for that specific region.`;
+  }
+
   return `You are a professional cooking/grocery assistant for "Beity" app.
-Language: ${lang}. If 'ar', use Arabic for all text fields.
+Language: ${lang}. If 'ar', use Arabic for all text fields. If 'tr', use Turkish for all text fields.
+${dialectInstruction}
 
 Mode: ${mode} (${modeInstruction})
-Context: ${contextSection || 'None'}
+Context: ${contextSection || 'None'}${userTermsSection}
 
 CRITICAL RULES:
 1. ONLY answer questions related to cooking, recipes, groceries, meal planning, and kitchen management.
-2. If the user asks about ANY unrelated topic, return: { "type": "not_related", "message": "عذراً، يمكنني مساعدتك فقط في أمور الطبخ والمقاضي وإدارة المنزل." }
-3. ${
-  (context.promptDepth || 0) >= 3
-    ? 'DO NOT ask clarifying questions anymore. The user has provided enough details. Provide the FINAL results (suggestions or plan) IMMEDIATELY.'
-    : 'If the prompt is vague, general, or short (e.g., "للضيوف", "غداء", "أفكار", "شيء سريع"), you MUST NOT provide final results yet. Instead, return: { "type": "clarifying_questions", "questions": ["توضيح بسيط لاستكمال الطلب"], "quickOptions": ["اقتراح نصي لتخصيص 1", "اقتراح نصي لتخصيص 2", ...] } to help the user specify their request.'
-}
-4. For "quickOptions", provide 3-4 creative and specific text suggestions (like "عشاء رومانسي إيطالي" or "كبسة سعودية سريعة") that the user can pick to narrow down their general request.
-5. Return ONLY valid JSON. No markdown formatting, no conversational filler.
-6. Maximize relevance to provided Context (Inventory/Shopping List).
+2. If the user asks about ANY unrelated topic, return: { "type": "not_related", "message": "${getMessage('unrelated_topic', language)}" }
+3. If the prompt is completely vague, empty, or lacks any culinary or grocery context (e.g., just 'مرحباً', 'أهلاً', or 'hello'), you may ask clarifying questions: return '{ "type": "clarifying_questions", "questions": ["string"], "quickOptions": ["string"] }' with a customized, helpful question and 3 customized, relevant quick choices. However, for any culinary or grocery topic (e.g., 'قائمة رمضان', 'عشاء سريع', 'للضيوف', 'وجبة أطفال', 'أفكار'), you MUST NOT ask clarifying questions. Directly generate and return the final results (shopping suggestions, meals, or recipes) immediately.
+4. Return ONLY valid, highly-compressed JSON. No markdown formatting, no conversational filler.
+5. Maximize relevance to the user's request. Carefully scale the ingredient quantities ("q") based on the number of people, family size, and duration mentioned by the user (e.g., 7 people for 30 days requires bulk quantities like 20 kilos of rice, 30 liters of milk, etc.). Ensure the suggestions are highly diverse, realistic, and comprehensive to cover the entire period.
+6. Use stable, standard snake_case food keys in the "k" field. Prefer common generic keys (e.g., 'tomato', 'onion', 'chicken', 'rice_basmati', 'milk', 'egg', 'potato', 'garlic'). Do not create overly specific food keys unless absolutely necessary.
+7. Use the exact preferred names for ingredients from the provided "user_terms" mapping inside the recipe ingredient list ("n"), display names, and cooking steps ("st") if their corresponding "foodKey" is used.
+8. NEVER include status, availability, reason, or comparisons with the user's inventory/lists. Do not output fields like "status" or "reason". The app client will perform matching locally.
+9. If the Mode is 'shopping_suggestions', you MUST return a response of type 'shopping_suggestions'. Even if the user asks for a specific recipe, meal, or what to cook, do not return 'meal_suggestions' or 'recipe_ingredients'. Instead, extract the required grocery items for that meal/recipe and suggest them as a list of shopping items in the 'shopping_suggestions' format.
 
-RESPONSE SCHEMAS:
-- clarifying_questions: { "type": "clarifying_questions", "questions": ["string"], "quickOptions": ["string"] }
-- shopping_suggestions: { "type": "shopping_suggestions", "suggestions": [{ "name": "string", "quantity": number, "unit": "string", "category": "string", "reason": "string" }] }
-- meal_suggestions: { "type": "meal_suggestions", "summary": "string", "meals": [{ "name": "string", "description": "string", "difficulty": "string", "estimatedTimeMinutes": number, "servings": number, "mealType": "string", "cuisine": "string", "budgetLevel": "string", "mainIngredients": ["string"], "whyThisMeal": "string", "tags": ["string"] }] }
-- recipe_ingredients: { "type": "recipe_ingredients", "meal": { "name": "string", "description": "string", "servings": number, "estimatedTimeMinutes": number, "difficulty": "string", "cuisine": "string" }, "ingredients": [{ "name": "string", "quantity": number, "unit": "string", "category": "string", "required": true, "status": "missing|available|already_in_list|optional|unknown", "reason": "string", "note": "string" }], "optionalIngredients": [{ "name": "string", "quantity": number, "unit": "string", "category": "string", "required": false, "status": "optional", "reason": "string" }], "cookingStepsPreview": ["string"], "shoppingSummary": { "availableCount": number, "missingCount": number, "alreadyInListCount": number } }
-- weekly_meal_plan: { "type": "weekly_meal_plan", "summary": "string", "days": [{ "day": "string", "meals": [{ "name": "string", "mealType": "string", "description": "string", "mainIngredients": ["string"], "estimatedTimeMinutes": number }] }] }
-- pantry_based_meals: { "type": "pantry_based_meals", "summary": "string", "meals": [{ "name": "string", "description": "string", "difficulty": "string", "estimatedTimeMinutes": number, "servings": number, "cuisine": "string", "availableIngredients": ["string"], "missingIngredients": ["string"], "whyThisMeal": "string", "tags": ["string"] }] }
-
-IMPORTANT: For recipe_ingredients, set status to "available" if in inventory, "already_in_list" if in shopping list, "missing" otherwise.`;
+RESPONSE SCHEMAS (Use the following compressed schemas to minimize tokens. You MUST output fully valid JSON with correct colons and brackets. NEVER output empty braces or syntax anomalies):
+- clarifying_questions: { "type": "clarifying_questions", "questions": ["سؤال توضيحي؟"], "quickOptions": ["خيار 1", "خيار 2"] }
+- shopping_suggestions: { "type": "shopping_suggestions", "sug": [{ "n": "طماطم", "q": 2.5, "u": "كيلو", "category": "خضروات" }, { "n": "حليب", "q": 1, "u": "لتر", "category": "ألبان" }] }
+- meal_suggestions: {
+    "type": "meal_suggestions",
+    "sum": "ملخص الاقتراحات",
+    "meals": [{
+      "id": "meal_1",
+      "n": "اسم الوجبة",
+      "d": "وصف الوجبة",
+      "t": 30,
+      "srv": 4,
+      "df": "easy",
+      "ing": [{ "k": "tomato", "n": "طماطم", "q": 2, "u": "حبة", "r": true }],
+      "st": ["الخطوة الأولى"]
+    }]
+  }
+- recipe_ingredients: {
+    "type": "recipe_ingredients",
+    "m": { "n": "اسم الوجبة", "d": "وصفها", "srv": 4, "t": 30, "df": "easy" },
+    "ing": [{ "k": "tomato", "n": "طماطم", "q": 2, "u": "حبة", "r": true }],
+    "opt_ing": [{ "k": "pepper", "n": "فلفل", "q": 1, "u": "حبة", "r": false }],
+    "st": ["الخطوة الأولى"]
+  }
+- weekly_meal_plan: { "type": "weekly_meal_plan", "sum": "ملخص", "days": [{ "day": "السبت", "meals": [{ "n": "فطور صحي", "mealType": "breakfast", "d": "وصف الفطور", "ing": ["بيض", "جبن"], "t": 15 }] }] }
+- pantry_based_meals: { "type": "pantry_based_meals", "sum": "ملخص", "meals": [{ "n": "وجبة سهلة", "d": "وصف", "df": "easy", "t": 20, "srv": 2, "av_ing": ["طماطم"], "mis_ing": ["بصل"], "whyThisMeal": "لأنها سهلة وسريعة", "tags": ["سريعة"] }] }
+`;
 }
 
 // --- Response Validation ---
-function validateAndSanitizeResponse(parsed: any): any {
+function validateAndSanitizeResponse(parsed: any, lang: string): any {
   const type = parsed.type;
-  
+
   if (!type || typeof type !== 'string') {
     return { type: 'error', message: 'Invalid response type' };
   }
@@ -204,76 +237,77 @@ function validateAndSanitizeResponse(parsed: any): any {
       const quickOptions = Array.isArray(parsed.quickOptions) ? parsed.quickOptions.slice(0, 8) : [];
       return { type, questions, quickOptions };
     }
-    
+
     case 'shopping_suggestions': {
-      const suggestions = Array.isArray(parsed.suggestions) ? parsed.suggestions.slice(0, 20) : [];
+      const rawSugList = parsed.sug || parsed.suggestions || [];
+      const sugList = Array.isArray(rawSugList) ? rawSugList.slice(0, 150) : []; // Increased to 150 to allow diverse and comprehensive lists
       return {
         type,
-        suggestions: suggestions.map((s: any) => sanitizeSuggestion(s)).filter((s: any) => s.name),
+        sug: sugList.map((s: any) => sanitizeIngredient(s)).filter((s: any) => s.n),
       };
     }
-    
+
     case 'meal_suggestions': {
-      const meals = Array.isArray(parsed.meals) ? parsed.meals.slice(0, 10) : [];
+      const rawMealsList = parsed.meals || parsed.m || [];
+      const meals = Array.isArray(rawMealsList) ? rawMealsList.slice(0, 10) : [];
       return {
         type,
-        summary: typeof parsed.summary === 'string' ? parsed.summary : '',
-        meals: meals.map((m: any) => sanitizeMeal(m)).filter((m: any) => m.name),
+        sum: typeof parsed.sum === 'string' ? parsed.sum : (typeof parsed.summary === 'string' ? parsed.summary : ''),
+        meals: meals.map((m: any) => sanitizeMeal(m)).filter((m: any) => m.n),
       };
     }
-    
+
     case 'recipe_ingredients': {
-      const ingredients = Array.isArray(parsed.ingredients) ? parsed.ingredients.slice(0, 40) : [];
-      const optionalIngredients = Array.isArray(parsed.optionalIngredients) ? parsed.optionalIngredients.slice(0, 20) : [];
+      const rawIng = parsed.ing || parsed.ingredients || [];
+      const rawOptIng = parsed.opt_ing || parsed.optionalIngredients || [];
+      const rawSteps = parsed.st || parsed.cookingStepsPreview || parsed.steps || [];
+      const ingredients = Array.isArray(rawIng) ? rawIng.slice(0, 40) : [];
+      const optionalIngredients = Array.isArray(rawOptIng) ? rawOptIng.slice(0, 20) : [];
+
       return {
         type,
-        meal: sanitizeMealInfo(parsed.meal),
-        ingredients: ingredients.map((i: any) => sanitizeIngredient(i)).filter((i: any) => i.name),
-        optionalIngredients: optionalIngredients.map((i: any) => sanitizeIngredient(i, false)).filter((i: any) => i.name),
-        cookingStepsPreview: Array.isArray(parsed.cookingStepsPreview) ? parsed.cookingStepsPreview.slice(0, 10) : [],
-        shoppingSummary: {
-          availableCount: typeof parsed.shoppingSummary?.availableCount === 'number' ? parsed.shoppingSummary.availableCount : 0,
-          missingCount: typeof parsed.shoppingSummary?.missingCount === 'number' ? parsed.shoppingSummary.missingCount : 0,
-          alreadyInListCount: typeof parsed.shoppingSummary?.alreadyInListCount === 'number' ? parsed.shoppingSummary.alreadyInListCount : 0,
-        },
+        m: sanitizeMealInfo(parsed.m || parsed.meal),
+        ing: ingredients.map((i: any) => sanitizeIngredient(i, true)).filter((i: any) => i.n),
+        opt_ing: optionalIngredients.map((i: any) => sanitizeIngredient(i, false)).filter((i: any) => i.n),
+        st: Array.isArray(rawSteps) ? rawSteps.slice(0, 15).map((step: any) => String(step).trim()) : [],
       };
     }
-    
+
     case 'weekly_meal_plan': {
       const days = Array.isArray(parsed.days) ? parsed.days.slice(0, 7) : [];
       return {
         type,
-        summary: typeof parsed.summary === 'string' ? parsed.summary : '',
+        sum: typeof parsed.sum === 'string' ? parsed.sum : (typeof parsed.summary === 'string' ? parsed.summary : ''),
         days: days.map((d: any) => ({
           day: typeof d.day === 'string' ? d.day : '',
-          meals: Array.isArray(d.meals) ? d.meals.slice(0, 5).map((m: any) => sanitizeDayMeal(m)).filter((m: any) => m.name) : [],
+          meals: Array.isArray(d.meals) ? d.meals.slice(0, 5).map((m: any) => sanitizeDayMeal(m)).filter((m: any) => m.n) : [],
         })),
       };
     }
-    
+
     case 'not_related':
-      return { type: 'not_related', message: typeof parsed.message === 'string' ? parsed.message : 'هذا الطلب خارج تخصصي.' };
+      return { type: 'not_related', message: typeof parsed.message === 'string' ? parsed.message : getMessage('not_related_fallback', lang) };
 
     case 'pantry_based_meals': {
       const meals = Array.isArray(parsed.meals) ? parsed.meals.slice(0, 10) : [];
       return {
         type,
-        summary: typeof parsed.summary === 'string' ? parsed.summary : '',
+        sum: typeof parsed.sum === 'string' ? parsed.sum : (typeof parsed.summary === 'string' ? parsed.summary : ''),
         meals: meals.map((m: any) => ({
-          name: safeStr(m.name, 100),
-          description: safeStr(m.description, 300),
-          difficulty: safeStr(m.difficulty, 50),
-          estimatedTimeMinutes: safeNum(m.estimatedTimeMinutes, 30),
-          servings: safeNum(m.servings, 4),
+          n: safeStr(m.n || m.name, 100),
+          d: safeStr(m.d || m.description, 300),
+          df: safeStr(m.df || m.difficulty, 50),
+          t: safeNum(m.t || m.estimatedTimeMinutes, 30),
+          srv: safeNum(m.srv || m.servings, 4),
           cuisine: safeStr(m.cuisine, 50),
-          availableIngredients: Array.isArray(m.availableIngredients) ? m.availableIngredients.slice(0, 20) : [],
-          missingIngredients: Array.isArray(m.missingIngredients) ? m.missingIngredients.slice(0, 20) : [],
+          av_ing: Array.isArray(m.av_ing || m.availableIngredients) ? (m.av_ing || m.availableIngredients).slice(0, 20) : [],
+          mis_ing: Array.isArray(m.mis_ing || m.missingIngredients) ? (m.mis_ing || m.missingIngredients).slice(0, 20) : [],
           whyThisMeal: safeStr(m.whyThisMeal, 200),
           tags: Array.isArray(m.tags) ? m.tags.slice(0, 5) : [],
-        })).filter((m: any) => m.name),
+        })).filter((m: any) => m.n),
       };
     }
-    
+
     default:
       return { type: 'error', message: 'Unknown response type' };
   }
@@ -289,73 +323,100 @@ function safeNum(val: any, defaultVal: number): number {
   return defaultVal;
 }
 
-function sanitizeSuggestion(s: any): any {
-  if (!s || typeof s !== 'object') return { name: '' };
+function sanitizeIngredient(s: any, required = true): any {
+  if (!s || typeof s !== 'object') return { n: '' };
+
   return {
-    name: safeStr(s.name, 100),
-    quantity: safeNum(s.quantity, 1),
-    unit: safeStr(s.unit, 50) || undefined,
+    k: safeStr(s.k || s.foodKey || s.food_key, 50) || undefined,
+    n: safeStr(s.n || s.name, 100),
+    q: safeNum(s.q ?? s.quantity, 1),
+    u: safeStr(s.u || s.unit, 50) || undefined,
     category: safeStr(s.category, 50) || undefined,
-    reason: safeStr(s.reason, 200) || undefined,
+    r: typeof s.r === 'boolean' ? s.r : (typeof s.required === 'boolean' ? s.required : required),
   };
 }
 
 function sanitizeMeal(m: any): any {
-  if (!m || typeof m !== 'object') return { name: '' };
+  if (!m || typeof m !== 'object') return { n: '' };
+  const rawIng = m.ing || m.mainIngredients || [];
+  let ingredients: any[] = [];
+  if (Array.isArray(rawIng)) {
+    if (rawIng.length > 0 && typeof rawIng[0] === 'object') {
+      ingredients = rawIng.map((i: any) => sanitizeIngredient(i)).filter((i: any) => i.n);
+    } else {
+      ingredients = rawIng.map((i: any) => safeStr(i, 50)).filter((s: string) => s.length > 0);
+    }
+  }
+
   return {
-    name: safeStr(m.name, 100),
-    description: safeStr(m.description, 300),
-    difficulty: safeStr(m.difficulty, 50),
-    estimatedTimeMinutes: safeNum(m.estimatedTimeMinutes, 30),
-    servings: safeNum(m.servings, 4),
+    id: safeStr(m.id, 20) || undefined,
+    n: safeStr(m.n || m.name, 100),
+    d: safeStr(m.d || m.description, 300),
+    df: safeStr(m.df || m.difficulty, 50),
+    t: safeNum(m.t || m.estimatedTimeMinutes, 30),
+    srv: safeNum(m.srv || m.servings, 4),
     mealType: safeStr(m.mealType, 30),
     cuisine: safeStr(m.cuisine, 50),
     budgetLevel: safeStr(m.budgetLevel, 20),
-    mainIngredients: Array.isArray(m.mainIngredients) ? m.mainIngredients.slice(0, 10).map((i: any) => safeStr(i, 50)) : [],
+    ing: ingredients,
+    st: Array.isArray(m.st || m.steps || m.cookingStepsPreview)
+      ? (m.st || m.steps || m.cookingStepsPreview).slice(0, 15).map((step: any) => String(step).trim())
+      : undefined,
     whyThisMeal: safeStr(m.whyThisMeal, 200),
     tags: Array.isArray(m.tags) ? m.tags.slice(0, 5).map((t: any) => safeStr(t, 30)) : [],
   };
 }
 
 function sanitizeMealInfo(meal: any): any {
-  if (!meal) return { name: '', description: '', servings: 4, estimatedTimeMinutes: 30, difficulty: '', cuisine: '' };
+  if (!meal) return { n: '', d: '', srv: 4, t: 30, df: '', cuisine: '' };
   return {
-    name: safeStr(meal.name, 100),
-    description: safeStr(meal.description, 300),
-    servings: safeNum(meal.servings, 4),
-    estimatedTimeMinutes: safeNum(meal.estimatedTimeMinutes, 30),
-    difficulty: safeStr(meal.difficulty, 50),
+    n: safeStr(meal.n || meal.name, 100),
+    d: safeStr(meal.d || meal.description, 300),
+    srv: safeNum(meal.srv || meal.servings, 4),
+    t: safeNum(meal.t || meal.estimatedTimeMinutes || meal.time, 30),
+    df: safeStr(meal.df || meal.difficulty, 50),
     cuisine: safeStr(meal.cuisine, 50),
   };
 }
 
-function sanitizeIngredient(i: any, required = true): any {
-  if (!i || typeof i !== 'object') return { name: '' };
-  const validStatuses = ['available', 'missing', 'already_in_list', 'optional', 'unknown'];
-  let status = safeStr(i.status, 30);
-  if (!validStatuses.includes(status)) status = required ? 'missing' : 'optional';
-  
+function sanitizeDayMeal(m: any): any {
+  if (!m || typeof m !== 'object') return { n: '' };
   return {
-    name: safeStr(i.name, 100),
-    quantity: safeNum(i.quantity, 1),
-    unit: safeStr(i.unit, 50) || undefined,
-    category: safeStr(i.category, 50) || undefined,
-    required: required,
-    status: status,
-    reason: safeStr(i.reason, 200) || undefined,
-    note: safeStr(i.note, 200) || undefined,
+    n: safeStr(m.n || m.name, 100),
+    mealType: safeStr(m.mealType, 30),
+    d: safeStr(m.d || m.description, 300),
+    ing: Array.isArray(m.ing || m.mainIngredients) ? (m.ing || m.mainIngredients).slice(0, 10).map((i: any) => safeStr(i, 50)) : [],
+    t: safeNum(m.t || m.estimatedTimeMinutes, 30),
   };
 }
 
-function sanitizeDayMeal(m: any): any {
-  if (!m || typeof m !== 'object') return { name: '' };
-  return {
-    name: safeStr(m.name, 100),
-    mealType: safeStr(m.mealType, 30),
-    description: safeStr(m.description, 300),
-    mainIngredients: Array.isArray(m.mainIngredients) ? m.mainIngredients.slice(0, 10).map((i: any) => safeStr(i, 50)) : [],
-    estimatedTimeMinutes: safeNum(m.estimatedTimeMinutes, 30),
-  };
+// --- Rate Limiter (in-memory, per-user) ---
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT_MAX = 10;       // max requests
+const RATE_LIMIT_WINDOW_MS = 60_000; // per 60 seconds
+
+function checkRateLimit(userId: string, lang: string): Response | null {
+  const now = Date.now();
+  const entry = rateLimitMap.get(userId);
+
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(userId, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    return null;
+  }
+
+  if (entry.count >= RATE_LIMIT_MAX) {
+    return new Response(
+      JSON.stringify({
+        type: 'error',
+        error: 'Rate limit exceeded',
+        message_ar: getMessage('rate_limit', lang),
+      }),
+      { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
+  }
+
+  entry.count++;
+  return null;
 }
 
 // --- Main Handler ---
@@ -365,19 +426,33 @@ Deno.serve(async (req: Request) => {
     return new Response(null, { status: 204, headers: corsHeaders });
   }
 
+  // Pre-parse language from req body clone for auth errors localization
+  let reqLang = 'ar';
+  try {
+    const clone = req.clone();
+    const body = await clone.json();
+    if (body && body.language) {
+      reqLang = body.language;
+    }
+  } catch (_) { }
+
   try {
     // Verify JWT
-    const authResult = await requireUser(req, supabaseAdmin);
+    const authResult = await requireUser(req, supabaseAdmin, reqLang);
     if ("response" in authResult) {
       return authResult.response;
     }
+
+    // Rate limiting
+    const rateLimitError = checkRateLimit(authResult.user.id, reqLang);
+    if (rateLimitError) return rateLimitError;
 
     const DEEPSEEK_API_KEY = Deno.env.get("DEEPSEEK_API_KEY");
 
     if (!DEEPSEEK_API_KEY) {
       console.error("Missing DEEPSEEK_API_KEY in Supabase Secrets");
       return new Response(
-        JSON.stringify({ type: 'error', error: "Configuration Error", message_ar: "مفتاح DeepSeek غير مفعّل حاليًا" }),
+        JSON.stringify({ type: 'error', error: "Configuration Error", message_ar: getMessage('config_error', reqLang) }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -392,6 +467,8 @@ Deno.serve(async (req: Request) => {
       maxPreparationTimeMinutes, availableVegetables, availableSpices,
       availableProteins, availableCarbs, excludedIngredients,
       occasion, mealType, cookingSkillLevel,
+      user_terms, userTerms,
+      country, dialect,
       // Legacy support
       prompt: legacyPrompt, existingItems: legacyExistingItems,
     } = body;
@@ -401,32 +478,33 @@ Deno.serve(async (req: Request) => {
     const effectivePrompt = userPrompt || legacyPrompt || '';
     const effectiveLanguage = language || 'ar';
     const effectiveExistingItems = existingShoppingItems || legacyExistingItems || [];
+    const effectiveUserTerms = user_terms || userTerms || {};
 
     // Validation
     if (!effectivePrompt || typeof effectivePrompt !== 'string' || effectivePrompt.trim().length === 0) {
       return new Response(
-        JSON.stringify({ type: 'error', error: "اكتب ما تريد اقتراحه أولًا", message_ar: "اكتب ما تريد اقتراحه أولًا" }),
+        JSON.stringify({ type: 'error', error: "Empty prompt", message_ar: getMessage('empty_prompt', effectiveLanguage) }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     if (effectivePrompt.length > 500) {
       return new Response(
-        JSON.stringify({ type: 'error', error: "Prompt exceeds 500 characters", message_ar: "النص طويل جدًا (الحد الأقصى 500 حرف)" }),
+        JSON.stringify({ type: 'error', error: "Prompt exceeds 500 characters", message_ar: getMessage('prompt_too_long', effectiveLanguage) }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    if (effectiveLanguage !== 'ar' && effectiveLanguage !== 'en') {
+    if (effectiveLanguage !== 'ar' && effectiveLanguage !== 'en' && effectiveLanguage !== 'tr') {
       return new Response(
-        JSON.stringify({ type: 'error', error: "Invalid language", message_ar: "اللغة غير مدعومة" }),
+        JSON.stringify({ type: 'error', error: "Invalid language", message_ar: getMessage('invalid_language', effectiveLanguage) }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     if (!VALID_MODES.includes(effectiveMode)) {
       return new Response(
-        JSON.stringify({ type: 'error', error: "Invalid mode", message_ar: "الوضع غير مدعوم" }),
+        JSON.stringify({ type: 'error', error: "Invalid mode", message_ar: getMessage('invalid_mode', effectiveLanguage) }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -454,9 +532,20 @@ Deno.serve(async (req: Request) => {
       availableCarbs: Array.isArray(availableCarbs) ? availableCarbs.slice(0, 20) : [],
       excludedIngredients: Array.isArray(excludedIngredients) ? excludedIngredients.slice(0, 20) : [],
       promptDepth: (cleanPrompt.match(/-/g) || []).length,
+      country: safeStr(country, 10),
+      dialect: safeStr(dialect, 50),
     };
 
-    const systemPrompt = buildSystemPrompt(effectiveMode, context, effectiveLanguage);
+    // Verify the user has access to active home before continuing
+    const homeIdHeader = req.headers.get("x-home-id") || body.homeId || body.home_id;
+    if (homeIdHeader) {
+      const membershipError = await requireActiveHomeMember(supabaseAdmin, homeIdHeader, authResult.user.id, effectiveLanguage);
+      if (membershipError) {
+        return membershipError;
+      }
+    }
+
+    const systemPrompt = buildSystemPrompt(effectiveMode, context, effectiveLanguage, effectiveUserTerms);
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 25000); // 25s timeout
@@ -477,7 +566,7 @@ Deno.serve(async (req: Request) => {
             { role: "user", content: cleanPrompt }
           ],
           response_format: { type: 'json_object' },
-          max_tokens: 2000,
+          max_tokens: 5000,
           temperature: 0.7,
         })
       }
@@ -486,40 +575,44 @@ Deno.serve(async (req: Request) => {
     if (!response.ok) {
       const errTxt = await response.text();
       console.error("DeepSeek API Error:", response.status, errTxt);
-      let apiErrorMessage = "تعذر إنشاء الاقتراحات، حاول مرة أخرى";
+      let apiErrorMessage = getMessage('api_error_fallback', effectiveLanguage);
       try {
         const errJson = JSON.parse(errTxt);
         apiErrorMessage = errJson.error?.message || apiErrorMessage;
-      } catch(_) {}
+      } catch (_) { }
 
       return new Response(
-        JSON.stringify({ type: 'error', error: apiErrorMessage, message_ar: `خطأ من مزود الذكاء الاصطناعي: ${apiErrorMessage}` }),
+        JSON.stringify({
+          type: 'error',
+          error: apiErrorMessage,
+          message_ar: getMessage('ai_provider_error', effectiveLanguage).replace('{error}', apiErrorMessage)
+        }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     const result = await response.json();
-    
-    // Check for OpenRouter-specific errors in a 200 OK response
+
+    // Check for API-specific errors in response payload
     if (result.error) {
-      console.error("OpenRouter API returned an error:", result.error);
+      console.error("AI provider returned an error:", result.error);
       return new Response(
-        JSON.stringify({ 
-          type: 'error', 
-          error: result.error.message || "Model error", 
-          message_ar: "مزود الذكاء الاصطناعي مشغول حالياً، يرجى المحاولة بعد قليل." 
+        JSON.stringify({
+          type: 'error',
+          error: result.error.message || "Model error",
+          message_ar: getMessage('provider_busy', effectiveLanguage)
         }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     if (!result.choices || result.choices.length === 0 || !result.choices[0].message) {
-      console.error("OpenRouter returned empty choices:", result);
+      console.error("API returned empty choices:", result);
       return new Response(
-        JSON.stringify({ 
-          type: 'error', 
-          error: "Empty response from model", 
-          message_ar: "تعذر الحصول على إجابة من المساعد، حاول مرة أخرى." 
+        JSON.stringify({
+          type: 'error',
+          error: "Empty response from model",
+          message_ar: getMessage('empty_ai_response', effectiveLanguage)
         }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -533,34 +626,36 @@ Deno.serve(async (req: Request) => {
       // Robust JSON extraction: find the first '{' and the last '}'
       const firstBrace = content.indexOf('{');
       const lastBrace = content.lastIndexOf('}');
-      
+
       if (firstBrace === -1 || lastBrace === -1) {
         throw new Error("No JSON object found in response");
       }
 
-      const jsonStr = content.substring(firstBrace, lastBrace + 1);
+      let jsonStr = content.substring(firstBrace, lastBrace + 1);
+      // Clean up common LLM JSON syntax anomalies
+      jsonStr = jsonStr.replace(/,(\s*[\]}])/g, '$1'); // Trailing commas
       parsed = JSON.parse(jsonStr);
     } catch (e) {
       console.error("Failed to parse AI response as JSON:", e);
       console.error("Raw content that failed to parse:", result.choices[0].message.content);
-      
+
       return new Response(
-        JSON.stringify({ 
-          type: 'error', 
-          error: "Invalid JSON format from AI", 
-          message_ar: "حدث خطأ في معالجة إجابة المساعد، يرجى المحاولة مرة أخرى." 
+        JSON.stringify({
+          type: 'error',
+          error: "Invalid JSON format from AI: " + String(e),
+          message_ar: getMessage('json_parse_error', effectiveLanguage)
         }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     // Validate and sanitize the response
-    const sanitized = validateAndSanitizeResponse(parsed);
+    const sanitized = validateAndSanitizeResponse(parsed, effectiveLanguage);
 
     // Legacy compatibility: if old client expects "suggestions" array at root
     if (effectiveMode === 'shopping_suggestions' && sanitized.type === 'shopping_suggestions') {
       return new Response(
-        JSON.stringify({ ...sanitized, suggestions: sanitized.suggestions }),
+        JSON.stringify({ ...sanitized, suggestions: sanitized.sug }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -573,7 +668,11 @@ Deno.serve(async (req: Request) => {
   } catch (err) {
     console.error("Unexpected error:", err);
     return new Response(
-      JSON.stringify({ type: 'error', error: "حدث خطأ غير متوقع. يرجى المحاولة لاحقاً.", message_ar: "حدث خطأ غير متوقع. يرجى المحاولة لاحقاً." }),
+      JSON.stringify({
+        type: 'error',
+        error: err instanceof Error ? err.message : "Unexpected error",
+        message_ar: getMessage('unexpected_error', reqLang)
+      }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

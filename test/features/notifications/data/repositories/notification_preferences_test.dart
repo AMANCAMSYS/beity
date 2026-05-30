@@ -28,7 +28,7 @@ void main() {
     test('no active home is handled safely', () async {
       final repo = FakeNotificationPreferencesRepository();
       
-      expect(() async => await repo.getPreferences('user1', null), returnsNormally);
+      expect(() async => repo.getPreferences('user1', null), returnsNormally);
       final prefs = await repo.getPreferences('user1', null);
       
       expect(prefs['push_enabled'], true);

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:beity/app/theme/app_spacing.dart';
-import 'package:beity/app/theme/app_colors.dart';
 
 class QuantityAdjusterWidget extends StatelessWidget {
   final double quantity;
@@ -15,10 +14,23 @@ class QuantityAdjusterWidget extends StatelessWidget {
     required this.onChanged,
   });
 
-  double get _step {
-    // Fractional units (kg, liters) use 0.5 step; whole units use 1
-    // This will be refined with actual unit data
-    return 1;
+  double get step {
+    if (unitId == null) return 1.0;
+    final lowerUnit = unitId!.toLowerCase();
+    if (lowerUnit.contains('kg') || 
+        lowerUnit.contains('كجم') || 
+        lowerUnit.contains('كيلو') ||
+        lowerUnit.contains('kilo') ||
+        lowerUnit.contains('g') || 
+        lowerUnit.contains('جرام') || 
+        lowerUnit.contains('gram') ||
+        lowerUnit.contains('liter') || 
+        lowerUnit.contains('litre') || 
+        lowerUnit.contains('لتر') ||
+        lowerUnit.contains('ltr')) {
+      return 0.25;
+    }
+    return 1.0;
   }
 
   @override
@@ -40,7 +52,7 @@ class QuantityAdjusterWidget extends StatelessWidget {
             icon: Icons.remove_rounded,
             onTap: () {
               HapticFeedback.lightImpact();
-              final newQty = (quantity - _step).clamp(0.0, double.infinity);
+              final newQty = (quantity - step).clamp(0.0, double.infinity);
               onChanged(newQty);
             },
           ),
@@ -72,7 +84,7 @@ class QuantityAdjusterWidget extends StatelessWidget {
             icon: Icons.add_rounded,
             onTap: () {
               HapticFeedback.lightImpact();
-              onChanged(quantity + _step);
+              onChanged(quantity + step);
             },
           ),
         ],
@@ -84,7 +96,7 @@ class QuantityAdjusterWidget extends StatelessWidget {
     if (q == q.roundToDouble() && q < 1000) {
       return q.toInt().toString();
     }
-    return q.toStringAsFixed(1);
+    return q.toString().replaceAll(RegExp(r'\.0$'), '');
   }
 }
 

@@ -5,11 +5,15 @@ class SupabaseService {
   static SupabaseClient? _client;
   
   static SupabaseClient get client {
-    if (_client == null) {
+    if (_client != null) return _client!;
+    try {
+      return Supabase.instance.client;
+    } catch (_) {
       throw Exception('Supabase not initialized. Call initialize() first.');
     }
-    return _client!;
   }
+
+  static set client(SupabaseClient value) => _client = value;
   
   static Future<void> initialize() async {
     await Supabase.initialize(
@@ -20,7 +24,13 @@ class SupabaseService {
   }
   
   // Auth helpers
-  static User? get currentUser => _client?.auth.currentUser;
+  static User? get currentUser {
+    try {
+      return client.auth.currentUser;
+    } catch (_) {
+      return null;
+    }
+  }
   static bool get isAuthenticated => currentUser != null;
   
   // Session helpers
@@ -28,7 +38,7 @@ class SupabaseService {
     required String email,
     required String password,
   }) async {
-    return await client.auth.signInWithPassword(
+    return client.auth.signInWithPassword(
       email: email,
       password: password,
     );
@@ -39,7 +49,7 @@ class SupabaseService {
     required String password,
     Map<String, dynamic>? data,
   }) async {
-    return await client.auth.signUp(
+    return client.auth.signUp(
       email: email,
       password: password,
       data: data,

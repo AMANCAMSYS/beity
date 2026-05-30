@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../../../../core/localization/app_localizations.dart';
 
 import '../../domain/entities/notification.dart';
 
@@ -26,20 +27,21 @@ class NotificationTileWidget extends StatelessWidget {
     }
   }
 
-  String _getTimeAgo(DateTime dateTime) {
+  String _getTimeAgo(BuildContext context, DateTime dateTime) {
     final now = DateTime.now();
     final difference = now.difference(dateTime);
 
     if (difference.inMinutes < 1) {
-      return 'الآن';
+      return context.translate('time_now');
     } else if (difference.inMinutes < 60) {
-      return 'منذ ${difference.inMinutes} د';
+      return context.translate('time_ago_min', arguments: {'count': difference.inMinutes.toString()});
     } else if (difference.inHours < 24) {
-      return 'منذ ${difference.inHours} س';
+      return context.translate('time_ago_hour', arguments: {'count': difference.inHours.toString()});
     } else if (difference.inDays < 7) {
-      return 'منذ ${difference.inDays} ي';
+      return context.translate('time_ago_day', arguments: {'count': difference.inDays.toString()});
     } else {
-      return DateFormat('MMM d', 'ar').format(dateTime);
+      final locale = Localizations.localeOf(context).languageCode;
+      return DateFormat('MMM d', locale).format(dateTime);
     }
   }
 
@@ -79,7 +81,7 @@ class NotificationTileWidget extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            _getTimeAgo(notification.createdAt),
+            _getTimeAgo(context, notification.createdAt),
             style: TextStyle(
               fontSize: 12,
               color: Colors.grey.shade600,

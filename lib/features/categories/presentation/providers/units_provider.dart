@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:beity/core/services/supabase_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../data/models/unit_model.dart';
@@ -6,7 +7,7 @@ import '../../data/repositories/unit_repository.dart';
 import '../../data/repositories/supabase_unit_repository.dart';
 
 final unitRepositoryProvider = Provider<UnitRepository>((ref) {
-  return SupabaseUnitRepository(Supabase.instance.client);
+  return SupabaseUnitRepository(SupabaseService.client);
 });
 
 final unitsProvider = FutureProvider.family<List<UnitModel>, String?>((ref, type) async {

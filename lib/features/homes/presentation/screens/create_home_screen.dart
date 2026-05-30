@@ -3,8 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:beity/app/theme/app_spacing.dart';
+import 'package:beity/core/localization/app_localizations.dart';
 import 'package:beity/shared/widgets/design_system/beity_card.dart';
 import 'package:beity/shared/widgets/design_system/beity_button.dart';
+import 'package:beity/shared/widgets/design_system/beity_snack_bar.dart';
 import 'package:beity/shared/widgets/design_system/beity_text_field.dart';
 import 'package:beity/core/utils/action_debouncer.dart';
 import '../../domain/entities/home_type.dart';
@@ -41,6 +43,7 @@ class _CreateHomeScreenState extends ConsumerState<CreateHomeScreen> {
           );
 
       if (mounted) {
+        BeitySnackBar.success(context, context.translate('home_created_success'));
         ref.invalidate(hasHomesProvider);
         ref.invalidate(userHomesProvider);
         ref.invalidate(activeHomeIdProvider);
@@ -48,14 +51,9 @@ class _CreateHomeScreenState extends ConsumerState<CreateHomeScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'فشل إنشاء المنزل: ${e.toString()}',
-              textDirection: TextDirection.rtl,
-            ),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
+        BeitySnackBar.error(
+          context,
+          context.translate('create_home_failed', arguments: {'error': e.toString()}),
         );
       }
     } finally {
@@ -71,7 +69,7 @@ class _CreateHomeScreenState extends ConsumerState<CreateHomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('إنشاء منزل جديد'),
+        title: Text(context.translate('create_new_home')),
         centerTitle: true,
       ),
       body: SingleChildScrollView(
@@ -99,7 +97,7 @@ class _CreateHomeScreenState extends ConsumerState<CreateHomeScreen> {
               ),
               AppSpacing.gapXL,
               Text(
-                'ابدأ فصلاً جديداً',
+                context.translate('start_new_chapter'),
                 textAlign: TextAlign.center,
                 style: theme.textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
@@ -107,7 +105,7 @@ class _CreateHomeScreenState extends ConsumerState<CreateHomeScreen> {
               ),
               AppSpacing.gapSM,
               Text(
-                'أنشئ مساحة مشتركة لإدارة منزلك واحتياجاتك مع عائلتك أو أصدقائك.',
+                context.translate('create_home_desc'),
                 textAlign: TextAlign.center,
                 style: theme.textTheme.bodyLarge?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
@@ -121,23 +119,23 @@ class _CreateHomeScreenState extends ConsumerState<CreateHomeScreen> {
                   children: [
                     BeityTextField(
                       controller: _nameController,
-                      textDirection: TextDirection.rtl,
-                      labelText: 'اسم المنزل',
+                      textDirection: Directionality.of(context),
+                      labelText: context.translate('home_name'),
                       prefixIcon: Icons.home_rounded,
-                      hintText: 'مثال: منزل العائلة، شقة الطلاب',
+                      hintText: context.translate('home_name_hint'),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'يرجى إدخال اسم المنزل';
+                          return context.translate('home_name_required');
                         }
                         if (value.length > 100) {
-                          return 'اسم المنزل طويل جداً';
+                          return context.translate('home_name_too_long');
                         }
                         return null;
                       },
                     ),
                     AppSpacing.gapXL,
                     Text(
-                      'نوع المنزل',
+                      context.translate('home_type'),
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
@@ -149,7 +147,7 @@ class _CreateHomeScreenState extends ConsumerState<CreateHomeScreen> {
                       children: HomeType.allValues.map((type) {
                         final isSelected = _selectedType == type;
                         return ChoiceChip(
-                          label: Text(type.arabicName),
+                          label: Text(context.translate(type.value)),
                           selected: isSelected,
                           onSelected: (selected) {
                             if (selected) {
@@ -182,7 +180,7 @@ class _CreateHomeScreenState extends ConsumerState<CreateHomeScreen> {
               AppSpacing.gapXXL,
               BeityButton(
                 onPressed: () => ActionDebouncer.execute(_createHome),
-                text: 'إنشاء المنزل',
+                text: context.translate('create_home_button'),
                 isLoading: _isLoading,
                 type: BeityButtonType.primary,
                 icon: Icons.add_home_rounded,

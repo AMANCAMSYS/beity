@@ -1,9 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:beity/core/config/feature_flags.dart';
-import 'package:beity/features/shopping_lists/presentation/screens/shopping_list_detail_screen.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mocktail/mocktail.dart';
 
 // Since FeatureFlags are static constants, we can't easily mock them in a pure widget test
 // without changing them to a non-constant or using a wrapper.
@@ -15,7 +11,7 @@ void main() {
       // This is a unit test of the logic rather than a full widget test
       // because mocking static constants in Flutter/Dart is limited.
       
-      final isAiEnabled = FeatureFlags.enableAi;
+      const isAiEnabled = FeatureFlags.enableAi;
       
       if (isAiEnabled) {
         // If enabled, we expect to see certain UI elements or routes available
@@ -25,7 +21,7 @@ void main() {
       }
       
       // Verification of the flag value itself as a safety check
-      expect(isAiEnabled, isFalse, reason: 'AI should be disabled by default in the codebase');
+      expect(isAiEnabled, isTrue, reason: 'AI should be enabled in the codebase during AI Phase');
     });
   });
 }

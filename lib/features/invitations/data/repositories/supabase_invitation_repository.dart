@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'package:beity/core/services/shared_prefs_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/invitation_model.dart';
 import 'invitation_repository.dart';
@@ -142,32 +144,109 @@ class SupabaseInvitationRepository implements InvitationRepository {
   @override
   Future<List<InvitationModel>> getHomeInvitations(
       {required String homeId}) async {
-    final response = await _client
-        .from('invitations')
-        .select()
-        .eq('home_id', homeId)
-        .order('created_at', ascending: false);
+    final cacheKey = 'cached_home_invitations_$homeId';
+    try {
+      final response = await _client
+          .from('invitations')
+          .select()
+          .eq('home_id', homeId)
+          .order('created_at', ascending: false);
 
-    return (response as List)
-        .map((json) => InvitationModel.fromJson(json))
-        .toList();
+      final list = (response as List)
+          .map((json) => InvitationModel.fromJson(json))
+          .toList();
+
+      // Cache
+      try {
+        final prefs = AppPreferences.instance;
+        final rawJson = jsonEncode(list.map((i) => i.toJson()).toList());
+        await prefs.setString(cacheKey, rawJson);
+      } catch (_) {}
+
+      return list;
+    } catch (e) {
+      // Fallback
+      try {
+        final prefs = AppPreferences.instance;
+        final cached = prefs.getString(cacheKey);
+        if (cached != null) {
+          final List<dynamic> list = jsonDecode(cached);
+          return list.map((item) => InvitationModel.fromJson(item as Map<String, dynamic>)).toList();
+        }
+      } catch (_) {}
+      rethrow;
+    }
+  }
+
+  Future<String?> _getUserId() async {
+    final user = _client.auth.currentUser;
+    if (user != null) return user.id;
+
+    try {
+      final prefs = AppPreferences.instance;
+      return prefs.getString('last_logged_in_user_id');
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<String?> _getUserEmail() async {
+    final user = _client.auth.currentUser;
+    if (user != null) return user.email;
+
+    try {
+      final userId = await _getUserId();
+      if (userId != null) {
+        final prefs = AppPreferences.instance;
+        final cachedProfile = prefs.getString('${userId}_cached_profile');
+        if (cachedProfile != null) {
+          final profile = jsonDecode(cachedProfile) as Map<String, dynamic>;
+          return profile['email'] as String?;
+        }
+      }
+    } catch (_) {}
+    return null;
   }
 
   @override
   Future<List<InvitationModel>> getUserInvitations() async {
-    final user = _client.auth.currentUser;
-    if (user == null) return [];
+    final userId = await _getUserId();
+    final userEmail = await _getUserEmail();
+    if (userId == null || userEmail == null) return [];
+    final cacheKey = 'cached_user_invitations_$userId';
 
-    final response = await _client
-        .from('invitations')
-        .select()
-        .eq('email', user.email!)
-        .eq('status', 'pending')
-        .order('created_at', ascending: false);
+    try {
+      final response = await _client
+          .from('invitations')
+          .select()
+          .eq('email', userEmail)
+          .eq('status', 'pending')
+          .order('created_at', ascending: false);
 
-    return (response as List)
-        .map((json) => InvitationModel.fromJson(json))
-        .toList();
+      final list = (response as List)
+          .map((json) => InvitationModel.fromJson(json))
+          .toList();
+
+      // Cache
+      try {
+        final prefs = AppPreferences.instance;
+        final rawJson = jsonEncode(list.map((i) => i.toJson()).toList());
+        await prefs.setString(cacheKey, rawJson);
+      } catch (_) {}
+
+      return list;
+    } catch (e) {
+      // Fallback
+      try {
+        final prefs = AppPreferences.instance;
+        final cached = prefs.getString(cacheKey);
+        if (cached != null) {
+          final List<dynamic> list = jsonDecode(cached);
+          return list.map((item) => InvitationModel.fromJson(item as Map<String, dynamic>)).toList();
+        }
+      } catch (_) {}
+      rethrow;
+    }
   }
 
   @override
@@ -185,34 +264,86 @@ class SupabaseInvitationRepository implements InvitationRepository {
 
   @override
   Stream<List<InvitationModel>> watchHomeInvitations(
-      {required String homeId}) {
-    return _client
-        .from('invitations')
-        .stream(primaryKey: ['id'])
-        .eq('home_id', homeId)
-        .order('created_at', ascending: false)
-        .map((response) => response
+      {required String homeId}) async* {
+    final cacheKey = 'cached_home_invitations_$homeId';
+
+    // 1. Emit cached invitations immediately
+    try {
+      final prefs = AppPreferences.instance;
+      final cached = prefs.getString(cacheKey);
+      if (cached != null) {
+        final List<dynamic> list = jsonDecode(cached);
+        yield list.map((item) => InvitationModel.fromJson(item as Map<String, dynamic>)).toList();
+      }
+    } catch (_) {}
+
+    // 2. Subscribe to remote stream
+    try {
+      await for (final response in _client
+          .from('invitations')
+          .stream(primaryKey: ['id'])
+          .eq('home_id', homeId)
+          .order('created_at', ascending: false)) {
+        final list = response
             .map((json) => InvitationModel.fromJson(json))
             .where((inv) => inv.isPending)
-            .toList());
+            .toList();
+        
+        try {
+          final prefs = AppPreferences.instance;
+          final rawJson = jsonEncode(list.map((i) => i.toJson()).toList());
+          await prefs.setString(cacheKey, rawJson);
+        } catch (_) {}
+        
+        yield list;
+      }
+    } catch (_) {
+      // Absorb stream errors when offline
+    }
   }
 
   @override
-  Stream<List<InvitationModel>> watchUserInvitations() {
-    final user = _client.auth.currentUser;
-    if (user == null) {
-      return Stream.value([]);
+  Stream<List<InvitationModel>> watchUserInvitations() async* {
+    final userId = await _getUserId();
+    final userEmail = await _getUserEmail();
+    if (userId == null || userEmail == null) {
+      yield [];
+      return;
     }
+    final cacheKey = 'cached_user_invitations_$userId';
 
-    return _client
-        .from('invitations')
-        .stream(primaryKey: ['id'])
-        .eq('email', user.email!)
-        .order('created_at', ascending: false)
-        .map((response) => response
+    // 1. Emit cached invitations immediately
+    try {
+      final prefs = AppPreferences.instance;
+      final cached = prefs.getString(cacheKey);
+      if (cached != null) {
+        final List<dynamic> list = jsonDecode(cached);
+        yield list.map((item) => InvitationModel.fromJson(item as Map<String, dynamic>)).toList();
+      }
+    } catch (_) {}
+
+    // 2. Subscribe to remote stream
+    try {
+      await for (final response in _client
+          .from('invitations')
+          .stream(primaryKey: ['id'])
+          .eq('email', userEmail)
+          .order('created_at', ascending: false)) {
+        final list = response
             .map((json) => InvitationModel.fromJson(json))
             .where((inv) => inv.isPending)
-            .toList());
+            .toList();
+        
+        try {
+          final prefs = AppPreferences.instance;
+          final rawJson = jsonEncode(list.map((i) => i.toJson()).toList());
+          await prefs.setString(cacheKey, rawJson);
+        } catch (_) {}
+        
+        yield list;
+      }
+    } catch (_) {
+      // Absorb stream errors when offline
+    }
   }
-
 }

@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:beity/core/services/supabase_service.dart';
 
 import '../../data/repositories/notification_repository.dart';
 import '../../data/repositories/supabase_notification_repository.dart';
@@ -9,7 +10,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../homes/presentation/providers/homes_provider.dart';
 
 final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
-  return SupabaseNotificationRepository(Supabase.instance.client);
+  return SupabaseNotificationRepository(SupabaseService.client);
 });
 
 final getNotificationPreferencesUseCaseProvider =
@@ -39,7 +40,7 @@ class NotificationPreferencesNotifier
     }
 
     final useCase = ref.read(getNotificationPreferencesUseCaseProvider);
-    return await useCase.call(homeId: homeId);
+    return useCase.call(homeId: homeId);
   }
 
   Future<void> updateField(String field, bool value) async {
@@ -50,7 +51,7 @@ class NotificationPreferencesNotifier
     state = const AsyncValue.loading();
 
     state = await AsyncValue.guard(() async {
-      return await useCase.call(homeId: homeId, field: field, value: value);
+      return useCase.call(homeId: homeId, field: field, value: value);
     });
   }
 }

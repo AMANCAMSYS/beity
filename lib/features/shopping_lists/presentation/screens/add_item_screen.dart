@@ -1,7 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:beity/app/theme/app_spacing.dart';
-import 'package:beity/app/theme/app_colors.dart';
 import 'package:beity/shared/widgets/design_system/beity_button.dart';
 import 'package:beity/shared/widgets/design_system/beity_text_field.dart';
 import 'package:beity/shared/widgets/design_system/beity_card.dart';
@@ -15,6 +15,11 @@ import '../widgets/item_suggestions_widget.dart';
 import '../../domain/usecases/add_item_usecase.dart';
 import '../../../categories/presentation/providers/units_provider.dart';
 import '../../../categories/presentation/providers/categories_provider.dart';
+import '../../../../core/localization/app_localizations.dart';
+import 'package:beity/core/errors/error_formatter.dart';
+import '../../../categories/data/models/category_model.dart';
+import '../../../categories/data/models/unit_model.dart';
+import 'package:beity/core/utils/arabic_number_parser.dart';
 
 class AddItemScreen extends ConsumerStatefulWidget {
   final String listId;
@@ -28,6 +33,8 @@ class AddItemScreen extends ConsumerStatefulWidget {
   ConsumerState<AddItemScreen> createState() => _AddItemScreenState();
 }
 
+
+
 class _AddItemScreenState extends ConsumerState<AddItemScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
@@ -40,6 +47,7 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
   bool _isLoading = false;
   String _nameQuery = '';
   List<AutocompleteSuggestion> _suggestions = [];
+  Timer? _debounceTimer;
 
   @override
   void initState() {
@@ -53,7 +61,10 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
       setState(() {
         _nameQuery = query;
       });
-      _fetchSuggestions(query);
+      _debounceTimer?.cancel();
+      _debounceTimer = Timer(const Duration(milliseconds: 300), () {
+        _fetchSuggestions(query);
+      });
     }
   }
 
@@ -80,6 +91,7 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
 
   @override
   void dispose() {
+    _debounceTimer?.cancel();
     _nameController.removeListener(_onNameChanged);
     _nameController.dispose();
     _quantityController.dispose();
@@ -95,10 +107,9 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
     return listAsync.when(
       data: (list) {
         if (list == null) {
-          final isArabic = Localizations.localeOf(context).languageCode == 'ar';
           return Scaffold(
-            appBar: AppBar(title: Text(isArabic ? 'إضافة منتج' : 'Add Item')),
-            body: Center(child: Text(isArabic ? 'القائمة غير موجودة' : 'List not found')),
+            appBar: AppBar(title: Text(context.translate('add_item'))),
+            body: Center(child: Text(context.translate('list_not_found'))),
           );
         }
 
@@ -109,22 +120,20 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
         return _buildScreen(context, unitsAsync, categoriesAsync);
       },
       loading: () {
-        final isArabic = Localizations.localeOf(context).languageCode == 'ar';
         return Scaffold(
-          appBar: AppBar(title: Text(isArabic ? 'إضافة منتج' : 'Add Item')),
+          appBar: AppBar(title: Text(context.translate('add_item'))),
           body: const Center(child: CircularProgressIndicator()),
         );
       },
       error: (error, _) {
-        final isArabic = Localizations.localeOf(context).languageCode == 'ar';
         return Scaffold(
-          appBar: AppBar(title: Text(isArabic ? 'إضافة منتج' : 'Add Item')),
+          appBar: AppBar(title: Text(context.translate('add_item'))),
           body: BeityEmptyState(
-            title: isArabic ? 'حدث خطأ' : 'An error occurred',
+            title: context.translate('error_title'),
             message: error.toString(),
             icon: Icons.error_outline_rounded,
             isError: true,
-            actionText: isArabic ? 'إعادة المحاولة' : 'Try Again',
+            actionText: context.translate('retry'),
             onAction: () => ref.invalidate(shoppingListByIdProvider(widget.listId)),
           ),
         );
@@ -134,15 +143,12 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
 
   Widget _buildScreen(
     BuildContext context,
-    AsyncValue<List<dynamic>> unitsAsync,
-    AsyncValue<List<dynamic>> categoriesAsync,
+    AsyncValue<List<UnitModel>> unitsAsync,
+    AsyncValue<List<CategoryModel>> categoriesAsync,
   ) {
-    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
-    final theme = Theme.of(context);
-
     return Scaffold(
       appBar: AppBar(
-        title: Text(isArabic ? 'إضافة منتج' : 'Add Item', style: const TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(context.translate('add_item'), style: const TextStyle(fontWeight: FontWeight.bold)),
       ),
       body: Form(
         key: _formKey,
@@ -156,13 +162,13 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
                 children: [
                   BeityTextField(
                     controller: _nameController,
-                    labelText: isArabic ? 'اسم المنتج *' : 'Item Name *',
-                    hintText: isArabic ? 'مثال: حليب، خبز، تفاح' : 'e.g. Milk, Bread, Apples',
+                    labelText: context.translate('item_name_required_label'),
+                    hintText: context.translate('item_name_hint'),
                     prefixIcon: Icons.shopping_basket_outlined,
                     autofocus: true,
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
-                        return isArabic ? 'اسم المنتج مطلوب' : 'Item name is required';
+                        return context.translate('item_name_required_msg');
                       }
                       return null;
                     },
@@ -188,16 +194,16 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
                       Expanded(
                         child: BeityTextField(
                           controller: _quantityController,
-                          labelText: isArabic ? 'الكمية' : 'Quantity',
+                          labelText: context.translate('quantity'),
                           prefixIcon: Icons.numbers,
                           keyboardType: TextInputType.number,
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return isArabic ? 'الكمية مطلوبة' : 'Quantity is required';
+                              return context.translate('quantity_required');
                             }
-                            final quantity = double.tryParse(value);
+                            final quantity = value.tryParseDouble();
                             if (quantity == null || quantity <= 0) {
-                              return isArabic ? 'الكمية غير صالحة' : 'Invalid quantity';
+                              return context.translate('quantity_invalid');
                             }
                             return null;
                           },
@@ -207,9 +213,11 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
                       Expanded(
                         child: unitsAsync.when(
                           data: (units) => DropdownButtonFormField<String>(
-                            value: _selectedUnitId,
+                            initialValue: _selectedUnitId,
+                            isExpanded: true,
+                            isDense: true,
                             decoration: InputDecoration(
-                              labelText: isArabic ? 'الوحدة' : 'Unit',
+                              labelText: context.translate('unit'),
                               prefixIcon: const Icon(Icons.straighten),
                               filled: true,
                               fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
@@ -220,7 +228,7 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
                             ),
                             items: [
                               DropdownMenuItem(
-                                  value: null, child: Text(isArabic ? 'بدون وحدة' : 'No Unit')),
+                                  value: null, child: Text(context.translate('no_unit'))),
                               ...units.map((unit) => DropdownMenuItem(
                                     value: unit.id,
                                     child: Text('${unit.name} (${unit.symbol})'),
@@ -233,7 +241,7 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
                             },
                           ),
                           loading: () => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
-                          error: (_, __) => Text(isArabic ? 'خطأ في تحميل الوحدات' : 'Error loading units'),
+                          error: (e, s) => Text(context.translate('load_units_failed')),
                         ),
                       ),
                     ],
@@ -241,19 +249,19 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
                   AppSpacing.gapLG,
                   BeityTextField(
                     controller: _priceController,
-                    labelText: isArabic ? 'السعر (اختياري)' : 'Price (Optional)',
+                    labelText: context.translate('price_optional'),
                     hintText: '0.00',
                     prefixIcon: Icons.attach_money,
                     suffixIcon: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                      child: Text(isArabic ? 'ر.س' : 'SAR', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                      child: Text(context.translate('currency_symbol'), style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
                     ),
                     keyboardType: TextInputType.number,
                     validator: (value) {
                       if (value != null && value.isNotEmpty) {
-                        final price = double.tryParse(value);
+                        final price = value.tryParseDouble();
                         if (price == null || price < 0) {
-                          return isArabic ? 'السعر غير صالح' : 'Invalid price';
+                          return context.translate('price_invalid');
                         }
                       }
                       return null;
@@ -270,9 +278,11 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
                 children: [
                   categoriesAsync.when(
                     data: (categories) => DropdownButtonFormField<String>(
-                      value: _selectedCategoryId,
+                      initialValue: _selectedCategoryId,
+                      isExpanded: true,
+                      isDense: true,
                       decoration: InputDecoration(
-                        labelText: isArabic ? 'التصنيف' : 'Category',
+                        labelText: context.translate('category'),
                         prefixIcon: const Icon(Icons.category_outlined),
                         filled: true,
                         fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
@@ -283,10 +293,10 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
                       ),
                       items: [
                         DropdownMenuItem(
-                            value: null, child: Text(isArabic ? 'بدون تصنيف' : 'No Category')),
+                            value: null, child: Text(context.translate('no_category'))),
                         ...categories.map((category) => DropdownMenuItem(
                               value: category.id,
-                                child: Text(category.name == 'Other' ? (isArabic ? 'أخرى' : 'Other') : category.name),
+                              child: Text(category.name == 'Other' ? context.translate('other') : category.name),
                             )),
                       ],
                       onChanged: (value) {
@@ -296,13 +306,13 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
                       },
                     ),
                     loading: () => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
-                    error: (_, __) => Text(isArabic ? 'خطأ في تحميل التصنيفات' : 'Error loading categories'),
+                    error: (e, s) => Text(context.translate('load_categories_failed')),
                   ),
                   AppSpacing.gapLG,
                   BeityTextField(
                     controller: _notesController,
-                    labelText: isArabic ? 'ملاحظات (اختياري)' : 'Notes (Optional)',
-                    hintText: isArabic ? 'مثال: نوع معين، حجم كبير' : 'e.g. Specific brand, large size',
+                    labelText: context.translate('notes_optional'),
+                    hintText: context.translate('notes_hint'),
                     prefixIcon: Icons.notes_outlined,
                     maxLines: 2,
                   ),
@@ -312,8 +322,8 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
             AppSpacing.gapXXL,
             BeityButton(
               text: _isLoading 
-                  ? (isArabic ? 'جاري الإضافة...' : 'Adding...') 
-                  : (isArabic ? 'إضافة المنتج' : 'Add Item'),
+                  ? context.translate('adding') 
+                  : context.translate('add'),
               icon: Icons.add_rounded,
               isLoading: _isLoading,
               onPressed: () => ActionDebouncer.execute(() => _saveItem(skipDuplicateCheck: false)),
@@ -341,31 +351,33 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
         listId: widget.listId,
         homeId: list.homeId,
         name: _nameController.text,
-        quantity: double.parse(_quantityController.text),
+        quantity: _quantityController.text.parseDouble(),
         unitId: _selectedUnitId,
         categoryId: _selectedCategoryId,
         price: _priceController.text.isNotEmpty
-            ? double.parse(_priceController.text)
+            ? _priceController.text.parseDouble()
             : null,
         notes: _notesController.text.isNotEmpty ? _notesController.text : null,
         skipDuplicateCheck: skipDuplicateCheck,
       );
 
       if (mounted) {
+        BeitySnackBar.success(
+          context,
+          context.translate('item_added_success', arguments: {'name': _nameController.text.trim()}),
+        );
         Navigator.pop(context);
       }
     } on DuplicateItemException catch (e) {
       if (mounted) {
-        final isArabic = Localizations.localeOf(context).languageCode == 'ar';
-        final shouldAdd = await _showDuplicateWarning(e.itemName, isArabic);
+        final shouldAdd = await _showDuplicateWarning(e.itemName);
         if (shouldAdd == true && mounted) {
           await _saveItem(skipDuplicateCheck: true);
         }
       }
     } catch (e) {
       if (mounted) {
-        final isArabic = Localizations.localeOf(context).languageCode == 'ar';
-        BeitySnackBar.error(context, '${isArabic ? 'خطأ' : 'Error'}: $e');
+        BeitySnackBar.error(context, '${context.translate('error')}: ${ErrorFormatter.format(e, context)}');
       }
     } finally {
       if (mounted) {
@@ -374,15 +386,13 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
     }
   }
 
-  Future<bool?> _showDuplicateWarning(String itemName, bool isArabic) {
+  Future<bool?> _showDuplicateWarning(String itemName) {
     return BeityDialog.show(
       context,
-      title: isArabic ? 'منتج مكرر' : 'Duplicate Item',
-      message: isArabic
-          ? '"$itemName" موجود بالفعل في القائمة. هل تريد إضافته مرة أخرى؟'
-          : '"$itemName" is already in the list. Do you want to add it again?',
-      confirmText: isArabic ? 'إضافة' : 'Add',
-      cancelText: isArabic ? 'إلغاء' : 'Cancel',
+      title: context.translate('duplicate_item'),
+      message: context.translate('duplicate_item_msg', arguments: {'name': itemName}),
+      confirmText: context.translate('add'),
+      cancelText: context.translate('cancel'),
       icon: Icons.warning_amber_rounded,
     );
   }

@@ -2,11 +2,11 @@ import '../../domain/entities/queue_entry.dart';
 import '../../domain/entities/action_type.dart';
 import '../../domain/entities/entity_type.dart';
 import '../../domain/entities/sync_status.dart';
-import '../datasources/shared_preferences_queue_datasource.dart';
+import '../datasources/queue_datasource.dart';
 import 'offline_queue_repository.dart';
 
 class SharedPreferencesOfflineQueueRepository implements OfflineQueueRepository {
-  final SharedPreferencesQueueDataSource dataSource;
+  final QueueDataSource dataSource;
 
   SharedPreferencesOfflineQueueRepository(this.dataSource);
 
@@ -73,5 +73,10 @@ class SharedPreferencesOfflineQueueRepository implements OfflineQueueRepository 
   @override
   Future<List<QueueEntry>> getFailedEntries(String homeId) {
     return dataSource.getFailedEntries(homeId);
+  }
+
+  @override
+  Future<void> resetProcessingToPending(String homeId) {
+    return dataSource.resetProcessingToPending(homeId);
   }
 }

@@ -11,5 +11,8 @@
   "license": "ISC",
   "dependencies": {
     "speckit-opencode-plugin": "^0.2.1"
+  },
+  "devDependencies": {
+    "@supabase/supabase-js": "^2.106.2"
   }
 }

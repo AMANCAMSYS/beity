@@ -31,4 +31,6 @@ abstract class OfflineQueueRepository {
   Future<void> deleteCompletedEntries(String homeId);
 
   Future<List<QueueEntry>> getFailedEntries(String homeId);
+
+  Future<void> resetProcessingToPending(String homeId);
 }

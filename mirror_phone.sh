@@ -10,12 +10,6 @@ mapfile -t DEVICE_IDS < <(
         sed '/^[[:space:]]*$/d'
 )
 
-for stale_id in "${DEVICE_IDS[@]}"; do
-    if [[ "$stale_id" == *"_adb-tls-connect._tcp"* ]]; then
-        "$ADB_CMD" disconnect "$stale_id" >/dev/null 2>&1 || true
-    fi
-done
-
 DEVICE_ID=""
 for id in "${DEVICE_IDS[@]}"; do
     if [[ "$id" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+:[0-9]+$ ]]; then
@@ -28,6 +22,16 @@ if [ -z "$DEVICE_ID" ]; then
     for id in "${DEVICE_IDS[@]}"; do
         if [[ "$id" != *"_adb-tls-connect._tcp"* ]]; then
             DEVICE_ID="$id"
+            break
+        fi
+    done
+fi
+
+if [ -z "$DEVICE_ID" ]; then
+    for id in "${DEVICE_IDS[@]}"; do
+        if [[ "$id" == *"_adb-tls-connect._tcp"* ]]; then
+            DEVICE_ID="$id"
+            echo "ℹ️ تم العثور على الهاتف عبر mDNS. للحصول على اسم ثابت استخدم adb connect IP:PORT."
             break
         fi
     done

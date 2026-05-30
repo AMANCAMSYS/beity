@@ -1,50 +1,53 @@
+import 'package:flutter/material.dart';
+import 'package:beity/core/localization/app_localizations.dart';
+
 class AuthErrorMessages {
-  static String mapError(String code) {
+  static String mapError(BuildContext context, String code) {
     switch (code) {
       case 'invalid_credentials':
-        return 'البريد الإلكتروني أو كلمة المرور غير صحيحة';
+        return context.translate('invalid_credentials');
       case 'user_already_registered':
       case 'email_address_invalid':
-        return 'هذا البريد الإلكتروني مسجل بالفعل';
+        return context.translate('email_already_registered');
       case 'weak_password':
-        return 'كلمة المرور ضعيفة، يجب أن تكون 8 أحرف على الأقل';
+        return context.translate('weak_password');
       case 'invalid_email':
-        return 'البريد الإلكتروني غير صالح';
+        return context.translate('email_invalid');
       case 'network_error':
-        return 'لا يوجد اتصال بالإنترنت، يرجى المحاولة مرة أخرى';
+        return context.translate('network_error');
       case 'session_expired':
-        return 'انتهت الجلسة، يرجى تسجيل الدخول مرة أخرى';
+        return context.translate('session_expired');
       default:
-        return 'حدث خطأ، يرجى المحاولة مرة أخرى';
+        return context.translate('login_error_generic');
     }
   }
 
-  static String validateEmail(String? value) {
+  static String validateEmail(BuildContext context, String? value) {
     if (value == null || value.isEmpty) {
-      return 'يرجى إدخال البريد الإلكتروني';
+      return context.translate('email_required');
     }
     if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
-      return 'البريد الإلكتروني غير صالح';
+      return context.translate('email_invalid');
     }
     return '';
   }
 
-  static String validatePassword(String? value) {
+  static String validatePassword(BuildContext context, String? value) {
     if (value == null || value.isEmpty) {
-      return 'يرجى إدخال كلمة المرور';
+      return context.translate('password_required');
     }
     if (value.length < 8) {
-      return 'كلمة المرور يجب أن تكون 8 أحرف على الأقل';
+      return context.translate('password_too_short');
     }
     return '';
   }
 
-  static String validateName(String? value) {
+  static String validateName(BuildContext context, String? value) {
     if (value == null || value.isEmpty) {
-      return 'يرجى إدخال الاسم';
+      return context.translate('name_required');
     }
     if (value.length > 100) {
-      return 'الاسم طويل جداً';
+      return context.translate('name_too_long');
     }
     return '';
   }

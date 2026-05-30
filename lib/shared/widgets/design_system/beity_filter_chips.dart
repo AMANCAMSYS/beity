@@ -27,7 +27,7 @@ class BeityFilterChips extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
         itemCount: labels.length,
-        separatorBuilder: (_, __) => const SizedBox(width: AppSpacing.sm),
+        separatorBuilder: (_, index) => const SizedBox(width: AppSpacing.sm),
         itemBuilder: (context, index) {
           final isSelected = index == selectedIndex;
           return FilterChip(

@@ -18,7 +18,7 @@ void main() {
   });
 
   group('CompleteTask', () {
-    final incompleteTask = Task(
+    const incompleteTask = Task(
       id: 'task-123',
       homeId: 'home-123',
       title: 'تنظيف المطبخ',
@@ -36,7 +36,7 @@ void main() {
       when(() => mockRepository.completeTask(taskId: 'task-123'))
           .thenAnswer((_) async => completedTask);
 
-      final result = await completeTask(CompleteTaskParams(taskId: 'task-123'));
+      final result = await completeTask(const CompleteTaskParams(taskId: 'task-123'));
 
       expect(result.isCompleted, true);
       expect(result.completedBy, 'user-123');
@@ -56,7 +56,7 @@ void main() {
       when(() => mockRepository.createNextRecurringTask(taskId: 'task-123'))
           .thenAnswer((_) async => 'new-task-456');
 
-      final result = await completeTask(CompleteTaskParams(taskId: 'task-123'));
+      final result = await completeTask(const CompleteTaskParams(taskId: 'task-123'));
 
       expect(result.isCompleted, true);
       verify(() => mockRepository.createNextRecurringTask(taskId: 'task-123'))
@@ -67,7 +67,7 @@ void main() {
       when(() => mockRepository.completeTask(taskId: 'task-123'))
           .thenAnswer((_) async => completedTask);
 
-      await completeTask(CompleteTaskParams(taskId: 'task-123'));
+      await completeTask(const CompleteTaskParams(taskId: 'task-123'));
 
       verifyNever(
           () => mockRepository.createNextRecurringTask(taskId: 'task-123'));
@@ -85,12 +85,6 @@ void main() {
       createdBy: 'user-123',
     );
 
-    final uncompletedTask = completedTask.copyWith(
-      status: 'incomplete',
-      completedBy: null,
-      completedAt: null,
-    );
-
     test('should uncomplete task successfully', () async {
       when(() => mockRepository.uncompleteTask(taskId: 'task-123'))
           .thenAnswer((_) async => completedTask.copyWith(
@@ -98,7 +92,7 @@ void main() {
               ));
 
       final result =
-          await uncompleteTask(UncompleteTaskParams(taskId: 'task-123'));
+          await uncompleteTask(const UncompleteTaskParams(taskId: 'task-123'));
 
       expect(result.isIncomplete, true);
     });

@@ -3,6 +3,7 @@ import 'package:beity/app/theme/app_spacing.dart';
 import 'package:beity/app/theme/app_colors.dart';
 import 'package:beity/shared/widgets/design_system/beity_card.dart';
 import '../../domain/entities/task.dart';
+import 'package:beity/core/localization/app_localizations.dart';
 
 class TaskCard extends StatelessWidget {
   final Task task;
@@ -24,26 +25,26 @@ class TaskCard extends StatelessWidget {
     return AppColors.textHintLight;
   }
 
-  String _getDueDateText() {
+  String _getDueDateText(BuildContext context) {
     if (task.dueDate == null) return '';
     final now = DateTime.now();
     final due = task.dueDate!;
     final difference = due.difference(now).inDays;
 
-    if (task.isOverdue) return 'متأخرة';
-    if (task.isDueToday) return 'اليوم';
-    if (difference == 1) return 'غداً';
+    if (task.isOverdue) return context.translate('overdue');
+    if (task.isDueToday) return context.translate('today');
+    if (difference == 1) return context.translate('tomorrow');
     return '${due.day}/${due.month}/${due.year}';
   }
 
-  String _getRecurrenceText() {
+  String _getRecurrenceText(BuildContext context) {
     switch (task.recurrenceType) {
       case 'daily':
-        return 'يومياً';
+        return context.translate('daily');
       case 'weekly':
-        return 'أسبوعياً';
+        return context.translate('weekly');
       case 'monthly':
-        return 'شهرياً';
+        return context.translate('monthly');
       default:
         return '';
     }
@@ -140,7 +141,7 @@ class TaskCard extends StatelessWidget {
                                 _buildInfoTag(
                                   context,
                                   Icons.calendar_today_rounded,
-                                  _getDueDateText(),
+                                  _getDueDateText(context),
                                   _getDueDateColor(),
                                   isBold: task.isOverdue || task.isDueToday,
                                 ),
@@ -148,7 +149,7 @@ class TaskCard extends StatelessWidget {
                                 _buildInfoTag(
                                   context,
                                   Icons.repeat_rounded,
-                                  _getRecurrenceText(),
+                                  _getRecurrenceText(context),
                                   theme.colorScheme.primary,
                                 ),
                             ],

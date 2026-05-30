@@ -8,6 +8,8 @@ import 'package:beity/shared/widgets/design_system/beity_card.dart';
 import '../providers/balance_providers.dart';
 import 'package:beity/core/utils/action_debouncer.dart';
 import 'package:intl/intl.dart' as intl;
+import 'package:beity/core/errors/error_formatter.dart';
+import 'package:beity/core/utils/arabic_number_parser.dart';
 
 class SettlementForm extends ConsumerStatefulWidget {
   final String homeId;
@@ -82,7 +84,7 @@ class _SettlementFormState extends ConsumerState<SettlementForm> {
       setState(() => _isLoading = true);
       try {
         final amount =
-            double.parse(_amountController.text) * 100; // Convert to cents
+            _amountController.text.parseDouble() * 100; // Convert to cents
 
         final repository = ref.read(settlementRepositoryProvider);
         await repository.createSettlement(
@@ -96,13 +98,18 @@ class _SettlementFormState extends ConsumerState<SettlementForm> {
 
         // Invalidate balances to refresh
         ref.invalidate(balancesProvider(widget.homeId));
+        ref.invalidate(settlementsProvider(widget.homeId));
 
         if (mounted) {
           widget.onSuccess?.call();
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               behavior: SnackBarBehavior.floating,
-              content: Text(isArabic ? 'تم تسجيل الدفعة بنجاح' : 'Settlement recorded successfully'),
+              content: Text(
+                isArabic
+                    ? 'تم تسجيل الدفعة بنجاح'
+                    : 'Settlement recorded successfully',
+              ),
               backgroundColor: AppColors.success,
             ),
           );
@@ -113,7 +120,7 @@ class _SettlementFormState extends ConsumerState<SettlementForm> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               behavior: SnackBarBehavior.floating,
-              content: Text(isArabic ? 'خطأ: $e' : 'Error: $e'),
+              content: Text('${isArabic ? 'خطأ' : 'Error'}: ${ErrorFormatter.format(e, context)}'),
               backgroundColor: Theme.of(context).colorScheme.error,
             ),
           );
@@ -129,7 +136,9 @@ class _SettlementFormState extends ConsumerState<SettlementForm> {
   @override
   Widget build(BuildContext context) {
     final isArabic = Localizations.localeOf(context).languageCode == 'ar';
-    final dateFormat = intl.DateFormat.yMMMd(Localizations.localeOf(context).toString());
+    final dateFormat = intl.DateFormat.yMMMd(
+      Localizations.localeOf(context).toString(),
+    );
     final theme = Theme.of(context);
 
     return Form(
@@ -144,28 +153,36 @@ class _SettlementFormState extends ConsumerState<SettlementForm> {
               children: [
                 BeityTextField(
                   controller: _amountController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                   labelText: isArabic ? 'المبلغ' : 'Amount',
                   hintText: '0.00',
-                  suffixIcon: Icon(Icons.currency_exchange_rounded),
+                  suffixIcon: const Icon(Icons.currency_exchange_rounded),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return isArabic ? 'الرجاء إدخال المبلغ' : 'Please enter amount';
+                      return isArabic
+                          ? 'الرجاء إدخال المبلغ'
+                          : 'Please enter amount';
                     }
-                    final amount = double.tryParse(value);
+                    final amount = value.tryParseDouble();
                     if (amount == null || amount <= 0) {
-                      return isArabic ? 'الرجاء إدخال مبلغ صحيح' : 'Please enter a valid amount';
+                      return isArabic
+                          ? 'الرجاء إدخال مبلغ صحيح'
+                          : 'Please enter a valid amount';
                     }
                     if (amount * 100 > widget.maxAmount) {
-                      return isArabic ? 'المبلغ أكبر من الرصيد المتبقي' : 'Amount exceeds remaining balance';
+                      return isArabic
+                          ? 'المبلغ أكبر من الرصيد المتبقي'
+                          : 'Amount exceeds remaining balance';
                     }
                     return null;
                   },
                 ),
                 AppSpacing.gapLG,
-                
+
                 DropdownButtonFormField<String>(
-                  value: _paymentMethod,
+                  initialValue: _paymentMethod,
                   style: theme.textTheme.bodyLarge,
                   decoration: InputDecoration(
                     labelText: isArabic ? 'طريقة الدفع' : 'Payment Method',
@@ -175,22 +192,41 @@ class _SettlementFormState extends ConsumerState<SettlementForm> {
                     ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-                      borderSide: BorderSide(color: theme.colorScheme.outline.withValues(alpha: 0.3)),
+                      borderSide: BorderSide(
+                        color: theme.colorScheme.outline.withValues(alpha: 0.3),
+                      ),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-                      borderSide: BorderSide(color: theme.colorScheme.outline.withValues(alpha: 0.3)),
+                      borderSide: BorderSide(
+                        color: theme.colorScheme.outline.withValues(alpha: 0.3),
+                      ),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-                      borderSide: BorderSide(color: theme.colorScheme.primary, width: 2),
+                      borderSide: BorderSide(
+                        color: theme.colorScheme.primary,
+                        width: 2,
+                      ),
                     ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.md),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.md,
+                      vertical: AppSpacing.md,
+                    ),
                   ),
                   items: [
-                    DropdownMenuItem(value: 'cash', child: Text(isArabic ? 'نقدي' : 'Cash')),
-                    DropdownMenuItem(value: 'transfer', child: Text(isArabic ? 'تحويل بنكي' : 'Bank Transfer')),
-                    DropdownMenuItem(value: 'other', child: Text(isArabic ? 'أخرى' : 'Other')),
+                    DropdownMenuItem(
+                      value: 'cash',
+                      child: Text(isArabic ? 'نقدي' : 'Cash'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'transfer',
+                      child: Text(isArabic ? 'تحويل بنكي' : 'Bank Transfer'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'other',
+                      child: Text(isArabic ? 'أخرى' : 'Other'),
+                    ),
                   ],
                   onChanged: (value) {
                     if (value != null) {
@@ -206,7 +242,9 @@ class _SettlementFormState extends ConsumerState<SettlementForm> {
                   child: Container(
                     padding: const EdgeInsets.all(AppSpacing.md),
                     decoration: BoxDecoration(
-                      border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.3)),
+                      border: Border.all(
+                        color: theme.colorScheme.outline.withValues(alpha: 0.3),
+                      ),
                       borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
                     ),
                     child: Row(
@@ -214,10 +252,18 @@ class _SettlementFormState extends ConsumerState<SettlementForm> {
                         Container(
                           padding: const EdgeInsets.all(AppSpacing.xs),
                           decoration: BoxDecoration(
-                            color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                            color: theme.colorScheme.primary.withValues(
+                              alpha: 0.1,
+                            ),
+                            borderRadius: BorderRadius.circular(
+                              AppSpacing.radiusSm,
+                            ),
                           ),
-                          child: Icon(Icons.calendar_today_rounded, size: 18, color: theme.colorScheme.primary),
+                          child: Icon(
+                            Icons.calendar_today_rounded,
+                            size: 18,
+                            color: theme.colorScheme.primary,
+                          ),
                         ),
                         AppSpacing.gapMD,
                         Column(
@@ -232,7 +278,9 @@ class _SettlementFormState extends ConsumerState<SettlementForm> {
                             ),
                             Text(
                               dateFormat.format(_selectedDate),
-                              style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ],
                         ),

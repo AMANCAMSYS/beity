@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:beity/core/services/supabase_service.dart';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
@@ -18,8 +19,10 @@ class NotificationService {
   // Active screen subscriptions for suppression
   static final Set<String> _activeScreenSubscriptions = {};
 
-  // Navigator key for deep linking
   static GlobalKey<NavigatorState>? _navigatorKey;
+  
+  // Store route if app is launched from terminated state before UI mounts
+  static String? initialRoute;
 
   static String? get fcmToken => _fcmToken;
 
@@ -142,11 +145,11 @@ class NotificationService {
   }
 
   static Future<void> _saveTokenToSupabase(String token) async {
-    final user = Supabase.instance.client.auth.currentUser;
+    final user = SupabaseService.client.auth.currentUser;
     if (user == null) return;
 
     try {
-      await Supabase.instance.client.from('device_tokens').upsert({
+      await SupabaseService.client.from('device_tokens').upsert({
         'user_id': user.id,
         'token': token,
         'platform': _getPlatform(),
@@ -179,8 +182,8 @@ class NotificationService {
 
   static Future<void> _showLocalNotification(RemoteMessage message) async {
     final notification = message.notification;
-    final title = notification?.title ?? message.data['title'] ?? 'Notification';
-    final body = notification?.body ?? message.data['body'] ?? '';
+    final String title = notification?.title ?? message.data['title'] ?? 'Notification';
+    final String body = notification?.body ?? message.data['body'] ?? '';
 
     if (title.isEmpty && body.isEmpty) return;
 
@@ -232,8 +235,13 @@ class NotificationService {
   }
 
   static void _navigateToRoute(String route) {
+    if (route.isEmpty || !route.startsWith('/')) return;
+    
     if (_navigatorKey?.currentContext != null) {
       GoRouter.of(_navigatorKey!.currentContext!).go(route);
+    } else {
+      // Store the route to be used as initialLocation by GoRouter
+      initialRoute = route;
     }
   }
 
@@ -257,9 +265,9 @@ class NotificationService {
   static Future<void> removeToken() async {
     try {
       if (_fcmToken != null) {
-        final user = Supabase.instance.client.auth.currentUser;
+        final user = SupabaseService.client.auth.currentUser;
         if (user != null) {
-          await Supabase.instance.client
+          await SupabaseService.client
               .from('device_tokens')
               .delete()
               .eq('user_id', user.id)
@@ -280,7 +288,7 @@ class NotificationService {
     required Map<String, dynamic> context,
   }) async {
     try {
-      await Supabase.instance.client.functions.invoke('send-notification', body: {
+      await SupabaseService.client.functions.invoke('send-notification', body: {
         'event_type': eventType,
         'home_id': homeId,
         'actor_id': actorId,
@@ -300,7 +308,7 @@ class NotificationService {
     required Map<String, dynamic> context,
   }) async {
     try {
-      await Supabase.instance.client.functions.invoke('send-notification', body: {
+      await SupabaseService.client.functions.invoke('send-notification', body: {
         'event_type': 'invitation_received',
         'home_id': homeId,
         'actor_id': actorId,
@@ -319,7 +327,7 @@ class NotificationService {
     required Map<String, dynamic> context,
   }) async {
     try {
-      await Supabase.instance.client.functions.invoke('send-notification', body: {
+      await SupabaseService.client.functions.invoke('send-notification', body: {
         'event_type': 'member_joined',
         'home_id': homeId,
         'actor_id': actorId,

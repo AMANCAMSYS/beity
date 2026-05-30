@@ -1,26 +1,29 @@
 import 'package:flutter/material.dart';
+import 'package:beity/core/localization/app_localizations.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_spacing.dart';
 
 class BeityErrorState extends StatelessWidget {
-  final String title;
+  final String? title;
   final String? message;
   final VoidCallback? onRetry;
-  final String retryText;
+  final String? retryText;
   final IconData icon;
 
   const BeityErrorState({
     super.key,
-    this.title = 'حدث خطأ',
+    this.title,
     this.message,
     this.onRetry,
-    this.retryText = 'إعادة المحاولة',
+    this.retryText,
     this.icon = Icons.error_outline_rounded,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final displayTitle = title ?? context.translate('error_generic');
+    final displayRetryText = retryText ?? context.translate('retry_action');
 
     return Center(
       child: Padding(
@@ -31,7 +34,7 @@ class BeityErrorState extends StatelessWidget {
             Icon(icon, size: 64, color: AppColors.error.withValues(alpha: 0.5)),
             const SizedBox(height: AppSpacing.md),
             Text(
-              title,
+              displayTitle,
               style: theme.textTheme.titleLarge?.copyWith(color: AppColors.error),
               textAlign: TextAlign.center,
             ),
@@ -50,7 +53,7 @@ class BeityErrorState extends StatelessWidget {
               ElevatedButton.icon(
                 onPressed: onRetry,
                 icon: const Icon(Icons.refresh_rounded),
-                label: Text(retryText),
+                label: Text(displayRetryText),
               ),
             ],
           ],

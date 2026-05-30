@@ -1,24 +1,22 @@
-import 'package:beity/app/theme/app_spacing.dart';
 import 'package:beity/shared/widgets/design_system/beity_empty_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../home/presentation/widgets/app_drawer.dart';
+import '../../../home/presentation/widgets/drawer_toggle_button.dart';
 import '../../data/models/activity_log_model.dart';
 import '../providers/activity_logs_provider.dart';
 import '../widgets/activity_log_tile_widget.dart';
 import '../widgets/activity_filter_widget.dart';
+import 'package:beity/core/localization/app_localizations.dart';
 
 class ActivityFeedScreen extends ConsumerStatefulWidget {
   final String homeId;
 
-  const ActivityFeedScreen({
-    super.key,
-    required this.homeId,
-  });
+  const ActivityFeedScreen({super.key, required this.homeId});
 
   @override
-  ConsumerState<ActivityFeedScreen> createState() =>
-      _ActivityFeedScreenState();
+  ConsumerState<ActivityFeedScreen> createState() => _ActivityFeedScreenState();
 }
 
 class _ActivityFeedScreenState extends ConsumerState<ActivityFeedScreen> {
@@ -78,13 +76,16 @@ class _ActivityFeedScreenState extends ConsumerState<ActivityFeedScreen> {
     final filter = ref.watch(activityFilterProvider);
 
     return Scaffold(
+      drawer: const AppDrawer(),
       appBar: AppBar(
-        title: const Text('سجل النشاطات'),
+        leadingWidth: 62,
+        leading: Builder(builder: (context) => const DrawerToggleButton()),
+        title: Text(context.translate('activity_log')),
         actions: [
           if (filter.isActive)
             IconButton(
               icon: const Icon(Icons.filter_alt_off),
-              tooltip: 'مسح الفلاتر',
+              tooltip: context.translate('clear_filters'),
               onPressed: () =>
                   ref.read(activityFilterProvider.notifier).clear(),
             ),
@@ -175,24 +176,20 @@ class _ActivityFeedScreenState extends ConsumerState<ActivityFeedScreen> {
   }
 
   Widget _buildEmptyState(BuildContext context) {
-    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
     return BeityEmptyState(
-      title: isArabic ? 'لا توجد نشاطات بعد' : 'No activities yet',
-      message: isArabic
-          ? 'ستظهر النشاطات عندما يتفاعل الأعضاء مع القوائم والمنتجات'
-          : 'Activities will appear when members interact with lists and products',
+      title: context.translate('no_activities_yet'),
+      message: context.translate('activities_empty_desc'),
       icon: Icons.history_rounded,
     );
   }
 
   Widget _buildErrorState(BuildContext context, String error) {
-    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
     return BeityEmptyState(
-      title: isArabic ? 'حدث خطأ' : 'An error occurred',
+      title: context.translate('error_occurred'),
       message: error,
       icon: Icons.error_outline_rounded,
       isError: true,
-      actionText: isArabic ? 'إعادة المحاولة' : 'Try Again',
+      actionText: context.translate('retry'),
       onAction: () => ref.invalidate(homeActivityProvider(widget.homeId)),
     );
   }

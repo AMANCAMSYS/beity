@@ -17,18 +17,19 @@ class AiSuggestionModel {
 
   factory AiSuggestionModel.fromJson(Map<String, dynamic> json) {
     // Graceful handling of name: default to empty string if missing, then trim and cap
-    String parsedName = (json['name'] as String?)?.trim() ?? '';
+    String parsedName = (json['name'] as String? ?? json['n'] as String?)?.trim() ?? '';
     if (parsedName.length > 100) {
       parsedName = parsedName.substring(0, 100);
     }
 
     // Graceful handling of quantity: default to 1.0 if null or invalid
     double? parsedQuantity = 1.0;
-    if (json['quantity'] != null) {
-      if (json['quantity'] is num) {
-        parsedQuantity = (json['quantity'] as num).toDouble();
-      } else if (json['quantity'] is String) {
-        parsedQuantity = double.tryParse(json['quantity'] as String) ?? 1.0;
+    final qtyVal = json['quantity'] ?? json['q'];
+    if (qtyVal != null) {
+      if (qtyVal is num) {
+        parsedQuantity = qtyVal.toDouble();
+      } else if (qtyVal is String) {
+        parsedQuantity = double.tryParse(qtyVal) ?? 1.0;
       }
       if (parsedQuantity <= 0 || parsedQuantity > 9999) {
         parsedQuantity = 1.0;
@@ -36,7 +37,7 @@ class AiSuggestionModel {
     }
 
     // Strip null or empty unit/category
-    String? parsedUnit = (json['unit'] as String?)?.trim();
+    String? parsedUnit = (json['unit'] as String? ?? json['u'] as String?)?.trim();
     if (parsedUnit != null && parsedUnit.isEmpty) parsedUnit = null;
 
     String? parsedCategory = (json['category'] as String?)?.trim();

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:beity/shared/widgets/design_system/beity_snack_bar.dart';
+import 'package:beity/core/localization/app_localizations.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../data/models/unit_model.dart';
 import '../../domain/entities/unit.dart';
@@ -45,7 +47,7 @@ class UnitCardWidget extends ConsumerWidget {
           textDirection: TextDirection.rtl,
         ),
         subtitle: Text(
-          '${_getTypeName()} • ${unit.symbol}',
+          '${_getTypeName(context)} • ${unit.symbol}',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
@@ -75,16 +77,16 @@ class UnitCardWidget extends ConsumerWidget {
     }
   }
 
-  String _getTypeName() {
+  String _getTypeName(BuildContext context) {
     switch (unit.type) {
       case UnitType.weight:
-        return 'وزن';
+        return context.translate('weight');
       case UnitType.volume:
-        return 'حجم';
+        return context.translate('volume');
       case UnitType.count:
-        return 'عدد';
+        return context.translate('count');
       case UnitType.length:
-        return 'طول';
+        return context.translate('length');
     }
   }
 
@@ -92,18 +94,18 @@ class UnitCardWidget extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text(
-          'حذف الوحدة',
+        title: Text(
+          context.translate('delete_unit'),
           textDirection: TextDirection.rtl,
         ),
         content: Text(
-          'هل أنت متأكد من حذف "${unit.name}"؟',
+          context.translate('delete_unit_confirm', arguments: {'name': unit.name}),
           textDirection: TextDirection.rtl,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('إلغاء'),
+            child: Text(context.translate('cancel')),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -113,26 +115,13 @@ class UnitCardWidget extends ConsumerWidget {
                     .read(unitNotifierProvider.notifier)
                     .deleteUnit(unitId: unit.id);
                 if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'تم حذف الوحدة بنجاح',
-                        textDirection: TextDirection.rtl,
-                      ),
-                      backgroundColor: AppColors.success,
-                    ),
-                  );
+                  BeitySnackBar.success(context, context.translate('unit_deleted_success'));
                 }
               } catch (e) {
                 if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        e.toString().replaceAll('Exception: ', ''),
-                        textDirection: TextDirection.rtl,
-                      ),
-                      backgroundColor: AppColors.error,
-                    ),
+                  BeitySnackBar.error(
+                    context,
+                    e.toString().replaceAll('Exception: ', ''),
                   );
                 }
               }
@@ -141,7 +130,7 @@ class UnitCardWidget extends ConsumerWidget {
               backgroundColor: AppColors.error,
               foregroundColor: Colors.white,
             ),
-            child: const Text('حذف'),
+            child: Text(context.translate('delete')),
           ),
         ],
       ),

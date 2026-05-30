@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:beity/core/localization/app_localizations.dart';
 
 import '../../app/theme/app_colors.dart';
 
@@ -20,14 +21,14 @@ class AppErrorWidget extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
+            const Icon(
               Icons.error_outline,
               size: 80,
               color: AppColors.error,
             ),
             const SizedBox(height: 24),
             Text(
-              'حدث خطأ',
+              context.translate('error_generic'),
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                 color: AppColors.error,
                 fontWeight: FontWeight.bold,
@@ -48,8 +49,8 @@ class AppErrorWidget extends StatelessWidget {
               ElevatedButton.icon(
                 onPressed: onRetry,
                 icon: const Icon(Icons.refresh),
-                label: const Text(
-                  'إعادة المحاولة',
+                label: Text(
+                  context.translate('retry_action'),
                   textDirection: TextDirection.rtl,
                 ),
                 style: ElevatedButton.styleFrom(

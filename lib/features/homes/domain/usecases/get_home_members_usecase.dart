@@ -7,6 +7,6 @@ class GetHomeMembersUseCase {
   GetHomeMembersUseCase(this._repository);
 
   Future<List<HomeMemberModel>> call(String homeId) async {
-    return await _repository.getHomeMembers(homeId);
+    return _repository.getHomeMembers(homeId);
   }
 }

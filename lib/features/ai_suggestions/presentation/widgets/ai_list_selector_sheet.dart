@@ -5,7 +5,6 @@ import 'package:beity/app/theme/app_spacing.dart';
 import 'package:beity/app/theme/app_colors.dart';
 import '../../../shopping_lists/presentation/providers/shopping_lists_provider.dart';
 import '../../../shopping_lists/presentation/providers/shopping_items_provider.dart';
-import '../../../homes/presentation/providers/homes_provider.dart';
 import '../../../../core/utils/action_debouncer.dart';
 
 class AiListSelectorSheet extends ConsumerWidget {

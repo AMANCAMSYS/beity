@@ -1,3 +1,4 @@
+import '../../../../core/errors/app_exception.dart';
 import '../entities/invitation.dart';
 import '../../data/repositories/invitation_repository.dart';
 
@@ -13,19 +14,19 @@ class SendInvitationUseCase {
   }) async {
     // Validate email
     if (email.isEmpty) {
-      throw Exception('يرجى إدخال البريد الإلكتروني');
+      throw const ValidationException(message: 'please_enter_email_validation');
     }
 
     if (!_isValidEmail(email)) {
-      throw Exception('البريد الإلكتروني غير صالح');
+      throw const ValidationException(message: 'invalid_email_format');
     }
 
     // Validate role
     if (!_isValidRole(role)) {
-      throw Exception('الدور غير صالح');
+      throw const ValidationException(message: 'invalid_role_selected');
     }
 
-    return await _repository.sendInvitation(
+    return _repository.sendInvitation(
       homeId: homeId,
       email: email,
       role: role,

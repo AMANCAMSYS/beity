@@ -24,7 +24,7 @@ class Expense {
     this.categoryId,
     required this.paidBy,
     this.shoppingListItemId,
-    this.currencyCode = 'SAR',
+    this.currencyCode = 'TRY',
     required this.convertedAmount,
     this.status = 'active',
     required this.createdBy,

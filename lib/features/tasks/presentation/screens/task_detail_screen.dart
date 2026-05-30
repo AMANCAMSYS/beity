@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../homes/presentation/providers/homes_provider.dart';
+import '../../domain/entities/task.dart';
 import '../providers/task_providers.dart';
 import '../widgets/recurrence_selector.dart';
 import '../widgets/comment_thread.dart';
 import '../../../../core/utils/action_debouncer.dart';
 import '../../../../shared/widgets/design_system/beity_empty_state.dart';
-import '../../../../shared/widgets/design_system/beity_button.dart';
+import '../../../../shared/widgets/design_system/beity_snack_bar.dart';
+import 'package:beity/core/localization/app_localizations.dart';
+import 'package:beity/core/errors/error_formatter.dart';
 
 class TaskDetailScreen extends ConsumerStatefulWidget {
   final String taskId;
@@ -41,7 +44,7 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
     super.dispose();
   }
 
-  void _startEditing(dynamic task) {
+  void _startEditing(Task task) {
     _editTitleController.text = task.title;
     _editDescriptionController.text = task.description ?? '';
     _editDueDate = task.dueDate;
@@ -60,9 +63,9 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
 
   Future<void> _saveEditing() async {
     if (_editTitleController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('عنوان المهمة مطلوب')),
-      );
+      if (mounted) {
+        BeitySnackBar.warning(context, context.translate('please_enter_task_title'));
+      }
       return;
     }
 
@@ -85,13 +88,17 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
       );
       ref.invalidate(taskByIdProvider);
       ref.invalidate(tasksProvider);
-      setState(() {
-        _isEditing = false;
-      });
+      if (mounted) {
+        BeitySnackBar.success(context, context.translate('task_updated_success'));
+        setState(() {
+          _isEditing = false;
+        });
+      }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('خطأ: $e')),
+        BeitySnackBar.error(
+          context,
+          '${context.translate('error_occurred')}: ${ErrorFormatter.format(e, context)}',
         );
       }
     } finally {
@@ -113,18 +120,25 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
       final repository = ref.read(taskRepositoryProvider);
       if (task.isCompleted) {
         await repository.uncompleteTask(taskId: widget.taskId);
+        if (mounted) {
+          BeitySnackBar.success(context, context.translate('task_uncompleted_success'));
+        }
       } else {
         await repository.completeTask(taskId: widget.taskId);
         if (task.isRecurring) {
           await repository.createNextRecurringTask(taskId: widget.taskId);
+        }
+        if (mounted) {
+          BeitySnackBar.success(context, context.translate('task_completed_success'));
         }
       }
       ref.invalidate(tasksProvider);
       ref.invalidate(taskByIdProvider);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('خطأ: $e')),
+        BeitySnackBar.error(
+          context,
+          '${context.translate('error_occurred')}: ${ErrorFormatter.format(e, context)}',
         );
       }
     } finally {
@@ -138,17 +152,17 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('حذف المهمة'),
-        content: const Text('هل أنت متأكد من حذف هذه المهمة؟'),
+        title: Text(context.translate('delete_task')),
+        content: Text(context.translate('delete_task_confirm')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('إلغاء'),
+            child: Text(context.translate('cancel')),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             style: TextButton.styleFrom(foregroundColor: AppColors.error),
-            child: const Text('حذف'),
+            child: Text(context.translate('delete')),
           ),
         ],
       ),
@@ -161,12 +175,14 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
         await repository.deleteTask(taskId: widget.taskId);
         ref.invalidate(tasksProvider);
         if (mounted) {
+          BeitySnackBar.success(context, context.translate('task_deleted_success'));
           Navigator.pop(context);
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('خطأ: $e')),
+          BeitySnackBar.error(
+            context,
+            '${context.translate('error_occurred')}: ${ErrorFormatter.format(e, context)}',
           );
         }
       } finally {
@@ -201,13 +217,17 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
     membersAsync.whenData((members) {
       for (final member in members) {
         memberNames[member.userId] =
-            member.userName ?? member.userEmail ?? 'عضو';
+            member.userName ?? member.userEmail ?? context.translate('member');
       }
     });
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('تفاصيل المهمة'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: Text(context.translate('task_details')),
         actions: [
           if (!_isEditing)
             PopupMenuButton<String>(
@@ -224,23 +244,23 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
                 }
               },
               itemBuilder: (context) => [
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'edit',
                   child: Row(
                     children: [
-                      Icon(Icons.edit),
-                      SizedBox(width: 8),
-                      Text('تعديل'),
+                      const Icon(Icons.edit),
+                      const SizedBox(width: 8),
+                      Text(context.translate('edit')),
                     ],
                   ),
                 ),
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'delete',
                   child: Row(
                     children: [
-                      Icon(Icons.delete, color: AppColors.error),
-                      SizedBox(width: 8),
-                      Text('حذف', style: TextStyle(color: AppColors.error)),
+                      const Icon(Icons.delete, color: AppColors.error),
+                      const SizedBox(width: 8),
+                      Text(context.translate('delete'), style: const TextStyle(color: AppColors.error)),
                     ],
                   ),
                 ),
@@ -251,9 +271,9 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
       body: taskAsync.when(
         data: (task) {
           if (task == null) {
-            return const BeityEmptyState(
-              title: 'المهمة غير موجودة',
-              message: 'عذراً، لا يمكن العثور على تفاصيل هذه المهمة حالياً',
+            return BeityEmptyState(
+              title: context.translate('task_not_found'),
+              message: context.translate('task_not_found_desc'),
               icon: Icons.task_alt_rounded,
             );
           }
@@ -271,27 +291,27 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
                       children: [
                         TextFormField(
                           controller: _editTitleController,
-                          decoration: const InputDecoration(
-                            labelText: 'عنوان المهمة',
-                            border: OutlineInputBorder(),
+                          decoration: InputDecoration(
+                            labelText: context.translate('task_title'),
+                            border: const OutlineInputBorder(),
                           ),
                         ),
                         const SizedBox(height: 16),
                         TextFormField(
                           controller: _editDescriptionController,
                           maxLines: 3,
-                          decoration: const InputDecoration(
-                            labelText: 'الوصف',
-                            border: OutlineInputBorder(),
+                          decoration: InputDecoration(
+                            labelText: context.translate('description_optional'),
+                            border: const OutlineInputBorder(),
                           ),
                         ),
                         const SizedBox(height: 16),
                         ListTile(
-                          title: const Text('تاريخ الاستحقاق'),
+                          title: Text(context.translate('due_date')),
                           subtitle: Text(
                             _editDueDate != null
                                 ? '${_editDueDate!.day}/${_editDueDate!.month}/${_editDueDate!.year}'
-                                : 'لم يتم تحديد تاريخ',
+                                : context.translate('not_specified'),
                           ),
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -328,21 +348,21 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
                           data: (members) {
                             return DropdownButtonFormField<String>(
                               initialValue: _editAssignedTo,
-                              decoration: const InputDecoration(
-                                labelText: 'إسناد إلى',
-                                border: OutlineInputBorder(),
+                              decoration: InputDecoration(
+                                labelText: context.translate('assign_to'),
+                                border: const OutlineInputBorder(),
                               ),
                               items: [
-                                const DropdownMenuItem<String>(
+                                DropdownMenuItem<String>(
                                   value: null,
-                                  child: Text('غير مسند'),
+                                  child: Text(context.translate('unassigned')),
                                 ),
                                 ...members.map((member) =>
                                     DropdownMenuItem<String>(
                                       value: member.userId,
                                       child: Text(member.userName ??
                                           member.userEmail ??
-                                          'عضو'),
+                                          context.translate('member')),
                                     )),
                               ],
                               onChanged: (value) {
@@ -355,7 +375,7 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
                           loading: () =>
                               const CircularProgressIndicator(),
                           error: (e, _) =>
-                              Text('خطأ في تحميل الأعضاء: $e'),
+                              Text(context.translate('error_occurred')),
                         ),
                         const SizedBox(height: 24),
                         Row(
@@ -363,7 +383,7 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
                             Expanded(
                               child: OutlinedButton(
                                 onPressed: _cancelEditing,
-                                child: const Text('إلغاء'),
+                                child: Text(context.translate('cancel')),
                               ),
                             ),
                             const SizedBox(width: 16),
@@ -377,7 +397,7 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
                                         child: CircularProgressIndicator(
                                             strokeWidth: 2),
                                       )
-                                    : const Text('حفظ'),
+                                    : Text(context.translate('save')),
                               ),
                             ),
                           ],
@@ -407,16 +427,10 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
                                     ),
                               ),
                             ),
-                            if (task.isRecurring)
+                            if (task.isRecurring && task.recurrenceType != null)
                               Chip(
                                 avatar: const Icon(Icons.repeat, size: 16),
-                                label: Text(
-                                  task.recurrenceType == 'daily'
-                                      ? 'يومياً'
-                                      : task.recurrenceType == 'weekly'
-                                          ? 'أسبوعياً'
-                                          : 'شهرياً',
-                                ),
+                                label: Text(context.translate(task.recurrenceType!)),
                               ),
                           ],
                         ),
@@ -432,9 +446,9 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
                         if (task.assignedTo != null)
                           ListTile(
                             leading: const Icon(Icons.person),
-                            title: const Text('مسند إلى'),
+                            title: Text(context.translate('assign_to')),
                             subtitle: Text(
-                              memberNames[task.assignedTo] ?? 'عضو',
+                              memberNames[task.assignedTo] ?? context.translate('member'),
                             ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
@@ -445,7 +459,7 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
                           const SizedBox(height: 8),
                           ListTile(
                             leading: const Icon(Icons.calendar_today),
-                            title: const Text('تاريخ الاستحقاق'),
+                            title: Text(context.translate('due_date')),
                             subtitle: Text(
                               '${task.dueDate!.day}/${task.dueDate!.month}/${task.dueDate!.year}',
                             ),
@@ -460,7 +474,7 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
                           ListTile(
                             leading: const Icon(Icons.check_circle,
                                 color: AppColors.success),
-                            title: const Text('تم الإكمال'),
+                            title: Text(context.translate('completed')),
                             subtitle: Text(
                               task.completedAt != null
                                   ? '${task.completedAt!.day}/${task.completedAt!.month}/${task.completedAt!.year}'
@@ -484,8 +498,8 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
                             ),
                             label: Text(
                               task.isCompleted
-                                  ? 'إرجاع المهمة'
-                                  : 'إكمال المهمة',
+                                  ? context.translate('undo_task')
+                                  : context.translate('complete_task'),
                             ),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: task.isCompleted
@@ -510,11 +524,11 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => BeityEmptyState(
-          title: 'عذراً، حدث خطأ',
-          message: error.toString(),
+          title: context.translate('error_occurred'),
+          message: ErrorFormatter.format(error, context),
           icon: Icons.error_outline_rounded,
           isError: true,
-          actionText: 'إعادة المحاولة',
+          actionText: context.translate('retry'),
           onAction: () => ref.invalidate(taskByIdProvider(widget.taskId)),
         ),
       ),

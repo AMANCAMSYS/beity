@@ -9,7 +9,7 @@ class GetShoppingItemsUseCase {
   Future<List<ShoppingItemModel>> call({
     required String listId,
   }) async {
-    return await _repository.getShoppingItems(listId: listId);
+    return _repository.getShoppingItems(listId: listId);
   }
 
   Stream<List<ShoppingItemModel>> watch({

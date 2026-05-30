@@ -1,4 +1,5 @@
 import 'package:beity/app/theme/app_colors.dart';
+import 'package:beity/core/services/supabase_service.dart';
 import 'package:beity/app/theme/app_spacing.dart';
 import 'package:beity/shared/widgets/design_system/beity_empty_state.dart';
 import 'package:beity/shared/widgets/design_system/beity_filter_chips.dart';
@@ -15,12 +16,17 @@ import '../../../shopping_lists/domain/usecases/mark_item_purchased_usecase.dart
 import '../../../categories/presentation/providers/units_provider.dart';
 import '../../../categories/presentation/providers/categories_provider.dart';
 import '../../../inventory/presentation/providers/inventory_provider.dart';
+import '../../../inventory/domain/usecases/add_purchased_to_inventory_usecase.dart';
 import '../widgets/shopping_category_group.dart';
 import '../widgets/shopping_progress_bar.dart';
 import '../widgets/shopping_quick_add_overlay.dart';
 import '../../../beta/data/beta_config.dart';
 import '../../../beta/presentation/satisfaction_survey_dialog.dart';
 import '../../../../core/monitoring/monitoring_service.dart';
+import '../../../../core/localization/app_localizations.dart';
+import '../../../shopping_lists/data/models/shopping_item_model.dart';
+import 'package:beity/features/settings/presentation/providers/app_settings_provider.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 class ShoppingModeScreen extends ConsumerStatefulWidget {
   final String listId;
@@ -49,16 +55,34 @@ class _ShoppingModeScreenState extends ConsumerState<ShoppingModeScreen> {
   void initState() {
     super.initState();
     _startSession();
+    
+    // Request screen wake lock if setting is enabled to prevent sleep during shopping
+    try {
+      final keepScreenOn = ref.read(appSettingsProvider).keepScreenOn;
+      if (keepScreenOn) {
+        WakelockPlus.enable();
+      }
+    } catch (e) {
+      debugPrint('Wakelock enable failed: $e');
+      MonitoringService().log('Wakelock enable failed: $e');
+    }
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    // Safely disable wake lock when leaving shopping mode to restore normal battery saving
+    try {
+      WakelockPlus.disable();
+    } catch (e) {
+      debugPrint('Wakelock disable failed: $e');
+      MonitoringService().log('Wakelock disable failed: $e');
+    }
     super.dispose();
   }
 
   Future<void> _startSession() async {
-    final currentUser = Supabase.instance.client.auth.currentUser;
+    final currentUser = SupabaseService.client.auth.currentUser;
     if (currentUser == null) return;
 
     final itemsAsync = ref.read(shoppingItemsProvider(widget.listId));
@@ -96,7 +120,6 @@ class _ShoppingModeScreenState extends ConsumerState<ShoppingModeScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
     final shoppingMode = ref.watch(shoppingModeProvider);
     final groupsAsync =
         ref.watch(shoppingModeItemsProvider((listId: widget.listId, homeId: widget.homeId)));
@@ -128,12 +151,12 @@ class _ShoppingModeScreenState extends ConsumerState<ShoppingModeScreen> {
                 }
               });
             },
-            tooltip: isArabic ? 'بحث' : 'Search',
+            tooltip: context.translate('search'),
           ),
           IconButton(
             icon: const Icon(Icons.close),
-            onPressed: () => ActionDebouncer.execute(() async => _showExitConfirmation(context, isArabic)),
-            tooltip: isArabic ? 'خروج' : 'Exit',
+            onPressed: () => ActionDebouncer.execute(() async => _showExitConfirmation(context)),
+            tooltip: context.translate('exit'),
           ),
         ],
       ),
@@ -151,7 +174,7 @@ class _ShoppingModeScreenState extends ConsumerState<ShoppingModeScreen> {
               child: TextField(
                 controller: _searchController,
                 decoration: InputDecoration(
-                  hintText: isArabic ? 'بحث في المنتجات...' : 'Search items...',
+                  hintText: context.translate('search_items_placeholder'),
                   prefixIcon: const Icon(Icons.search),
                   suffixIcon: _searchQuery.isNotEmpty
                       ? IconButton(
@@ -179,8 +202,8 @@ class _ShoppingModeScreenState extends ConsumerState<ShoppingModeScreen> {
           categoriesAsync.when(
             data: (categories) {
               final labels = [
-                isArabic ? 'الكل' : 'All',
-                ...categories.map((c) => c.name == 'Other' ? (isArabic ? 'أخرى' : 'Other') : c.name),
+                context.translate('all'),
+                ...categories.map((c) => c.name == 'Other' ? context.translate('other') : c.name),
               ];
               final selectedIndex = _filterCategoryId == null
                   ? 0
@@ -197,7 +220,7 @@ class _ShoppingModeScreenState extends ConsumerState<ShoppingModeScreen> {
               );
             },
             loading: () => const SizedBox.shrink(),
-            error: (_, __) => const SizedBox.shrink(),
+            error: (e, s) => const SizedBox.shrink(),
           ),
           // Items list
           Expanded(
@@ -233,22 +256,18 @@ class _ShoppingModeScreenState extends ConsumerState<ShoppingModeScreen> {
                 if (filteredGroups.isEmpty) {
                   return BeityEmptyState(
                     title: _searchQuery.isNotEmpty
-                        ? (isArabic ? 'لا توجد نتائج للبحث' : 'No results found')
+                        ? context.translate('no_results_found')
                         : _filterCategoryId != null
-                            ? (isArabic ? 'لا توجد منتجات في هذا التصنيف' : 'No items in this category')
-                            : (isArabic ? 'لا توجد منتجات في القائمة' : 'No items in list'),
+                            ? context.translate('no_items_in_category')
+                            : context.translate('no_items_in_list'),
                     message: _searchQuery.isNotEmpty || _filterCategoryId != null
-                        ? (isArabic 
-                            ? 'جرب تغيير خيارات التصفية أو مسحها للوصول لما تبحث عنه'
-                            : 'Try changing your filters or clear them to find what you are looking for')
-                        : (isArabic 
-                            ? 'ابدأ بإضافة منتجات للقائمة لتظهر هنا'
-                            : 'Start adding items to the list to see them here'),
+                        ? context.translate('filter_msg_adjust')
+                        : context.translate('filter_msg_empty'),
                     icon: _searchQuery.isNotEmpty || _filterCategoryId != null
                         ? Icons.search_off_rounded
                         : Icons.shopping_cart_outlined,
                     actionText: _searchQuery.isNotEmpty || _filterCategoryId != null
-                        ? (isArabic ? 'مسح الفلاتر' : 'Clear Filters')
+                        ? context.translate('clear_filters')
                         : null,
                     onAction: _searchQuery.isNotEmpty || _filterCategoryId != null
                         ? () {
@@ -284,11 +303,11 @@ class _ShoppingModeScreenState extends ConsumerState<ShoppingModeScreen> {
               },
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (error, stack) => BeityEmptyState(
-                title: isArabic ? 'عذراً، حدث خطأ' : 'Error occurred',
+                title: context.translate('error_title'),
                 message: error.toString(),
                 icon: Icons.error_outline_rounded,
                 isError: true,
-                actionText: isArabic ? 'إعادة المحاولة' : 'Retry',
+                actionText: context.translate('retry'),
                 onAction: () => ref.invalidate(shoppingItemsProvider(widget.listId)),
               ),
             ),
@@ -318,16 +337,16 @@ class _ShoppingModeScreenState extends ConsumerState<ShoppingModeScreen> {
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.lg),
           child: FilledButton(
-            onPressed: () => ActionDebouncer.execute(() async => _showExitConfirmation(context, isArabic)),
+            onPressed: () => ActionDebouncer.execute(() async => _showExitConfirmation(context)),
             style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
-            child: Text(isArabic ? 'إنهاء التسوق' : 'Done Shopping'),
+            child: Text(context.translate('done_shopping')),
           ),
         ),
       ),
     );
   }
 
-  void _showExitConfirmation(BuildContext context, bool isArabic) {
+  void _showExitConfirmation(BuildContext context) {
     final purchasedCount =
         ref.read(shoppingModePurchasedCountProvider(widget.listId));
     final totalCount =
@@ -338,39 +357,39 @@ class _ShoppingModeScreenState extends ConsumerState<ShoppingModeScreen> {
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
-          title: Text(isArabic ? 'الخروج من وضع التسوق؟' : 'Exit Shopping Mode?'),
-          content: Text(isArabic
-              ? 'لا يزال لديك $unpurchasedCount عناصر غير مشتراة. هل أنت متأكد من الخروج؟'
-              : 'You still have $unpurchasedCount unpurchased items. Are you sure you want to exit?'),
+          title: Text(context.translate('exit_shopping_mode_question')),
+          content: Text(context.translate('exit_shopping_mode_warning', arguments: {
+            'count': unpurchasedCount.toString(),
+          })),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text(isArabic ? 'إلغاء' : 'Cancel'),
+              child: Text(context.translate('cancel')),
             ),
             FilledButton(
               onPressed: () {
                 Navigator.pop(context);
                 if (purchasedCount > 0) {
-                  _showInventoryTransferDialog(isArabic);
+                  _showInventoryTransferDialog();
                 } else {
-                  _exitShoppingMode(isArabic);
+                  _exitShoppingMode();
                 }
               },
-              child: Text(isArabic ? 'خروج' : 'Exit'),
+              child: Text(context.translate('exit')),
             ),
           ],
         ),
       );
     } else {
       if (purchasedCount > 0) {
-        _showInventoryTransferDialog(isArabic);
+        _showInventoryTransferDialog();
       } else {
-        _exitShoppingMode(isArabic);
+        _exitShoppingMode();
       }
     }
   }
 
-  Future<void> _exitShoppingMode(bool isArabic) async {
+  Future<void> _exitShoppingMode() async {
     final stopwatch = Stopwatch()..start();
     
     final shoppingMode = ref.read(shoppingModeProvider);
@@ -402,30 +421,30 @@ class _ShoppingModeScreenState extends ConsumerState<ShoppingModeScreen> {
     }
   }
 
-  void _showInventoryTransferDialog(bool isArabic) {
+  void _showInventoryTransferDialog() {
     final itemsAsync = ref.read(shoppingItemsProvider(widget.listId));
     final purchasedItems = itemsAsync.when(
       data: (items) => items.where((i) => i.isPurchased).toList(),
-      loading: () => [],
-      error: (_, __) => [],
+      loading: () => <ShoppingItemModel>[],
+      error: (e, s) => <ShoppingItemModel>[],
     );
 
     if (purchasedItems.isEmpty) {
-      _exitShoppingMode(isArabic);
+      _exitShoppingMode();
       return;
     }
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(isArabic ? 'إضافة إلى المخزون؟' : 'Add to Inventory?'),
+        title: Text(context.translate('add_to_inventory_question')),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(isArabic
-              ? 'هل تريد إضافة ${purchasedItems.length} عنصر مشترى إلى المخزون؟'
-              : 'Do you want to add ${purchasedItems.length} purchased items to inventory?'),
+            Text(context.translate('add_to_inventory_msg', arguments: {
+              'count': purchasedItems.length.toString(),
+            })),
             const SizedBox(height: 12),
             ...purchasedItems.take(5).map((item) => Padding(
               padding: const EdgeInsets.only(bottom: 4),
@@ -446,7 +465,7 @@ class _ShoppingModeScreenState extends ConsumerState<ShoppingModeScreen> {
                             : item.quantity.toStringAsFixed(1);
                         
                         final displayQty = unitName != null && unitName.isNotEmpty 
-                            ? (isArabic ? '$qty $unitName' : '$qty $unitName')
+                            ? '$qty $unitName'
                             : qty;
                             
                         return Text('${item.name} ($displayQty)');
@@ -458,7 +477,9 @@ class _ShoppingModeScreenState extends ConsumerState<ShoppingModeScreen> {
             )),
             if (purchasedItems.length > 5)
               Text(
-                isArabic ? 'و ${purchasedItems.length - 5} عناصر أخرى...' : 'and ${purchasedItems.length - 5} more items...',
+                context.translate('and_more_items', arguments: {
+                  'count': (purchasedItems.length - 5).toString(),
+                }),
                 style: TextStyle(color: Colors.grey[600], fontSize: 12),
               ),
           ],
@@ -467,41 +488,53 @@ class _ShoppingModeScreenState extends ConsumerState<ShoppingModeScreen> {
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              _exitShoppingMode(isArabic);
+              _exitShoppingMode();
             },
-            child: Text(isArabic ? 'تخطي' : 'Skip'),
+            child: Text(context.translate('skip')),
           ),
           FilledButton.icon(
             onPressed: () => ActionDebouncer.execute(() async {
               Navigator.pop(context);
-              _transferToInventory(purchasedItems, isArabic);
+              _transferToInventory(purchasedItems);
             }),
             icon: const Icon(Icons.inventory_2),
-            label: Text(isArabic ? 'إضافة للمخزون' : 'Add to Inventory'),
+            label: Text(context.translate('add_to_inventory')),
           ),
         ],
       ),
     );
   }
 
-  Future<void> _transferToInventory(List<dynamic> purchasedItems, bool isArabic) async {
+  Future<void> _transferToInventory(List<ShoppingItemModel> purchasedItems) async {
     final stopwatch = Stopwatch()..start();
+    
+    // Show a loading dialog during transfer
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
     final useCase = ref.read(addPurchasedToInventoryUseCaseProvider);
     int successCount = 0;
 
-    for (final item in purchasedItems) {
-      try {
-        await useCase.call(
-          homeId: widget.homeId,
-          name: item.name,
-          quantity: item.quantity,
-          unitId: item.unitId,
-          categoryId: item.categoryId,
-        );
-        successCount++;
-      } catch (e) {
-        await MonitoringService().log('Failed to transfer item to inventory: ${item.name} - $e');
-      }
+    try {
+      final inputs = purchasedItems.map((item) => PurchasedItemInput(
+        name: item.name,
+        quantity: item.quantity,
+        unitId: item.unitId,
+        categoryId: item.categoryId,
+      )).toList();
+
+      await useCase.callBatch(
+        homeId: widget.homeId,
+        items: inputs,
+      );
+      successCount = purchasedItems.length;
+    } catch (e) {
+      await MonitoringService().log('Failed to transfer batch of items to inventory: $e');
     }
 
     stopwatch.stop();
@@ -509,14 +542,20 @@ class _ShoppingModeScreenState extends ConsumerState<ShoppingModeScreen> {
       'Inventory transfer: $successCount/${purchasedItems.length} items in ${stopwatch.elapsedMilliseconds}ms',
     );
 
-    await _exitShoppingMode(isArabic);
+    if (mounted) {
+      Navigator.pop(context); // Dismiss the loading dialog
+    }
+
+    await _exitShoppingMode();
 
     if (mounted && successCount > 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(isArabic ? 'تم إضافة $successCount عنصر إلى المخزون' : 'Added $successCount items to inventory'),
+          content: Text(context.translate('added_to_inventory_success', arguments: {
+            'count': successCount.toString(),
+          })),
           action: SnackBarAction(
-            label: isArabic ? 'عرض المخزون' : 'View Inventory',
+            label: context.translate('view_inventory'),
             onPressed: () => context.push('/inventory'),
           ),
         ),

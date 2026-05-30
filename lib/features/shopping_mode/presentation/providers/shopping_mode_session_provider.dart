@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:beity/core/services/supabase_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../data/models/shopping_mode_session_model.dart';
 import '../../data/repositories/shopping_mode_repository.dart';
@@ -8,7 +9,7 @@ import '../../domain/usecases/end_shopping_session_usecase.dart';
 import '../../domain/usecases/get_active_session_usecase.dart';
 
 final shoppingModeRepositoryProvider = Provider<ShoppingModeRepository>((ref) {
-  final client = Supabase.instance.client;
+  final client = SupabaseService.client;
   return SupabaseShoppingModeRepository(client);
 });
 

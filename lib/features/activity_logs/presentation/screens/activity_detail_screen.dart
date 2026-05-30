@@ -3,6 +3,8 @@ import 'package:timeago/timeago.dart' as timeago;
 import '../../../../app/theme/app_colors.dart';
 import '../../data/models/activity_log_model.dart';
 import '../../domain/entities/activity_log.dart';
+import 'package:beity/core/localization/app_localizations.dart';
+import '../utils/activity_localizer.dart';
 
 class ActivityDetailScreen extends StatelessWidget {
   final ActivityLogModel log;
@@ -14,28 +16,25 @@ class ActivityDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('تفاصيل النشاط'),
-        ),
-        body: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(context),
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(context.translate('activity_details')),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildHeader(context),
+            const SizedBox(height: 24),
+            _buildActionSection(context),
+            if (log.metadata != null && log.metadata!.isNotEmpty) ...[
               const SizedBox(height: 24),
-              _buildActionSection(context),
-              if (log.metadata != null && log.metadata!.isNotEmpty) ...[
-                const SizedBox(height: 24),
-                _buildMetadataSection(context),
-              ],
-              const SizedBox(height: 24),
-              _buildTimestampSection(context),
+              _buildMetadataSection(context),
             ],
-          ),
+            const SizedBox(height: 24),
+            _buildTimestampSection(context),
+          ],
         ),
       ),
     );
@@ -59,14 +58,14 @@ class ActivityDetailScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    log.actorName ?? 'مستخدم',
+                    log.actorName ?? context.translate('user_label'),
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    log.entityType.displayName,
+                    log.entityType.getLocalizedName(context),
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: Colors.grey[600],
                         ),
@@ -89,7 +88,7 @@ class ActivityDetailScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'الإجراء',
+              context.translate('action'),
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
                     color: Colors.grey[600],
                     fontWeight: FontWeight.bold,
@@ -97,7 +96,7 @@ class ActivityDetailScreen extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              log.action.displayName,
+              log.action.getLocalizedName(context),
               style: Theme.of(context).textTheme.titleMedium,
             ),
             if (log.entityName != null) ...[
@@ -112,7 +111,7 @@ class ActivityDetailScreen extends StatelessWidget {
             ],
             const SizedBox(height: 12),
             Text(
-              log.actionDescription,
+              log.getLocalizedDescription(context),
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: Colors.grey[700],
                   ),
@@ -132,7 +131,7 @@ class ActivityDetailScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'التفاصيل',
+              context.translate('details'),
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
                     color: Colors.grey[600],
                     fontWeight: FontWeight.bold,
@@ -154,7 +153,7 @@ class ActivityDetailScreen extends StatelessWidget {
         metadata.containsKey('new_name')) {
       entries.add(_buildBeforeAfter(
         context,
-        label: 'الاسم',
+        label: context.translate('name'),
         before: metadata['old_name']?.toString() ?? '',
         after: metadata['new_name']?.toString() ?? '',
       ));
@@ -164,7 +163,7 @@ class ActivityDetailScreen extends StatelessWidget {
         metadata.containsKey('new_role')) {
       entries.add(_buildBeforeAfter(
         context,
-        label: 'الدور',
+        label: context.translate('role_label'),
         before: metadata['old_role']?.toString() ?? '',
         after: metadata['new_role']?.toString() ?? '',
       ));
@@ -181,7 +180,7 @@ class ActivityDetailScreen extends StatelessWidget {
         if (oldValues[key] != newValues[key]) {
           entries.add(_buildBeforeAfter(
             context,
-            label: _fieldNameToArabic(key),
+            label: _fieldNameToLocalized(context, key),
             before: oldValues[key]?.toString() ?? '',
             after: newValues[key]?.toString() ?? '',
           ));
@@ -192,7 +191,7 @@ class ActivityDetailScreen extends StatelessWidget {
     if (metadata.containsKey('list_name')) {
       entries.add(_buildInfoRow(
         context,
-        label: 'القائمة',
+        label: context.translate('shopping_lists'),
         value: metadata['list_name']?.toString() ?? '',
       ));
     }
@@ -200,7 +199,7 @@ class ActivityDetailScreen extends StatelessWidget {
     if (metadata.containsKey('member_name')) {
       entries.add(_buildInfoRow(
         context,
-        label: 'العضو',
+        label: context.translate('member'),
         value: metadata['member_name']?.toString() ?? '',
       ));
     }
@@ -234,7 +233,7 @@ class ActivityDetailScreen extends StatelessWidget {
                   ),
                   child: Text(
                     before,
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: AppColors.error,
                       decoration: TextDecoration.lineThrough,
                     ),
@@ -289,6 +288,7 @@ class ActivityDetailScreen extends StatelessWidget {
   }
 
   Widget _buildTimestampSection(BuildContext context) {
+    final localeCode = Localizations.localeOf(context).languageCode;
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
@@ -297,7 +297,7 @@ class ActivityDetailScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'الوقت',
+              context.translate('time'),
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
                     color: Colors.grey[600],
                     fontWeight: FontWeight.bold,
@@ -305,7 +305,7 @@ class ActivityDetailScreen extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              timeago.format(log.createdAt, locale: 'ar'),
+              timeago.format(log.createdAt, locale: localeCode),
               style: Theme.of(context).textTheme.bodyLarge,
             ),
             const SizedBox(height: 4),
@@ -326,18 +326,18 @@ class ActivityDetailScreen extends StatelessWidget {
         '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
   }
 
-  String _fieldNameToArabic(String field) {
+  String _fieldNameToLocalized(BuildContext context, String field) {
     switch (field) {
       case 'name':
-        return 'الاسم';
+        return context.translate('name');
       case 'quantity':
-        return 'الكمية';
+        return context.translate('quantity');
       case 'unit_id':
-        return 'الوحدة';
+        return context.translate('unit');
       case 'category_id':
-        return 'التصنيف';
+        return context.translate('category');
       case 'note':
-        return 'ملاحظة';
+        return context.translate('notes_optional');
       default:
         return field;
     }

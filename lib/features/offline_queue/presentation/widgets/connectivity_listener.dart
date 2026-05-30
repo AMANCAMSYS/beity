@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:beity/core/services/supabase_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/theme/app_colors.dart';
@@ -8,6 +9,7 @@ import '../providers/offline_queue_provider.dart';
 import '../../domain/usecases/sync_queue_usecase.dart';
 import '../../data/datasources/queue_action_executor.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../../core/services/sync_coordinator.dart';
 
 class ConnectivityListener extends ConsumerStatefulWidget {
   final Widget child;
@@ -46,7 +48,7 @@ class _ConnectivityListenerState extends ConsumerState<ConnectivityListener> {
   Future<void> _triggerSync() async {
     final repository = ref.read(offlineQueueRepositoryProvider);
     final connectivityRepository = ref.read(connectivityRepositoryProvider);
-    final client = Supabase.instance.client;
+    final client = SupabaseService.client;
     final executor = QueueActionExecutor(client);
 
     final syncUseCase = SyncQueueUseCase(
@@ -62,14 +64,11 @@ class _ConnectivityListenerState extends ConsumerState<ConnectivityListener> {
       Color backgroundColor;
 
       if (result.allSucceeded) {
-        message = 'تمت مزامنة ${result.successCount} عنصر بنجاح';
+        message = 'تمت مزامنة البيانات بنجاح';
         backgroundColor = AppColors.success;
-      } else if (result.failedCount > 0) {
-        message = 'فشلت مزامنة ${result.failedCount} عنصر';
-        backgroundColor = AppColors.error;
       } else {
-        message = 'تمت المزامنة';
-        backgroundColor = AppColors.info;
+        message = 'فشلت مزامنة بعض العناصر. سيتم إعادة المحاولة عند توفر اتصال مستقر';
+        backgroundColor = AppColors.error;
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -83,6 +82,9 @@ class _ConnectivityListenerState extends ConsumerState<ConnectivityListener> {
       // Refresh queue entries
       ref.invalidate(queueEntriesProvider(widget.homeId));
       ref.invalidate(pendingCountProvider(widget.homeId));
+
+      // Trigger a Delta Sync on all tables to pull updates for the home
+      ref.read(syncCoordinatorProvider.notifier).syncAll(widget.homeId, force: true);
     }
   }
 }

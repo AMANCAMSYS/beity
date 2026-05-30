@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'package:beity/core/services/shared_prefs_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/user_model.dart';
@@ -22,6 +24,9 @@ abstract class AuthRepository {
     String? fullName,
     String? phone,
     String? avatarUrl,
+    String? country,
+    String? dialect,
+    String? language,
   });
 
   Stream<AuthState> get authStateChanges;
@@ -62,7 +67,17 @@ class AuthRepositoryImpl implements AuthRepository {
           .eq('id', response.user!.id)
           .single();
 
-      return UserModel.fromJson(userProfile);
+      final model = UserModel.fromJson(userProfile);
+      
+      // Cache profile
+      try {
+        final prefs = AppPreferences.instance;
+        final cacheKey = '${response.user!.id}_cached_profile';
+        await prefs.setString(cacheKey, jsonEncode(model.toJson()));
+        await prefs.setString('last_logged_in_user_id', response.user!.id);
+      } catch (_) {}
+
+      return model;
     } on AuthException {
       rethrow;
     } on PostgrestException catch (e) {
@@ -93,7 +108,17 @@ class AuthRepositoryImpl implements AuthRepository {
           .eq('id', response.user!.id)
           .single();
 
-      return UserModel.fromJson(userProfile);
+      final model = UserModel.fromJson(userProfile);
+      
+      // Cache profile
+      try {
+        final prefs = AppPreferences.instance;
+        final cacheKey = '${response.user!.id}_cached_profile';
+        await prefs.setString(cacheKey, jsonEncode(model.toJson()));
+        await prefs.setString('last_logged_in_user_id', response.user!.id);
+      } catch (_) {}
+
+      return model;
     } on AuthException {
       rethrow;
     } catch (e) {
@@ -103,6 +128,10 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<void> signOut() async {
+    try {
+      final prefs = AppPreferences.instance;
+      await prefs.remove('last_logged_in_user_id');
+    } catch (_) {}
     await _client.auth.signOut();
   }
 
@@ -110,6 +139,7 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<UserModel?> getCurrentUser() async {
     final user = _client.auth.currentUser;
     if (user == null) return null;
+    final cacheKey = '${user.id}_cached_profile';
 
     try {
       final userProfile = await _client
@@ -118,9 +148,35 @@ class AuthRepositoryImpl implements AuthRepository {
           .eq('id', user.id)
           .single();
 
-      return UserModel.fromJson(userProfile);
+      final model = UserModel.fromJson(userProfile);
+      
+      // Cache profile
+      try {
+        final prefs = AppPreferences.instance;
+        await prefs.setString(cacheKey, jsonEncode(model.toJson()));
+        await prefs.setString('last_logged_in_user_id', user.id);
+      } catch (_) {}
+
+      return model;
     } catch (e) {
-      return null;
+      // Fallback to cache if offline/error
+      try {
+        final prefs = AppPreferences.instance;
+        final cached = prefs.getString(cacheKey);
+        if (cached != null) {
+          return UserModel.fromJson(jsonDecode(cached) as Map<String, dynamic>);
+        }
+      } catch (_) {}
+
+      // Fallback to auth metadata if profile is not cached yet
+      return UserModel(
+        id: user.id,
+        email: user.email ?? '',
+        fullName: user.userMetadata?['full_name'] as String? ?? 'مستخدم',
+        avatarUrl: user.userMetadata?['avatar_url'] as String?,
+        createdAt: DateTime.tryParse(user.createdAt) ?? DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
     }
   }
 
@@ -129,6 +185,9 @@ class AuthRepositoryImpl implements AuthRepository {
     String? fullName,
     String? phone,
     String? avatarUrl,
+    String? country,
+    String? dialect,
+    String? language,
   }) async {
     final user = _client.auth.currentUser;
     if (user == null) {
@@ -140,6 +199,9 @@ class AuthRepositoryImpl implements AuthRepository {
       if (fullName != null) updates['full_name'] = fullName;
       if (phone != null) updates['phone'] = phone;
       if (avatarUrl != null) updates['avatar_url'] = avatarUrl;
+      if (country != null) updates['country'] = country;
+      if (dialect != null) updates['dialect'] = dialect;
+      if (language != null) updates['language'] = language;
       updates['updated_at'] = DateTime.now().toIso8601String();
 
       final userProfile = await _client

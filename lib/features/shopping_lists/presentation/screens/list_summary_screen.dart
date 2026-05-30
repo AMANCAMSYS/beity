@@ -7,6 +7,7 @@ import '../providers/shopping_items_provider.dart';
 import '../providers/shopping_lists_provider.dart';
 import '../../domain/entities/shopping_item.dart';
 import '../../../categories/presentation/providers/categories_provider.dart';
+import '../../../../core/localization/app_localizations.dart';
 
 class ListSummaryScreen extends ConsumerWidget {
   final String listId;
@@ -18,7 +19,6 @@ class ListSummaryScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
     final listAsync = ref.watch(shoppingListByIdProvider(listId));
     final itemsAsync = ref.watch(shoppingItemsProvider(listId));
 
@@ -26,19 +26,19 @@ class ListSummaryScreen extends ConsumerWidget {
       appBar: AppBar(
         title: listAsync.when(
           data: (list) => Text(
-            isArabic ? 'ملخص: ${list?.name ?? ''}' : 'Summary: ${list?.name ?? ''}',
+            context.translate('summary_title', arguments: {'name': list?.name ?? ''}),
             style: const TextStyle(fontWeight: FontWeight.bold),
           ),
-          loading: () => Text(isArabic ? 'ملخص القائمة' : 'List Summary'),
-          error: (_, __) => Text(isArabic ? 'ملخص القائمة' : 'List Summary'),
+          loading: () => Text(context.translate('list_summary')),
+          error: (e, s) => Text(context.translate('list_summary')),
         ),
       ),
       body: itemsAsync.when(
         data: (items) {
           if (items.isEmpty) {
             return BeityEmptyState(
-              title: isArabic ? 'القائمة فارغة' : 'List is Empty',
-              message: isArabic ? 'لا توجد منتجات لعرض ملخص لها' : 'No items to show summary for',
+              title: context.translate('list_empty'),
+              message: context.translate('no_items_summary'),
               icon: Icons.summarize_outlined,
             );
           }
@@ -46,11 +46,11 @@ class ListSummaryScreen extends ConsumerWidget {
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => BeityEmptyState(
-          title: isArabic ? 'حدث خطأ' : 'An error occurred',
+          title: context.translate('error_title'),
           message: error.toString(),
           icon: Icons.error_outline_rounded,
           isError: true,
-          actionText: isArabic ? 'إعادة المحاولة' : 'Retry',
+          actionText: context.translate('retry'),
           onAction: () => ref.invalidate(shoppingItemsProvider(listId)),
         ),
       ),
@@ -58,7 +58,6 @@ class ListSummaryScreen extends ConsumerWidget {
   }
 
   Widget _buildSummary(BuildContext context, List<ShoppingItem> items) {
-    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
     final unpurchasedItems = items.where((i) => !i.isPurchased).toList();
     final purchasedItems = items.where((i) => i.isPurchased).toList();
     
@@ -81,20 +80,20 @@ class ListSummaryScreen extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildProgressCard(context, totalItems, purchasedCount, completionPercentage, isArabic),
+          _buildProgressCard(context, totalItems, purchasedCount, completionPercentage),
           AppSpacing.gapLG,
           if (totalPrice > 0) ...[
-            _buildPriceCard(context, totalPrice, purchasedTotal, isArabic),
+            _buildPriceCard(context, totalPrice, purchasedTotal),
             AppSpacing.gapLG,
           ],
-          _buildCategoryBreakdown(context, items, isArabic),
+          _buildCategoryBreakdown(context, items),
           AppSpacing.gapLG,
           if (unpurchasedItems.isNotEmpty) ...[
-            _buildItemsList(context, isArabic ? 'للشراء' : 'To Buy', unpurchasedItems, isArabic),
+            _buildItemsList(context, context.translate('to_buy'), unpurchasedItems),
             AppSpacing.gapLG,
           ],
           if (purchasedItems.isNotEmpty) ...[
-            _buildItemsList(context, isArabic ? 'تم شراؤها' : 'Purchased', purchasedItems, isArabic),
+            _buildItemsList(context, context.translate('purchased'), purchasedItems),
           ],
         ],
       ),
@@ -106,7 +105,6 @@ class ListSummaryScreen extends ConsumerWidget {
     int total,
     int purchased,
     int percentage,
-    bool isArabic,
   ) {
     return BeityCard(
       padding: const EdgeInsets.all(AppSpacing.lg),
@@ -116,7 +114,7 @@ class ListSummaryScreen extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                isArabic ? 'التقدم' : 'Progress',
+                context.translate('progress'),
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               Text(
@@ -138,9 +136,9 @@ class ListSummaryScreen extends ConsumerWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildStatItem(context, isArabic ? 'الإجمالي' : 'Total', '$total'),
-              _buildStatItem(context, isArabic ? 'تم شراؤها' : 'Purchased', '$purchased'),
-              _buildStatItem(context, isArabic ? 'متبقي' : 'Remaining', '${total - purchased}'),
+              _buildStatItem(context, context.translate('total'), '$total'),
+              _buildStatItem(context, context.translate('purchased'), '$purchased'),
+              _buildStatItem(context, context.translate('remaining'), '${total - purchased}'),
             ],
           ),
         ],
@@ -171,7 +169,6 @@ class ListSummaryScreen extends ConsumerWidget {
     BuildContext context,
     double total,
     double purchased,
-    bool isArabic,
   ) {
     final remaining = total - purchased;
 
@@ -181,16 +178,16 @@ class ListSummaryScreen extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            isArabic ? 'التكلفة التقديرية' : 'Estimated Cost',
+            context.translate('estimated_cost'),
             style: Theme.of(context).textTheme.titleMedium,
           ),
           AppSpacing.gapMD,
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildPriceItem(context, isArabic ? 'الإجمالي' : 'Total', total, isArabic),
-              _buildPriceItem(context, isArabic ? 'تم الشراء' : 'Purchased', purchased, isArabic),
-              _buildPriceItem(context, isArabic ? 'متبقي' : 'Remaining', remaining, isArabic),
+              _buildPriceItem(context, context.translate('total'), total),
+              _buildPriceItem(context, context.translate('purchased_cost'), purchased),
+              _buildPriceItem(context, context.translate('remaining'), remaining),
             ],
           ),
         ],
@@ -198,11 +195,11 @@ class ListSummaryScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildPriceItem(BuildContext context, String label, double amount, bool isArabic) {
+  Widget _buildPriceItem(BuildContext context, String label, double amount) {
     return Column(
       children: [
         Text(
-          isArabic ? '${amount.toStringAsFixed(2)} ر.س' : 'SAR ${amount.toStringAsFixed(2)}',
+          '${amount.toStringAsFixed(2)} ${context.translate('currency_symbol')}',
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
@@ -217,7 +214,7 @@ class ListSummaryScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildCategoryBreakdown(BuildContext context, List<ShoppingItem> items, bool isArabic) {
+  Widget _buildCategoryBreakdown(BuildContext context, List<ShoppingItem> items) {
     final categoryMap = <String?, List<ShoppingItem>>{};
     
     for (final item in items) {
@@ -236,7 +233,7 @@ class ListSummaryScreen extends ConsumerWidget {
         final categoryNames = <String, String>{};
         categoriesAsync.whenData((categories) {
           for (final cat in categories) {
-            categoryNames[cat.id] = cat.name == 'Other' ? (isArabic ? 'أخرى' : 'Other') : cat.name;
+            categoryNames[cat.id] = cat.name == 'Other' ? context.translate('other') : cat.name;
           }
         });
 
@@ -246,15 +243,15 @@ class ListSummaryScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                isArabic ? 'حسب التصنيف' : 'By Category',
+                context.translate('by_category'),
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               AppSpacing.gapMD,
               ...categoryMap.entries.map((entry) {
                 final categoryId = entry.key;
                 final categoryName = categoryId != null
-                    ? (categoryNames[categoryId] ?? (isArabic ? 'تصنيف غير معروف' : 'Unknown Category'))
-                    : (isArabic ? 'بدون تصنيف' : 'Uncategorized');
+                    ? (categoryNames[categoryId] ?? context.translate('unknown_category'))
+                    : context.translate('uncategorized');
                 final purchased = entry.value.where((i) => i.isPurchased).length;
                 return Padding(
                   padding: const EdgeInsets.only(bottom: AppSpacing.sm),
@@ -290,7 +287,6 @@ class ListSummaryScreen extends ConsumerWidget {
     BuildContext context,
     String title,
     List<ShoppingItem> items,
-    bool isArabic,
   ) {
     return BeityCard(
       padding: const EdgeInsets.all(AppSpacing.lg),
@@ -324,13 +320,15 @@ class ListSummaryScreen extends ConsumerWidget {
                   ),
                 ),
                 subtitle: item.quantity != 1 || item.unitId != null
-                    ? Text(isArabic 
-                        ? 'الكمية: ${item.quantity == item.quantity.roundToDouble() ? item.quantity.toInt().toString() : item.quantity.toStringAsFixed(1)}' 
-                        : 'Qty: ${item.quantity == item.quantity.roundToDouble() ? item.quantity.toInt().toString() : item.quantity.toStringAsFixed(1)}')
+                    ? Text(context.translate('qty_label', arguments: {
+                        'qty': item.quantity == item.quantity.roundToDouble() 
+                            ? item.quantity.toInt().toString() 
+                            : item.quantity.toStringAsFixed(1),
+                      }))
                     : null,
                 trailing: item.hasPrice
                     ? Text(
-                        item.formattedPrice,
+                        '${(item.price! * item.quantity).toStringAsFixed(2)} ${context.translate('currency_symbol')}',
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       )
                     : null,

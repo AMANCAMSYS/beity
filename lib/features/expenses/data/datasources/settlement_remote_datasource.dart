@@ -59,12 +59,15 @@ class SettlementRemoteDataSource {
       'p_home_id': homeId,
     });
 
-    return (response as List)
-        .map((json) => Balance(
-              memberA: json['member_a'] as String? ?? '',
-              memberB: json['member_b'] as String? ?? '',
-              netAmount: (json['net_amount'] as num?)?.toInt() ?? 0,
-            ))
+    return (response as List<dynamic>)
+        .map((json) {
+          final map = json as Map<String, dynamic>;
+          return Balance(
+            memberA: map['member_a'] as String? ?? '',
+            memberB: map['member_b'] as String? ?? '',
+            netAmount: (map['net_amount'] as num?)?.toInt() ?? 0,
+          );
+        })
         .toList();
   }
 

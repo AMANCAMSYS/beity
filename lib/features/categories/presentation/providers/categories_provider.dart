@@ -1,12 +1,21 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:beity/core/services/supabase_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
+import 'package:beity/core/services/sync_service.dart';
+import '../../data/datasources/category_local_datasource.dart';
 import '../../data/models/category_model.dart';
 import '../../data/repositories/category_repository.dart';
 import '../../data/repositories/supabase_category_repository.dart';
 
+final categoryLocalDataSourceProvider = Provider<CategoryLocalDataSource>((ref) {
+  return SharedPreferencesCategoryLocalDataSource();
+});
+
 final categoryRepositoryProvider = Provider<CategoryRepository>((ref) {
-  return SupabaseCategoryRepository(Supabase.instance.client);
+  final client = SupabaseService.client;
+  final localDataSource = ref.watch(categoryLocalDataSourceProvider);
+  final syncService = ref.watch(syncServiceProvider);
+  return SupabaseCategoryRepository(client, localDataSource, syncService);
 });
 
 final categoriesProvider = FutureProvider.family<List<CategoryModel>, String?>((ref, homeId) async {

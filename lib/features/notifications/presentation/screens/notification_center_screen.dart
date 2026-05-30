@@ -6,6 +6,7 @@ import '../../../../app/theme/app_colors.dart';
 import '../providers/notifications_provider.dart';
 import '../providers/unread_count_provider.dart';
 import '../widgets/notification_tile_widget.dart';
+import 'package:beity/core/localization/app_localizations.dart';
 
 class NotificationCenterScreen extends ConsumerWidget {
   const NotificationCenterScreen({super.key});
@@ -17,7 +18,7 @@ class NotificationCenterScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('الإشعارات'),
+        title: Text(context.translate('notifications')),
         actions: [
           unreadCount.whenOrNull(
                 data: (count) => count > 0
@@ -28,7 +29,7 @@ class NotificationCenterScreen extends ConsumerWidget {
                               .markAllAsRead();
                           ref.read(unreadCountProvider.notifier).reset();
                         },
-                        child: const Text('تحديد الكل كمقروء'),
+                        child: Text(context.translate('mark_all_read')),
                       )
                     : null,
               ) ??
@@ -43,11 +44,13 @@ class NotificationCenterScreen extends ConsumerWidget {
             children: [
               const Icon(Icons.error_outline, size: 48, color: AppColors.error),
               const SizedBox(height: 16),
-              Text('خطأ في تحميل الإشعارات: $error', textDirection: TextDirection.rtl),
+              Text(
+                context.translate('error_loading_notifications', arguments: {'error': error.toString()}),
+              ),
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () => ref.invalidate(notificationsProvider),
-                child: const Text('إعادة المحاولة'),
+                child: Text(context.translate('retry')),
               ),
             ],
           ),
@@ -62,12 +65,12 @@ class NotificationCenterScreen extends ConsumerWidget {
                       size: 64, color: Colors.grey[400]),
                   const SizedBox(height: 16),
                   Text(
-                    'لا توجد إشعارات بعد',
+                    context.translate('no_notifications_yet'),
                     style: TextStyle(fontSize: 16, color: Colors.grey[600]),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'ستظهر هنا الإشعارات عندما\nيقوم أحد بإضافة عناصر أو دعوتك',
+                    context.translate('notifications_empty_desc'),
                     textAlign: TextAlign.center,
                     style: TextStyle(color: Colors.grey[500]),
                   ),
@@ -112,7 +115,7 @@ class NotificationCenterScreen extends ConsumerWidget {
 
                     // Navigate to target
                     if (notification.targetRoute != null) {
-                      context.go(notification.targetRoute!);
+                      context.push(notification.targetRoute!);
                     }
                   },
                 );

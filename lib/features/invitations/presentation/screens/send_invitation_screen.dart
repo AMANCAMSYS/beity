@@ -7,6 +7,7 @@ import 'package:beity/shared/widgets/design_system/beity_button.dart';
 import 'package:beity/shared/widgets/design_system/beity_text_field.dart';
 import '../providers/invitations_provider.dart';
 import 'package:beity/core/utils/action_debouncer.dart';
+import '../../../../core/localization/app_localizations.dart';
 
 class SendInvitationScreen extends ConsumerStatefulWidget {
   final String homeId;
@@ -49,10 +50,9 @@ class _SendInvitationScreenState extends ConsumerState<SendInvitationScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text(
-              'تم إرسال الدعوة بنجاح',
-              textDirection: TextDirection.rtl,
+              context.translate('invitation_sent_success'),
             ),
             backgroundColor: AppColors.success,
           ),
@@ -65,7 +65,6 @@ class _SendInvitationScreenState extends ConsumerState<SendInvitationScreen> {
           SnackBar(
             content: Text(
               e.toString().replaceAll('Exception: ', ''),
-              textDirection: TextDirection.rtl,
             ),
             backgroundColor: AppColors.error,
           ),
@@ -84,7 +83,7 @@ class _SendInvitationScreenState extends ConsumerState<SendInvitationScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('دعوة عضو جديد'),
+        title: Text(context.translate('invite_new_member')),
         centerTitle: true,
       ),
       body: SingleChildScrollView(
@@ -112,7 +111,7 @@ class _SendInvitationScreenState extends ConsumerState<SendInvitationScreen> {
               ),
               AppSpacing.gapXL,
               Text(
-                'إضافة عضو إلى ${widget.homeName}',
+                context.translate('add_member_to_home', arguments: {'homeName': widget.homeName}),
                 textAlign: TextAlign.center,
                 style: theme.textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
@@ -120,7 +119,7 @@ class _SendInvitationScreenState extends ConsumerState<SendInvitationScreen> {
               ),
               AppSpacing.gapSM,
               Text(
-                'سيتم إرسال رابط دعوة إلى البريد الإلكتروني للمستخدم.',
+                context.translate('invitation_email_instruction'),
                 textAlign: TextAlign.center,
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
@@ -134,32 +133,32 @@ class _SendInvitationScreenState extends ConsumerState<SendInvitationScreen> {
                   children: [
                     BeityTextField(
                       controller: _emailController,
-                      labelText: 'البريد الإلكتروني',
+                      labelText: context.translate('email'),
                       hintText: 'example@email.com',
                       prefixIcon: Icons.email_rounded,
                       keyboardType: TextInputType.emailAddress,
                       textDirection: TextDirection.ltr,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'يرجى إدخال البريد الإلكتروني';
+                          return context.translate('email_required');
                         }
                         if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
                             .hasMatch(value)) {
-                          return 'البريد الإلكتروني غير صالح';
+                          return context.translate('email_invalid');
                         }
                         return null;
                       },
                     ),
                     AppSpacing.gapXL,
                     Text(
-                      'صلاحيات العضو',
+                      context.translate('member_permissions'),
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     AppSpacing.gapMD,
                     DropdownButtonFormField<String>(
-                      value: _selectedRole,
+                      initialValue: _selectedRole,
                       decoration: InputDecoration(
                         filled: true,
                         fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
@@ -169,10 +168,10 @@ class _SendInvitationScreenState extends ConsumerState<SendInvitationScreen> {
                         ),
                         prefixIcon: const Icon(Icons.security_rounded),
                       ),
-                      items: const [
-                        DropdownMenuItem(value: 'admin', child: Text('مدير')),
-                        DropdownMenuItem(value: 'member', child: Text('عضو')),
-                        DropdownMenuItem(value: 'viewer', child: Text('مشاهد')),
+                      items: [
+                        DropdownMenuItem(value: 'admin', child: Text(context.translate('admin'))),
+                        DropdownMenuItem(value: 'member', child: Text(context.translate('member'))),
+                        DropdownMenuItem(value: 'viewer', child: Text(context.translate('viewer'))),
                       ],
                       onChanged: (value) {
                         if (value != null) {
@@ -183,22 +182,22 @@ class _SendInvitationScreenState extends ConsumerState<SendInvitationScreen> {
                     AppSpacing.gapLG,
                     _buildRoleInfo(
                       context,
-                      'مدير',
-                      'يمكنه إدارة القوائم، إضافة وحذف الأعضاء وتعديل الأدوار.',
+                      context.translate('admin'),
+                      context.translate('role_desc_admin'),
                       Icons.admin_panel_settings_rounded,
                     ),
                     AppSpacing.gapSM,
                     _buildRoleInfo(
                       context,
-                      'عضو',
-                      'يمكنه إضافة وتعديل القوائم والمنتجات والمهام بشكل كامل.',
+                      context.translate('member'),
+                      context.translate('role_desc_member'),
                       Icons.person_rounded,
                     ),
                     AppSpacing.gapSM,
                     _buildRoleInfo(
                       context,
-                      'مشاهد',
-                      'يمكنه مشاهدة القوائم والمهام فقط دون القدرة على التعديل.',
+                      context.translate('viewer'),
+                      context.translate('role_desc_viewer'),
                       Icons.visibility_rounded,
                     ),
                   ],
@@ -207,7 +206,7 @@ class _SendInvitationScreenState extends ConsumerState<SendInvitationScreen> {
               AppSpacing.gapXXL,
               BeityButton(
                 onPressed: () => ActionDebouncer.execute(_sendInvitation),
-                text: 'إرسال الدعوة',
+                text: context.translate('send_invitation'),
                 isLoading: _isLoading,
                 type: BeityButtonType.primary,
                 icon: Icons.send_rounded,

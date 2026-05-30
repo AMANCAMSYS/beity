@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import 'package:beity/core/localization/app_localizations.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../shared/widgets/star_rating.dart';
 import '../data/beta_preferences.dart';
@@ -37,8 +37,8 @@ class _SatisfactionSurveyDialogState extends State<SatisfactionSurveyDialog> {
   Future<void> _submit() async {
     if (_rating == 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('يرجى اختيار تقييم'),
+        SnackBar(
+          content: Text(context.translate('please_rate')),
           backgroundColor: AppColors.warning,
         ),
       );

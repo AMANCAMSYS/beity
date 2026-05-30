@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:beity/core/localization/app_localizations.dart';
 
 class TaskTabs extends StatelessWidget {
   final int currentTab;
@@ -37,7 +38,7 @@ class TaskTabs extends StatelessWidget {
                   ),
                 ),
                 child: Text(
-                  'مهامي',
+                  context.translate('my_tasks'),
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontWeight: currentTab == 0
@@ -67,7 +68,7 @@ class TaskTabs extends StatelessWidget {
                   ),
                 ),
                 child: Text(
-                  'كل المهام',
+                  context.translate('all_tasks'),
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontWeight: currentTab == 1

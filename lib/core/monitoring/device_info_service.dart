@@ -28,7 +28,7 @@ class DeviceInfoService {
       platform = 'android';
     } else if (Platform.isIOS) {
       final ios = await _deviceInfo.iosInfo;
-      deviceModel = ios.utsname.machine ?? 'iPhone';
+      deviceModel = ios.utsname.machine;
       osVersion = 'iOS ${ios.systemVersion}';
       platform = 'ios';
     }

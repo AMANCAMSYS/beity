@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../providers/units_provider.dart';
 import '../widgets/unit_card_widget.dart';
+import 'package:beity/core/localization/app_localizations.dart';
 
 class UnitsListScreen extends ConsumerStatefulWidget {
   const UnitsListScreen({super.key});
@@ -22,10 +23,7 @@ class _UnitsListScreenState extends ConsumerState<UnitsListScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'وحدات القياس',
-          textDirection: TextDirection.rtl,
-        ),
+        title: Text(context.translate('units')),
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
@@ -43,15 +41,15 @@ class _UnitsListScreenState extends ConsumerState<UnitsListScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Row(
               children: [
-                _buildFilterChip(null, 'الكل'),
+                _buildFilterChip(null, context.translate('all')),
                 const SizedBox(width: 8),
-                _buildFilterChip('weight', 'وزن'),
+                _buildFilterChip('weight', context.translate('weight')),
                 const SizedBox(width: 8),
-                _buildFilterChip('volume', 'حجم'),
+                _buildFilterChip('volume', context.translate('volume')),
                 const SizedBox(width: 8),
-                _buildFilterChip('count', 'عدد'),
+                _buildFilterChip('count', context.translate('count')),
                 const SizedBox(width: 8),
-                _buildFilterChip('length', 'طول'),
+                _buildFilterChip('length', context.translate('length')),
               ],
             ),
           ),
@@ -71,25 +69,23 @@ class _UnitsListScreenState extends ConsumerState<UnitsListScreen> {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'لا توجد وحدات',
+                          context.translate('no_units'),
                           style: Theme.of(context)
                               .textTheme
                               .titleMedium
                               ?.copyWith(
                                 color: Colors.grey[600],
                               ),
-                          textDirection: TextDirection.rtl,
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'سيتم عرض وحدات القياس الافتراضية هنا',
+                          context.translate('default_units_desc'),
                           style: Theme.of(context)
                               .textTheme
                               .bodyMedium
                               ?.copyWith(
                                 color: Colors.grey[500],
                               ),
-                          textDirection: TextDirection.rtl,
                           textAlign: TextAlign.center,
                         ),
                       ],
@@ -116,13 +112,12 @@ class _UnitsListScreenState extends ConsumerState<UnitsListScreen> {
                         size: 48, color: AppColors.error),
                     const SizedBox(height: 16),
                     Text(
-                      'حدث خطأ أثناء تحميل الوحدات',
-                      textDirection: TextDirection.rtl,
+                      context.translate('error_loading_units_msg'),
                     ),
                     const SizedBox(height: 8),
                     ElevatedButton(
                       onPressed: () => ref.invalidate(unitsProvider),
-                      child: const Text('إعادة المحاولة'),
+                      child: Text(context.translate('retry')),
                     ),
                   ],
                 ),

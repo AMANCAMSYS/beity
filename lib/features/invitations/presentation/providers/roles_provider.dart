@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:beity/core/services/supabase_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../data/models/role_permission_model.dart';
@@ -7,7 +8,7 @@ import '../../data/repositories/supabase_role_repository.dart';
 import '../../../homes/data/models/home_member_model.dart';
 
 final roleRepositoryProvider = Provider<RoleRepository>((ref) {
-  return SupabaseRoleRepository(Supabase.instance.client);
+  return SupabaseRoleRepository(SupabaseService.client);
 });
 
 final homeMembersProvider = FutureProvider.family<List<HomeMemberModel>, String>((ref, homeId) async {

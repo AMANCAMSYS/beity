@@ -1,4 +1,4 @@
-import '../../../../core/error/exceptions.dart';
+import '../../../../core/errors/app_exception.dart';
 import '../../domain/entities/ai_suggestion.dart';
 import '../../domain/entities/ai_suggestion_request.dart';
 import '../../domain/repositories/ai_suggestion_repository.dart';
@@ -22,7 +22,7 @@ class AiSuggestionRepositoryImpl implements AiSuggestionRepository {
         rethrow;
       }
       // Wrap unexpected exceptions
-      throw ServerException('Failed to get AI suggestions: ${e.toString()}');
+      throw DatabaseException(message: 'Failed to get AI suggestions: ${e.toString()}');
     }
   }
 }

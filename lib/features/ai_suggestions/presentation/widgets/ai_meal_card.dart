@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../domain/entities/ai_meal.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_spacing.dart';
+import '../../../../core/widgets/beity_cached_image.dart';
 
 /// Card widget displaying a single meal suggestion.
 class AiMealCard extends StatelessWidget {
@@ -48,17 +49,15 @@ class AiMealCard extends StatelessWidget {
               borderRadius: const BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusLg)),
               child: AspectRatio(
                 aspectRatio: 16 / 9,
-                child: Image.network(
-                  'https://tse2.mm.bing.net/th?q=${Uri.encodeComponent('${meal.name} food recipe')}&w=600&h=400&c=7&rs=1&p=0',
+                child: BeityCachedImage(
+                  imageUrl: 'https://tse2.mm.bing.net/th?q=${Uri.encodeComponent('${meal.name} food recipe')}&w=600&h=400&c=7&rs=1&p=0',
                   fit: BoxFit.cover,
-                  loadingBuilder: (context, child, loadingProgress) {
-                    if (loadingProgress == null) return child;
-                    return Container(
-                      color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade100,
-                      child: const Center(child: Icon(Icons.restaurant_rounded, color: Colors.grey, size: 30)),
-                    );
-                  },
-                  errorBuilder: (context, error, stackTrace) => Container(
+                  backgroundColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade100,
+                  placeholder: Container(
+                    color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade100,
+                    child: const Center(child: Icon(Icons.restaurant_rounded, color: Colors.grey, size: 30)),
+                  ),
+                  errorWidget: Container(
                     color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade100,
                     child: const Center(child: Icon(Icons.restaurant_rounded, color: Colors.grey, size: 30)),
                   ),
@@ -98,7 +97,7 @@ class AiMealCard extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
               child: Row(
                 children: [
-                  _metaChip(Icons.timer_outlined, '${meal.estimatedTimeMinutes} ${isArabic ? 'د' : 'min'}', isDark),
+                  _metaChip(Icons.timer_outlined, '${meal.estimatedTimeMinutes} ${context.translate('minutes_short')}', isDark),
                   const SizedBox(width: 8),
                   if (meal.difficulty.isNotEmpty)
                     _metaChip(Icons.signal_cellular_alt_rounded, meal.difficulty, isDark),
@@ -121,7 +120,7 @@ class AiMealCard extends StatelessWidget {
                       color: AppColors.primary.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Text(tag, style: TextStyle(fontSize: 11, color: AppColors.primary, fontWeight: FontWeight.w500)),
+                    child: Text(tag, style: const TextStyle(fontSize: 11, color: AppColors.primary, fontWeight: FontWeight.w500)),
                   )).toList(),
                 ),
               ),
@@ -145,12 +144,12 @@ class AiMealCard extends StatelessWidget {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.lightbulb_outline_rounded, size: 14, color: AppColors.accent),
+                    const Icon(Icons.lightbulb_outline_rounded, size: 14, color: AppColors.accent),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         meal.whyThisMeal,
-                        style: TextStyle(fontSize: 12, color: AppColors.accent, fontStyle: FontStyle.italic),
+                        style: const TextStyle(fontSize: 12, color: AppColors.accent, fontStyle: FontStyle.italic),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -168,10 +167,10 @@ class AiMealCard extends StatelessWidget {
                   children: [
                     if (availableIngredients.isNotEmpty)
                       _pantryRow(Icons.check_circle_outline, AppColors.success, 
-                        '${isArabic ? 'متوفر' : 'Available'}: ${availableIngredients.join('، ')}', isDark),
+                        '${context.translate('available')}: ${availableIngredients.join('، ')}', isDark),
                     if (missingIngredients.isNotEmpty)
                       _pantryRow(Icons.add_circle_outline, AppColors.warning, 
-                        '${isArabic ? 'ناقص' : 'Missing'}: ${missingIngredients.join('، ')}', isDark),
+                        '${context.translate('missing')}: ${missingIngredients.join('، ')}', isDark),
                   ],
                 ),
               ),
@@ -184,7 +183,7 @@ class AiMealCard extends StatelessWidget {
                 child: OutlinedButton.icon(
                   onPressed: onShowIngredients,
                   icon: const Icon(Icons.list_alt_rounded, size: 18),
-                  label: Text(isArabic ? 'عرض المكونات' : 'Show Ingredients'),
+                  label: Text(context.translate('show_ingredients')),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.primary,
                     side: BorderSide(color: AppColors.primary.withValues(alpha: 0.3)),

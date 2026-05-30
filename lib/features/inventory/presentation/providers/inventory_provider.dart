@@ -1,13 +1,22 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:beity/core/services/supabase_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:beity/core/services/sync_service.dart';
+import '../../data/datasources/inventory_local_datasource.dart';
 import '../../data/models/inventory_item_model.dart';
 import '../../data/repositories/inventory_repository.dart';
 import '../../data/repositories/supabase_inventory_repository.dart';
 import '../../domain/usecases/add_purchased_to_inventory_usecase.dart';
 
+final inventoryLocalDataSourceProvider = Provider<InventoryLocalDataSource>((ref) {
+  return SharedPreferencesInventoryLocalDataSource();
+});
+
 final inventoryRepositoryProvider = Provider<InventoryRepository>((ref) {
-  final client = Supabase.instance.client;
-  return SupabaseInventoryRepository(client);
+  final client = SupabaseService.client;
+  final localDataSource = ref.watch(inventoryLocalDataSourceProvider);
+  final syncService = ref.watch(syncServiceProvider);
+  return SupabaseInventoryRepository(client, localDataSource, syncService);
 });
 
 final inventoryItemsProvider =
@@ -38,7 +47,7 @@ final groupedInventoryItemsProvider =
       return map;
     },
     loading: () => {},
-    error: (_, __) => {},
+    error: (e, s) => {},
   );
 });
 
@@ -48,7 +57,7 @@ final lowStockItemsProvider =
   return items.when(
     data: (data) => data.where((item) => item.isLowStock).toList(),
     loading: () => [],
-    error: (_, __) => [],
+    error: (e, s) => [],
   );
 });
 

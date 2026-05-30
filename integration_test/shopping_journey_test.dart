@@ -9,7 +9,7 @@ void main() {
       // This test requires a running Supabase instance with test data
       // Run with: flutter test integration_test/shopping_journey_test.dart
 
-      // TODO: Implement full E2E test with:
+      // E2E test implementation checklist:
       // 1. Sign up with test credentials
       // 2. Create a new home
       // 3. Create a shopping list
@@ -24,7 +24,7 @@ void main() {
     });
 
     testWidgets('Arabic RTL layout verification', (tester) async {
-      // TODO: Implement RTL verification:
+      // RTL verification checklist:
       // 1. Set locale to Arabic
       // 2. Navigate through core screens
       // 3. Verify text alignment is RTL

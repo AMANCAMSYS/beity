@@ -6,10 +6,13 @@ class AiAssistantRequest {
   final String language;
 
   // Optional context
+  final String? homeId;
+  final String? listId;
   final String? homeType;
   final String? listTitle;
   final List<String> existingShoppingItems;
   final List<String> inventoryItems;
+  final Map<String, String> userTerms;
   final int? servings;
   final String? preferredCuisine;
   final String? dietaryPreference;
@@ -23,15 +26,20 @@ class AiAssistantRequest {
   final String? occasion;
   final String? mealType;
   final String? cookingSkillLevel;
+  final String? country;
+  final String? dialect;
 
   const AiAssistantRequest({
     required this.mode,
     required this.userPrompt,
     required this.language,
+    this.homeId,
+    this.listId,
     this.homeType,
     this.listTitle,
     this.existingShoppingItems = const [],
     this.inventoryItems = const [],
+    this.userTerms = const {},
     this.servings,
     this.preferredCuisine,
     this.dietaryPreference,
@@ -45,6 +53,8 @@ class AiAssistantRequest {
     this.occasion,
     this.mealType,
     this.cookingSkillLevel,
+    this.country,
+    this.dialect,
   });
 
   List<String> validate() {
@@ -57,7 +67,7 @@ class AiAssistantRequest {
       errors.add('النص طويل جدًا (الحد الأقصى 500 حرف)');
     }
 
-    if (language != 'ar' && language != 'en') {
+    if (language != 'ar' && language != 'en' && language != 'tr') {
       errors.add('اللغة غير مدعومة');
     }
 

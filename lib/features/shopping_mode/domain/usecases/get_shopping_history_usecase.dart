@@ -10,7 +10,7 @@ class GetShoppingHistoryUseCase {
     required String userId,
     int limit = 20,
   }) async {
-    return await _repository.getShoppingHistory(
+    return _repository.getShoppingHistory(
       userId: userId,
       limit: limit,
     );

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../shopping_lists/presentation/providers/shopping_items_provider.dart';
@@ -21,22 +22,33 @@ class ShoppingQuickAddOverlay extends ConsumerStatefulWidget {
       _ShoppingQuickAddOverlayState();
 }
 
+
+
 class _ShoppingQuickAddOverlayState
     extends ConsumerState<ShoppingQuickAddOverlay> {
   final _controller = TextEditingController();
   final _focusNode = FocusNode();
   bool _keepOpen = true;
   List<AutocompleteSuggestion> _suggestions = [];
+  Timer? _debounceTimer;
 
   @override
   void dispose() {
+    _debounceTimer?.cancel();
     _controller.dispose();
     _focusNode.dispose();
     super.dispose();
   }
 
+  void _onTextChanged(String query) {
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 300), () {
+      _updateSuggestions(query);
+    });
+  }
+
   Future<void> _updateSuggestions(String query) async {
-    if (query.length < 2) {
+    if (query.trim().length < 2) {
       setState(() => _suggestions = []);
       return;
     }
@@ -103,7 +115,7 @@ class _ShoppingQuickAddOverlayState
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  isArabic ? 'إضافة سريعة' : 'Quick Add',
+                  context.translate('quick_add'),
                   style: theme.textTheme.titleLarge,
                 ),
                 const SizedBox(height: 16),
@@ -114,7 +126,7 @@ class _ShoppingQuickAddOverlayState
                   autofocus: true,
                   style: const TextStyle(fontSize: 18),
                   decoration: InputDecoration(
-                    hintText: isArabic ? 'اسم العنصر...' : 'Item name...',
+                    hintText: context.translate('item_name_placeholder'),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -126,7 +138,7 @@ class _ShoppingQuickAddOverlayState
                       },
                     ),
                   ),
-                  onChanged: _updateSuggestions,
+                  onChanged: _onTextChanged,
                   onSubmitted: _addItem,
                 ),
                 // Suggestions
@@ -152,11 +164,11 @@ class _ShoppingQuickAddOverlayState
                       onChanged: (value) =>
                           setState(() => _keepOpen = value ?? true),
                     ),
-                    Text(isArabic ? 'إضافة أخرى' : 'Add another'),
+                    Text(context.translate('add_another')),
                     const Spacer(),
                     FilledButton(
                       onPressed: () => _addItem(_controller.text),
-                      child: Text(isArabic ? 'إضافة' : 'Add'),
+                      child: Text(context.translate('add')),
                     ),
                   ],
                 ),

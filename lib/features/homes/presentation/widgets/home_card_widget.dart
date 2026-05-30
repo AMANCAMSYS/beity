@@ -22,7 +22,6 @@ class HomeCardWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final homeType = HomeType.fromValue(home.type);
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
     return BeityCard(
       onTap: onTap,

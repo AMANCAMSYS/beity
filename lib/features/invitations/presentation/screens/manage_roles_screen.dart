@@ -5,6 +5,7 @@ import '../../../../app/theme/app_colors.dart';
 import '../providers/roles_provider.dart';
 import '../widgets/role_selector_widget.dart';
 import '../../../homes/data/models/home_member_model.dart';
+import '../../../../core/localization/app_localizations.dart';
 
 class ManageRolesScreen extends ConsumerStatefulWidget {
   final String homeId;
@@ -28,17 +29,15 @@ class _ManageRolesScreenState extends ConsumerState<ManageRolesScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'إدارة الأعضاء',
-          textDirection: TextDirection.rtl,
+          context.translate('manage_members'),
         ),
       ),
       body: membersAsync.when(
         data: (members) {
           if (members.isEmpty) {
-            return const Center(
+            return Center(
               child: Text(
-                'لا يوجد أعضاء',
-                textDirection: TextDirection.rtl,
+                context.translate('no_members'),
               ),
             );
           }
@@ -55,8 +54,7 @@ class _ManageRolesScreenState extends ConsumerState<ManageRolesScreen> {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stack) => Center(
           child: Text(
-            'حدث خطأ: $error',
-            textDirection: TextDirection.rtl,
+            context.translate('error_occurred_with_details', arguments: {'error': error.toString()}),
           ),
         ),
       ),
@@ -83,9 +81,8 @@ class _ManageRolesScreenState extends ConsumerState<ManageRolesScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    member.userName ?? 'مستخدم',
+                    member.userName ?? context.translate('user'),
                     style: Theme.of(context).textTheme.titleMedium,
-                    textDirection: TextDirection.rtl,
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -105,9 +102,9 @@ class _ManageRolesScreenState extends ConsumerState<ManageRolesScreen> {
                   color: AppColors.warning.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Text(
-                  'مالك',
-                  style: TextStyle(
+                child: Text(
+                  context.translate('owner'),
+                  style: const TextStyle(
                     color: AppColors.warning,
                     fontWeight: FontWeight.bold,
                   ),
@@ -134,10 +131,9 @@ class _ManageRolesScreenState extends ConsumerState<ManageRolesScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text(
-              'تم تغيير الدور بنجاح',
-              textDirection: TextDirection.rtl,
+              context.translate('role_changed_success'),
             ),
             backgroundColor: AppColors.success,
           ),
@@ -149,7 +145,6 @@ class _ManageRolesScreenState extends ConsumerState<ManageRolesScreen> {
           SnackBar(
             content: Text(
               e.toString().replaceAll('Exception: ', ''),
-              textDirection: TextDirection.rtl,
             ),
             backgroundColor: AppColors.error,
           ),

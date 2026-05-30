@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:beity/app/theme/app_spacing.dart';
-import 'package:beity/app/theme/app_colors.dart';
 import 'package:beity/shared/widgets/design_system/beity_card.dart';
+import 'package:beity/core/localization/app_localizations.dart';
 import '../../domain/entities/expense.dart';
 import 'package:intl/intl.dart' as intl;
 
@@ -9,17 +9,14 @@ class ExpenseCard extends StatelessWidget {
   final Expense expense;
   final VoidCallback? onTap;
 
-  const ExpenseCard({
-    super.key,
-    required this.expense,
-    this.onTap,
-  });
+  const ExpenseCard({super.key, required this.expense, this.onTap});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
-    final dateFormat = intl.DateFormat.yMMMd(Localizations.localeOf(context).toString());
+    final dateFormat = intl.DateFormat.yMMMd(
+      Localizations.localeOf(context).toString(),
+    );
 
     return BeityCard(
       onTap: onTap,
@@ -52,8 +49,12 @@ class ExpenseCard extends StatelessWidget {
                   expense.description,
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
-                    decoration: expense.isCancelled ? TextDecoration.lineThrough : null,
-                    color: expense.isCancelled ? theme.colorScheme.outline : theme.colorScheme.onSurface,
+                    decoration: expense.isCancelled
+                        ? TextDecoration.lineThrough
+                        : null,
+                    color: expense.isCancelled
+                        ? theme.colorScheme.outline
+                        : theme.colorScheme.onSurface,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -73,23 +74,28 @@ class ExpenseCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                '${(expense.convertedAmount / 100).toStringAsFixed(2)} ${isArabic ? 'ر.س' : 'SAR'}',
+                '${(expense.convertedAmount / 100).toStringAsFixed(2)} ${context.translate('currency_symbol')}',
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: expense.isCancelled ? theme.colorScheme.outline : theme.colorScheme.primary,
+                  color: expense.isCancelled
+                      ? theme.colorScheme.outline
+                      : theme.colorScheme.primary,
                 ),
               ),
               if (expense.isCancelled)
                 Padding(
                   padding: const EdgeInsets.only(top: AppSpacing.xxs),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: theme.colorScheme.error.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
                     ),
                     child: Text(
-                      isArabic ? 'ملغي' : 'Cancelled',
+                      context.translate('cancelled'),
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: theme.colorScheme.error,
                         fontWeight: FontWeight.bold,

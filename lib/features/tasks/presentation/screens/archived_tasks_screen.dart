@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/task_providers.dart';
 import '../widgets/task_card.dart';
-import '../../../home/presentation/widgets/app_drawer.dart';
 import '../../../../shared/widgets/design_system/beity_empty_state.dart';
+import 'package:beity/core/localization/app_localizations.dart';
 
 class ArchivedTasksScreen extends ConsumerWidget {
   final String homeId;
@@ -19,9 +19,12 @@ class ArchivedTasksScreen extends ConsumerWidget {
     final repository = ref.watch(taskRepositoryProvider);
 
     return Scaffold(
-      drawer: const AppDrawer(),
       appBar: AppBar(
-        title: const Text('المهام المؤرشفة'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: Text(context.translate('archived_tasks')),
       ),
       body: FutureBuilder(
         future: repository.getTasks(
@@ -35,7 +38,7 @@ class ArchivedTasksScreen extends ConsumerWidget {
 
           if (snapshot.hasError) {
             return BeityEmptyState(
-              title: 'حدث خطأ',
+              title: context.translate('error_occurred'),
               message: snapshot.error.toString(),
               icon: Icons.error_outline_rounded,
               isError: true,
@@ -47,9 +50,9 @@ class ArchivedTasksScreen extends ConsumerWidget {
               tasks.where((t) => t.isArchived).toList();
 
           if (archivedTasks.isEmpty) {
-            return const BeityEmptyState(
-              title: 'لا توجد مهام مؤرشفة',
-              message: 'تُؤرشف المهام المكتملة تلقائياً بعد 7 أيام',
+            return BeityEmptyState(
+              title: context.translate('no_archived_tasks'),
+              message: context.translate('archived_tasks_desc'),
               icon: Icons.archive_outlined,
             );
           }

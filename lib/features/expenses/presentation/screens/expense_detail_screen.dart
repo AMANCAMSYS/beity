@@ -9,15 +9,16 @@ import 'package:beity/shared/widgets/design_system/beity_empty_state.dart';
 import '../providers/expense_providers.dart';
 import '../../domain/entities/expense.dart';
 import '../../domain/entities/expense_split.dart';
+import '../../../homes/data/models/home_member_model.dart';
+import '../../../homes/presentation/providers/homes_provider.dart';
 import '../../../../core/utils/action_debouncer.dart';
+import '../../../../core/localization/app_localizations.dart';
+import 'package:beity/core/errors/error_formatter.dart';
 
 class ExpenseDetailScreen extends ConsumerStatefulWidget {
   final String expenseId;
 
-  const ExpenseDetailScreen({
-    super.key,
-    required this.expenseId,
-  });
+  const ExpenseDetailScreen({super.key, required this.expenseId});
 
   @override
   ConsumerState<ExpenseDetailScreen> createState() =>
@@ -32,11 +33,17 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen> {
     final expenseAsync = ref.watch(expenseByIdProvider(widget.expenseId));
     final splitsAsync = ref.watch(expenseSplitsProvider(widget.expenseId));
     final theme = Theme.of(context);
-    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(isArabic ? 'تفاصيل المصروف' : 'Expense Details', style: const TextStyle(fontWeight: FontWeight.bold)),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: Text(
+          context.translate('expense_details'),
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.edit_rounded),
@@ -44,7 +51,9 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen> {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   behavior: SnackBarBehavior.floating,
-                  content: Text(isArabic ? 'ميزة تعديل المصروف ستتوفر قريباً' : 'Edit feature coming soon'),
+                  content: Text(
+                    context.translate('edit_feature_soon'),
+                  ),
                   backgroundColor: AppColors.info,
                 ),
               );
@@ -58,7 +67,9 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen> {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.delete_outline_rounded),
-            onPressed: _isDeleting ? null : () => _confirmDelete(context, isArabic),
+            onPressed: _isDeleting
+                ? null
+                : () => _confirmDelete(context),
           ),
         ],
       ),
@@ -66,12 +77,10 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen> {
         data: (expense) {
           if (expense == null) {
             return BeityEmptyState(
-              title: isArabic ? 'المصروف غير موجود' : 'Expense not found',
-              message: isArabic 
-                  ? 'عذراً، لا يمكن العثور على تفاصيل هذا المصروف حالياً' 
-                  : 'Sorry, we couldn\'t find the details for this expense at the moment',
+              title: context.translate('expense_not_found'),
+              message: context.translate('expense_not_found_desc'),
               icon: Icons.receipt_long_rounded,
-              actionText: isArabic ? 'العودة' : 'Go Back',
+              actionText: context.translate('go_back'),
               onAction: () => context.pop(),
             );
           }
@@ -79,26 +88,75 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen> {
           return ListView(
             padding: const EdgeInsets.all(AppSpacing.lg),
             children: [
-              _buildExpenseHeader(context, expense, isArabic, theme),
+              Consumer(
+                builder: (context, ref, _) {
+                  final membersAsync = ref.watch(
+                    homeMembersProvider(expense.homeId),
+                  );
+                  return _buildExpenseHeader(
+                    context,
+                    expense,
+                    membersAsync,
+                    theme,
+                  );
+                },
+              ),
               AppSpacing.gapLG,
-              _buildSplitsSection(context, splitsAsync, isArabic, theme),
+              Consumer(
+                builder: (context, ref, _) {
+                  final membersAsync = ref.watch(
+                    homeMembersProvider(expense.homeId),
+                  );
+                  return _buildSplitsSection(
+                    context,
+                    splitsAsync,
+                    membersAsync,
+                    theme,
+                  );
+                },
+              ),
             ],
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stack) => BeityEmptyState(
-          title: isArabic ? 'عذراً، حدث خطأ' : 'Sorry, an error occurred',
+          title: context.translate('error_title'),
           message: error.toString(),
           icon: Icons.error_outline_rounded,
           isError: true,
-          actionText: isArabic ? 'إعادة المحاولة' : 'Retry',
+          actionText: context.translate('retry'),
           onAction: () => ref.invalidate(expenseByIdProvider(widget.expenseId)),
         ),
       ),
     );
   }
 
-  Widget _buildExpenseHeader(BuildContext context, Expense expense, bool isArabic, ThemeData theme) {
+  Map<String, String> _memberNames(
+    List<HomeMemberModel> members,
+  ) {
+    return {
+      for (final member in members)
+        member.userId: (member.userName?.trim().isNotEmpty ?? false)
+            ? member.userName!.trim()
+            : ((member.userEmail?.trim().isNotEmpty ?? false)
+                  ? member.userEmail!.trim()
+                  : context.translate('member')),
+    };
+  }
+
+  Widget _buildExpenseHeader(
+    BuildContext context,
+    Expense expense,
+    AsyncValue<List<HomeMemberModel>> membersAsync,
+    ThemeData theme,
+  ) {
+    final memberNames = membersAsync.valueOrNull != null
+        ? _memberNames(membersAsync.valueOrNull!)
+        : const <String, String>{};
+    final payerName =
+        memberNames[expense.paidBy] ??
+        context.translate('member');
+
     return BeityCard(
       padding: const EdgeInsets.all(AppSpacing.xl),
       child: Column(
@@ -120,10 +178,12 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen> {
                     ),
                     AppSpacing.gapSM,
                     Text(
-                      '${(expense.convertedAmount / 100).toStringAsFixed(2)} ${isArabic ? 'ر.س' : 'SAR'}',
+                      '${(expense.convertedAmount / 100).toStringAsFixed(2)} ${context.translate('currency_symbol')}',
                       style: theme.textTheme.headlineMedium?.copyWith(
                         fontWeight: FontWeight.bold,
-                        color: expense.isCancelled ? theme.colorScheme.outline : AppColors.primary,
+                        color: expense.isCancelled
+                            ? theme.colorScheme.outline
+                            : AppColors.primary,
                       ),
                     ),
                   ],
@@ -131,19 +191,28 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen> {
               ),
               if (expense.isCancelled)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.sm,
+                    vertical: AppSpacing.xs,
+                  ),
                   decoration: BoxDecoration(
                     color: theme.colorScheme.error.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-                    border: Border.all(color: theme.colorScheme.error.withValues(alpha: 0.2)),
+                    border: Border.all(
+                      color: theme.colorScheme.error.withValues(alpha: 0.2),
+                    ),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.cancel_rounded, size: 14, color: theme.colorScheme.error),
+                      Icon(
+                        Icons.cancel_rounded,
+                        size: 14,
+                        color: theme.colorScheme.error,
+                      ),
                       AppSpacing.gapXXS,
                       Text(
-                        isArabic ? 'ملغي' : 'Cancelled',
+                        context.translate('cancelled'),
                         style: theme.textTheme.labelSmall?.copyWith(
                           color: theme.colorScheme.error,
                           fontWeight: FontWeight.bold,
@@ -159,28 +228,38 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen> {
           AppSpacing.gapXL,
           _buildDetailRow(
             Icons.calendar_today_rounded,
-            isArabic ? 'التاريخ' : 'Date',
+            context.translate('date'),
             '${expense.date.day}/${expense.date.month}/${expense.date.year}',
             theme,
           ),
           _buildDetailRow(
             Icons.info_outline_rounded,
-            isArabic ? 'الحالة' : 'Status',
-            expense.isCancelled ? (isArabic ? 'ملغي' : 'Cancelled') : (isArabic ? 'نشط' : 'Active'),
+            context.translate('status'),
+            expense.isCancelled
+                ? context.translate('cancelled')
+                : context.translate('active'),
             theme,
-            color: expense.isCancelled ? theme.colorScheme.error : AppColors.success,
+            color: expense.isCancelled
+                ? theme.colorScheme.error
+                : AppColors.success,
+          ),
+          _buildDetailRow(
+            Icons.account_circle_rounded,
+            context.translate('paid_by_label'),
+            payerName,
+            theme,
           ),
           if (expense.categoryId != null)
             _buildDetailRow(
               Icons.category_rounded,
-              isArabic ? 'الفئة' : 'Category',
-              isArabic ? 'تصنيف' : 'Category',
+              context.translate('category_label'),
+              context.translate('category'),
               theme,
             ),
           if (expense.currencyCode != 'SAR')
             _buildDetailRow(
               Icons.currency_exchange_rounded,
-              isArabic ? 'العملة الأصلية' : 'Original Currency',
+              context.translate('original_currency'),
               expense.currencyCode,
               theme,
             ),
@@ -189,7 +268,13 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen> {
     );
   }
 
-  Widget _buildDetailRow(IconData icon, String label, String value, ThemeData theme, {Color? color}) {
+  Widget _buildDetailRow(
+    IconData icon,
+    String label,
+    String value,
+    ThemeData theme, {
+    Color? color,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.lg),
       child: Row(
@@ -229,7 +314,15 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen> {
   }
 
   Widget _buildSplitsSection(
-      BuildContext context, AsyncValue<List<ExpenseSplit>> splitsAsync, bool isArabic, ThemeData theme) {
+    BuildContext context,
+    AsyncValue<List<ExpenseSplit>> splitsAsync,
+    AsyncValue<List<HomeMemberModel>> membersAsync,
+    ThemeData theme,
+  ) {
+    final memberNames = membersAsync.valueOrNull != null
+        ? _memberNames(membersAsync.valueOrNull!)
+        : const <String, String>{};
+
     return splitsAsync.when(
       data: (splits) {
         if (splits.isEmpty) {
@@ -243,11 +336,15 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen> {
                     color: theme.colorScheme.surfaceContainerHighest,
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(Icons.person_outline_rounded, size: 20, color: theme.colorScheme.onSurfaceVariant),
+                  child: Icon(
+                    Icons.person_outline_rounded,
+                    size: 20,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
                 ),
                 AppSpacing.gapMD,
                 Text(
-                  isArabic ? 'مصروف شخصي - لا يوجد تقسيم' : 'Personal expense - No splits',
+                  context.translate('personal_expense_no_splits'),
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                     fontWeight: FontWeight.bold,
@@ -264,8 +361,10 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                isArabic ? 'التقسيم بين الأعضاء' : 'Splits among members',
-                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                context.translate('splits_among_members'),
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               AppSpacing.gapMD,
               const Divider(),
@@ -277,21 +376,30 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen> {
                     children: [
                       CircleAvatar(
                         radius: 18,
-                        backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
+                        backgroundColor: theme.colorScheme.primary.withValues(
+                          alpha: 0.1,
+                        ),
                         child: Text(
                           (i + 1).toString(),
-                          style: TextStyle(color: theme.colorScheme.primary, fontWeight: FontWeight.bold, fontSize: 12),
+                          style: TextStyle(
+                            color: theme.colorScheme.primary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
                         ),
                       ),
                       AppSpacing.gapMD,
                       Expanded(
                         child: Text(
-                          isArabic ? 'عضو العائلة' : 'Family Member',
-                          style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
+                          memberNames[splits[i].memberId] ??
+                              context.translate('member'),
+                          style: theme.textTheme.bodyLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                       Text(
-                        '${(splits[i].amount / 100).toStringAsFixed(2)} ${isArabic ? 'ر.س' : 'SAR'}',
+                        '${(splits[i].amount / 100).toStringAsFixed(2)} ${context.translate('currency_symbol')}',
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                           color: AppColors.primary,
@@ -301,7 +409,12 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen> {
                   ),
                 ),
                 if (i < splits.length - 1)
-                  Divider(height: 1, color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3)),
+                  Divider(
+                    height: 1,
+                    color: theme.colorScheme.outlineVariant.withValues(
+                      alpha: 0.3,
+                    ),
+                  ),
               ],
             ],
           ),
@@ -316,8 +429,10 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen> {
             AppSpacing.gapMD,
             Expanded(
               child: Text(
-                '${isArabic ? 'خطأ في تحميل التقسيم' : 'Error loading splits'}: $error',
-                style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.error),
+                '${context.translate('error_loading_splits')}: $error',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.error,
+                ),
               ),
             ),
           ],
@@ -326,35 +441,42 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen> {
     );
   }
 
-  Future<void> _confirmDelete(BuildContext context, bool isArabic) async {
+  Future<void> _confirmDelete(BuildContext context) async {
     final theme = Theme.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: theme.colorScheme.surface,
         surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusXl)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+        ),
         title: Row(
           children: [
             Icon(Icons.warning_amber_rounded, color: theme.colorScheme.error),
             AppSpacing.gapMD,
-            Text(isArabic ? 'حذف المصروف' : 'Delete Expense', style: const TextStyle(fontWeight: FontWeight.bold)),
+            Text(
+              context.translate('delete_expense'),
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
           ],
         ),
         content: Text(
-            isArabic 
-                ? 'هل أنت متأكد من حذف هذا المصروف؟ سيتم الاحتفاظ بالسجل لأغراض التدقيق.' 
-                : 'Are you sure you want to delete this expense? The record will be kept for auditing purposes.'),
+          context.translate('delete_expense_warning'),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
             child: Text(
-              isArabic ? 'إلغاء' : 'Cancel',
-              style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontWeight: FontWeight.bold),
+              context.translate('cancel'),
+              style: TextStyle(
+                color: theme.colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
           BeityButton(
-            text: isArabic ? 'حذف' : 'Delete',
+            text: context.translate('delete'),
             width: 100,
             type: BeityButtonType.secondary,
             onPressed: () => Navigator.pop(context, true),
@@ -363,41 +485,42 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen> {
       ),
     );
 
-    if (confirmed == true) {
-      ActionDebouncer.execute(() async {
-        setState(() => _isDeleting = true);
-        try {
-          final repository = ref.read(expenseRepositoryProvider);
-          await repository.deleteExpense(expenseId: widget.expenseId);
+    if (confirmed != true || !context.mounted) return;
 
-          ref.invalidate(expensesProvider);
+    final screenContext = context;
+    ActionDebouncer.execute(() async {
+      setState(() => _isDeleting = true);
+      try {
+        final repository = ref.read(expenseRepositoryProvider);
+        await repository.deleteExpense(expenseId: widget.expenseId);
 
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                behavior: SnackBarBehavior.floating,
-                content: Text(isArabic ? 'تم حذف المصروف بنجاح' : 'Expense deleted successfully'),
-                backgroundColor: AppColors.success,
-              ),
-            );
-            context.pop();
-          }
-        } catch (e) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                behavior: SnackBarBehavior.floating,
-                content: Text(isArabic ? 'خطأ في الحذف: $e' : 'Error deleting: $e'),
-                backgroundColor: AppColors.error,
-              ),
-            );
-          }
-        } finally {
-          if (mounted) {
-            setState(() => _isDeleting = false);
-          }
+        ref.invalidate(expensesProvider);
+
+        if (!mounted || !screenContext.mounted) return;
+        ScaffoldMessenger.of(screenContext).showSnackBar(
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            content: Text(
+              context.translate('expense_deleted_success'),
+            ),
+            backgroundColor: AppColors.success,
+          ),
+        );
+        screenContext.pop();
+      } catch (e) {
+        if (!mounted || !screenContext.mounted) return;
+        ScaffoldMessenger.of(screenContext).showSnackBar(
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            content: Text(context.translate('error_deleting_expense', arguments: {'error': ErrorFormatter.format(e, context)})),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      } finally {
+        if (mounted) {
+          setState(() => _isDeleting = false);
         }
-      });
-    }
+      }
+    });
   }
 }

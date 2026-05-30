@@ -10,7 +10,7 @@ class EndShoppingSessionUseCase {
     required String sessionId,
     required int itemsPurchasedCount,
   }) async {
-    return await _repository.endSession(
+    return _repository.endSession(
       sessionId: sessionId,
       itemsPurchasedCount: itemsPurchasedCount,
     );

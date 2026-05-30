@@ -10,7 +10,7 @@ class MarkItemPurchasedUseCase {
     required String itemId,
     required bool isPurchased,
   }) async {
-    return await _repository.markItemPurchased(
+    return _repository.markItemPurchased(
       itemId: itemId,
       isPurchased: isPurchased,
     );

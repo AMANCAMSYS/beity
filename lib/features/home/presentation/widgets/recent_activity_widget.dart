@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:beity/core/localization/app_localizations.dart';
 
 class RecentActivityWidget extends StatelessWidget {
   final List<ActivityItem> activities;
@@ -18,16 +19,16 @@ class RecentActivityWidget extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
-              'آخر النشاطات',
-              style: TextStyle(
+            Text(
+              context.translate('recent_activity'),
+              style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
             ),
             TextButton(
               onPressed: onViewAll,
-              child: const Text('عرض الكل'),
+              child: Text(context.translate('view_all')),
             ),
           ],
         ),
@@ -59,7 +60,7 @@ class RecentActivityWidget extends StatelessWidget {
               Icon(Icons.history, size: 48, color: Colors.grey[400]),
               const SizedBox(height: 12),
               Text(
-                'لا توجد نشاطات بعد',
+                context.translate('no_activities_yet'),
                 style: TextStyle(color: Colors.grey[600]),
               ),
             ],
@@ -76,7 +77,6 @@ class RecentActivityWidget extends StatelessWidget {
         child: Icon(activity.icon, color: activity.color, size: 20),
       ),
       title: RichText(
-        textDirection: TextDirection.rtl,
         text: TextSpan(
           style: DefaultTextStyle.of(context).style,
           children: [

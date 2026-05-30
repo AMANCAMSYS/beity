@@ -16,7 +16,7 @@ void main() {
   });
 
   group('AssignTask', () {
-    final testTask = Task(
+    const testTask = Task(
       id: 'task-123',
       homeId: 'home-123',
       title: 'تنظيف المطبخ',
@@ -32,7 +32,7 @@ void main() {
             assignedTo: 'user-456',
           )).thenAnswer((_) async => assignedTask);
 
-      final result = await useCase(AssignTaskParams(
+      final result = await useCase(const AssignTaskParams(
         taskId: 'task-123',
         assignedTo: 'user-456',
       ));
@@ -45,14 +45,13 @@ void main() {
     });
 
     test('should unassign task when null is passed', () async {
-      final assignedTask = testTask.copyWith(assignedTo: 'user-456');
 
       when(() => mockRepository.updateTask(
             taskId: 'task-123',
             assignedTo: null,
           )).thenAnswer((_) async => testTask);
 
-      final result = await useCase(AssignTaskParams(
+      final result = await useCase(const AssignTaskParams(
         taskId: 'task-123',
         assignedTo: null,
       ));
@@ -69,7 +68,7 @@ void main() {
             assignedTo: 'user-789',
           )).thenAnswer((_) async => reassignedTask);
 
-      final result = await useCase(AssignTaskParams(
+      final result = await useCase(const AssignTaskParams(
         taskId: 'task-123',
         assignedTo: 'user-789',
       ));

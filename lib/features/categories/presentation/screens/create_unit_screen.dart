@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../app/theme/app_colors.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/utils/action_debouncer.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:beity/shared/widgets/design_system/beity_snack_bar.dart';
 import '../providers/units_provider.dart';
 
 class CreateUnitScreen extends ConsumerStatefulWidget {
@@ -40,27 +41,14 @@ class _CreateUnitScreenState extends ConsumerState<CreateUnitScreen> {
           );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'تم إنشاء الوحدة بنجاح',
-              textDirection: TextDirection.rtl,
-            ),
-            backgroundColor: AppColors.success,
-          ),
-        );
+        BeitySnackBar.success(context, context.translate('unit_created_success'));
         context.pop();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              e.toString().replaceAll('Exception: ', ''),
-              textDirection: TextDirection.rtl,
-            ),
-            backgroundColor: AppColors.error,
-          ),
+        BeitySnackBar.error(
+          context,
+          e.toString().replaceAll('Exception: ', ''),
         );
       }
     } finally {
@@ -74,10 +62,7 @@ class _CreateUnitScreenState extends ConsumerState<CreateUnitScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'إنشاء وحدة جديدة',
-          textDirection: TextDirection.rtl,
-        ),
+        title: Text(context.translate('create_new_unit')),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
@@ -88,17 +73,16 @@ class _CreateUnitScreenState extends ConsumerState<CreateUnitScreen> {
             children: [
               TextFormField(
                 controller: _nameController,
-                textDirection: TextDirection.rtl,
-                decoration: const InputDecoration(
-                  labelText: 'اسم الوحدة',
-                  prefixIcon: Icon(Icons.straighten),
+                decoration: InputDecoration(
+                  labelText: context.translate('unit_name'),
+                  prefixIcon: const Icon(Icons.straighten),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'يرجى إدخال اسم الوحدة';
+                    return context.translate('please_enter_unit_name');
                   }
                   if (value.length > 50) {
-                    return 'اسم الوحدة طويل جداً';
+                    return context.translate('unit_name_too_long');
                   }
                   return null;
                 },
@@ -107,44 +91,44 @@ class _CreateUnitScreenState extends ConsumerState<CreateUnitScreen> {
               TextFormField(
                 controller: _symbolController,
                 textDirection: TextDirection.ltr,
-                decoration: const InputDecoration(
-                  labelText: 'رمز الوحدة',
-                  hintText: 'مثال: kg',
-                  prefixIcon: Icon(Icons.text_fields),
+                decoration: InputDecoration(
+                  labelText: context.translate('unit_symbol'),
+                  hintText: 'e.g. kg',
+                  prefixIcon: const Icon(Icons.text_fields),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'يرجى إدخال رمز الوحدة';
+                    return context.translate('please_enter_unit_symbol');
                   }
                   if (value.length > 10) {
-                    return 'رمز الوحدة طويل جداً';
+                    return context.translate('unit_symbol_too_long');
                   }
                   return null;
                 },
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                value: _selectedType,
-                decoration: const InputDecoration(
-                  labelText: 'نوع الوحدة',
-                  prefixIcon: Icon(Icons.category),
+                initialValue: _selectedType,
+                decoration: InputDecoration(
+                  labelText: context.translate('unit_type'),
+                  prefixIcon: const Icon(Icons.category),
                 ),
-                items: const [
+                items: [
                   DropdownMenuItem(
                     value: 'weight',
-                    child: Text('وزن'),
+                    child: Text(context.translate('weight')),
                   ),
                   DropdownMenuItem(
                     value: 'volume',
-                    child: Text('حجم'),
+                    child: Text(context.translate('volume')),
                   ),
                   DropdownMenuItem(
                     value: 'count',
-                    child: Text('عدد'),
+                    child: Text(context.translate('count')),
                   ),
                   DropdownMenuItem(
                     value: 'length',
-                    child: Text('طول'),
+                    child: Text(context.translate('length')),
                   ),
                 ],
                 onChanged: (value) {
@@ -165,9 +149,8 @@ class _CreateUnitScreenState extends ConsumerState<CreateUnitScreen> {
                           color: Colors.white,
                         ),
                       )
-                    : const Text(
-                        'إنشاء الوحدة',
-                        textDirection: TextDirection.rtl,
+                    : Text(
+                        context.translate('create_unit'),
                       ),
               ),
             ],
