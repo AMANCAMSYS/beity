@@ -144,11 +144,23 @@ class OfflineAwareShoppingRepository implements ShoppingListRepository {
     }
 
     ShoppingListModel? originalList;
+    String? resolvedHomeId = _homeId;
     
     // 1. Always optimistically update the local cache first!
-    final homeId = _homeId;
-    if (homeId != null && homeId.isNotEmpty) {
-      final currentLists = await _localDataSource.getShoppingListsStreamCache(homeId: homeId);
+    // Try to find the homeId from cache if _homeId is null
+    if (resolvedHomeId == null || resolvedHomeId.isEmpty) {
+      // Search all cached homes to find the list
+      // This handles the case where activeHomeIdProvider hasn't been set
+      try {
+        final remoteList = await _remoteRepository.getShoppingListById(listId: listId);
+        if (remoteList != null) {
+          resolvedHomeId = remoteList.homeId;
+        }
+      } catch (_) {}
+    }
+    
+    if (resolvedHomeId != null && resolvedHomeId.isNotEmpty) {
+      final currentLists = await _localDataSource.getShoppingListsStreamCache(homeId: resolvedHomeId);
       final index = currentLists.indexWhere((l) => l.id == listId);
       if (index != -1) {
         originalList = currentLists[index];
@@ -168,8 +180,8 @@ class OfflineAwareShoppingRepository implements ShoppingListRepository {
         
         final updatedLists = List<ShoppingListModel>.from(currentLists);
         updatedLists[index] = updated;
-        await _localDataSource.saveShoppingListsStreamCache(homeId: homeId, lists: updatedLists);
-        LocalCacheNotifier.notify(homeId, 'shopping_lists');
+        await _localDataSource.saveShoppingListsStreamCache(homeId: resolvedHomeId, lists: updatedLists);
+        LocalCacheNotifier.notify(resolvedHomeId, 'shopping_lists');
       }
     }
 
@@ -181,19 +193,19 @@ class OfflineAwareShoppingRepository implements ShoppingListRepository {
         description: description,
         status: status,
       );
-      if (homeId != null && homeId.isNotEmpty) {
-        final current = await _localDataSource.getShoppingListsStreamCache(homeId: homeId);
+      if (resolvedHomeId != null && resolvedHomeId.isNotEmpty) {
+        final current = await _localDataSource.getShoppingListsStreamCache(homeId: resolvedHomeId);
         final updated = current.map((l) => l.id == listId ? serverList : l).toList();
-        await _localDataSource.saveShoppingListsStreamCache(homeId: homeId, lists: updated);
+        await _localDataSource.saveShoppingListsStreamCache(homeId: resolvedHomeId, lists: updated);
       }
       return serverList;
     } catch (_) {
       // Revert if failed
-      if (homeId != null && homeId.isNotEmpty && originalList != null) {
-        final current = await _localDataSource.getShoppingListsStreamCache(homeId: homeId);
+      if (resolvedHomeId != null && resolvedHomeId.isNotEmpty && originalList != null) {
+        final current = await _localDataSource.getShoppingListsStreamCache(homeId: resolvedHomeId);
         final reverted = current.map((l) => l.id == listId ? originalList! : l).toList();
-        await _localDataSource.saveShoppingListsStreamCache(homeId: homeId, lists: reverted);
-        LocalCacheNotifier.notify(homeId, 'shopping_lists');
+        await _localDataSource.saveShoppingListsStreamCache(homeId: resolvedHomeId, lists: reverted);
+        LocalCacheNotifier.notify(resolvedHomeId, 'shopping_lists');
       }
       rethrow;
     }
