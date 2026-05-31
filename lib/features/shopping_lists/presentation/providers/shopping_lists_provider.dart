@@ -4,6 +4,7 @@ import 'package:beity/core/services/sync_service.dart';
 import '../../data/models/shopping_list_model.dart';
 import '../../data/repositories/shopping_list_repository.dart';
 import '../../data/repositories/supabase_shopping_list_repository.dart';
+import '../../domain/usecases/archive_list_usecase.dart';
 import '../../../offline_queue/data/repositories/offline_aware_shopping_repository.dart';
 import '../../../offline_queue/presentation/providers/offline_queue_provider.dart';
 import '../../../offline_queue/presentation/providers/connectivity_provider.dart';
@@ -67,4 +68,9 @@ final archivedShoppingListsProvider =
     loading: () => [],
     error: (e, s) => [],
   );
+});
+
+final archiveListUseCaseProvider = Provider<ArchiveListUseCase>((ref) {
+  final repository = ref.watch(shoppingListRepositoryProvider);
+  return ArchiveListUseCase(repository);
 });

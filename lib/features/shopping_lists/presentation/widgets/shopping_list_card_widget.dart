@@ -10,6 +10,8 @@ class ShoppingListCardWidget extends StatelessWidget {
   final VoidCallback? onArchive;
   final VoidCallback? onDelete;
   final VoidCallback? onRename;
+  final VoidCallback? onRestore;
+  final VoidCallback? onTransferToInventory;
 
   const ShoppingListCardWidget({
     super.key,
@@ -18,6 +20,8 @@ class ShoppingListCardWidget extends StatelessWidget {
     this.onArchive,
     this.onDelete,
     this.onRename,
+    this.onRestore,
+    this.onTransferToInventory,
   });
 
   @override
@@ -115,7 +119,72 @@ class ShoppingListCardWidget extends StatelessWidget {
                   ],
                 ),
               ),
-              if (!shoppingList.isArchived)
+              if (shoppingList.isArchived)
+                Semantics(
+                  button: true,
+                  label: isArabic
+                      ? 'خيارات لـ ${shoppingList.name}'
+                      : 'Options for ${shoppingList.name}',
+                  child: PopupMenuButton<String>(
+                    icon: Icon(
+                      Icons.more_vert_rounded,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+                    ),
+                    onSelected: (value) {
+                      switch (value) {
+                        case 'restore':
+                          onRestore?.call();
+                          break;
+                        case 'transfer':
+                          onTransferToInventory?.call();
+                          break;
+                        case 'delete':
+                          onDelete?.call();
+                          break;
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      PopupMenuItem(
+                        value: 'restore',
+                        child: Row(
+                          children: [
+                            Icon(Icons.unarchive_rounded, size: 20, color: theme.colorScheme.primary),
+                            AppSpacing.gapMD,
+                            Text(isArabic ? 'استعادة' : 'Restore'),
+                          ],
+                        ),
+                      ),
+                      PopupMenuItem(
+                        value: 'transfer',
+                        child: Row(
+                          children: [
+                            Icon(Icons.inventory_2_rounded, size: 20, color: theme.colorScheme.secondary),
+                            AppSpacing.gapMD,
+                            Text(isArabic ? 'إضافة للمخزون' : 'Add to Inventory'),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuDivider(),
+                      PopupMenuItem(
+                        value: 'delete',
+                        child: Row(
+                          children: [
+                            Icon(Icons.delete_outline_rounded, size: 20, color: theme.colorScheme.error),
+                            AppSpacing.gapMD,
+                            Text(
+                              isArabic ? 'حذف' : 'Delete',
+                              style: TextStyle(color: theme.colorScheme.error),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
                 Semantics(
                   button: true,
                   label: isArabic 

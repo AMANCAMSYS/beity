@@ -11,6 +11,8 @@ import 'package:beity/shared/widgets/design_system/beity_empty_state.dart';
 import '../../../homes/presentation/providers/homes_provider.dart';
 import '../../../home/presentation/widgets/app_drawer.dart';
 import '../../../home/presentation/widgets/drawer_toggle_button.dart';
+import '../../../inventory/presentation/providers/inventory_provider.dart';
+import '../../../inventory/domain/usecases/add_purchased_to_inventory_usecase.dart';
 import '../providers/shopping_lists_provider.dart';
 import '../widgets/shopping_list_card_widget.dart';
 import '../../domain/entities/shopping_list.dart';
@@ -20,6 +22,7 @@ import '../../../../core/utils/action_debouncer.dart';
 import '../../../../core/config/feature_flags.dart';
 import 'package:beity/features/ai_suggestions/presentation/widgets/ai_list_selector_sheet.dart';
 import '../../../../core/localization/app_localizations.dart';
+import '../../../../core/monitoring/monitoring_service.dart';
 
 class ShoppingListsScreen extends ConsumerStatefulWidget {
   final String homeId;
@@ -185,14 +188,29 @@ class _ShoppingListsScreenState extends ConsumerState<ShoppingListsScreen>
               onTap: () => ActionDebouncer.execute(
                 () async => context.push('/shopping-list/${list.id}'),
               ),
-              onRename: () => ActionDebouncer.execute(
-                () async => _showRenameDialog(context, list),
-              ),
-              onArchive: () =>
-                  ActionDebouncer.execute(() async => _archiveList(list.id)),
+              onRename: isArchived
+                  ? null
+                  : () => ActionDebouncer.execute(
+                      () async => _showRenameDialog(context, list),
+                    ),
+              onArchive: isArchived
+                  ? null
+                  : () => ActionDebouncer.execute(
+                      () async => _archiveList(list.id),
+                    ),
               onDelete: () => ActionDebouncer.execute(
                 () async => _showDeleteConfirmation(context, list),
               ),
+              onRestore: isArchived
+                  ? () => ActionDebouncer.execute(
+                      () async => _restoreList(list.id),
+                    )
+                  : null,
+              onTransferToInventory: isArchived
+                  ? () => ActionDebouncer.execute(
+                      () async => _transferListToInventory(context, list),
+                    )
+                  : null,
             ),
           );
         },
@@ -289,6 +307,102 @@ class _ShoppingListsScreenState extends ConsumerState<ShoppingListsScreen>
     final repository = ref.read(shoppingListRepositoryProvider);
     final useCase = ArchiveListUseCase(repository);
     await useCase(listId: listId);
+  }
+
+  Future<void> _restoreList(String listId) async {
+    final repository = ref.read(shoppingListRepositoryProvider);
+    final useCase = ArchiveListUseCase(repository);
+    await useCase.restore(listId: listId);
+    if (mounted) {
+      BeitySnackBar.success(context, context.translate('list_restored_success'));
+    }
+  }
+
+  Future<void> _transferListToInventory(
+    BuildContext context,
+    ShoppingList list,
+  ) async {
+    final messenger = ScaffoldMessenger.of(context);
+
+    // Show loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      final repository = ref.read(shoppingListRepositoryProvider);
+      final items = await repository.getShoppingItems(listId: list.id);
+      final purchasedItems = items.where((i) => i.isPurchased).toList();
+
+      if (purchasedItems.isEmpty) {
+        if (mounted) Navigator.pop(context);
+        if (mounted) {
+          BeitySnackBar.error(
+            context,
+            context.translate('no_purchased_items'),
+          );
+        }
+        return;
+      }
+
+      final inventoryUseCase = ref.read(addPurchasedToInventoryUseCaseProvider);
+      final inputs = purchasedItems
+          .map(
+            (item) => PurchasedItemInput(
+              name: item.name,
+              quantity: item.quantity,
+              unitId: item.unitId,
+              categoryId: item.categoryId,
+            ),
+          )
+          .toList();
+
+      await inventoryUseCase.callBatch(
+        homeId: list.homeId,
+        items: inputs,
+      );
+
+      if (mounted) Navigator.pop(context);
+
+      messenger.showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  context.translate(
+                    'added_to_inventory_success',
+                    arguments: {'count': purchasedItems.length.toString()},
+                  ),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: AppColors.success,
+          duration: const Duration(seconds: 4),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+          margin: const EdgeInsets.all(16),
+          action: SnackBarAction(
+            label: context.translate('view_inventory'),
+            textColor: Colors.white,
+            onPressed: () => context.push('/inventory'),
+          ),
+        ),
+      );
+    } catch (e) {
+      if (mounted) Navigator.pop(context);
+      await MonitoringService().log('Failed to transfer list to inventory: $e');
+      if (mounted) {
+        BeitySnackBar.error(context, e.toString());
+      }
+    }
   }
 
   void _showDeleteConfirmation(

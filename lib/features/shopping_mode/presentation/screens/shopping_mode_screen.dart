@@ -12,6 +12,7 @@ import '../../presentation/providers/shopping_mode_provider.dart';
 import '../../presentation/providers/shopping_mode_items_provider.dart';
 import '../../presentation/providers/shopping_mode_session_provider.dart';
 import '../../../shopping_lists/presentation/providers/shopping_items_provider.dart';
+import '../../../shopping_lists/presentation/providers/shopping_lists_provider.dart';
 import '../../../shopping_lists/domain/usecases/mark_item_purchased_usecase.dart';
 import '../../../categories/presentation/providers/units_provider.dart';
 import '../../../categories/presentation/providers/categories_provider.dart';
@@ -508,6 +509,14 @@ class _ShoppingModeScreenState extends ConsumerState<ShoppingModeScreen> {
         sessionId: shoppingMode.sessionId!,
         itemsPurchasedCount: purchasedCount,
       );
+    }
+
+    // Auto-archive the shopping list after finishing
+    try {
+      final archiveUseCase = ref.read(archiveListUseCaseProvider);
+      await archiveUseCase.call(listId: widget.listId);
+    } catch (e) {
+      await MonitoringService().log('Failed to auto-archive list: $e');
     }
 
     ref.read(shoppingModeProvider.notifier).deactivate();
