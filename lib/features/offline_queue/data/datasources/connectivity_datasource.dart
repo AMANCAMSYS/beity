@@ -8,13 +8,9 @@ import '../../domain/entities/device_sync_status.dart';
 
 class ConnectivityDataSource {
   final Connectivity _connectivity;
-  final SupabaseClient _supabase;
-
   ConnectivityDataSource({
     Connectivity? connectivity,
-    SupabaseClient? supabase,
-  })  : _connectivity = connectivity ?? Connectivity(),
-        _supabase = supabase ?? SupabaseService.client;
+  })  : _connectivity = connectivity ?? Connectivity();
 
   Future<DeviceSyncStatus> getCurrentStatus() async {
     final connectivityResult = await _connectivity.checkConnectivity();

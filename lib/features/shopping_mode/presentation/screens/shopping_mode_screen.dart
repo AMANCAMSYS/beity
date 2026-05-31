@@ -679,13 +679,7 @@ class _ShoppingModeScreenState extends ConsumerState<ShoppingModeScreen> {
       'Inventory transfer: $successCount/${purchasedItems.length} items in ${stopwatch.elapsedMilliseconds}ms',
     );
 
-    final router = GoRouter.of(context);
-    final messenger = ScaffoldMessenger.of(context);
-    final successMessage = context.translate(
-      'added_to_inventory_success',
-      arguments: {'count': successCount.toString()},
-    );
-    final viewInventoryLabel = context.translate('view_inventory');
+    if (!mounted) return;
 
     if (mounted) {
       Navigator.pop(context); // Dismiss the loading dialog
@@ -693,35 +687,43 @@ class _ShoppingModeScreenState extends ConsumerState<ShoppingModeScreen> {
 
     await _exitShoppingMode();
 
+    // Show success message after screen is popped
     if (successCount > 0) {
-      messenger.showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  successMessage,
-                  style: const TextStyle(color: Colors.white, fontSize: 14),
+      await Future.delayed(const Duration(milliseconds: 300));
+      if (mounted) {
+        final messenger = ScaffoldMessenger.of(context);
+        messenger.showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    context.translate(
+                      'added_to_inventory_success',
+                      arguments: {'count': successCount.toString()},
+                    ),
+                    style: const TextStyle(color: Colors.white, fontSize: 14),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
+            backgroundColor: AppColors.success,
+            duration: const Duration(seconds: 4),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            margin: const EdgeInsets.all(16),
+            action: SnackBarAction(
+              label: context.translate('view_inventory'),
+              textColor: Colors.white,
+              onPressed: () => GoRouter.of(context).push('/inventory'),
+            ),
           ),
-          backgroundColor: AppColors.success,
-          duration: const Duration(seconds: 4),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
-          margin: const EdgeInsets.all(16),
-          action: SnackBarAction(
-            label: viewInventoryLabel,
-            textColor: Colors.white,
-            onPressed: () => router.push('/inventory'),
-          ),
-        ),
-      );
+        );
+      }
     }
   }
 }

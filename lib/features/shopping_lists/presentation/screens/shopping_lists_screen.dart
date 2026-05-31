@@ -334,16 +334,17 @@ class _ShoppingListsScreenState extends ConsumerState<ShoppingListsScreen>
     try {
       final repository = ref.read(shoppingListRepositoryProvider);
       final items = await repository.getShoppingItems(listId: list.id);
+      
+      if (!context.mounted) return;
+
       final purchasedItems = items.where((i) => i.isPurchased).toList();
 
       if (purchasedItems.isEmpty) {
-        if (mounted) Navigator.pop(context);
-        if (mounted) {
-          BeitySnackBar.error(
-            context,
-            context.translate('no_purchased_items'),
-          );
-        }
+        Navigator.pop(context);
+        BeitySnackBar.error(
+          context,
+          context.translate('no_purchased_items'),
+        );
         return;
       }
 
@@ -364,7 +365,9 @@ class _ShoppingListsScreenState extends ConsumerState<ShoppingListsScreen>
         items: inputs,
       );
 
-      if (mounted) Navigator.pop(context);
+      if (!context.mounted) return;
+
+      Navigator.pop(context);
 
       messenger.showSnackBar(
         SnackBar(
@@ -397,11 +400,10 @@ class _ShoppingListsScreenState extends ConsumerState<ShoppingListsScreen>
         ),
       );
     } catch (e) {
-      if (mounted) Navigator.pop(context);
       await MonitoringService().log('Failed to transfer list to inventory: $e');
-      if (mounted) {
-        BeitySnackBar.error(context, e.toString());
-      }
+      if (!context.mounted) return;
+      Navigator.pop(context);
+      BeitySnackBar.error(context, e.toString());
     }
   }
 
