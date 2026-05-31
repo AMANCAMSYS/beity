@@ -546,7 +546,88 @@ class _ShoppingModeScreenState extends ConsumerState<ShoppingModeScreen> {
       return;
     }
 
-    await _transferToInventory(purchasedItems);
+    _showInventoryConfirmDialog(purchasedItems);
+  }
+
+  void _showInventoryConfirmDialog(List<ShoppingItemModel> purchasedItems) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(context.translate('add_to_inventory_question')),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              context.translate(
+                'add_to_inventory_msg',
+                arguments: {'count': purchasedItems.length.toString()},
+              ),
+            ),
+            const SizedBox(height: 12),
+            ...purchasedItems
+                .take(5)
+                .map(
+                  (item) => Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.check_circle,
+                          size: 16,
+                          color: AppColors.success,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Consumer(
+                            builder: (context, ref, _) {
+                              final unitsAsync = ref.watch(unitsProvider(null));
+                              final units = unitsAsync.valueOrNull ?? [];
+                              final unit = units
+                                  .where((u) => u.id == item.unitId)
+                                  .firstOrNull;
+                              final unitName = unit?.symbol;
+
+                              final qty =
+                                  item.quantity == item.quantity.roundToDouble()
+                                  ? item.quantity.toInt().toString()
+                                  : item.quantity.toStringAsFixed(1);
+
+                              final displayQty =
+                                  unitName != null && unitName.isNotEmpty
+                                  ? '$qty $unitName'
+                                  : qty;
+
+                              return Text('${item.name} ($displayQty)');
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            if (purchasedItems.length > 5)
+              Text(
+                context.translate(
+                  'and_more_items',
+                  arguments: {'count': (purchasedItems.length - 5).toString()},
+                ),
+                style: TextStyle(color: Colors.grey[600], fontSize: 12),
+              ),
+          ],
+        ),
+        actions: [
+          FilledButton.icon(
+            onPressed: () {
+              Navigator.pop(context);
+              _transferToInventory(purchasedItems);
+            },
+            icon: const Icon(Icons.inventory_2),
+            label: Text(context.translate('add_to_inventory')),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _transferToInventory(
