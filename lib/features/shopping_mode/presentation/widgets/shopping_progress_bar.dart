@@ -1,22 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:beity/core/localization/app_localizations.dart';
 
 class ShoppingProgressBar extends StatelessWidget {
   final int purchasedCount;
   final int totalCount;
+  final double progress;
 
   const ShoppingProgressBar({
     super.key,
     required this.purchasedCount,
     required this.totalCount,
+    required this.progress,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final progress = totalCount > 0 ? purchasedCount / totalCount : 0.0;
     final isComplete = purchasedCount == totalCount && totalCount > 0;
-
-    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
 
     return Container(
       height: 56,

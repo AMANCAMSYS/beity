@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'package:beity/core/services/supabase_service.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:beity/app/theme/app_spacing.dart';
 import 'package:beity/app/theme/app_colors.dart';
@@ -28,6 +28,8 @@ import '../../../settings/presentation/providers/app_settings_provider.dart';
 import '../../../categories/presentation/providers/units_provider.dart';
 import '../../../offline_queue/presentation/widgets/connectivity_listener.dart';
 import '../../../offline_queue/presentation/widgets/sync_status_banner.dart';
+import '../../../shopping_mode/presentation/widgets/partial_purchase_dialog.dart';
+import '../../../shopping_mode/presentation/widgets/shopping_guide_dialog.dart';
 import '../../../offline_queue/presentation/providers/offline_queue_provider.dart';
 import '../../../offline_queue/presentation/providers/connectivity_provider.dart';
 import '../../../offline_queue/domain/entities/sync_status.dart';
@@ -199,6 +201,11 @@ class _ShoppingListDetailScreenState
                 }),
                 tooltip: context.translate('smart_suggestions'),
               ),
+            IconButton(
+              icon: const Icon(Icons.help_outline_rounded),
+              onPressed: () => ShoppingGuideDialog.show(context),
+              tooltip: context.translate('shopping_guide_title'),
+            ),
             IconButton(
               icon: Icon(
                 _isSearchVisible ? Icons.close_rounded : Icons.search_rounded,
@@ -499,9 +506,8 @@ class _ShoppingListDetailScreenState
                                         isCompact: settings.compactListMode,
                                         hapticsEnabled: settings.hapticFeedback,
                                         soundsEnabled: settings.soundEffects,
-                                        onTogglePurchased: () => ActionDebouncer.execute(
-                                          () => _togglePurchased(item.id, !item.isPurchased),
-                                        ),
+                                        onTogglePurchased: () => _togglePurchased(item.id, !item.isPurchased),
+                                        onQuantityTap: () => _handleQuantityTap(item.id),
                                         onEdit: () => ActionDebouncer.execute(
                                           () => context.push(
                                             '/shopping-list/${widget.listId}/edit-item/${item.id}',
@@ -555,9 +561,54 @@ class _ShoppingListDetailScreenState
   }
 
   Future<void> _togglePurchased(String itemId, bool isPurchased) async {
+    final itemsAsync = ref.read(shoppingItemsProvider(widget.listId));
+    final items = itemsAsync.valueOrNull ?? [];
+    final item = items.where((i) => i.id == itemId).firstOrNull;
+    if (item == null) return;
+
     final repository = ref.read(shoppingItemRepositoryProvider);
+
+    if (!isPurchased) {
+      await repository.updateShoppingItem(
+        itemId: item.id,
+        purchasedQuantity: 0.0,
+      );
+    }
     final useCase = MarkItemPurchasedUseCase(repository);
     await useCase(itemId: itemId, isPurchased: isPurchased);
+  }
+
+  Future<void> _handleQuantityTap(String itemId) async {
+    final itemsAsync = ref.read(shoppingItemsProvider(widget.listId));
+    final items = itemsAsync.valueOrNull ?? [];
+    final item = items.where((i) => i.id == itemId).firstOrNull;
+    if (item == null || item.isPurchased) return;
+
+    final repository = ref.read(shoppingItemRepositoryProvider);
+    final unitsAsync = ref.read(unitsProvider(null));
+    final units = unitsAsync.valueOrNull ?? [];
+    final unit = units.where((u) => u.id == item.unitId).firstOrNull;
+
+    final result = await showDialog<double>(
+      context: context,
+      builder: (context) =>
+          PartialPurchaseDialog(item: item, unitName: unit?.symbol),
+    );
+
+    if (result != null && result > 0 && mounted) {
+      final isFullyPurchased = result >= item.quantity;
+      await repository.updateShoppingItem(
+        itemId: item.id,
+        purchasedQuantity: result,
+      );
+      if (isFullyPurchased) {
+        await repository.markItemPurchased(
+          itemId: item.id,
+          isPurchased: true,
+        );
+      }
+      ref.invalidate(shoppingItemsProvider(widget.listId));
+    }
   }
 
   Future<void> _deleteItem(ShoppingItemModel item) async {
@@ -567,6 +618,10 @@ class _ShoppingListDetailScreenState
     final deletedItem = await useCase.callAndReturn(itemId: item.id);
 
     if (mounted && deletedItem != null) {
+      final hapticEnabled = ref.read(appSettingsProvider).hapticFeedback;
+      if (hapticEnabled) {
+        HapticFeedback.mediumImpact();
+      }
       setState(() => _lastDeletedItem = deletedItem);
 
       BeitySnackBar.success(
@@ -593,6 +648,10 @@ class _ShoppingListDetailScreenState
     await useCase.restoreItem(item: _lastDeletedItem!);
 
     _undoTimer?.cancel();
+    final hapticEnabled = ref.read(appSettingsProvider).hapticFeedback;
+    if (hapticEnabled) {
+      HapticFeedback.lightImpact();
+    }
     if (mounted) {
       setState(() => _lastDeletedItem = null);
     }

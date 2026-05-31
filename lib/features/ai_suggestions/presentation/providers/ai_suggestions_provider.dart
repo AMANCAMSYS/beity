@@ -5,7 +5,6 @@ import '../../domain/entities/ai_suggestion_request.dart';
 import '../../domain/usecases/get_ai_suggestions.dart';
 import '../../data/datasources/ai_suggestion_remote_data_source.dart';
 import '../../data/repositories/ai_suggestion_repository_impl.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 // --- State ---
 sealed class AiSuggestionsState {

@@ -122,14 +122,80 @@ class AppTourController extends StateNotifier<AppTourState> {
   List<_TourStep> _buildExpensesSteps() {
     final all = [
       _TourStep(
+        targetKey: AppTourTargetRegistry.expensesSummaryKey,
+        titleKey: 'tour_expenses_summary_title',
+        descKey: 'tour_expenses_summary_desc',
+      ),
+      _TourStep(
+        targetKey: AppTourTargetRegistry.expensesBalancesKey,
+        titleKey: 'tour_expenses_balances_title',
+        descKey: 'tour_expenses_balances_desc',
+      ),
+      _TourStep(
+        targetKey: AppTourTargetRegistry.expensesFilterKey,
+        titleKey: 'tour_expenses_filter_title',
+        descKey: 'tour_expenses_filter_desc',
+      ),
+      _TourStep(
         targetKey: AppTourTargetRegistry.expensesAddKey,
         titleKey: 'tour_expenses_add_title',
         descKey: 'tour_expenses_add_desc',
       ),
+    ];
+    return all.where((s) => AppTourTargetRegistry.isMounted(s.targetKey)).toList();
+  }
+
+  /// Builds steps for the Tasks tour.
+  List<_TourStep> _buildTasksSteps() {
+    final all = [
       _TourStep(
-        targetKey: AppTourTargetRegistry.expensesSummaryKey,
-        titleKey: 'tour_expenses_summary_title',
-        descKey: 'tour_expenses_summary_desc',
+        targetKey: AppTourTargetRegistry.tasksQuickAddKey,
+        titleKey: 'tour_tasks_quick_add_title',
+        descKey: 'tour_tasks_quick_add_desc',
+      ),
+      _TourStep(
+        targetKey: AppTourTargetRegistry.tasksFilterKey,
+        titleKey: 'tour_tasks_filter_title',
+        descKey: 'tour_tasks_filter_desc',
+      ),
+      _TourStep(
+        targetKey: AppTourTargetRegistry.tasksAddKey,
+        titleKey: 'tour_tasks_add_title',
+        descKey: 'tour_tasks_add_desc',
+      ),
+    ];
+    return all.where((s) => AppTourTargetRegistry.isMounted(s.targetKey)).toList();
+  }
+
+  /// Builds steps for the Categories tour.
+  List<_TourStep> _buildCategoriesSteps() {
+    final all = [
+      _TourStep(
+        targetKey: AppTourTargetRegistry.categoriesFilterKey,
+        titleKey: 'tour_categories_filter_title',
+        descKey: 'tour_categories_filter_desc',
+      ),
+      _TourStep(
+        targetKey: AppTourTargetRegistry.categoriesAddKey,
+        titleKey: 'tour_categories_add_title',
+        descKey: 'tour_categories_add_desc',
+      ),
+    ];
+    return all.where((s) => AppTourTargetRegistry.isMounted(s.targetKey)).toList();
+  }
+
+  /// Builds steps for the Units tour.
+  List<_TourStep> _buildUnitsSteps() {
+    final all = [
+      _TourStep(
+        targetKey: AppTourTargetRegistry.unitsFilterKey,
+        titleKey: 'tour_units_filter_title',
+        descKey: 'tour_units_filter_desc',
+      ),
+      _TourStep(
+        targetKey: AppTourTargetRegistry.unitsAddKey,
+        titleKey: 'tour_units_add_title',
+        descKey: 'tour_units_add_desc',
       ),
     ];
     return all.where((s) => AppTourTargetRegistry.isMounted(s.targetKey)).toList();
@@ -194,6 +260,66 @@ class AppTourController extends StateNotifier<AppTourState> {
       final steps = _buildExpensesSteps();
       if (steps.isNotEmpty) {
         _startTour(context, steps, onComplete: OnboardingStorage.markExpensesTourSeen);
+        return;
+      }
+    }
+  }
+
+  /// Safely starts the Tasks tour after the screen is fully rendered.
+  Future<void> maybeStartTasksTour(
+    BuildContext context, {
+    int maxRetries = 5,
+    Duration retryDelay = const Duration(milliseconds: 300),
+  }) async {
+    if (!OnboardingStorage.shouldShowTasksTour()) return;
+    if (state.isActive) return;
+
+    for (int attempt = 0; attempt < maxRetries; attempt++) {
+      await Future.delayed(retryDelay);
+      if (!context.mounted) return;
+      final steps = _buildTasksSteps();
+      if (steps.isNotEmpty) {
+        _startTour(context, steps, onComplete: OnboardingStorage.markTasksTourSeen);
+        return;
+      }
+    }
+  }
+
+  /// Safely starts the Categories tour after the screen is fully rendered.
+  Future<void> maybeStartCategoriesTour(
+    BuildContext context, {
+    int maxRetries = 5,
+    Duration retryDelay = const Duration(milliseconds: 300),
+  }) async {
+    if (!OnboardingStorage.shouldShowCategoriesTour()) return;
+    if (state.isActive) return;
+
+    for (int attempt = 0; attempt < maxRetries; attempt++) {
+      await Future.delayed(retryDelay);
+      if (!context.mounted) return;
+      final steps = _buildCategoriesSteps();
+      if (steps.isNotEmpty) {
+        _startTour(context, steps, onComplete: OnboardingStorage.markCategoriesTourSeen);
+        return;
+      }
+    }
+  }
+
+  /// Safely starts the Units tour after the screen is fully rendered.
+  Future<void> maybeStartUnitsTour(
+    BuildContext context, {
+    int maxRetries = 5,
+    Duration retryDelay = const Duration(milliseconds: 300),
+  }) async {
+    if (!OnboardingStorage.shouldShowUnitsTour()) return;
+    if (state.isActive) return;
+
+    for (int attempt = 0; attempt < maxRetries; attempt++) {
+      await Future.delayed(retryDelay);
+      if (!context.mounted) return;
+      final steps = _buildUnitsSteps();
+      if (steps.isNotEmpty) {
+        _startTour(context, steps, onComplete: OnboardingStorage.markUnitsTourSeen);
         return;
       }
     }
@@ -282,6 +408,12 @@ class AppTourController extends StateNotifier<AppTourState> {
   /// Call this to replay the tour (e.g. from Settings).
   Future<void> replayTour(BuildContext context) async {
     await OnboardingStorage.resetAppTour();
+    await OnboardingStorage.resetInventoryTour();
+    await OnboardingStorage.resetExpensesTour();
+    await OnboardingStorage.resetTasksTour();
+    await OnboardingStorage.resetCategoriesTour();
+    await OnboardingStorage.resetUnitsTour();
+    if (!context.mounted) return;
     await maybeStartTour(context);
   }
 
@@ -342,7 +474,7 @@ class _TourOverlayState extends State<_TourOverlay>
   Widget build(BuildContext context) {
     final r = widget.targetRect;
     final s = widget.screenSize;
-    final padding = 8.0;
+    const padding = 8.0;
 
     // Decide tooltip position: prefer below target, fallback above.
     final spaceBelow = s.height - r.bottom;

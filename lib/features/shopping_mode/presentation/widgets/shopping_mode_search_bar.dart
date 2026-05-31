@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:beity/core/localization/app_localizations.dart';
 
 class ShoppingModeSearchBar extends StatelessWidget {
   final ValueChanged<String> onChanged;
@@ -13,8 +14,6 @@ class ShoppingModeSearchBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
-    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
 
     return Container(
       height: 48,

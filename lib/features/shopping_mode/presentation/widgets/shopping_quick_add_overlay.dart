@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:beity/core/localization/app_localizations.dart';
 import '../../../shopping_lists/presentation/providers/shopping_items_provider.dart';
 
 class ShoppingQuickAddOverlay extends ConsumerStatefulWidget {

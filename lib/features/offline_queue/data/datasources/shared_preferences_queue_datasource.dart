@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:beity/core/services/supabase_service.dart';
 import 'package:beity/core/services/shared_prefs_provider.dart';
 
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../domain/entities/queue_entry.dart';
 import '../../domain/entities/action_type.dart';

@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:beity/core/services/supabase_service.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/services/realtime_service.dart';
 import '../../../../core/services/sync_coordinator.dart';
 import '../../../offline_queue/presentation/providers/offline_queue_provider.dart';

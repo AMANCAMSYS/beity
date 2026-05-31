@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:beity/app/theme/app_spacing.dart';
@@ -13,6 +14,7 @@ import '../../../homes/data/models/home_member_model.dart';
 import '../../../homes/presentation/providers/homes_provider.dart';
 import '../../../../core/utils/action_debouncer.dart';
 import '../../../../core/localization/app_localizations.dart';
+import '../../../settings/presentation/providers/app_settings_provider.dart';
 import 'package:beity/core/errors/error_formatter.dart';
 
 class ExpenseDetailScreen extends ConsumerStatefulWidget {
@@ -493,6 +495,11 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen> {
       try {
         final repository = ref.read(expenseRepositoryProvider);
         await repository.deleteExpense(expenseId: widget.expenseId);
+
+        final hapticEnabled = ref.read(appSettingsProvider).hapticFeedback;
+        if (hapticEnabled) {
+          HapticFeedback.mediumImpact();
+        }
 
         ref.invalidate(expensesProvider);
 

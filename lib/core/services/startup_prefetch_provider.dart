@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../features/homes/presentation/providers/homes_provider.dart';
 import 'sync_coordinator.dart';
@@ -43,7 +44,7 @@ final startupPrefetchProvider = Provider<void>((ref) {
       });
     } catch (e, stack) {
       assert(() {
-        print('startupPrefetchProvider sync error: $e\n$stack');
+        debugPrint('startupPrefetchProvider sync error: $e\n$stack');
         return true;
       }());
     }

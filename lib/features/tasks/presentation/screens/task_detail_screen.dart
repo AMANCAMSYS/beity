@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../homes/presentation/providers/homes_provider.dart';
@@ -11,6 +12,7 @@ import '../../../../shared/widgets/design_system/beity_empty_state.dart';
 import '../../../../shared/widgets/design_system/beity_snack_bar.dart';
 import 'package:beity/core/localization/app_localizations.dart';
 import 'package:beity/core/errors/error_formatter.dart';
+import 'package:beity/features/settings/presentation/providers/app_settings_provider.dart';
 
 class TaskDetailScreen extends ConsumerStatefulWidget {
   final String taskId;
@@ -89,6 +91,10 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
       ref.invalidate(taskByIdProvider);
       ref.invalidate(tasksProvider);
       if (mounted) {
+        final hapticEnabled = ref.read(appSettingsProvider).hapticFeedback;
+        if (hapticEnabled) {
+          HapticFeedback.lightImpact();
+        }
         BeitySnackBar.success(context, context.translate('task_updated_success'));
         setState(() {
           _isEditing = false;
@@ -118,12 +124,19 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
 
     try {
       final repository = ref.read(taskRepositoryProvider);
+      final hapticEnabled = ref.read(appSettingsProvider).hapticFeedback;
       if (task.isCompleted) {
+        if (hapticEnabled) {
+          HapticFeedback.lightImpact();
+        }
         await repository.uncompleteTask(taskId: widget.taskId);
         if (mounted) {
           BeitySnackBar.success(context, context.translate('task_uncompleted_success'));
         }
       } else {
+        if (hapticEnabled) {
+          HapticFeedback.mediumImpact();
+        }
         await repository.completeTask(taskId: widget.taskId);
         if (task.isRecurring) {
           await repository.createNextRecurringTask(taskId: widget.taskId);
@@ -175,6 +188,10 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
         await repository.deleteTask(taskId: widget.taskId);
         ref.invalidate(tasksProvider);
         if (mounted) {
+          final hapticEnabled = ref.read(appSettingsProvider).hapticFeedback;
+          if (hapticEnabled) {
+            HapticFeedback.mediumImpact();
+          }
           BeitySnackBar.success(context, context.translate('task_deleted_success'));
           Navigator.pop(context);
         }

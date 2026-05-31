@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../features/shopping_lists/data/repositories/shopping_list_repository.dart';
 import '../../features/shopping_lists/presentation/providers/shopping_lists_provider.dart';
@@ -99,8 +100,6 @@ class SyncCoordinator extends StateNotifier<SyncState> {
     'inventory': Duration(seconds: 15),
     'categories': Duration(seconds: 30),
   };
-
-  String _getThrottleKey(String homeId, String domain) => 'last_sync_throttle_${homeId}_$domain';
 
 
 
@@ -277,7 +276,7 @@ class SyncCoordinator extends StateNotifier<SyncState> {
       await AppPreferences.instance.setString(key, time.toIso8601String());
     } catch (e, stack) {
       assert(() {
-        print('SyncCoordinator.updateLastSuccessfulSyncTime error: $e\n$stack');
+        debugPrint('SyncCoordinator.updateLastSuccessfulSyncTime error: $e\n$stack');
         return true;
       }());
     }
@@ -293,7 +292,7 @@ class SyncCoordinator extends StateNotifier<SyncState> {
       }
     } catch (e, stack) {
       assert(() {
-        print('SyncCoordinator._getLastSyncTime error: $e\n$stack');
+        debugPrint('SyncCoordinator._getLastSyncTime error: $e\n$stack');
         return true;
       }());
     }
@@ -306,7 +305,7 @@ class SyncCoordinator extends StateNotifier<SyncState> {
       await AppPreferences.instance.setString(key, time.toIso8601String());
     } catch (e, stack) {
       assert(() {
-        print('SyncCoordinator._updateLastSyncTime error: $e\n$stack');
+        debugPrint('SyncCoordinator._updateLastSyncTime error: $e\n$stack');
         return true;
       }());
     }
@@ -349,7 +348,7 @@ class SyncCoordinator extends StateNotifier<SyncState> {
         }
       } catch (e, stack) {
         assert(() {
-          print('SyncCoordinator.smartResumeSync outbox error: $e\n$stack');
+          debugPrint('SyncCoordinator.smartResumeSync outbox error: $e\n$stack');
           return true;
         }());
         // Outbox failed or not ready, proceed to standard sync

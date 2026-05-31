@@ -10,12 +10,18 @@ class OnboardingStorage {
   static const String _appTourSeenVersionKey = 'appTourSeenVersion';
   static const String _inventoryTourSeenVersionKey = 'inventoryTourSeenVersion';
   static const String _expensesTourSeenVersionKey = 'expensesTourSeenVersion';
+  static const String _tasksTourSeenVersionKey = 'tasksTourSeenVersion';
+  static const String _categoriesTourSeenVersionKey = 'categoriesTourSeenVersion';
+  static const String _unitsTourSeenVersionKey = 'unitsTourSeenVersion';
 
   /// Bump these to force re-show after content changes.
   static const int currentWelcomeOnboardingVersion = 1;
   static const int currentAppTourVersion = 1;
   static const int currentInventoryTourVersion = 1;
   static const int currentExpensesTourVersion = 1;
+  static const int currentTasksTourVersion = 1;
+  static const int currentCategoriesTourVersion = 1;
+  static const int currentUnitsTourVersion = 1;
 
   // ── Welcome Onboarding ─────────────────────────────────────────────
 
@@ -89,6 +95,60 @@ class OnboardingStorage {
 
   static Future<void> resetExpensesTour() async {
     await AppPreferences.instance.setInt(_expensesTourSeenVersionKey, 0);
+  }
+
+  // ── Tasks Tour ───────────────────────────────────────────────────────
+
+  static bool shouldShowTasksTour() {
+    final seen = AppPreferences.instance.getInt(_tasksTourSeenVersionKey) ?? 0;
+    return seen < currentTasksTourVersion;
+  }
+
+  static Future<void> markTasksTourSeen() async {
+    await AppPreferences.instance.setInt(
+      _tasksTourSeenVersionKey,
+      currentTasksTourVersion,
+    );
+  }
+
+  static Future<void> resetTasksTour() async {
+    await AppPreferences.instance.setInt(_tasksTourSeenVersionKey, 0);
+  }
+
+  // ── Categories Tour ───────────────────────────────────────────────────
+
+  static bool shouldShowCategoriesTour() {
+    final seen = AppPreferences.instance.getInt(_categoriesTourSeenVersionKey) ?? 0;
+    return seen < currentCategoriesTourVersion;
+  }
+
+  static Future<void> markCategoriesTourSeen() async {
+    await AppPreferences.instance.setInt(
+      _categoriesTourSeenVersionKey,
+      currentCategoriesTourVersion,
+    );
+  }
+
+  static Future<void> resetCategoriesTour() async {
+    await AppPreferences.instance.setInt(_categoriesTourSeenVersionKey, 0);
+  }
+
+  // ── Units Tour ───────────────────────────────────────────────────────
+
+  static bool shouldShowUnitsTour() {
+    final seen = AppPreferences.instance.getInt(_unitsTourSeenVersionKey) ?? 0;
+    return seen < currentUnitsTourVersion;
+  }
+
+  static Future<void> markUnitsTourSeen() async {
+    await AppPreferences.instance.setInt(
+      _unitsTourSeenVersionKey,
+      currentUnitsTourVersion,
+    );
+  }
+
+  static Future<void> resetUnitsTour() async {
+    await AppPreferences.instance.setInt(_unitsTourSeenVersionKey, 0);
   }
 }
 

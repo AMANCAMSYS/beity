@@ -3,6 +3,7 @@ class ShoppingItem {
   final String shoppingListId;
   final String name;
   final double quantity;
+  final double purchasedQuantity;
   final String? unitId;
   final String? categoryId;
   final double? price;
@@ -21,6 +22,7 @@ class ShoppingItem {
     required this.shoppingListId,
     required this.name,
     this.quantity = 1,
+    this.purchasedQuantity = 0,
     this.unitId,
     this.categoryId,
     this.price,
@@ -47,6 +49,7 @@ class ShoppingItem {
     String? shoppingListId,
     String? name,
     double? quantity,
+    double? purchasedQuantity,
     String? unitId,
     String? categoryId,
     double? price,
@@ -64,6 +67,7 @@ class ShoppingItem {
       shoppingListId: shoppingListId ?? this.shoppingListId,
       name: name ?? this.name,
       quantity: quantity ?? this.quantity,
+      purchasedQuantity: purchasedQuantity ?? this.purchasedQuantity,
       unitId: unitId ?? this.unitId,
       categoryId: categoryId ?? this.categoryId,
       price: price ?? this.price,

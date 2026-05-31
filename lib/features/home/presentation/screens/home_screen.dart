@@ -180,9 +180,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         // Wait briefly for animations/layout to settle
         Future.delayed(const Duration(milliseconds: 800), () {
-          if (mounted) {
-            ref.read(appTourControllerProvider.notifier).maybeStartTour(context);
-          }
+          if (!context.mounted) return;
+          ref.read(appTourControllerProvider.notifier).maybeStartTour(context);
         });
       });
     }

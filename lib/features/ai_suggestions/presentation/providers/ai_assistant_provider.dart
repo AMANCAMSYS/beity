@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:beity/core/services/supabase_service.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../domain/entities/ai_mode.dart';
 import '../../domain/entities/ai_response.dart';

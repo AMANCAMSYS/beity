@@ -4,7 +4,6 @@ import 'package:beity/shared/widgets/design_system/beity_empty_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:beity/core/utils/action_debouncer.dart';
 import '../../../homes/presentation/providers/homes_provider.dart';
 import '../providers/task_providers.dart';
@@ -13,6 +12,10 @@ import '../widgets/task_card.dart';
 import '../widgets/task_tabs.dart';
 import 'package:beity/core/localization/app_localizations.dart';
 import 'package:beity/core/errors/error_formatter.dart';
+import 'package:flutter/services.dart';
+import 'package:beity/features/onboarding/presentation/providers/app_tour_controller.dart';
+import 'package:beity/features/settings/presentation/providers/app_settings_provider.dart';
+import 'package:beity/features/onboarding/presentation/providers/app_tour_target_registry.dart';
 
 class TaskListScreen extends ConsumerStatefulWidget {
   final String homeId;
@@ -30,6 +33,14 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
   int _currentTab = 0;
   final _quickTaskController = TextEditingController();
   bool _isQuickAdding = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(appTourControllerProvider.notifier).maybeStartTasksTour(context);
+    });
+  }
 
   String? get _currentUserId =>
       SupabaseService.client.auth.currentUser?.id;
@@ -173,6 +184,7 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
           ),
           // ── Quick Task Addition Field ──
           Padding(
+            key: AppTourTargetRegistry.tasksQuickAddKey,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Row(
               children: [
@@ -206,6 +218,7 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
           ),
           // ── Segmented Due Date Filters ──
           Padding(
+            key: AppTourTargetRegistry.tasksFilterKey,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
             child: SegmentedButton<String>(
               segments: [
@@ -334,6 +347,10 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
                             );
                           }),
                           onComplete: () => ActionDebouncer.execute(() async {
+                            final hapticEnabled = ref.read(appSettingsProvider).hapticFeedback;
+                            if (hapticEnabled) {
+                              HapticFeedback.mediumImpact();
+                            }
                             try {
                               final repository =
                                   ref.read(taskRepositoryProvider);
@@ -384,6 +401,10 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
                             );
                           }),
                           onComplete: () => ActionDebouncer.execute(() async {
+                            final hapticEnabled = ref.read(appSettingsProvider).hapticFeedback;
+                            if (hapticEnabled) {
+                              HapticFeedback.lightImpact();
+                            }
                             try {
                               final repository =
                                   ref.read(taskRepositoryProvider);
@@ -425,6 +446,7 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
+        key: AppTourTargetRegistry.tasksAddKey,
         onPressed: () => ActionDebouncer.execute(() => context.push('/home/${widget.homeId}/tasks/add')),
         child: const Icon(Icons.add_rounded),
       ),

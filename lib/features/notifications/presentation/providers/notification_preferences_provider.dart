@@ -6,7 +6,6 @@ import '../../data/repositories/supabase_notification_repository.dart';
 import '../../domain/entities/notification_preference.dart';
 import '../../domain/usecases/get_notification_preferences_usecase.dart';
 import '../../domain/usecases/update_notification_preferences_usecase.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../homes/presentation/providers/homes_provider.dart';
 
 final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {

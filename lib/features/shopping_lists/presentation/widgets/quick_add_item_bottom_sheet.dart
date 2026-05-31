@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../shared/widgets/design_system/beity_button.dart';
@@ -13,6 +14,7 @@ import '../providers/shopping_lists_provider.dart';
 import '../../domain/usecases/add_item_usecase.dart';
 import '../../../categories/presentation/providers/units_provider.dart';
 import '../../../categories/presentation/providers/categories_provider.dart';
+import '../../../settings/presentation/providers/app_settings_provider.dart';
 import 'package:beity/core/utils/arabic_number_parser.dart';
 
 class QuickAddItemBottomSheet extends ConsumerStatefulWidget {
@@ -61,6 +63,10 @@ class _QuickAddItemBottomSheetState extends ConsumerState<QuickAddItemBottomShee
     setState(() {
       _quantityController.text = (currentVal + 1.0).toInt().toString();
     });
+    final hapticEnabled = ref.read(appSettingsProvider).hapticFeedback;
+    if (hapticEnabled) {
+      HapticFeedback.lightImpact();
+    }
   }
 
   void _decrementQuantity() {
@@ -69,6 +75,10 @@ class _QuickAddItemBottomSheetState extends ConsumerState<QuickAddItemBottomShee
       setState(() {
         _quantityController.text = (currentVal - 1.0).toInt().toString();
       });
+      final hapticEnabled = ref.read(appSettingsProvider).hapticFeedback;
+      if (hapticEnabled) {
+        HapticFeedback.lightImpact();
+      }
     }
   }
 
@@ -340,6 +350,10 @@ class _QuickAddItemBottomSheetState extends ConsumerState<QuickAddItemBottomShee
         notes: null,
         skipDuplicateCheck: skipDuplicateCheck,
       );
+      final hapticEnabled = ref.read(appSettingsProvider).hapticFeedback;
+      if (hapticEnabled) {
+        HapticFeedback.mediumImpact();
+      }
       // The offline aware repository and realtime stream handle immediate local and remote updates,
       // so we do not need to explicitly invalidate the provider.
       if (mounted) {

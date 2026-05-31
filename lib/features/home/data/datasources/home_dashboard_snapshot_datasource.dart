@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/services/shared_prefs_provider.dart';
 import '../../../../core/services/local_cache_notifier.dart';
@@ -24,7 +25,7 @@ class SharedPreferencesHomeDashboardSnapshotLocalDataSource
       LocalCacheNotifier.notify(snapshot.homeId, 'dashboard_snapshot');
     } catch (e, stack) {
       assert(() {
-        print('SharedPreferencesHomeDashboardSnapshotLocalDataSource.saveSnapshot error: $e\n$stack');
+        debugPrint('SharedPreferencesHomeDashboardSnapshotLocalDataSource.saveSnapshot error: $e\n$stack');
         return true;
       }());
     }
@@ -41,7 +42,7 @@ class SharedPreferencesHomeDashboardSnapshotLocalDataSource
       return HomeDashboardSnapshot.fromJson(json);
     } catch (e, stack) {
       assert(() {
-        print('SharedPreferencesHomeDashboardSnapshotLocalDataSource.getSnapshot error: $e\n$stack');
+        debugPrint('SharedPreferencesHomeDashboardSnapshotLocalDataSource.getSnapshot error: $e\n$stack');
         return true;
       }());
       return null;

@@ -105,3 +105,24 @@ final shoppingModeTotalCountProvider =
     error: (error, stack) => 0,
   );
 });
+
+final shoppingModeProgressProvider =
+    Provider.family<double, String>((ref, listId) {
+  final itemsAsync = ref.watch(shoppingItemsProvider(listId));
+  return itemsAsync.when(
+    data: (items) {
+      if (items.isEmpty) return 0.0;
+      double totalProgress = 0.0;
+      for (final item in items) {
+        if (item.isPurchased) {
+          totalProgress += 1.0;
+        } else if (item.quantity > 0 && item.purchasedQuantity > 0) {
+          totalProgress += (item.purchasedQuantity / item.quantity).clamp(0.0, 1.0);
+        }
+      }
+      return totalProgress / items.length;
+    },
+    loading: () => 0.0,
+    error: (error, stack) => 0.0,
+  );
+});

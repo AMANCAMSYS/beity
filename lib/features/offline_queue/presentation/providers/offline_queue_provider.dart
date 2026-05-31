@@ -12,7 +12,6 @@ import '../../domain/usecases/enqueue_action_usecase.dart';
 import '../../domain/usecases/get_pending_count_usecase.dart';
 import '../../domain/usecases/get_queue_entries_usecase.dart';
 import '../../domain/usecases/sync_queue_usecase.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'connectivity_provider.dart';
 import '../../../../core/services/sync_service.dart';
 

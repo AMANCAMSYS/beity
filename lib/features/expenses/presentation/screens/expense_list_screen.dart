@@ -29,14 +29,17 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
   String? _selectedMemberId;
 
   @override
-  Widget build(BuildContext context) {
-    final expensesAsync = ref.watch(expensesProvider(widget.homeId));
-    final theme = Theme.of(context);
-
-    // Trigger the tour after the build is complete.
+  void initState() {
+    super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(appTourControllerProvider.notifier).maybeStartExpensesTour(context);
     });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final expensesAsync = ref.watch(expensesProvider(widget.homeId));
+    final theme = Theme.of(context);
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
@@ -80,6 +83,7 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
             ),
           ),
           IconButton(
+            key: AppTourTargetRegistry.expensesBalancesKey,
             icon: const Icon(Icons.account_balance_wallet_rounded),
             tooltip: context.translate('balances'),
             onPressed: () => ActionDebouncer.execute(
@@ -87,6 +91,7 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
             ),
           ),
           IconButton(
+            key: AppTourTargetRegistry.expensesFilterKey,
             icon: const Icon(Icons.filter_list_rounded),
             onPressed: () => ActionDebouncer.execute(_showFilterDialog),
           ),

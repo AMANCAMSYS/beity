@@ -47,11 +47,10 @@ class ConnectivityDataSource {
   }
 
   Future<bool> isServerReachable() async {
-    try {
-      await _supabase.from('shopping_items').select('id').limit(1);
-      return true;
-    } catch (e) {
-      return false;
-    }
+    // We avoid using a database query (e.g. selecting from shopping_items) for reachability.
+    // It can fail due to RLS, missing permissions, or uninitialized auth state,
+    // which incorrectly traps the app in a false 'offline' state.
+    // connectivity_plus already provides reliable network interface status.
+    return true;
   }
 }

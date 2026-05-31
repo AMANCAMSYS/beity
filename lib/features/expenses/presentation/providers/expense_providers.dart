@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:beity/core/services/supabase_service.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:beity/core/services/sync_service.dart';
 import 'package:beity/core/services/local_cache_notifier.dart';
 import '../../data/datasources/expense_remote_datasource.dart';

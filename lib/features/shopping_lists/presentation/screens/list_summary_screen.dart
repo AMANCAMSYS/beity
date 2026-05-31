@@ -63,8 +63,17 @@ class ListSummaryScreen extends ConsumerWidget {
     
     final totalItems = items.length;
     final purchasedCount = purchasedItems.length;
+    // Calculate fractional progress (e.g. 15/20 bottles = 0.75 of one item)
+    double totalProgress = 0;
+    for (final item in items) {
+      if (item.isPurchased) {
+        totalProgress += 1.0;
+      } else if (item.quantity > 0 && item.purchasedQuantity > 0) {
+        totalProgress += (item.purchasedQuantity / item.quantity).clamp(0.0, 1.0);
+      }
+    }
     final completionPercentage = totalItems > 0
-        ? (purchasedCount / totalItems * 100).round()
+        ? (totalProgress / totalItems * 100).round()
         : 0;
 
     final totalPrice = items
@@ -80,7 +89,7 @@ class ListSummaryScreen extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildProgressCard(context, totalItems, purchasedCount, completionPercentage),
+          _buildProgressCard(context, totalItems, purchasedCount, completionPercentage, totalProgress),
           AppSpacing.gapLG,
           if (totalPrice > 0) ...[
             _buildPriceCard(context, totalPrice, purchasedTotal),
@@ -105,6 +114,7 @@ class ListSummaryScreen extends ConsumerWidget {
     int total,
     int purchased,
     int percentage,
+    double totalProgress,
   ) {
     return BeityCard(
       padding: const EdgeInsets.all(AppSpacing.lg),
@@ -128,7 +138,7 @@ class ListSummaryScreen extends ConsumerWidget {
           ),
           AppSpacing.gapMD,
           LinearProgressIndicator(
-            value: total > 0 ? purchased / total : 0,
+            value: total > 0 ? totalProgress / total : 0,
             minHeight: 8,
             borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
           ),
@@ -319,13 +329,7 @@ class ListSummaryScreen extends ConsumerWidget {
                     color: item.isPurchased ? Theme.of(context).colorScheme.onSurfaceVariant : null,
                   ),
                 ),
-                subtitle: item.quantity != 1 || item.unitId != null
-                    ? Text(context.translate('qty_label', arguments: {
-                        'qty': item.quantity == item.quantity.roundToDouble() 
-                            ? item.quantity.toInt().toString() 
-                            : item.quantity.toStringAsFixed(1),
-                      }))
-                    : null,
+                subtitle: _buildItemSubtitle(context, item),
                 trailing: item.hasPrice
                     ? Text(
                         '${(item.price! * item.quantity).toStringAsFixed(2)} ${context.translate('currency_symbol')}',
@@ -336,5 +340,61 @@ class ListSummaryScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  Widget? _buildItemSubtitle(BuildContext context, ShoppingItem item) {
+    final hasPartial = item.purchasedQuantity > 0 &&
+        item.purchasedQuantity < item.quantity &&
+        !item.isPurchased;
+
+    if (item.quantity == 1 && item.unitId == null && !hasPartial) return null;
+
+    final qty = item.quantity == item.quantity.roundToDouble()
+        ? item.quantity.toInt().toString()
+        : item.quantity.toStringAsFixed(1);
+
+    if (hasPartial) {
+      final purchasedQty = item.purchasedQuantity == item.purchasedQuantity.roundToDouble()
+          ? item.purchasedQuantity.toInt().toString()
+          : item.purchasedQuantity.toStringAsFixed(1);
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            context.translate('bought_of_total', arguments: {
+              'bought': purchasedQty,
+              'total': qty,
+            }),
+            style: TextStyle(
+              fontSize: 12,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+          ),
+          const SizedBox(height: 4),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(2),
+            child: SizedBox(
+              width: 100,
+              child: LinearProgressIndicator(
+                value: item.purchasedQuantity / item.quantity,
+                minHeight: 3,
+                backgroundColor: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white10
+                    : Colors.grey.shade200,
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  Theme.of(context).colorScheme.primary,
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    return Text(context.translate('qty_label', arguments: {
+      'qty': qty,
+    }));
   }
 }

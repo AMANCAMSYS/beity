@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:beity/core/localization/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/models/shopping_mode_session_model.dart';
 import '../../../shopping_lists/data/models/shopping_item_model.dart';

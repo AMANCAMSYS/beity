@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:beity/app/theme/app_spacing.dart';
 import 'package:beity/core/localization/app_localizations.dart';
 import 'package:beity/features/auth/presentation/providers/auth_provider.dart';
-import 'package:beity/features/homes/data/models/home_model.dart';
 import 'package:beity/features/homes/presentation/providers/homes_provider.dart';
 import 'package:beity/features/home/presentation/widgets/app_drawer.dart';
 import 'package:beity/features/home/presentation/widgets/drawer_toggle_button.dart';

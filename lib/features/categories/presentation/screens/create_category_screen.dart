@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/utils/action_debouncer.dart';
 import 'package:go_router/go_router.dart';
@@ -6,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:beity/shared/widgets/design_system/beity_snack_bar.dart';
 import '../providers/categories_provider.dart';
 import 'package:beity/core/localization/app_localizations.dart';
+import '../../../settings/presentation/providers/app_settings_provider.dart';
 
 class CreateCategoryScreen extends ConsumerStatefulWidget {
   final String homeId;
@@ -47,6 +49,11 @@ class _CreateCategoryScreenState extends ConsumerState<CreateCategoryScreen> {
             icon: _selectedIcon,
             color: _selectedColor,
           );
+
+      final hapticEnabled = ref.read(appSettingsProvider).hapticFeedback;
+      if (hapticEnabled) {
+        HapticFeedback.mediumImpact();
+      }
 
       if (mounted) {
         BeitySnackBar.success(context, context.translate('category_created_success'));

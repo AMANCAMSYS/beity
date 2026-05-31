@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
-import '../../../../app/theme/app_colors.dart';
 import '../providers/units_provider.dart';
 import '../widgets/unit_card_widget.dart';
+import 'package:beity/shared/widgets/design_system/beity_empty_state.dart';
 import 'package:beity/core/localization/app_localizations.dart';
+import 'package:beity/features/onboarding/presentation/providers/app_tour_controller.dart';
+import 'package:beity/features/onboarding/presentation/providers/app_tour_target_registry.dart';
 
 class UnitsListScreen extends ConsumerStatefulWidget {
   const UnitsListScreen({super.key});
@@ -18,6 +19,14 @@ class _UnitsListScreenState extends ConsumerState<UnitsListScreen> {
   String? _selectedType;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(appTourControllerProvider.notifier).maybeStartUnitsTour(context);
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final unitsAsync = ref.watch(unitsProvider(_selectedType));
 
@@ -26,6 +35,7 @@ class _UnitsListScreenState extends ConsumerState<UnitsListScreen> {
         title: Text(context.translate('units')),
         actions: [
           IconButton(
+            key: AppTourTargetRegistry.unitsAddKey,
             icon: const Icon(Icons.add),
             onPressed: () {
               context.push('/units/create');
@@ -37,6 +47,7 @@ class _UnitsListScreenState extends ConsumerState<UnitsListScreen> {
         children: [
           // Type filter
           SingleChildScrollView(
+            key: AppTourTargetRegistry.unitsFilterKey,
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Row(
@@ -58,38 +69,10 @@ class _UnitsListScreenState extends ConsumerState<UnitsListScreen> {
             child: unitsAsync.when(
               data: (units) {
                 if (units.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.straighten,
-                          size: 64,
-                          color: Colors.grey[400],
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          context.translate('no_units'),
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleMedium
-                              ?.copyWith(
-                                color: Colors.grey[600],
-                              ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          context.translate('default_units_desc'),
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodyMedium
-                              ?.copyWith(
-                                color: Colors.grey[500],
-                              ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
+                  return BeityEmptyState(
+                    title: context.translate('no_units'),
+                    message: context.translate('default_units_desc'),
+                    icon: Icons.straighten,
                   );
                 }
 
@@ -104,23 +87,13 @@ class _UnitsListScreenState extends ConsumerState<UnitsListScreen> {
               },
               loading: () =>
                   const Center(child: CircularProgressIndicator()),
-              error: (error, stack) => Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.error_outline,
-                        size: 48, color: AppColors.error),
-                    const SizedBox(height: 16),
-                    Text(
-                      context.translate('error_loading_units_msg'),
-                    ),
-                    const SizedBox(height: 8),
-                    ElevatedButton(
-                      onPressed: () => ref.invalidate(unitsProvider),
-                      child: Text(context.translate('retry')),
-                    ),
-                  ],
-                ),
+              error: (error, stack) => BeityEmptyState(
+                title: context.translate('error_occurred'),
+                message: error.toString(),
+                icon: Icons.error_outline_rounded,
+                isError: true,
+                actionText: context.translate('retry'),
+                onAction: () => ref.invalidate(unitsProvider),
               ),
             ),
           ),

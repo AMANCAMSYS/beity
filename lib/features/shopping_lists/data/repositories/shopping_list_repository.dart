@@ -61,6 +61,7 @@ abstract class ShoppingListRepository {
     required String itemId,
     String? name,
     double? quantity,
+    double? purchasedQuantity,
     String? unitId,
     String? categoryId,
     double? price,

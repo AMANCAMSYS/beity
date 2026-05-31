@@ -1,9 +1,10 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:beity/core/services/supabase_service.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:beity/app/theme/app_spacing.dart';
+import 'package:beity/features/settings/presentation/providers/app_settings_provider.dart';
 import 'package:beity/shared/widgets/design_system/beity_button.dart';
 import 'package:beity/shared/widgets/design_system/beity_text_field.dart';
 import 'package:beity/shared/widgets/design_system/beity_card.dart';
@@ -86,6 +87,10 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
       );
 
       if (mounted) {
+        final hapticEnabled = ref.read(appSettingsProvider).hapticFeedback;
+        if (hapticEnabled) {
+          HapticFeedback.mediumImpact();
+        }
         BeitySnackBar.success(context, context.translate('task_created_success'));
         context.pop();
       }

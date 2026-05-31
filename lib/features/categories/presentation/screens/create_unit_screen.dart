@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/utils/action_debouncer.dart';
@@ -6,6 +7,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:beity/shared/widgets/design_system/beity_snack_bar.dart';
 import '../providers/units_provider.dart';
+import '../../../settings/presentation/providers/app_settings_provider.dart';
 
 class CreateUnitScreen extends ConsumerStatefulWidget {
   const CreateUnitScreen({super.key});
@@ -39,6 +41,11 @@ class _CreateUnitScreenState extends ConsumerState<CreateUnitScreen> {
             symbol: _symbolController.text.trim(),
             type: _selectedType,
           );
+
+      final hapticEnabled = ref.read(appSettingsProvider).hapticFeedback;
+      if (hapticEnabled) {
+        HapticFeedback.mediumImpact();
+      }
 
       if (mounted) {
         BeitySnackBar.success(context, context.translate('unit_created_success'));

@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../core/services/notification_service.dart';
 import '../../features/home/presentation/screens/home_screen.dart';
 import '../../features/home/presentation/widgets/main_shell.dart';
 import '../../features/homes/presentation/providers/homes_provider.dart';

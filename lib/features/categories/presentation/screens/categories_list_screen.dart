@@ -6,6 +6,8 @@ import 'package:go_router/go_router.dart';
 import '../providers/categories_provider.dart';
 import '../widgets/category_card_widget.dart';
 import 'package:beity/core/localization/app_localizations.dart';
+import 'package:beity/features/onboarding/presentation/providers/app_tour_controller.dart';
+import 'package:beity/features/onboarding/presentation/providers/app_tour_target_registry.dart';
 
 class CategoriesListScreen extends ConsumerStatefulWidget {
   final String? homeId;
@@ -21,6 +23,14 @@ class _CategoriesListScreenState extends ConsumerState<CategoriesListScreen> {
   String? _selectedType;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(appTourControllerProvider.notifier).maybeStartCategoriesTour(context);
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final categoriesAsync = ref.watch(categoriesByTypeProvider(
       (homeId: widget.homeId, type: _selectedType),
@@ -32,6 +42,7 @@ class _CategoriesListScreenState extends ConsumerState<CategoriesListScreen> {
         actions: [
           if (widget.homeId != null)
             IconButton(
+              key: AppTourTargetRegistry.categoriesAddKey,
               icon: const Icon(Icons.add),
               onPressed: () {
                 context.push('/categories/create', extra: widget.homeId);
@@ -43,6 +54,7 @@ class _CategoriesListScreenState extends ConsumerState<CategoriesListScreen> {
         children: [
           // Type filter
           SingleChildScrollView(
+            key: AppTourTargetRegistry.categoriesFilterKey,
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Row(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:beity/core/localization/app_localizations.dart';
 import '../../domain/entities/ai_meal.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_spacing.dart';

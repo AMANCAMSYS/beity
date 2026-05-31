@@ -112,7 +112,7 @@ class HomeHeaderSliver extends ConsumerWidget {
                     color: theme.colorScheme.onSurface,
                   ),
                 ),
-          _buildSyncIndicator(ref, theme),
+          _buildSyncIndicator(context, ref, theme),
         ],
       ),
       actions: [
@@ -138,7 +138,7 @@ class HomeHeaderSliver extends ConsumerWidget {
     );
   }
 
-  Widget _buildSyncIndicator(WidgetRef ref, ThemeData theme) {
+  Widget _buildSyncIndicator(BuildContext context, WidgetRef ref, ThemeData theme) {
     final syncState = ref.watch(syncCoordinatorProvider);
     if (syncState.status == SyncStatus.idle || syncState.status == SyncStatus.success) {
       return const SizedBox.shrink();

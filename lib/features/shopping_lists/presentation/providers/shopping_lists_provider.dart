@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:beity/core/services/supabase_service.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:beity/core/services/sync_service.dart';
 import '../../data/models/shopping_list_model.dart';
 import '../../data/repositories/shopping_list_repository.dart';

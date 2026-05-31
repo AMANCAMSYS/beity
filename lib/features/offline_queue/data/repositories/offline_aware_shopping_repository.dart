@@ -12,7 +12,6 @@ import '../../../shopping_lists/data/models/item_template_model.dart';
 import '../../../shopping_lists/data/repositories/shopping_list_repository.dart';
 import '../../../shopping_lists/data/datasources/shopping_local_datasource.dart';
 import '../../../shopping_lists/presentation/providers/shopping_items_provider.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 
 
@@ -348,6 +347,7 @@ class OfflineAwareShoppingRepository implements ShoppingListRepository {
     required String itemId,
     String? name,
     double? quantity,
+    double? purchasedQuantity,
     String? unitId,
     String? categoryId,
     double? price,
@@ -369,6 +369,7 @@ class OfflineAwareShoppingRepository implements ShoppingListRepository {
             shoppingListId: original.shoppingListId,
             name: name ?? original.name,
             quantity: quantity ?? original.quantity,
+            purchasedQuantity: purchasedQuantity ?? original.purchasedQuantity,
             unitId: unitId ?? original.unitId,
             categoryId: categoryId ?? original.categoryId,
             price: price ?? original.price,
@@ -392,6 +393,7 @@ class OfflineAwareShoppingRepository implements ShoppingListRepository {
     final payload = {
       'name': name,
       'quantity': quantity,
+      'purchased_quantity': purchasedQuantity,
       'unit_id': unitId,
       'category_id': categoryId,
       'price': price,
@@ -405,6 +407,7 @@ class OfflineAwareShoppingRepository implements ShoppingListRepository {
           itemId: itemId,
           name: name,
           quantity: quantity,
+          purchasedQuantity: purchasedQuantity,
           unitId: unitId,
           categoryId: categoryId,
           price: price,
@@ -441,6 +444,7 @@ class OfflineAwareShoppingRepository implements ShoppingListRepository {
       shoppingListId: targetListId,
       name: name ?? '',
       quantity: quantity ?? 1,
+      purchasedQuantity: purchasedQuantity ?? 0,
       unitId: unitId,
       categoryId: categoryId,
       price: price,

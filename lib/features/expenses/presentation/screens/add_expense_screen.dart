@@ -1,21 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:beity/core/services/supabase_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:beity/app/theme/app_spacing.dart';
 import 'package:beity/app/theme/app_colors.dart';
 import 'package:beity/shared/widgets/design_system/beity_button.dart';
 import 'package:beity/shared/widgets/design_system/beity_text_field.dart';
 import 'package:beity/shared/widgets/design_system/beity_card.dart';
 import '../../../homes/data/models/home_member_model.dart';
-import '../../../homes/data/models/home_model.dart';
 import '../../../homes/presentation/providers/homes_provider.dart';
 import '../../domain/usecases/split_expense.dart';
 import '../providers/expense_providers.dart';
 import '../widgets/split_selector.dart';
 import '../../../../core/utils/action_debouncer.dart';
 import '../../../../core/localization/app_localizations.dart';
+import '../../../settings/presentation/providers/app_settings_provider.dart';
 import 'package:beity/core/errors/error_formatter.dart';
 import 'package:beity/core/utils/arabic_number_parser.dart';
 
@@ -32,6 +32,8 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
   final _formKey = GlobalKey<FormState>();
   final _amountController = TextEditingController();
   final _descriptionController = TextEditingController();
+  final _amountFocusNode = FocusNode();
+  final _descriptionFocusNode = FocusNode();
   DateTime _selectedDate = DateTime.now();
   String? _selectedCategoryId;
   String? _selectedShoppingItemId;
@@ -61,6 +63,8 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
     _amountController.removeListener(_onAmountChanged);
     _amountController.dispose();
     _descriptionController.dispose();
+    _amountFocusNode.dispose();
+    _descriptionFocusNode.dispose();
     super.dispose();
   }
 
@@ -164,7 +168,6 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
         }
       }
 
-      final activeHomeId = ref.read(cachedActiveHomeIdProvider);
       final activeHome = ref.read(cachedActiveHomeProvider);
       final defaultCurrency = activeHome?.defaultCurrency ?? 'SAR';
 
@@ -181,6 +184,11 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
         currencyCode: defaultCurrency,
         splits: splits,
       );
+
+      final hapticEnabled = ref.read(appSettingsProvider).hapticFeedback;
+      if (hapticEnabled) {
+        HapticFeedback.mediumImpact();
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -216,7 +224,6 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
     final theme = Theme.of(context);
     final membersAsync = ref.watch(homeMembersProvider(widget.homeId));
 
-    final activeHomeId = ref.watch(cachedActiveHomeIdProvider);
     final activeHome = ref.watch(cachedActiveHomeProvider);
     final defaultCurrency = activeHome?.defaultCurrency ?? 'SAR';
 
@@ -310,6 +317,8 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
           AppSpacing.gapLG,
           BeityTextField(
             controller: _amountController,
+            focusNode: _amountFocusNode,
+            textInputAction: TextInputAction.next,
             labelText: context.translate('amount'),
             hintText: '0.00',
             prefixIcon: Icons.payments_rounded,
@@ -317,6 +326,9 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
             keyboardType: const TextInputType.numberWithOptions(
               decimal: true,
             ),
+            onSubmitted: (_) {
+              FocusScope.of(context).requestFocus(_descriptionFocusNode);
+            },
             validator: (value) {
               if (value == null || value.isEmpty) {
                 return context.translate('please_enter_amount');
@@ -334,9 +346,14 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
           AppSpacing.gapLG,
           BeityTextField(
             controller: _descriptionController,
+            focusNode: _descriptionFocusNode,
+            textInputAction: TextInputAction.done,
             labelText: context.translate('description'),
             hintText: context.translate('what_did_you_buy'),
             prefixIcon: Icons.description_rounded,
+            onSubmitted: (_) {
+              FocusScope.of(context).unfocus();
+            },
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
                 return context.translate('please_enter_description');

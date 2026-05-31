@@ -132,6 +132,7 @@ class _ShellNavItem extends StatelessWidget {
   final VoidCallback onTap;
 
   const _ShellNavItem({
+    super.key,
     required this.destination,
     required this.isSelected,
     required this.onTap,

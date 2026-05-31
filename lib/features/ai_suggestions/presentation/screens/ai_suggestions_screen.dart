@@ -18,7 +18,6 @@ import '../widgets/ai_meal_card.dart';
 import '../widgets/ai_recipe_checklist.dart';
 import '../widgets/ai_weekly_plan_view.dart';
 import '../widgets/ai_status_badge.dart';
-import '../../domain/entities/ai_recipe_ingredient.dart';
 import 'package:beity/core/localization/app_localizations.dart';
 import '../../../../shared/widgets/design_system/beity_button.dart';
 import '../../../../shared/widgets/design_system/beity_empty_state.dart';

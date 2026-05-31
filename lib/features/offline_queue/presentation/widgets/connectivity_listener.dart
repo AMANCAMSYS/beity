@@ -8,7 +8,6 @@ import '../providers/connectivity_provider.dart';
 import '../providers/offline_queue_provider.dart';
 import '../../domain/usecases/sync_queue_usecase.dart';
 import '../../data/datasources/queue_action_executor.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/services/sync_coordinator.dart';
 
 class ConnectivityListener extends ConsumerStatefulWidget {

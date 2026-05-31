@@ -274,6 +274,7 @@ class SupabaseShoppingListRepository implements ShoppingListRepository {
     required String itemId,
     String? name,
     double? quantity,
+    double? purchasedQuantity,
     String? unitId,
     String? categoryId,
     double? price,
@@ -286,6 +287,7 @@ class SupabaseShoppingListRepository implements ShoppingListRepository {
     };
     if (name != null) updates['name'] = name;
     if (quantity != null) updates['quantity'] = quantity;
+    if (purchasedQuantity != null) updates['purchased_quantity'] = purchasedQuantity;
     if (unitId != null) updates['unit_id'] = unitId;
     if (categoryId != null) updates['category_id'] = categoryId;
     if (notes != null) updates['note'] = notes;

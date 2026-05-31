@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'local_cache_notifier.dart';
@@ -152,7 +153,7 @@ class RealtimeSyncService {
         await action();
       } catch (e, stack) {
         assert(() {
-          print('RealtimeSyncService._debounceSync error in domain $domain: $e\n$stack');
+          debugPrint('RealtimeSyncService._debounceSync error in domain $domain: $e\n$stack');
           return true;
         }());
       }
@@ -207,7 +208,7 @@ class RealtimeSyncService {
         LocalCacheNotifier.notify(homeId, 'shopping_lists');
       } catch (e, stack) {
         assert(() {
-          print('RealtimeSyncService._handleShoppingListEvent error: $e\n$stack');
+          debugPrint('RealtimeSyncService._handleShoppingListEvent error: $e\n$stack');
           return true;
         }());
       }
@@ -271,7 +272,7 @@ class RealtimeSyncService {
         LocalCacheNotifier.notify(homeId, 'shopping_items');
       } catch (e, stack) {
         assert(() {
-          print('RealtimeSyncService._handleShoppingItemEvent error: $e\n$stack');
+          debugPrint('RealtimeSyncService._handleShoppingItemEvent error: $e\n$stack');
           return true;
         }());
       }
@@ -324,7 +325,7 @@ class RealtimeSyncService {
         LocalCacheNotifier.notify(homeId, 'tasks');
       } catch (e, stack) {
         assert(() {
-          print('RealtimeSyncService._handleTaskEvent error: $e\n$stack');
+          debugPrint('RealtimeSyncService._handleTaskEvent error: $e\n$stack');
           return true;
         }());
       }
@@ -377,7 +378,7 @@ class RealtimeSyncService {
         LocalCacheNotifier.notify(homeId, 'expenses');
       } catch (e, stack) {
         assert(() {
-          print('RealtimeSyncService._handleExpenseEvent error: $e\n$stack');
+          debugPrint('RealtimeSyncService._handleExpenseEvent error: $e\n$stack');
           return true;
         }());
       }
@@ -430,7 +431,7 @@ class RealtimeSyncService {
         LocalCacheNotifier.notify(homeId, 'inventory');
       } catch (e, stack) {
         assert(() {
-          print('RealtimeSyncService._handleInventoryItemEvent error: $e\n$stack');
+          debugPrint('RealtimeSyncService._handleInventoryItemEvent error: $e\n$stack');
           return true;
         }());
       }
@@ -483,7 +484,7 @@ class RealtimeSyncService {
         LocalCacheNotifier.notify(homeId, 'categories');
       } catch (e, stack) {
         assert(() {
-          print('RealtimeSyncService._handleCategoryEvent error: $e\n$stack');
+          debugPrint('RealtimeSyncService._handleCategoryEvent error: $e\n$stack');
           return true;
         }());
       }
@@ -518,7 +519,7 @@ class RealtimeSyncService {
         _ref.read(syncCoordinatorProvider.notifier).syncAll(homeId, targetDomain: 'home_members');
       } catch (e, stack) {
         assert(() {
-          print('RealtimeSyncService._handleHomeMemberEvent error: $e\n$stack');
+          debugPrint('RealtimeSyncService._handleHomeMemberEvent error: $e\n$stack');
           return true;
         }());
       }

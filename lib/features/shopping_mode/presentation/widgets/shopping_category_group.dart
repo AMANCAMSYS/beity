@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:beity/core/localization/app_localizations.dart';
 import '../providers/shopping_mode_items_provider.dart';
 import 'shopping_item_card.dart';
 
@@ -9,6 +10,7 @@ class ShoppingCategoryGroup extends StatelessWidget {
   final VoidCallback onToggle;
   final Function(String itemId) onItemTap;
   final Function(String itemId)? onQuantityTap;
+  final bool hapticsEnabled;
 
   const ShoppingCategoryGroup({
     super.key,
@@ -18,12 +20,12 @@ class ShoppingCategoryGroup extends StatelessWidget {
     required this.onToggle,
     required this.onItemTap,
     this.onQuantityTap,
+    this.hapticsEnabled = true,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -82,6 +84,7 @@ class ShoppingCategoryGroup extends StatelessWidget {
                 onQuantityTap: onQuantityTap != null
                     ? () => onQuantityTap!(item.id)
                     : null,
+                hapticsEnabled: hapticsEnabled,
               )),
       ],
     );

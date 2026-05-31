@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:beity/core/services/supabase_service.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:beity/core/services/sync_service.dart';
 import '../../data/datasources/task_remote_datasource.dart';
 import '../../data/datasources/task_comment_remote_datasource.dart';

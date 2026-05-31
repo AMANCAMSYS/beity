@@ -2,13 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../shopping_lists/data/models/shopping_item_model.dart';
 import '../../../../core/accessibility/semantics_helpers.dart';
+import '../../../../core/localization/app_localizations.dart';
+import '../../../../app/theme/app_colors.dart';
 
-class ShoppingItemCard extends StatelessWidget {
+class ShoppingItemCard extends StatefulWidget {
   final ShoppingItemModel item;
   final String? unitName;
   final VoidCallback onTap;
   final VoidCallback? onQuantityTap;
   final String? purchaserName;
+  final bool hapticsEnabled;
 
   const ShoppingItemCard({
     super.key,
@@ -17,19 +20,38 @@ class ShoppingItemCard extends StatelessWidget {
     required this.onTap,
     this.onQuantityTap,
     this.purchaserName,
+    this.hapticsEnabled = true,
   });
+
+  @override
+  State<ShoppingItemCard> createState() => _ShoppingItemCardState();
+}
+
+class _ShoppingItemCardState extends State<ShoppingItemCard> {
+  bool? _optimisticPurchased;
+
+  @override
+  void didUpdateWidget(ShoppingItemCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.item.isPurchased != widget.item.isPurchased) {
+      _optimisticPurchased = null;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isArabic = Localizations.localeOf(context).languageCode == 'ar';
-    final isPurchased = item.isPurchased;
+    final isPurchased = _optimisticPurchased ?? widget.item.isPurchased;
+    final hasPartialPurchase = widget.item.purchasedQuantity > 0 &&
+        widget.item.purchasedQuantity < widget.item.quantity &&
+        !isPurchased;
 
     return Semantics(
       label: AccessibilityHelpers.shoppingItemLabel(
-        name: item.name,
-        quantity: item.quantity,
-        unit: unitName,
+        name: widget.item.name,
+        quantity: widget.item.quantity,
+        unit: widget.unitName,
         isPurchased: isPurchased,
       ),
       button: true,
@@ -55,37 +77,24 @@ class ShoppingItemCard extends StatelessWidget {
             child: InkWell(
               borderRadius: BorderRadius.circular(12),
               onTap: () {
-                HapticFeedback.lightImpact();
-                onTap();
+                if (widget.hapticsEnabled) {
+                  HapticFeedback.lightImpact();
+                }
+                setState(() {
+                  _optimisticPurchased = !isPurchased;
+                });
+                Future.delayed(const Duration(milliseconds: 500), () {
+                  if (mounted) {
+                    widget.onTap();
+                  }
+                });
               },
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Row(
                   children: [
                     // Purchase indicator
-                    Container(
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: isPurchased
-                            ? theme.colorScheme.primary
-                            : Colors.transparent,
-                        border: Border.all(
-                          color: isPurchased
-                              ? theme.colorScheme.primary
-                              : theme.colorScheme.outline,
-                          width: 2,
-                        ),
-                      ),
-                      child: isPurchased
-                          ? Icon(
-                              Icons.check,
-                              size: 18,
-                              color: theme.colorScheme.onPrimary,
-                            )
-                          : null,
-                    ),
+                    _buildLeadingIcon(theme, isPurchased, hasPartialPurchase),
                     const SizedBox(width: 12),
                     // Item details
                     Expanded(
@@ -94,7 +103,7 @@ class ShoppingItemCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            item.name,
+                            widget.item.name,
                             style: theme.textTheme.bodyLarge?.copyWith(
                               decoration:
                                   isPurchased ? TextDecoration.lineThrough : null,
@@ -107,10 +116,14 @@ class ShoppingItemCard extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          if (isPurchased && purchaserName != null) ...[
+                          if (widget.item.quantity > 1 || widget.item.unitId != null || hasPartialPurchase) ...[
+                            const SizedBox(height: 4),
+                            _buildQuantitySubtitle(theme, hasPartialPurchase, isArabic),
+                          ],
+                          if (isPurchased && widget.purchaserName != null) ...[
                             const SizedBox(height: 2),
                             Text(
-                              purchaserName!,
+                              widget.purchaserName!,
                               style: theme.textTheme.bodySmall?.copyWith(
                                 color: theme.colorScheme.onSurfaceVariant,
                               ),
@@ -119,26 +132,20 @@ class ShoppingItemCard extends StatelessWidget {
                         ],
                       ),
                     ),
-                    // Quantity
-                    if (item.quantity > 1 || item.unitId != null)
-                      InkWell(
-                        borderRadius: BorderRadius.circular(8),
-                        onTap: onQuantityTap,
-                        child: Container(
-                          padding:
-                              const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.surfaceContainerHighest,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            _formatQuantity(item, isArabic),
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
+                    // Side Button for Partial Purchase
+                    if (widget.item.quantity > 1 && !isPurchased) ...[
+                      IconButton(
+                        icon: Icon(
+                          Icons.pie_chart_outline,
+                          size: 22,
+                          color: theme.colorScheme.primary,
                         ),
+                        onPressed: widget.onQuantityTap,
+                        tooltip: context.translate('partially_purchased'),
+                        visualDensity: VisualDensity.compact,
+                        padding: const EdgeInsets.all(8),
                       ),
+                    ],
                   ],
                 ),
               ),
@@ -149,12 +156,104 @@ class ShoppingItemCard extends StatelessWidget {
     );
   }
 
+  Widget _buildLeadingIcon(ThemeData theme, bool isPurchased, bool hasPartialPurchase) {
+    if (hasPartialPurchase) {
+      final progress = widget.item.purchasedQuantity / widget.item.quantity;
+      return SizedBox(
+        width: 28,
+        height: 28,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Container(
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: AppColors.warning.withValues(alpha: 0.3),
+                  width: 2,
+                ),
+              ),
+            ),
+            SizedBox(
+              width: 28,
+              height: 28,
+              child: CircularProgressIndicator(
+                value: progress,
+                strokeWidth: 2.5,
+                backgroundColor: Colors.transparent,
+                valueColor: const AlwaysStoppedAnimation<Color>(AppColors.warning),
+              ),
+            ),
+            const Text(
+              '½',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: AppColors.warning,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      width: 28,
+      height: 28,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: isPurchased ? theme.colorScheme.primary : Colors.transparent,
+        border: Border.all(
+          color: isPurchased ? theme.colorScheme.primary : theme.colorScheme.outline,
+          width: 2,
+        ),
+      ),
+      child: isPurchased
+          ? Icon(
+              Icons.check,
+              size: 18,
+              color: theme.colorScheme.onPrimary,
+            )
+          : null,
+    );
+  }
+
+  Widget _buildQuantitySubtitle(ThemeData theme, bool hasPartialPurchase, bool isArabic) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (hasPartialPurchase) ...[
+          const Icon(Icons.pie_chart_outline, size: 14, color: AppColors.warning),
+          const SizedBox(width: 4),
+        ],
+        Text(
+          _formatQuantity(widget.item, isArabic),
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: hasPartialPurchase
+                ? AppColors.warning
+                : theme.colorScheme.onSurfaceVariant,
+            fontWeight: hasPartialPurchase ? FontWeight.bold : null,
+          ),
+        ),
+      ],
+    );
+  }
+
   String _formatQuantity(ShoppingItemModel item, bool isArabic) {
     final qty = item.quantity == item.quantity.roundToDouble()
         ? item.quantity.toInt().toString()
         : item.quantity.toStringAsFixed(1);
     
-    if (unitName == null || unitName!.isEmpty) return qty;
-    return '$qty $unitName';
+    final purchasedQty = item.purchasedQuantity == item.purchasedQuantity.roundToDouble()
+        ? item.purchasedQuantity.toInt().toString()
+        : item.purchasedQuantity.toStringAsFixed(1);
+
+    final showPartial = item.purchasedQuantity > 0 && item.purchasedQuantity < item.quantity;
+    final qtyString = showPartial ? '$purchasedQty / $qty' : qty;
+    
+    if (widget.unitName == null || widget.unitName!.isEmpty) return qtyString;
+    return '$qtyString ${widget.unitName}';
   }
 }

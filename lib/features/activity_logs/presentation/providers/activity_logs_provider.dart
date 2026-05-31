@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:beity/core/services/supabase_service.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../data/models/activity_log_model.dart';
 import '../../data/repositories/activity_log_repository.dart';
 import '../../data/repositories/supabase_activity_log_repository.dart';

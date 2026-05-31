@@ -91,7 +91,7 @@ Future<void> _initializeBackgroundServices() async {
     NotificationService.setNavigatorKey(appNavigatorKey);
   } catch (e, stack) {
     assert(() {
-      print('Failed to initialize background services: $e\n$stack');
+      debugPrint('Failed to initialize background services: $e\n$stack');
       return true;
     }());
   }

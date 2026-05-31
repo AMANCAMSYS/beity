@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:beity/core/services/local_cache_notifier.dart';
 import 'package:beity/core/services/shared_prefs_provider.dart';
 import 'package:beity/core/services/supabase_service.dart';
