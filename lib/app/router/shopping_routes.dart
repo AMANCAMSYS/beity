@@ -46,10 +46,13 @@ List<GoRoute> shoppingRoutes(String Function(GoRouterState) getEffectiveHomeId) 
     path: '/shopping-list/:id/ai-suggestions',
     builder: (context, state) {
       final extra = state.extra as Map<String, dynamic>? ?? {};
+      final String homeId = (extra['homeId'] as String?) ?? getEffectiveHomeId(state);
+      if (homeId.isEmpty) return const NoActiveHomeWidget();
+      
       return AiSuggestionsScreen(
         listId: state.pathParameters['id']!,
         listTitle: extra['listTitle'] ?? 'قائمة',
-        homeId: extra['homeId'] ?? '',
+        homeId: homeId,
         homeType: extra['homeType'] ?? 'family',
         existingItemNames:
             (extra['existingItemNames'] as List<dynamic>?)

@@ -290,6 +290,7 @@ class SupabaseShoppingListRepository implements ShoppingListRepository {
     if (purchasedQuantity != null) updates['purchased_quantity'] = purchasedQuantity;
     if (unitId != null) updates['unit_id'] = unitId;
     if (categoryId != null) updates['category_id'] = categoryId;
+    if (price != null) updates['estimated_price'] = price;
     if (notes != null) updates['note'] = notes;
 
     final response = await _client

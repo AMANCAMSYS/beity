@@ -100,7 +100,12 @@ class SupabaseInventoryRepository implements InventoryRepository {
         .select()
         .single();
 
-    return InventoryItemModel.fromJson(response);
+    final item = InventoryItemModel.fromJson(response);
+
+    // Update local cache and notify UI
+    await _refreshLocalCache(homeId);
+
+    return item;
   }
 
   @override
@@ -141,7 +146,12 @@ class SupabaseInventoryRepository implements InventoryRepository {
         .select()
         .single();
 
-    return InventoryItemModel.fromJson(response);
+    final item = InventoryItemModel.fromJson(response);
+
+    // Update local cache and notify UI
+    await _refreshLocalCache(item.homeId);
+
+    return item;
   }
 
   @override
@@ -344,6 +354,29 @@ class SupabaseInventoryRepository implements InventoryRepository {
       }
     } catch (_) {
       rethrow;
+    }
+  }
+
+  Future<void> _refreshLocalCache(String homeId) async {
+    if (homeId.isEmpty) return;
+    try {
+      final response = await _client
+          .from('inventory_items')
+          .select()
+          .eq('home_id', homeId)
+          .filter('deleted_at', 'is', null)
+          .order('category_id', ascending: true)
+          .order('name', ascending: true);
+
+      final items = (response as List)
+          .map((json) => InventoryItemModel.fromJson(json))
+          .toList();
+
+      await _localDataSource.saveInventoryItemsStreamCache(homeId: homeId, items: items);
+      await _localDataSource.saveInventoryItems(homeId: homeId, items: items);
+      LocalCacheNotifier.notify(homeId, 'inventory_items');
+    } catch (_) {
+      // Silent fail - cache refresh is best-effort
     }
   }
 }

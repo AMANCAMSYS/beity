@@ -714,7 +714,7 @@ class AiAssistantNotifier extends StateNotifier<AiAssistantState> {
       for (final ingredient in selectedIngredients) {
         await _shoppingRepository.createShoppingItem(
           listId: listId,
-          name: ingredient.name,
+          name: ingredient.displayName ?? ingredient.name,
           quantity: ingredient.quantity,
           notes: ingredient.reason,
         );

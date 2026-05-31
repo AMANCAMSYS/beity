@@ -123,6 +123,7 @@ class QueueActionExecutor {
     if (payload['category_id'] != null) {
       updates['category_id'] = payload['category_id'];
     }
+    if (payload['price'] != null) updates['estimated_price'] = payload['price'];
     if (payload['note'] != null) updates['note'] = payload['note'];
 
     await _client.from(table).update(updates).eq('id', entry.entityId);

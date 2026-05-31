@@ -315,7 +315,7 @@ class HomeRepositoryImpl implements HomeRepository {
           .from('home_members')
           .update({
             'deleted_at': DateTime.now().toIso8601String(),
-            'status': 'removed',
+            'status': 'inactive',
           })
           .eq('home_id', homeId)
           .eq('user_id', userId)
