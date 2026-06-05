@@ -9,6 +9,7 @@ class NotificationPreferencesModel {
   final bool lowStock;
   final bool expiryAlert;
   final bool expenseAdded;
+  final bool taskAssigned;
   final bool taskDue;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -22,6 +23,7 @@ class NotificationPreferencesModel {
     this.lowStock = true,
     this.expiryAlert = true,
     this.expenseAdded = true,
+    this.taskAssigned = true,
     this.taskDue = true,
     required this.createdAt,
     required this.updatedAt,
@@ -37,6 +39,7 @@ class NotificationPreferencesModel {
       lowStock: json['low_stock'] as bool? ?? true,
       expiryAlert: json['expiry_alert'] as bool? ?? true,
       expenseAdded: json['expense_added'] as bool? ?? true,
+      taskAssigned: json['task_assigned'] as bool? ?? true,
       taskDue: json['task_due'] as bool? ?? true,
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'] as String)
@@ -56,6 +59,7 @@ class NotificationPreferencesModel {
       'low_stock': lowStock,
       'expiry_alert': expiryAlert,
       'expense_added': expenseAdded,
+      'task_assigned': taskAssigned,
       'task_due': taskDue,
     };
   }
@@ -70,13 +74,16 @@ class NotificationPreferencesModel {
       lowStock: lowStock,
       expiryAlert: expiryAlert,
       expenseAdded: expenseAdded,
+      taskAssigned: taskAssigned,
       taskDue: taskDue,
       createdAt: createdAt,
       updatedAt: updatedAt,
     );
   }
 
-  factory NotificationPreferencesModel.fromEntity(NotificationPreferences entity) {
+  factory NotificationPreferencesModel.fromEntity(
+    NotificationPreferences entity,
+  ) {
     return NotificationPreferencesModel(
       id: entity.id,
       userId: entity.userId,
@@ -86,6 +93,7 @@ class NotificationPreferencesModel {
       lowStock: entity.lowStock,
       expiryAlert: entity.expiryAlert,
       expenseAdded: entity.expenseAdded,
+      taskAssigned: entity.taskAssigned,
       taskDue: entity.taskDue,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,

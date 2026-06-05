@@ -1,12 +1,24 @@
+// @ts-ignore: VS Code's TypeScript service does not resolve Deno JSR imports; Deno/Supabase resolves this at runtime.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+// @ts-ignore: VS Code's TypeScript service does not resolve Deno JSR imports; Deno/Supabase resolves this at runtime.
 import { createClient } from "jsr:@supabase/supabase-js@2";
+
+declare const Deno: any;
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-Deno.serve(async (_req: Request) => {
+Deno.serve(async (req: Request) => {
+  const authHeader = req.headers.get("Authorization");
+  if (authHeader !== `Bearer ${supabaseServiceKey}`) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" }
+    });
+  }
+
   try {
     const { data, error } = await supabase
       .from("notifications")

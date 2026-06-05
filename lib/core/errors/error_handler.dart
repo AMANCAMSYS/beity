@@ -1,36 +1,37 @@
 import 'package:flutter/material.dart';
+import '../localization/app_localizations.dart';
 
 import 'app_exception.dart';
 
 class ErrorHandler {
-  static ErrorHandlerMessage mapExceptionToMessage(dynamic exception) {
+  static ErrorHandlerMessage mapExceptionToMessage(dynamic exception, BuildContext context) {
     if (exception is NetworkException) {
-      return const ErrorHandlerMessage(
-        message: 'أنت غير متصل بالإنترنت. سيتم مزامنة التغييرات عند عودة الاتصال.',
+      return ErrorHandlerMessage(
+        message: context.translate('network_error_offline_sync'),
         recoveryAction: RecoveryAction.queueAndRetry,
         icon: Icons.wifi_off,
       );
     }
 
     if (exception is AuthException) {
-      return const ErrorHandlerMessage(
-        message: 'انتهت صلاحية جلستك. يرجى تسجيل الدخول مرة أخرى.',
+      return ErrorHandlerMessage(
+        message: context.translate('session_expired'),
         recoveryAction: RecoveryAction.reauth,
         icon: Icons.lock_outline,
       );
     }
 
     if (exception is PermissionException) {
-      return const ErrorHandlerMessage(
-        message: 'لم يعد لديك وصول إلى هذا المنزل.',
+      return ErrorHandlerMessage(
+        message: context.translate('error_no_home_access'),
         recoveryAction: RecoveryAction.navigateToHomes,
         icon: Icons.no_accounts,
       );
     }
 
     if (exception is DatabaseException) {
-      return const ErrorHandlerMessage(
-        message: 'حدث خطأ من جانبنا. يرجى المحاولة مرة أخرى.',
+      return ErrorHandlerMessage(
+        message: context.translate('error_db_system_generic'),
         recoveryAction: RecoveryAction.retry,
         icon: Icons.error_outline,
       );
@@ -45,8 +46,8 @@ class ErrorHandler {
     }
 
     // Default for unknown errors
-    return const ErrorHandlerMessage(
-      message: 'حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى أو الإبلاغ عن المشكلة.',
+    return ErrorHandlerMessage(
+      message: context.translate('unexpected_error_report'),
       recoveryAction: RecoveryAction.retryAndReport,
       icon: Icons.error_outline,
     );

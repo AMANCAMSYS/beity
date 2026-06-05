@@ -1,4 +1,4 @@
-# Beity v0.2.0-preview QA Checklist
+# SAWA v0.2.0-preview QA Checklist
 
 ## Pre-Release Verification
 

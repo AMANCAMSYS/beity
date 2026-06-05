@@ -3,19 +3,51 @@ import 'package:timeago/timeago.dart' as timeago;
 import '../../../../app/theme/app_colors.dart';
 import '../../data/models/activity_log_model.dart';
 import '../../domain/entities/activity_log.dart';
-import 'package:beity/core/localization/app_localizations.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../utils/activity_localizer.dart';
+import '../providers/activity_logs_provider.dart';
 
-class ActivityDetailScreen extends StatelessWidget {
-  final ActivityLogModel log;
+class ActivityDetailScreen extends ConsumerWidget {
+  final String activityId;
+  final ActivityLogModel? initialLog;
 
   const ActivityDetailScreen({
     super.key,
-    required this.log,
+    required this.activityId,
+    this.initialLog,
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (initialLog != null) {
+      return _buildContent(context, initialLog!);
+    }
+
+    final logAsync = ref.watch(activityLogByIdProvider(activityId));
+
+    return logAsync.when(
+      data: (log) {
+        if (log == null) {
+          return Scaffold(
+            appBar: AppBar(title: Text(context.translate('activity_details'))),
+            body: Center(child: Text(context.translate('error_occurred'))), // Replace with proper not found string later
+          );
+        }
+        return _buildContent(context, log);
+      },
+      loading: () => Scaffold(
+        appBar: AppBar(title: Text(context.translate('activity_details'))),
+        body: const Center(child: CircularProgressIndicator()),
+      ),
+      error: (err, stack) => Scaffold(
+        appBar: AppBar(title: Text(context.translate('activity_details'))),
+        body: Center(child: Text(err.toString())),
+      ),
+    );
+  }
+
+  Widget _buildContent(BuildContext context, ActivityLogModel log) {
     return Scaffold(
       appBar: AppBar(
         title: Text(context.translate('activity_details')),
@@ -25,22 +57,22 @@ class ActivityDetailScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildHeader(context),
+            _buildHeader(context, log),
             const SizedBox(height: 24),
-            _buildActionSection(context),
+            _buildActionSection(context, log),
             if (log.metadata != null && log.metadata!.isNotEmpty) ...[
               const SizedBox(height: 24),
-              _buildMetadataSection(context),
+              _buildMetadataSection(context, log),
             ],
             const SizedBox(height: 24),
-            _buildTimestampSection(context),
+            _buildTimestampSection(context, log),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, ActivityLogModel log) {
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
@@ -48,9 +80,9 @@ class ActivityDetailScreen extends StatelessWidget {
         child: Row(
           children: [
             CircleAvatar(
-              backgroundColor: _actionColor.withValues(alpha: 0.1),
+              backgroundColor: _actionColor(log).withValues(alpha: 0.1),
               radius: 24,
-              child: Icon(_actionIcon, color: _actionColor, size: 24),
+              child: Icon(_actionIcon(log), color: _actionColor(log), size: 24),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -79,7 +111,7 @@ class ActivityDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildActionSection(BuildContext context) {
+  Widget _buildActionSection(BuildContext context, ActivityLogModel log) {
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
@@ -122,7 +154,7 @@ class ActivityDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildMetadataSection(BuildContext context) {
+  Widget _buildMetadataSection(BuildContext context, ActivityLogModel log) {
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
@@ -138,14 +170,14 @@ class ActivityDetailScreen extends StatelessWidget {
                   ),
             ),
             const SizedBox(height: 12),
-            ..._buildMetadataEntries(context),
+            ..._buildMetadataEntries(context, log),
           ],
         ),
       ),
     );
   }
 
-  List<Widget> _buildMetadataEntries(BuildContext context) {
+  List<Widget> _buildMetadataEntries(BuildContext context, ActivityLogModel log) {
     final entries = <Widget>[];
     final metadata = log.metadata!;
 
@@ -287,7 +319,7 @@ class ActivityDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTimestampSection(BuildContext context) {
+  Widget _buildTimestampSection(BuildContext context, ActivityLogModel log) {
     final localeCode = Localizations.localeOf(context).languageCode;
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -343,7 +375,7 @@ class ActivityDetailScreen extends StatelessWidget {
     }
   }
 
-  IconData get _actionIcon {
+  IconData _actionIcon(ActivityLogModel log) {
     switch (log.action) {
       case ActionType.listCreated:
         return Icons.add_circle_outline;
@@ -376,7 +408,7 @@ class ActivityDetailScreen extends StatelessWidget {
     }
   }
 
-  Color get _actionColor {
+  Color _actionColor(ActivityLogModel log) {
     switch (log.action) {
       case ActionType.listCreated:
         return AppColors.success;

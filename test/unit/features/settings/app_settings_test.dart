@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:beity/features/settings/presentation/providers/app_settings_provider.dart';
+import 'package:sawa/features/settings/presentation/providers/app_settings_provider.dart';
 
 void main() {
   group('AppSettingsState Unit Tests', () {
@@ -67,6 +67,15 @@ void main() {
       expect(updated.themeMode, ThemeMode.light);
       expect(updated.hapticFeedback, isFalse);
       expect(updated.keepScreenOn, isTrue);
+    });
+
+    test('copyWith can clear nullable country and dialect fields', () {
+      const original = AppSettingsState(country: 'SA', dialect: 'gulf');
+
+      final updated = original.copyWith(country: null, dialect: null);
+
+      expect(updated.country, isNull);
+      expect(updated.dialect, isNull);
     });
   });
 }

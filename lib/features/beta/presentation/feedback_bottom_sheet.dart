@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'package:beity/core/localization/app_localizations.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
 import '../../../app/theme/app_colors.dart';
 import '../data/feedback_repository.dart';
 
@@ -56,8 +56,8 @@ class _FeedbackBottomSheetState extends State<FeedbackBottomSheet> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('تم إرسال الملاحظات. شكراً!'),
+          SnackBar(
+            content: Text(context.translate('feedback_sent_success')),
             backgroundColor: AppColors.success,
           ),
         );
@@ -65,7 +65,7 @@ class _FeedbackBottomSheetState extends State<FeedbackBottomSheet> {
       }
     } catch (e) {
       setState(() {
-        _error = 'فشل الإرسال. يرجى المحاولة مرة أخرى.';
+        _error = context.translate('feedback_send_failed');
         _isSubmitting = false;
       });
     }
@@ -89,7 +89,7 @@ class _FeedbackBottomSheetState extends State<FeedbackBottomSheet> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'إرسال ملاحظات',
+                context.translate('send_feedback'),
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               Semantics(
@@ -107,16 +107,16 @@ class _FeedbackBottomSheetState extends State<FeedbackBottomSheet> {
           Semantics(
             label: 'Feedback type selector',
             child: SegmentedButton<String>(
-              segments: const [
+              segments: [
                 ButtonSegment(
                   value: 'bug',
-                  icon: Icon(Icons.bug_report_rounded),
-                  label: Text('مشكلة'),
+                  icon: const Icon(Icons.bug_report_rounded),
+                  label: Text(context.translate('bug')),
                 ),
                 ButtonSegment(
                   value: 'survey',
-                  icon: Icon(Icons.lightbulb_rounded),
-                  label: Text('اقتراح'),
+                  icon: const Icon(Icons.lightbulb_rounded),
+                  label: Text(context.translate('suggestion')),
                 ),
               ],
               selected: {_feedbackType},
@@ -137,9 +137,9 @@ class _FeedbackBottomSheetState extends State<FeedbackBottomSheet> {
               controller: _descriptionController,
               maxLines: 4,
               maxLength: 2000,
-              decoration: const InputDecoration(
-                hintText: 'اصف ما حدث أو ما تريد أن تراه...',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                hintText: context.translate('feedback_description_hint'),
+                border: const OutlineInputBorder(),
               ),
             ),
           ),
@@ -153,7 +153,7 @@ class _FeedbackBottomSheetState extends State<FeedbackBottomSheet> {
           const SizedBox(height: 8),
           if (widget.screenRoute != null && widget.screenRoute != 'unknown_screen') ...[
             Text(
-              'الشاشة الحالية: ${widget.screenRoute}',
+              context.translate('current_screen_label', arguments: {'route': widget.screenRoute!}),
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: Colors.grey[600],
                     fontWeight: FontWeight.bold,
@@ -162,7 +162,7 @@ class _FeedbackBottomSheetState extends State<FeedbackBottomSheet> {
             const SizedBox(height: 4),
           ],
           Text(
-            'يتم إرفاق معلومات الجهاز وإصدار التطبيق وسجل العمليات تلقائياً',
+            context.translate('feedback_auto_attach_info'),
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Colors.grey[600],
                 ),
@@ -179,7 +179,7 @@ class _FeedbackBottomSheetState extends State<FeedbackBottomSheet> {
                       width: 20,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text('إرسال الملاحظات'),
+                  : Text(context.translate('send_feedback')),
             ),
           ),
           const SizedBox(height: 16),

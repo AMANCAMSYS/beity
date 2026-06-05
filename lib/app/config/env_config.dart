@@ -8,4 +8,6 @@ class EnvConfig {
   static bool get isDebug => dotenv.env['DEBUG_MODE'] == 'true';
   static bool get isProduction => appEnv == 'production';
   static String get firebaseVapidKey => dotenv.env['FIREBASE_VAPID_KEY'] ?? '';
+  static String get googleWebClientId => dotenv.env['GOOGLE_WEB_CLIENT_ID'] ?? '';
+  static String get googleIosClientId => dotenv.env['GOOGLE_IOS_CLIENT_ID'] ?? '';
 }

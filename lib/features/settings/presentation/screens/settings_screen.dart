@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:beity/app/theme/app_spacing.dart';
-import 'package:beity/core/localization/app_localizations.dart';
-import 'package:beity/features/auth/presentation/providers/auth_provider.dart';
-import 'package:beity/features/homes/presentation/providers/homes_provider.dart';
-import 'package:beity/features/home/presentation/widgets/app_drawer.dart';
-import 'package:beity/features/home/presentation/widgets/drawer_toggle_button.dart';
-import 'package:beity/features/settings/presentation/providers/app_settings_provider.dart';
+import 'package:sawa/app/theme/app_spacing.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
+import 'package:sawa/features/auth/presentation/providers/auth_provider.dart';
+import 'package:sawa/features/homes/presentation/providers/homes_provider.dart';
+import 'package:sawa/features/home/presentation/widgets/app_drawer.dart';
+import 'package:sawa/features/home/presentation/widgets/drawer_toggle_button.dart';
+import 'package:sawa/features/settings/presentation/providers/app_settings_provider.dart';
 import '../widgets/settings_shared_widgets.dart';
 import '../widgets/settings_account_section.dart';
 import '../widgets/settings_home_section.dart';
@@ -67,17 +67,12 @@ class _AccountHeaderWidget extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final settings = ref.watch(appSettingsProvider);
+
     final l10n = ref.watch(appLocalizationsProvider);
-    final isArabic = settings.locale.languageCode == 'ar';
+
     final user = ref.watch(cachedCurrentUserProvider);
     
-    final displayName = user?.fullName ??
-        (isArabic
-            ? 'المستخدم'
-            : settings.locale.languageCode == 'tr'
-                ? 'Kullanıcı'
-                : 'User');
+    final displayName = user?.fullName ?? l10n.translate('guest_user');
     final email = user?.email ?? '';
 
     return AccountSummaryCard(
@@ -175,12 +170,11 @@ class _AppVersionWidget extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final settings = ref.watch(appSettingsProvider);
+    final l10n = ref.watch(appLocalizationsProvider);
     final theme = Theme.of(context);
-    final isArabic = settings.locale.languageCode == 'ar';
     return Center(
       child: Text(
-        '${isArabic ? "بيتي" : "Beity"} 1.0.0',
+        '${l10n.translate('sawa', fallback: 'SAWA')} 1.0.0',
         style: theme.textTheme.labelSmall?.copyWith(
           color: theme.colorScheme.onSurfaceVariant,
         ),

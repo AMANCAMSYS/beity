@@ -1,5 +1,7 @@
 import '../../domain/entities/task.dart';
 
+const Object _taskModelUnchanged = Object();
+
 class TaskModel extends Task {
   const TaskModel({
     required super.id,
@@ -91,37 +93,57 @@ class TaskModel extends Task {
     String? id,
     String? homeId,
     String? title,
-    String? description,
-    DateTime? dueDate,
-    String? categoryId,
-    String? assignedTo,
+    Object? description = _taskModelUnchanged,
+    Object? dueDate = _taskModelUnchanged,
+    Object? categoryId = _taskModelUnchanged,
+    Object? assignedTo = _taskModelUnchanged,
     String? status,
-    String? recurrenceType,
-    String? completedBy,
-    DateTime? completedAt,
+    Object? recurrenceType = _taskModelUnchanged,
+    Object? completedBy = _taskModelUnchanged,
+    Object? completedAt = _taskModelUnchanged,
     String? createdBy,
     DateTime? createdAt,
-    DateTime? updatedAt,
-    DateTime? deletedAt,
-    DateTime? archivedAt,
+    Object? updatedAt = _taskModelUnchanged,
+    Object? deletedAt = _taskModelUnchanged,
+    Object? archivedAt = _taskModelUnchanged,
   }) {
     return TaskModel(
       id: id ?? this.id,
       homeId: homeId ?? this.homeId,
       title: title ?? this.title,
-      description: description ?? this.description,
-      dueDate: dueDate ?? this.dueDate,
-      categoryId: categoryId ?? this.categoryId,
-      assignedTo: assignedTo ?? this.assignedTo,
+      description: identical(description, _taskModelUnchanged)
+          ? this.description
+          : description as String?,
+      dueDate: identical(dueDate, _taskModelUnchanged)
+          ? this.dueDate
+          : dueDate as DateTime?,
+      categoryId: identical(categoryId, _taskModelUnchanged)
+          ? this.categoryId
+          : categoryId as String?,
+      assignedTo: identical(assignedTo, _taskModelUnchanged)
+          ? this.assignedTo
+          : assignedTo as String?,
       status: status ?? this.status,
-      recurrenceType: recurrenceType ?? this.recurrenceType,
-      completedBy: completedBy ?? this.completedBy,
-      completedAt: completedAt ?? this.completedAt,
+      recurrenceType: identical(recurrenceType, _taskModelUnchanged)
+          ? this.recurrenceType
+          : recurrenceType as String?,
+      completedBy: identical(completedBy, _taskModelUnchanged)
+          ? this.completedBy
+          : completedBy as String?,
+      completedAt: identical(completedAt, _taskModelUnchanged)
+          ? this.completedAt
+          : completedAt as DateTime?,
       createdBy: createdBy ?? this.createdBy,
       createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
-      deletedAt: deletedAt ?? this.deletedAt,
-      archivedAt: archivedAt ?? this.archivedAt,
+      updatedAt: identical(updatedAt, _taskModelUnchanged)
+          ? this.updatedAt
+          : updatedAt as DateTime?,
+      deletedAt: identical(deletedAt, _taskModelUnchanged)
+          ? this.deletedAt
+          : deletedAt as DateTime?,
+      archivedAt: identical(archivedAt, _taskModelUnchanged)
+          ? this.archivedAt
+          : archivedAt as DateTime?,
     );
   }
 }

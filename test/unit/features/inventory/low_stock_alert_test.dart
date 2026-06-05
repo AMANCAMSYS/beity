@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:beity/features/inventory/data/models/inventory_item_model.dart';
+import 'package:sawa/features/inventory/data/models/inventory_item_model.dart';
 
 void main() {
   group('LowStockAlert & RestockSuggestions', () {

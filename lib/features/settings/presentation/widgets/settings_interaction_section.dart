@@ -16,12 +16,7 @@ class SettingsInteractionSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final languageCode = settings.locale.languageCode;
-    final title = languageCode == 'ar'
-        ? 'التفاعل والأصوات'
-        : languageCode == 'tr'
-            ? 'Etkileşim ve Sesler'
-            : 'Interaction & Sounds';
+    final title = l10n.translate('interaction_and_sounds');
 
     return SettingsSection(
       title: title,

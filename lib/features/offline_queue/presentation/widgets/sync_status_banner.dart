@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
 
 import '../../../../app/theme/app_colors.dart';
 
@@ -29,21 +30,21 @@ class SyncStatusBanner extends StatelessWidget {
     final color = isOffline || isPausedForWifi
         ? AppColors.warning
         : failedCount > 0
-            ? AppColors.error
-            : AppColors.info;
+        ? AppColors.error
+        : AppColors.info;
     final backgroundColor = isOffline || isPausedForWifi
         ? AppColors.warningContainer
         : failedCount > 0
-            ? AppColors.errorContainer
-            : AppColors.infoContainer;
+        ? AppColors.errorContainer
+        : AppColors.infoContainer;
 
     final message = isOffline
-        ? 'أنت غير متصل - سيتم المزامنة عند الاتصال'
+        ? context.translate('sync_banner_offline')
         : isPausedForWifi
-            ? 'المزامنة متوقفة حتى الاتصال بالواي فاي'
-            : failedCount > 0
-                ? 'فشلت مزامنة $failedCount عنصر'
-                : '$pendingCount عنصر في انتظار المزامنة';
+        ? context.translate('sync_banner_wifi_paused')
+        : failedCount > 0
+        ? context.translate('sync_banner_failed_count', arguments: {'count': failedCount.toString()})
+        : context.translate('sync_banner_pending_count', arguments: {'count': pendingCount.toString()});
 
     return Container(
       width: double.infinity,
@@ -60,8 +61,8 @@ class SyncStatusBanner extends StatelessWidget {
             isOffline || isPausedForWifi
                 ? Icons.cloud_off
                 : failedCount > 0
-                    ? Icons.error_outline
-                    : Icons.cloud_upload_outlined,
+                ? Icons.error_outline
+                : Icons.cloud_upload_outlined,
             size: 18,
             color: color,
           ),
@@ -85,7 +86,7 @@ class SyncStatusBanner extends StatelessWidget {
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
               child: Text(
-                'إعادة المحاولة',
+                context.translate('retry'),
                 style: TextStyle(
                   color: color,
                   fontSize: 13,

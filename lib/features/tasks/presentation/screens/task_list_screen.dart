@@ -1,29 +1,26 @@
-import 'package:beity/shared/widgets/design_system/beity_snack_bar.dart';
-import 'package:beity/core/services/supabase_service.dart';
-import 'package:beity/shared/widgets/design_system/beity_empty_state.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_snack_bar.dart';
+import 'package:sawa/core/services/supabase_service.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_empty_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:beity/core/utils/action_debouncer.dart';
+import 'package:sawa/core/utils/action_debouncer.dart';
 import '../../../homes/presentation/providers/homes_provider.dart';
 import '../providers/task_providers.dart';
 import '../providers/task_filter_providers.dart';
 import '../widgets/task_card.dart';
 import '../widgets/task_tabs.dart';
-import 'package:beity/core/localization/app_localizations.dart';
-import 'package:beity/core/errors/error_formatter.dart';
-import 'package:flutter/services.dart';
-import 'package:beity/features/onboarding/presentation/providers/app_tour_controller.dart';
-import 'package:beity/features/settings/presentation/providers/app_settings_provider.dart';
-import 'package:beity/features/onboarding/presentation/providers/app_tour_target_registry.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
+import 'package:sawa/core/errors/error_formatter.dart';
+import '../../../../core/providers/permissions_provider.dart';
+import 'package:sawa/features/onboarding/presentation/providers/app_tour_controller.dart';
+import 'package:sawa/features/settings/presentation/providers/app_settings_provider.dart';
+import 'package:sawa/features/onboarding/presentation/providers/app_tour_target_registry.dart';
 
 class TaskListScreen extends ConsumerStatefulWidget {
   final String homeId;
 
-  const TaskListScreen({
-    super.key,
-    required this.homeId,
-  });
+  const TaskListScreen({super.key, required this.homeId});
 
   @override
   ConsumerState<TaskListScreen> createState() => _TaskListScreenState();
@@ -42,8 +39,7 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
     });
   }
 
-  String? get _currentUserId =>
-      SupabaseService.client.auth.currentUser?.id;
+  String? get _currentUserId => SupabaseService.client.auth.currentUser?.id;
 
   @override
   void dispose() {
@@ -70,11 +66,14 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
       ref.invalidate(tasksProvider);
 
       if (mounted) {
-        BeitySnackBar.success(context, context.translate('task_created_success'));
+        SawaSnackBar.success(
+          context,
+          context.translate('task_created_success'),
+        );
       }
     } catch (e) {
       if (mounted) {
-        BeitySnackBar.error(
+        SawaSnackBar.error(
           context,
           '${context.translate('error')}: ${ErrorFormatter.format(e, context)}',
         );
@@ -96,6 +95,10 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
     );
     final membersAsync = ref.watch(homeMembersProvider(widget.homeId));
     final filter = ref.watch(taskFilterProvider);
+    final permissions = ref.watch(
+      currentHomePermissionsProvider(widget.homeId),
+    );
+    final canManage = permissions.canEdit;
 
     // Build member name map
     final memberNames = <String, String>{};
@@ -112,7 +115,10 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: Text(context.translate('tasks'), style: const TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(
+          context.translate('tasks'),
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
         actions: [
           PopupMenuButton<String>(
             icon: const Icon(Icons.sort_rounded),
@@ -140,25 +146,29 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
             itemBuilder: (context) => [
               CheckedPopupMenuItem<String>(
                 value: 'due_date_asc',
-                checked: filter.sortBy == TaskSortBy.dueDate &&
+                checked:
+                    filter.sortBy == TaskSortBy.dueDate &&
                     filter.sortOrder == TaskSortOrder.ascending,
                 child: Text(context.translate('due_date_earliest')),
               ),
               CheckedPopupMenuItem<String>(
                 value: 'due_date_desc',
-                checked: filter.sortBy == TaskSortBy.dueDate &&
+                checked:
+                    filter.sortBy == TaskSortBy.dueDate &&
                     filter.sortOrder == TaskSortOrder.descending,
                 child: Text(context.translate('due_date_latest')),
               ),
               CheckedPopupMenuItem<String>(
                 value: 'created_asc',
-                checked: filter.sortBy == TaskSortBy.createdAt &&
+                checked:
+                    filter.sortBy == TaskSortBy.createdAt &&
                     filter.sortOrder == TaskSortOrder.ascending,
                 child: Text(context.translate('created_oldest')),
               ),
               CheckedPopupMenuItem<String>(
                 value: 'created_desc',
-                checked: filter.sortBy == TaskSortBy.createdAt &&
+                checked:
+                    filter.sortBy == TaskSortBy.createdAt &&
                     filter.sortOrder == TaskSortOrder.descending,
                 child: Text(context.translate('created_newest')),
               ),
@@ -183,39 +193,49 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
             },
           ),
           // ── Quick Task Addition Field ──
-          Padding(
-            key: AppTourTargetRegistry.tasksQuickAddKey,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _quickTaskController,
-                    decoration: InputDecoration(
-                      hintText: context.translate('add_quick_task'),
-                      prefixIcon: const Icon(Icons.playlist_add_rounded),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(24),
+          if (canManage)
+            Padding(
+              key: AppTourTargetRegistry.tasksQuickAddKey,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _quickTaskController,
+                      decoration: InputDecoration(
+                        hintText: context.translate('add_quick_task'),
+                        prefixIcon: const Icon(Icons.playlist_add_rounded),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
                       ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      textInputAction: TextInputAction.send,
+                      onSubmitted: (_) => _submitQuickTask(),
+                      onTapOutside: (_) =>
+                          FocusManager.instance.primaryFocus?.unfocus(),
                     ),
-                    onSubmitted: (_) => _submitQuickTask(),
                   ),
-                ),
-                const SizedBox(width: 8),
-                IconButton.filled(
-                  onPressed: _isQuickAdding ? null : _submitQuickTask,
-                  icon: _isQuickAdding
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                        )
-                      : const Icon(Icons.send_rounded),
-                ),
-              ],
+                  const SizedBox(width: 8),
+                  IconButton.filled(
+                    onPressed: _isQuickAdding ? null : _submitQuickTask,
+                    icon: _isQuickAdding
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Icon(Icons.send_rounded),
+                  ),
+                ],
+              ),
             ),
-          ),
           // ── Segmented Due Date Filters ──
           Padding(
             key: AppTourTargetRegistry.tasksFilterKey,
@@ -242,9 +262,9 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
               showSelectedIcon: false,
               onSelectionChanged: (selection) {
                 final selected = selection.first;
-                ref.read(taskFilterProvider.notifier).setDueDateFilter(
-                      selected == 'all' ? null : selected,
-                    );
+                ref
+                    .read(taskFilterProvider.notifier)
+                    .setDueDateFilter(selected == 'all' ? null : selected);
               },
             ),
           ),
@@ -261,28 +281,34 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
 
                   switch (filter.dueDateFilter) {
                     case 'today':
-                      filteredTasks =
-                          filteredTasks.where((t) => t.isDueToday).toList();
+                      filteredTasks = filteredTasks
+                          .where((t) => t.isDueToday)
+                          .toList();
                       break;
                     case 'this_week':
-                      final weekEnd =
-                          today.add(Duration(days: 7 - now.weekday));
+                      final weekEnd = today.add(
+                        Duration(days: 7 - now.weekday),
+                      );
                       filteredTasks = filteredTasks.where((t) {
                         if (t.dueDate == null) return false;
                         return t.dueDate!.isAfter(
-                                today.subtract(const Duration(days: 1))) &&
+                              today.subtract(const Duration(days: 1)),
+                            ) &&
                             t.dueDate!.isBefore(
-                                weekEnd.add(const Duration(days: 1)));
+                              weekEnd.add(const Duration(days: 1)),
+                            );
                       }).toList();
                       break;
                     case 'overdue':
-                      filteredTasks =
-                          filteredTasks.where((t) => t.isOverdue).toList();
+                      filteredTasks = filteredTasks
+                          .where((t) => t.isOverdue)
+                          .toList();
                       break;
                   }
                 }
 
                 // Apply sorting
+                filteredTasks = [...filteredTasks];
                 filteredTasks.sort((a, b) {
                   int comparison;
                   if (filter.sortBy == TaskSortBy.dueDate) {
@@ -306,21 +332,31 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
                 });
 
                 if (filteredTasks.isEmpty) {
-                  return BeityEmptyState(
+                  return SawaEmptyState(
                     title: _currentTab == 0
                         ? context.translate('no_tasks_assigned')
                         : context.translate('no_tasks_found'),
                     message: context.translate('add_task_guideline'),
                     icon: Icons.task_alt_rounded,
-                    actionText: context.translate('add_task'),
-                    onAction: () => ActionDebouncer.execute(() => context.push('/home/${widget.homeId}/tasks/add')),
+                    actionText: canManage
+                        ? context.translate('add_task')
+                        : null,
+                    onAction: canManage
+                        ? () => ActionDebouncer.execute(
+                            () => context.push(
+                              '/home/${widget.homeId}/tasks/add',
+                            ),
+                          )
+                        : null,
                   );
                 }
 
-                final incompleteTasks =
-                    filteredTasks.where((t) => t.isIncomplete).toList();
-                final completedTasks =
-                    filteredTasks.where((t) => t.isCompleted).toList();
+                final incompleteTasks = filteredTasks
+                    .where((t) => t.isIncomplete)
+                    .toList();
+                final completedTasks = filteredTasks
+                    .where((t) => t.isCompleted)
+                    .toList();
 
                 return ListView(
                   children: [
@@ -328,53 +364,71 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
                       Padding(
                         padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                         child: Text(
-                          context.translate('in_progress_count', arguments: {'count': incompleteTasks.length.toString()}),
-                          style:
-                              Theme.of(context).textTheme.titleSmall?.copyWith(
-                                    color: Colors.grey.shade600,
-                                  ),
+                          context.translate(
+                            'in_progress_count',
+                            arguments: {
+                              'count': incompleteTasks.length.toString(),
+                            },
+                          ),
+                          style: Theme.of(context).textTheme.titleSmall
+                              ?.copyWith(color: Colors.grey.shade600),
                         ),
                       ),
                       ...incompleteTasks.map(
                         (task) => TaskCard(
+                          key: ValueKey(task.id),
                           task: task,
                           assigneeName: task.assignedTo != null
                               ? memberNames[task.assignedTo]
                               : null,
+                          completedByName: task.completedBy != null
+                              ? memberNames[task.completedBy]
+                              : null,
+                          hapticsEnabled: ref
+                              .read(appSettingsProvider)
+                              .hapticFeedback,
+                          soundsEnabled: ref
+                              .read(appSettingsProvider)
+                              .soundEffects,
                           onTap: () => ActionDebouncer.execute(() async {
                             context.push(
                               '/home/${widget.homeId}/tasks/${task.id}',
                             );
                           }),
-                          onComplete: () => ActionDebouncer.execute(() async {
-                            final hapticEnabled = ref.read(appSettingsProvider).hapticFeedback;
-                            if (hapticEnabled) {
-                              HapticFeedback.mediumImpact();
-                            }
-                            try {
-                              final repository =
-                                  ref.read(taskRepositoryProvider);
-                              await repository.completeTask(taskId: task.id);
-                              if (task.isRecurring) {
-                                await repository.createNextRecurringTask(
-                                    taskId: task.id);
-                              }
-                              ref.invalidate(tasksProvider);
-                              if (context.mounted) {
-                                BeitySnackBar.success(
-                                  context,
-                                  context.translate('task_completed_success'),
-                                );
-                              }
-                            } catch (e) {
-                              if (context.mounted) {
-                                BeitySnackBar.error(
-                                  context,
-                                  '${context.translate('error_occurred')}: ${ErrorFormatter.format(e, context)}',
-                                );
-                              }
-                            }
-                          }),
+                          onComplete: !canManage
+                              ? null
+                              : () async {
+                                  try {
+                                    final repository = ref.read(
+                                      taskRepositoryProvider,
+                                    );
+                                    await repository.completeTask(
+                                      taskId: task.id,
+                                    );
+                                    if (task.isRecurring) {
+                                      await repository.createNextRecurringTask(
+                                        taskId: task.id,
+                                      );
+                                    }
+                                    ref.invalidate(tasksProvider);
+                                    if (context.mounted) {
+                                      SawaSnackBar.success(
+                                        context,
+                                        context.translate(
+                                          'task_completed_success',
+                                        ),
+                                      );
+                                    }
+                                  } catch (e) {
+                                    if (context.mounted) {
+                                      SawaSnackBar.error(
+                                        context,
+                                        '${context.translate('error_occurred')}: ${ErrorFormatter.format(e, context)}',
+                                      );
+                                    }
+                                    rethrow;
+                                  }
+                                },
                         ),
                       ),
                     ],
@@ -382,58 +436,74 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
                       Padding(
                         padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                         child: Text(
-                          context.translate('completed_count', arguments: {'count': completedTasks.length.toString()}),
-                          style:
-                              Theme.of(context).textTheme.titleSmall?.copyWith(
-                                    color: Colors.grey.shade600,
-                                  ),
+                          context.translate(
+                            'completed_count',
+                            arguments: {
+                              'count': completedTasks.length.toString(),
+                            },
+                          ),
+                          style: Theme.of(context).textTheme.titleSmall
+                              ?.copyWith(color: Colors.grey.shade600),
                         ),
                       ),
                       ...completedTasks.map(
                         (task) => TaskCard(
+                          key: ValueKey(task.id),
                           task: task,
                           assigneeName: task.assignedTo != null
                               ? memberNames[task.assignedTo]
                               : null,
+                          completedByName: task.completedBy != null
+                              ? memberNames[task.completedBy]
+                              : null,
+                          hapticsEnabled: ref
+                              .read(appSettingsProvider)
+                              .hapticFeedback,
+                          soundsEnabled: ref
+                              .read(appSettingsProvider)
+                              .soundEffects,
                           onTap: () => ActionDebouncer.execute(() async {
                             context.push(
                               '/home/${widget.homeId}/tasks/${task.id}',
                             );
                           }),
-                          onComplete: () => ActionDebouncer.execute(() async {
-                            final hapticEnabled = ref.read(appSettingsProvider).hapticFeedback;
-                            if (hapticEnabled) {
-                              HapticFeedback.lightImpact();
-                            }
-                            try {
-                              final repository =
-                                  ref.read(taskRepositoryProvider);
-                              await repository.uncompleteTask(taskId: task.id);
-                              ref.invalidate(tasksProvider);
-                              if (context.mounted) {
-                                BeitySnackBar.success(
-                                  context,
-                                  context.translate('task_uncompleted_success'),
-                                );
-                              }
-                            } catch (e) {
-                              if (context.mounted) {
-                                BeitySnackBar.error(
-                                  context,
-                                  '${context.translate('error_occurred')}: ${ErrorFormatter.format(e, context)}',
-                                );
-                              }
-                            }
-                          }),
+                          onComplete: !canManage
+                              ? null
+                              : () async {
+                                  try {
+                                    final repository = ref.read(
+                                      taskRepositoryProvider,
+                                    );
+                                    await repository.uncompleteTask(
+                                      taskId: task.id,
+                                    );
+                                    ref.invalidate(tasksProvider);
+                                    if (context.mounted) {
+                                      SawaSnackBar.success(
+                                        context,
+                                        context.translate(
+                                          'task_uncompleted_success',
+                                        ),
+                                      );
+                                    }
+                                  } catch (e) {
+                                    if (context.mounted) {
+                                      SawaSnackBar.error(
+                                        context,
+                                        '${context.translate('error_occurred')}: ${ErrorFormatter.format(e, context)}',
+                                      );
+                                    }
+                                    rethrow;
+                                  }
+                                },
                         ),
                       ),
                     ],
                   ],
                 );
               },
-              loading: () =>
-                  const Center(child: CircularProgressIndicator()),
-              error: (error, _) => BeityEmptyState(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (error, _) => SawaEmptyState(
                 title: context.translate('error_occurred'),
                 message: error.toString(),
                 icon: Icons.error_outline_rounded,
@@ -445,11 +515,15 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        key: AppTourTargetRegistry.tasksAddKey,
-        onPressed: () => ActionDebouncer.execute(() => context.push('/home/${widget.homeId}/tasks/add')),
-        child: const Icon(Icons.add_rounded),
-      ),
+      floatingActionButton: canManage
+          ? FloatingActionButton(
+              key: AppTourTargetRegistry.tasksAddKey,
+              onPressed: () => ActionDebouncer.execute(
+                () => context.push('/home/${widget.homeId}/tasks/add'),
+              ),
+              child: const Icon(Icons.add_rounded),
+            )
+          : null,
     );
   }
 }

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'app_logger.dart';
 
 enum ConnectionStatus { connected, disconnected, reconnecting }
 
@@ -8,10 +9,7 @@ class ConnectionStateModel {
   final ConnectionStatus status;
   final DateTime? lastConnectedAt;
 
-  const ConnectionStateModel({
-    required this.status,
-    this.lastConnectedAt,
-  });
+  const ConnectionStateModel({required this.status, this.lastConnectedAt});
 
   bool get isConnected => status == ConnectionStatus.connected;
   bool get isDisconnected => status == ConnectionStatus.disconnected;
@@ -30,10 +28,10 @@ class PresencePayload {
   });
 
   Map<String, dynamic> toMap() => {
-        'user_id': userId,
-        'display_name': displayName,
-        'avatar_url': avatarUrl,
-      };
+    'user_id': userId,
+    'display_name': displayName,
+    'avatar_url': avatarUrl,
+  };
 }
 
 class PresenceState {
@@ -77,10 +75,8 @@ class RealtimeService {
   final Connectivity _connectivity = Connectivity();
 
   final Map<String, RealtimeChannel> _channels = {};
-  final Map<String, StreamController<Map<String, dynamic>>> _tableControllers =
-      {};
   final Map<String, StreamController<Map<String, PresenceState>>>
-      _presenceControllers = {};
+  _presenceControllers = {};
 
   final StreamController<ConnectionStateModel> _connectionController =
       StreamController<ConnectionStateModel>.broadcast();
@@ -106,11 +102,13 @@ class RealtimeService {
     );
     _lastConnectedAt = DateTime.now();
 
-    _connectivitySubscription =
-        _connectivity.onConnectivityChanged.listen((results) {
+    _connectivitySubscription = _connectivity.onConnectivityChanged.listen((
+      results,
+    ) {
       if (_isDisposed) return;
 
-      final hasConnection = results.isNotEmpty &&
+      final hasConnection =
+          results.isNotEmpty &&
           !results.every((r) => r == ConnectivityResult.none);
 
       if (hasConnection) {
@@ -140,47 +138,6 @@ class RealtimeService {
     });
   }
 
-  Stream<List<Map<String, dynamic>>> watchTable({
-    required String table,
-    required String filterColumn,
-    required String filterValue,
-    required List<String> primaryKey,
-  }) {
-    if (_isDisposed) return const Stream.empty();
-
-    final key = '$table:$filterColumn=$filterValue';
-
-    if (_tableControllers.containsKey(key)) {
-      return _tableControllers[key]!.stream.map((event) => [event]);
-    }
-
-    final controller = StreamController<Map<String, dynamic>>.broadcast();
-    _tableControllers[key] = controller;
-
-    final channel = _client
-        .channel('realtime:$key')
-        .onPostgresChanges(
-          event: PostgresChangeEvent.all,
-          schema: 'public',
-          table: table,
-          filter: PostgresChangeFilter(
-            type: PostgresChangeFilterType.eq,
-            column: filterColumn,
-            value: filterValue,
-          ),
-          callback: (payload) {
-            if (!_isDisposed) {
-              controller.add(payload.newRecord);
-            }
-          },
-        )
-        .subscribe();
-
-    _channels[key] = channel;
-
-    return controller.stream.map((event) => [event]);
-  }
-
   Stream<Map<String, PresenceState>> watchPresence({
     required String channelName,
     required PresencePayload userPayload,
@@ -191,8 +148,7 @@ class RealtimeService {
       return _presenceControllers[channelName]!.stream;
     }
 
-    final controller =
-        StreamController<Map<String, PresenceState>>.broadcast();
+    final controller = StreamController<Map<String, PresenceState>>.broadcast();
     _presenceControllers[channelName] = controller;
 
     final channel = _client.channel(channelName);
@@ -216,7 +172,10 @@ class RealtimeService {
                   if (json is Map) {
                     json.forEach((k, v) => data[k.toString()] = v);
                   }
-                } catch (_) {
+                } catch (e) {
+                  AppLogger.i(
+                    '[RealtimeService] Failed to parse presence JSON: $e',
+                  );
                   if (first is Map) {
                     first.forEach((k, v) => data[k.toString()] = v);
                   }
@@ -229,7 +188,9 @@ class RealtimeService {
             }
           });
         }
-      } catch (_) {}
+      } catch (e) {
+        AppLogger.i('[RealtimeService] Failed to read presence state: $e');
+      }
 
       controller.add(stateMap);
     });
@@ -271,38 +232,14 @@ class RealtimeService {
     if (channel != null) {
       try {
         await channel.unsubscribe();
-      } catch (_) {}
-    }
-
-    final tableController = _tableControllers.remove(key);
-    if (tableController != null && !tableController.isClosed) {
-      await tableController.close();
+      } catch (e) {
+        AppLogger.i('[RealtimeService] Failed to unsubscribe channel $key: $e');
+      }
     }
 
     final presenceController = _presenceControllers.remove(key);
     if (presenceController != null && !presenceController.isClosed) {
       await presenceController.close();
-    }
-  }
-
-  Future<List<Map<String, dynamic>>> fetchMissedChanges({
-    required String table,
-    required String filterColumn,
-    required String filterValue,
-    required DateTime since,
-    required String orderBy,
-  }) async {
-    try {
-      final response = await _client
-          .from(table)
-          .select()
-          .eq(filterColumn, filterValue)
-          .gt('updated_at', since.toIso8601String())
-          .order(orderBy, ascending: true);
-
-      return List<Map<String, dynamic>>.from(response as List);
-    } catch (e) {
-      return [];
     }
   }
 
@@ -315,16 +252,13 @@ class RealtimeService {
     for (final channel in _channels.values) {
       try {
         await channel.unsubscribe();
-      } catch (_) {}
-    }
-    _channels.clear();
-
-    for (final controller in _tableControllers.values) {
-      if (!controller.isClosed) {
-        await controller.close();
+      } catch (e) {
+        AppLogger.i(
+          '[RealtimeService] Failed to unsubscribe realtime channel: $e',
+        );
       }
     }
-    _tableControllers.clear();
+    _channels.clear();
 
     for (final controller in _presenceControllers.values) {
       if (!controller.isClosed) {

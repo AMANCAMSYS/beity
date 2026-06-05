@@ -1,28 +1,51 @@
-/// All AI assistant modes supported by the cooking & grocery assistant.
+import 'package:flutter/material.dart';
+import '../../../../core/localization/app_localizations.dart';
+
+const _translationKeys = {
+  'shopping_suggestions': 'mode_shopping_suggestions',
+  'what_to_cook': 'mode_what_to_cook',
+  'recipe_ingredients': 'mode_recipe_ingredients',
+  'cook_by_vegetables': 'mode_cook_by_vegetables',
+  'cook_by_spices': 'mode_cook_by_spices',
+  'cook_by_available': 'mode_cook_by_available',
+  'budget_meals': 'mode_budget_meals',
+  'healthy_meals': 'mode_healthy_meals',
+  'quick_meals': 'mode_quick_meals',
+  'kids_meals': 'mode_kids_meals',
+  'guest_meals': 'mode_guest_meals',
+  'weekly_meal_plan': 'mode_weekly_meal_plan',
+  'ramadan_list': 'mode_ramadan_list',
+  'travel_list': 'mode_travel_list',
+  'cleaning_list': 'mode_cleaning_list',
+};
+
 enum AiMode {
-  shoppingSuggestions('shopping_suggestions', 'اقتراح عناصر مشتريات', 'Shopping Suggestions'),
-  whatToCook('what_to_cook', 'ماذا أطبخ؟', 'What to Cook?'),
-  recipeIngredients('recipe_ingredients', 'مكونات طبخة معينة', 'Recipe Ingredients'),
-  cookByVegetables('cook_by_vegetables', 'طبخات حسب الخضار', 'Cook by Vegetables'),
-  cookBySpices('cook_by_spices', 'طبخات حسب البهارات', 'Cook by Spices'),
-  cookByAvailable('cook_by_available', 'طبخات حسب الموجود', 'Cook by Available'),
-  budgetMeals('budget_meals', 'طبخات اقتصادية', 'Budget Meals'),
-  healthyMeals('healthy_meals', 'طبخات صحية', 'Healthy Meals'),
-  quickMeals('quick_meals', 'طبخات سريعة', 'Quick Meals'),
-  kidsMeals('kids_meals', 'وجبات للأطفال', 'Kids Meals'),
-  guestMeals('guest_meals', 'وجبات للضيوف', 'Guest Meals'),
-  weeklyMealPlan('weekly_meal_plan', 'خطة وجبات أسبوعية', 'Weekly Meal Plan'),
-  ramadanList('ramadan_list', 'قائمة رمضان', 'Ramadan List'),
-  travelList('travel_list', 'قائمة سفر', 'Travel List'),
-  cleaningList('cleaning_list', 'قائمة تنظيف', 'Cleaning List');
+  shoppingSuggestions('shopping_suggestions'),
+  whatToCook('what_to_cook'),
+  recipeIngredients('recipe_ingredients'),
+  cookByVegetables('cook_by_vegetables'),
+  cookBySpices('cook_by_spices'),
+  cookByAvailable('cook_by_available'),
+  budgetMeals('budget_meals'),
+  healthyMeals('healthy_meals'),
+  quickMeals('quick_meals'),
+  kidsMeals('kids_meals'),
+  guestMeals('guest_meals'),
+  weeklyMealPlan('weekly_meal_plan'),
+  ramadanList('ramadan_list'),
+  travelList('travel_list'),
+  cleaningList('cleaning_list');
 
   final String apiValue;
-  final String labelAr;
-  final String labelEn;
 
-  const AiMode(this.apiValue, this.labelAr, this.labelEn);
+  const AiMode(this.apiValue);
 
-  String label(String languageCode) => languageCode == 'ar' ? labelAr : labelEn;
+  String get translationKey =>
+      _translationKeys[apiValue] ?? 'mode_shopping_suggestions';
+
+  String label(String languageCode) {
+    return AppLocalizations(Locale(languageCode)).translate(translationKey);
+  }
 
   static AiMode fromApiValue(String value) {
     return AiMode.values.firstWhere(

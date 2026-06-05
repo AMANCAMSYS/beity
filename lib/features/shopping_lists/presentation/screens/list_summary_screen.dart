@@ -1,6 +1,6 @@
-import 'package:beity/app/theme/app_spacing.dart';
-import 'package:beity/shared/widgets/design_system/beity_card.dart';
-import 'package:beity/shared/widgets/design_system/beity_empty_state.dart';
+import 'package:sawa/app/theme/app_spacing.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_card.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_empty_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/shopping_items_provider.dart';
@@ -20,38 +20,57 @@ class ListSummaryScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final listAsync = ref.watch(shoppingListByIdProvider(listId));
-    final itemsAsync = ref.watch(shoppingItemsProvider(listId));
 
-    return Scaffold(
-      appBar: AppBar(
-        title: listAsync.when(
-          data: (list) => Text(
-            context.translate('summary_title', arguments: {'name': list?.name ?? ''}),
-            style: const TextStyle(fontWeight: FontWeight.bold),
+    return listAsync.when(
+      data: (list) {
+        final homeId = list?.homeId ?? '';
+        final itemsAsync = ref.watch(
+          shoppingItemsForHomeProvider((listId: listId, homeId: homeId)),
+        );
+
+        return Scaffold(
+          appBar: AppBar(
+            title: Text(
+              context.translate('summary_title', arguments: {'name': list?.name ?? ''}),
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
-          loading: () => Text(context.translate('list_summary')),
-          error: (e, s) => Text(context.translate('list_summary')),
-        ),
+          body: itemsAsync.when(
+            data: (items) {
+              if (items.isEmpty) {
+                return SawaEmptyState(
+                  title: context.translate('list_empty'),
+                  message: context.translate('no_items_summary'),
+                  icon: Icons.summarize_outlined,
+                );
+              }
+              return _buildSummary(context, items);
+            },
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (error, _) => SawaEmptyState(
+              title: context.translate('error_title'),
+              message: error.toString(),
+              icon: Icons.error_outline_rounded,
+              isError: true,
+              actionText: context.translate('retry'),
+              onAction: () => ref.invalidate(
+                shoppingItemsForHomeProvider((listId: listId, homeId: homeId)),
+              ),
+            ),
+          ),
+        );
+      },
+      loading: () => Scaffold(
+        appBar: AppBar(title: Text(context.translate('list_summary'))),
+        body: const Center(child: CircularProgressIndicator()),
       ),
-      body: itemsAsync.when(
-        data: (items) {
-          if (items.isEmpty) {
-            return BeityEmptyState(
-              title: context.translate('list_empty'),
-              message: context.translate('no_items_summary'),
-              icon: Icons.summarize_outlined,
-            );
-          }
-          return _buildSummary(context, items);
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => BeityEmptyState(
+      error: (error, _) => Scaffold(
+        appBar: AppBar(title: Text(context.translate('list_summary'))),
+        body: SawaEmptyState(
           title: context.translate('error_title'),
           message: error.toString(),
           icon: Icons.error_outline_rounded,
           isError: true,
-          actionText: context.translate('retry'),
-          onAction: () => ref.invalidate(shoppingItemsProvider(listId)),
         ),
       ),
     );
@@ -116,7 +135,7 @@ class ListSummaryScreen extends ConsumerWidget {
     int percentage,
     double totalProgress,
   ) {
-    return BeityCard(
+    return SawaCard(
       padding: const EdgeInsets.all(AppSpacing.lg),
       child: Column(
         children: [
@@ -182,7 +201,7 @@ class ListSummaryScreen extends ConsumerWidget {
   ) {
     final remaining = total - purchased;
 
-    return BeityCard(
+    return SawaCard(
       padding: const EdgeInsets.all(AppSpacing.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -237,7 +256,7 @@ class ListSummaryScreen extends ConsumerWidget {
       builder: (context, ref, _) {
         // Get homeId from the list
         final listAsync = ref.watch(shoppingListByIdProvider(listId));
-        final homeId = listAsync.valueOrNull?.homeId ?? '';
+        final homeId = listAsync.value?.homeId ?? '';
         final categoriesAsync = ref.watch(categoriesProvider(homeId));
         
         final categoryNames = <String, String>{};
@@ -247,7 +266,7 @@ class ListSummaryScreen extends ConsumerWidget {
           }
         });
 
-        return BeityCard(
+        return SawaCard(
           padding: const EdgeInsets.all(AppSpacing.lg),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -298,7 +317,7 @@ class ListSummaryScreen extends ConsumerWidget {
     String title,
     List<ShoppingItem> items,
   ) {
-    return BeityCard(
+    return SawaCard(
       padding: const EdgeInsets.all(AppSpacing.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

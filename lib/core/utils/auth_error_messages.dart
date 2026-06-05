@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:beity/core/localization/app_localizations.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
 
 class AuthErrorMessages {
   static String mapError(BuildContext context, String code) {
@@ -26,7 +26,7 @@ class AuthErrorMessages {
     if (value == null || value.isEmpty) {
       return context.translate('email_required');
     }
-    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+    if (!RegExp(r'^[\w\.\-\+]+@([\w\-]+\.)+[\w\-]{2,}$').hasMatch(value)) {
       return context.translate('email_invalid');
     }
     return '';
@@ -38,6 +38,15 @@ class AuthErrorMessages {
     }
     if (value.length < 8) {
       return context.translate('password_too_short');
+    }
+    if (!RegExp(r'[A-Z]').hasMatch(value)) {
+      return context.translate('password_needs_uppercase');
+    }
+    if (!RegExp(r'[0-9]').hasMatch(value)) {
+      return context.translate('password_needs_digit');
+    }
+    if (!RegExp(r'[!@#$%^&*(),.?":{}|<>\-_=+\[\]\\\/~`]').hasMatch(value)) {
+      return context.translate('password_needs_special');
     }
     return '';
   }

@@ -1,7 +1,9 @@
-import 'dart:convert';
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:beity/core/services/supabase_service.dart';
-import 'package:beity/core/services/shared_prefs_provider.dart';
+import 'package:flutter_riverpod/legacy.dart';
+import 'package:flutter/foundation.dart';
+import 'package:sawa/core/services/supabase_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../data/repositories/auth_repository.dart';
@@ -18,7 +20,11 @@ import '../../../activity_logs/presentation/providers/activity_logs_provider.dar
 import '../../../categories/presentation/providers/categories_provider.dart';
 import '../../../categories/presentation/providers/units_provider.dart';
 import '../../../../core/services/notification_service.dart';
+import '../../../../core/services/startup_prefetch_provider.dart';
+import '../../../../core/services/initial_data_hydration_service.dart';
+import '../../../../core/services/sync_coordinator.dart';
 import '../../../../core/monitoring/monitoring_service.dart';
+import '../../../../core/local_database/local_data_deletion_service.dart';
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return AuthRepositoryImpl(SupabaseService.client);
@@ -34,31 +40,20 @@ final cachedCurrentUserProvider = Provider<UserModel?>((ref) {
   try {
     // Supabase.instance throws an assertion or state error if not initialized (like in widget tests)
     Supabase.instance;
-    authUser = ref.watch(authNotifierProvider).valueOrNull;
+    authUser = ref.watch(authNotifierProvider).value;
   } catch (_) {
     // Fallback if Supabase is not initialized
   }
-  
+
   if (authUser != null) {
     return authUser;
   }
-  
-  final futureUser = ref.watch(currentUserProvider).valueOrNull;
+
+  final futureUser = ref.watch(currentUserProvider).value;
   if (futureUser != null) {
     return futureUser;
   }
 
-  try {
-    final userId = SupabaseService.currentUser?.id;
-    if (userId != null) {
-      final prefs = AppPreferences.instance;
-      final cached = prefs.getString('${userId}_cached_profile');
-      if (cached != null) {
-        return UserModel.fromJson(jsonDecode(cached) as Map<String, dynamic>);
-      }
-    }
-  } catch (_) {}
-  
   return null;
 });
 
@@ -73,10 +68,47 @@ class AuthNotifier extends StateNotifier<AsyncValue<UserModel?>> {
 
   AuthNotifier(this._repo, this._ref) : super(const AsyncValue.data(null));
 
+  void _invalidateAuthScopedProviders() {
+    _ref.invalidate(activeHomeIdProvider);
+    _ref.invalidate(userHomesProvider);
+    _ref.invalidate(cachedActiveHomeIdProvider);
+    _ref.invalidate(cachedUserHomesProvider);
+    _ref.invalidate(hasHomesProvider);
+  }
+
+  void _invalidateAllState() {
+    resetStartupPrefetchState();
+    _ref.invalidate(initialDataHydrationServiceProvider);
+    _ref.invalidate(syncCoordinatorProvider);
+    _ref.invalidate(realtimeServiceProvider);
+    _ref.invalidate(offlineQueueRepositoryProvider);
+    _ref.invalidate(queueDataSourceProvider);
+    _ref.invalidate(syncQueueLockProvider);
+    _ref.invalidate(enqueueActionUseCaseProvider);
+    _ref.invalidate(getPendingCountUseCaseProvider);
+    _ref.invalidate(getQueueEntriesUseCaseProvider);
+    _ref.invalidate(shoppingListRepositoryProvider);
+    _ref.invalidate(notificationsProvider);
+    _ref.invalidate(unreadCountProvider);
+    _ref.invalidate(notificationPreferencesProvider);
+    _ref.invalidate(taskFilterProvider);
+    _ref.invalidate(activityFilterProvider);
+    _ref.invalidate(categoryNotifierProvider);
+    _ref.invalidate(unitNotifierProvider);
+    _ref.invalidate(currentUserProvider);
+    _ref.invalidate(userHomesProvider);
+    _ref.invalidate(cachedUserHomesProvider);
+    _ref.invalidate(hasHomesProvider);
+    _ref.invalidate(activeHomeIdProvider);
+    _ref.invalidate(cachedActiveHomeIdProvider);
+    _ref.invalidate(homesNotifierProvider);
+  }
+
   Future<void> signUp({
     required String email,
     required String password,
     required String fullName,
+    String? language,
   }) async {
     state = const AsyncValue.loading();
     try {
@@ -84,121 +116,109 @@ class AuthNotifier extends StateNotifier<AsyncValue<UserModel?>> {
         email: email,
         password: password,
         fullName: fullName,
+        language: language,
       );
       state = AsyncValue.data(user);
+      _invalidateAuthScopedProviders();
+    } on EmailConfirmationRequiredException {
+      state = const AsyncValue.data(null);
+      rethrow;
     } catch (e) {
       state = AsyncValue.error(e, StackTrace.current);
       rethrow;
     }
   }
 
-  Future<void> signIn({
-    required String email,
-    required String password,
-  }) async {
+  Future<void> signIn({required String email, required String password}) async {
     state = const AsyncValue.loading();
     try {
-      final user = await _repo.signIn(
-        email: email,
-        password: password,
-      );
+      final user = await _repo.signIn(email: email, password: password);
+
+      final localDataSource = _ref.read(homeLocalDataSourceProvider);
+      await localDataSource.setInitialSyncCompleted(user.id, false);
+
       state = AsyncValue.data(user);
+      _invalidateAuthScopedProviders();
+      unawaited(
+        NotificationService.ready
+            .then((ready) {
+              return NotificationService.refreshToken();
+            })
+            .catchError((_) {
+              return NotificationService.refreshToken();
+            }),
+      );
     } catch (e) {
       state = AsyncValue.error(e, StackTrace.current);
       rethrow;
     }
   }
 
-  Future<void> signOut() async {
+  Future<void> signInWithGoogle() async {
+    state = const AsyncValue.loading();
+    try {
+      final user = await _repo.signInWithGoogle();
+
+      final localDataSource = _ref.read(homeLocalDataSourceProvider);
+      await localDataSource.setInitialSyncCompleted(user.id, false);
+
+      state = AsyncValue.data(user);
+      _invalidateAuthScopedProviders();
+      unawaited(
+        NotificationService.ready
+            .then((ready) {
+              return NotificationService.refreshToken();
+            })
+            .catchError((_) {
+              return NotificationService.refreshToken();
+            }),
+      );
+    } catch (e) {
+      state = AsyncValue.error(e, StackTrace.current);
+      rethrow;
+    }
+  }
+
+  Future<void> signOut({bool deleteLocalData = false}) async {
     if (state.isLoading) return;
     state = const AsyncValue.loading();
+
+    // Capture current user ID before Supabase clears it on signOut.
+    final userId = SupabaseService.client.auth.currentUser?.id;
+
     try {
-      // 0. Capture current user ID BEFORE signing out (Supabase clears it on signOut)
-      final userId = SupabaseService.client.auth.currentUser?.id;
+      await NotificationService.removeToken();
+    } catch (e, s) {
+      await MonitoringService().logError(
+        e,
+        s,
+        reason: 'Failed to remove notification token during signout',
+      );
+    }
 
-      // 1. Remove device token BEFORE signing out from Supabase (requires auth to delete)
+    if (deleteLocalData && userId != null) {
       try {
-        await NotificationService.removeToken();
+        await LocalDataDeletionService().deleteLocalUserData(userId);
       } catch (e, s) {
-        // Just log and continue, don't let token removal failure block sign out
-        await MonitoringService().logError(e, s, reason: 'Failed to remove notification token during signout');
+        await MonitoringService().logError(
+          e,
+          s,
+          reason: 'Failed to delete local user data during signout',
+        );
       }
+    }
 
-      // 2. Clear offline queue for the captured user
-      try {
-        if (userId != null) {
-          final queueDataSource = _ref.read(sharedPreferencesQueueDataSourceProvider);
-          await queueDataSource.clearQueueForUser(userId);
-        }
-      } catch (e, s) {
-        await MonitoringService().logError(e, s, reason: 'Failed to clear offline queue during signout');
-      }
-
-      // 3. Clear local storage data for the captured user
-      try {
-        if (userId != null) {
-          final localDataSource = _ref.read(homeLocalDataSourceProvider);
-          await localDataSource.clearAllUserDataForUser(userId);
-        }
-      } catch (e, s) {
-        await MonitoringService().logError(e, s, reason: 'Failed to clear local user data during signout');
-      }
-
-      // 4. Sign out from Supabase
+    try {
       await _repo.signOut();
-
-      // 4. Invalidate realtime service (triggers dispose of all channels)
-      _ref.invalidate(realtimeServiceProvider);
-
-      // 5. Invalidate offline queue providers
-      _ref.invalidate(offlineQueueRepositoryProvider);
-      _ref.invalidate(sharedPreferencesQueueDataSourceProvider);
-      _ref.invalidate(enqueueActionUseCaseProvider);
-      _ref.invalidate(getPendingCountUseCaseProvider);
-      _ref.invalidate(getQueueEntriesUseCaseProvider);
-
-      // 6. Invalidate shopping data providers
-      _ref.invalidate(shoppingListRepositoryProvider);
-
-      // 7. Invalidate notification providers
-      _ref.invalidate(notificationsProvider);
-      _ref.invalidate(unreadCountProvider);
-      _ref.invalidate(notificationPreferencesProvider);
-
-      // 8. Invalidate task providers
-      _ref.invalidate(taskFilterProvider);
-
-      // 9. Invalidate activity log providers
-      _ref.invalidate(activityFilterProvider);
-
-      // 10. Invalidate category/unit providers
-      _ref.invalidate(categoryNotifierProvider);
-      _ref.invalidate(unitNotifierProvider);
-
-      // 11. Invalidate home and user providers
-      _ref.invalidate(currentUserProvider);
-      _ref.invalidate(userHomesProvider);
-      _ref.invalidate(hasHomesProvider);
-      _ref.invalidate(activeHomeIdProvider);
-      _ref.invalidate(homesNotifierProvider);
-
+    } catch (e, s) {
+      await MonitoringService().logError(
+        e,
+        s,
+        reason: 'Supabase signOut failed',
+      );
+    } finally {
+      _invalidateAllState();
       state = const AsyncValue.data(null);
-    } catch (e) {
-      // Even if Supabase signOut fails, clear local state to prevent data leakage
-      _ref.invalidate(realtimeServiceProvider);
-      _ref.invalidate(currentUserProvider);
-      _ref.invalidate(userHomesProvider);
-      _ref.invalidate(hasHomesProvider);
-      _ref.invalidate(activeHomeIdProvider);
-      _ref.invalidate(homesNotifierProvider);
-      _ref.invalidate(notificationsProvider);
-      _ref.invalidate(unreadCountProvider);
-      _ref.invalidate(notificationPreferencesProvider);
-      _ref.invalidate(taskFilterProvider);
-      _ref.invalidate(activityFilterProvider);
-
-      state = AsyncValue.error(e, StackTrace.current);
-      rethrow;
     }
   }
 
@@ -226,10 +246,30 @@ class AuthNotifier extends StateNotifier<AsyncValue<UserModel?>> {
       rethrow;
     }
   }
+
+  Future<void> updateAvatar({
+    required Uint8List bytes,
+    required String extension,
+    required String contentType,
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      final avatarUrl = await _repo.uploadAvatar(
+        bytes: bytes,
+        extension: extension,
+        contentType: contentType,
+      );
+      final user = await _repo.updateProfile(avatarUrl: avatarUrl);
+      state = AsyncValue.data(user);
+    } catch (e) {
+      state = AsyncValue.error(e, StackTrace.current);
+      rethrow;
+    }
+  }
 }
 
 final authNotifierProvider =
     StateNotifierProvider<AuthNotifier, AsyncValue<UserModel?>>((ref) {
-  final repo = ref.read(authRepositoryProvider);
-  return AuthNotifier(repo, ref);
-});
+      final repo = ref.read(authRepositoryProvider);
+      return AuthNotifier(repo, ref);
+    });

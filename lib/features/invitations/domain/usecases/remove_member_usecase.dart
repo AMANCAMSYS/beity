@@ -10,7 +10,7 @@ class RemoveMemberUseCase {
     required String userId,
   }) async {
     if (homeId.isEmpty || userId.isEmpty) {
-      throw Exception('معرف المنزل والمستخدم مطلوبان');
+      throw Exception('home_user_required');
     }
 
     await _repository.removeMember(

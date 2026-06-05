@@ -1,12 +1,13 @@
-import 'package:beity/shared/widgets/design_system/beity_button.dart';
-import 'package:beity/shared/widgets/design_system/beity_card.dart';
-import 'package:beity/shared/widgets/design_system/beity_empty_state.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_button.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_card.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_empty_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:beity/core/utils/action_debouncer.dart';
-import 'package:beity/app/theme/app_spacing.dart';
-import 'package:beity/app/theme/app_colors.dart';
+import 'package:sawa/core/utils/action_debouncer.dart';
+import '../../../../core/providers/permissions_provider.dart';
+import 'package:sawa/app/theme/app_spacing.dart';
+import 'package:sawa/app/theme/app_colors.dart';
 import '../providers/expense_providers.dart';
 import '../widgets/expense_card.dart';
 import '../../../../core/localization/app_localizations.dart';
@@ -40,6 +41,8 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
   Widget build(BuildContext context) {
     final expensesAsync = ref.watch(expensesProvider(widget.homeId));
     final theme = Theme.of(context);
+    final permissions = ref.watch(currentHomePermissionsProvider(widget.homeId));
+    final canManage = permissions.canEdit;
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
@@ -131,7 +134,7 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
               }
 
               if (filteredExpenses.isEmpty) {
-                return BeityEmptyState(
+                return SawaEmptyState(
                   title: expenses.isEmpty
                       ? context.translate('no_expenses_yet')
                       : context.translate('no_search_results'),
@@ -140,15 +143,15 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
                       : context.translate('expenses_filter_empty_desc'),
                   icon: Icons.receipt_long_rounded,
                   actionText: expenses.isEmpty
-                      ? context.translate('add_first_expense')
+                      ? (canManage ? context.translate('add_first_expense') : null)
                       : context.translate('clear_filters_action'),
                   onAction: expenses.isEmpty
-                      ? () => ActionDebouncer.execute(
+                      ? (canManage ? () => ActionDebouncer.execute(
                           () => context.push(
                             '/expenses/add',
                             extra: widget.homeId,
                           ),
-                        )
+                        ) : null)
                       : () => setState(() {
                           _startDate = null;
                           _endDate = null;
@@ -187,7 +190,7 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
                 color: theme.colorScheme.primary,
               ),
             ),
-            error: (error, stack) => BeityEmptyState(
+            error: (error, stack) => SawaEmptyState(
               title: context.translate('error_title'),
               message: error.toString(),
               icon: Icons.error_outline_rounded,
@@ -198,14 +201,14 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: canManage ? FloatingActionButton.extended(
         key: AppTourTargetRegistry.expensesAddKey,
         onPressed: () => ActionDebouncer.execute(
           () => context.push('/expenses/add', extra: widget.homeId),
         ),
         icon: const Icon(Icons.add_rounded),
         label: Text(context.translate('add_expense')),
-      ),
+      ) : null,
     );
   }
 
@@ -315,8 +318,8 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
                 Row(
                   children: [
                     Expanded(
-                      child: BeityButton(
-                        type: BeityButtonType.secondary,
+                      child: SawaButton(
+                        type: SawaButtonType.secondary,
                         text: context.translate('clear_all'),
                         onPressed: () {
                           setState(() {
@@ -329,7 +332,7 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
                     ),
                     AppSpacing.gapMD,
                     Expanded(
-                      child: BeityButton(
+                      child: SawaButton(
                         text: context.translate('apply'),
                         onPressed: () {
                           setState(() {});
@@ -355,7 +358,7 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
   }) {
     final theme = Theme.of(context);
 
-    return BeityCard(
+    return SawaCard(
       padding: EdgeInsets.zero,
       onTap: onTap,
       child: Padding(

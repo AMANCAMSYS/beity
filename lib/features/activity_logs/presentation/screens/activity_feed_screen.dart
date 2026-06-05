@@ -1,4 +1,4 @@
-import 'package:beity/shared/widgets/design_system/beity_empty_state.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_empty_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -8,7 +8,7 @@ import '../../data/models/activity_log_model.dart';
 import '../providers/activity_logs_provider.dart';
 import '../widgets/activity_log_tile_widget.dart';
 import '../widgets/activity_filter_widget.dart';
-import 'package:beity/core/localization/app_localizations.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
 
 class ActivityFeedScreen extends ConsumerStatefulWidget {
   final String homeId;
@@ -125,27 +125,20 @@ class _ActivityFeedScreenState extends ConsumerState<ActivityFeedScreen> {
   }
 
   Widget _buildFilteredList(BuildContext context, ActivityFilter filter) {
-    final repository = ref.read(activityLogRepositoryProvider);
+    final activityAsync = ref.watch(
+      filteredActivityProvider((homeId: widget.homeId, filter: filter)),
+    );
 
-    return FutureBuilder<List<ActivityLogModel>>(
-      future: repository.getActivityLogs(
-        homeId: widget.homeId,
-        actorId: filter.actorId,
-        actionTypes: filter.actionTypes,
-      ),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (snapshot.hasError) {
-          return _buildErrorState(context, snapshot.error.toString());
-        }
-        final logs = snapshot.data ?? [];
+    return activityAsync.when(
+      data: (logs) {
+        _allLogs = logs;
         if (logs.isEmpty) {
           return _buildEmptyState(context);
         }
         return _buildList(context, logs);
       },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, _) => _buildErrorState(context, error.toString()),
     );
   }
 
@@ -176,7 +169,7 @@ class _ActivityFeedScreenState extends ConsumerState<ActivityFeedScreen> {
   }
 
   Widget _buildEmptyState(BuildContext context) {
-    return BeityEmptyState(
+    return SawaEmptyState(
       title: context.translate('no_activities_yet'),
       message: context.translate('activities_empty_desc'),
       icon: Icons.history_rounded,
@@ -184,7 +177,7 @@ class _ActivityFeedScreenState extends ConsumerState<ActivityFeedScreen> {
   }
 
   Widget _buildErrorState(BuildContext context, String error) {
-    return BeityEmptyState(
+    return SawaEmptyState(
       title: context.translate('error_occurred'),
       message: error,
       icon: Icons.error_outline_rounded,

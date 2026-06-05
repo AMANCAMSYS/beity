@@ -1,48 +1,101 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'local_cache_notifier.dart';
 import 'supabase_service.dart';
 import 'sync_coordinator.dart';
+import 'sync_service.dart';
 import '../../features/shopping_lists/presentation/providers/shopping_lists_provider.dart';
+import '../../features/shopping_lists/data/datasources/shopping_local_datasource.dart';
 import '../../features/tasks/presentation/providers/task_providers.dart';
 import '../../features/expenses/presentation/providers/expense_providers.dart';
 import '../../features/inventory/presentation/providers/inventory_provider.dart';
 import '../../features/categories/presentation/providers/categories_provider.dart';
+import '../../features/categories/data/datasources/category_local_datasource.dart';
 import '../../features/shopping_lists/data/models/shopping_list_model.dart';
 import '../../features/shopping_lists/data/models/shopping_item_model.dart';
 import '../../features/tasks/data/models/task_model.dart';
 import '../../features/expenses/data/models/expense_model.dart';
 import '../../features/inventory/data/models/inventory_item_model.dart';
 import '../../features/categories/data/models/category_model.dart';
+import '../../features/notifications/data/models/notification_model.dart';
+import '../local_database/daos/notifications_dao.dart';
+import '../local_database/app_database.dart';
+import '../local_database/local_database_service.dart';
+import '../local_database/local_model_mappers.dart';
+import 'app_logger.dart';
 
-/// Service responsible for managing Supabase Realtime Postgres event subscriptions
-/// and mapping incoming event payloads directly into the local persistent cache.
 class RealtimeSyncService {
   final SupabaseClient _client;
   final Ref _ref;
   RealtimeChannel? _channel;
   String? _currentHomeId;
+  final List<RealtimeEvent> _buffer = <RealtimeEvent>[];
+  bool _isBuffering = false;
+  bool _isFlushingBuffer = false;
 
-  // Debounce timers per domain to throttle consecutive rapid updates
   final Map<String, Timer> _debounceTimers = {};
 
   RealtimeSyncService(this._client, this._ref);
 
+  bool get isBuffering => _isBuffering;
+
+  int get bufferedEventCount => _buffer.length;
+
+  int get debounceTimerCount => _debounceTimers.length;
+
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) return;
+
+    final homeId = _currentHomeId;
+    if (homeId == null || homeId.isEmpty) return;
+
+    _isBuffering = false;
+    _buffer.clear();
+    unsubscribe();
+    _initChannel(homeId);
+  }
+
+  void initBuffered(String homeId) {
+    if (homeId.isEmpty) return;
+    if (_currentHomeId == homeId && _isBuffering) return;
+    _buffer.clear();
+    _initChannel(homeId);
+    _isBuffering = true;
+  }
+
+  Future<void> flushBuffer() async {
+    final pending = List<RealtimeEvent>.from(_buffer);
+    _buffer.clear();
+    _isBuffering = false;
+    _isFlushingBuffer = true;
+    try {
+      for (final event in pending) {
+        if (event.homeId != _currentHomeId) continue;
+        await _applyRealtimeEvent(event);
+      }
+    } finally {
+      _isFlushingBuffer = false;
+    }
+  }
+
   void init(String homeId) {
+    _isBuffering = false;
+    _buffer.clear();
+    _initChannel(homeId);
+  }
+
+  void _initChannel(String homeId) {
     if (homeId.isEmpty) return;
     if (_currentHomeId == homeId) return;
 
-    // Unsubscribe from previous channels first
     unsubscribe();
 
     _currentHomeId = homeId;
 
-    // Subscribe to Postgres Changes on all major tables
     _channel = _client.channel('realtime_sync:$homeId');
 
-    // 1. shopping_lists
     _channel!.onPostgresChanges(
       event: PostgresChangeEvent.all,
       schema: 'public',
@@ -52,18 +105,16 @@ class RealtimeSyncService {
         column: 'home_id',
         value: homeId,
       ),
-      callback: (payload) => _handleShoppingListEvent(payload),
+      callback: (payload) => _receiveRealtimeEvent('shopping_lists', payload),
     );
 
-    // 2. shopping_items (All items, filtered by home list IDs in client side)
     _channel!.onPostgresChanges(
       event: PostgresChangeEvent.all,
       schema: 'public',
       table: 'shopping_items',
-      callback: (payload) => _handleShoppingItemEvent(payload),
+      callback: (payload) => _receiveRealtimeEvent('shopping_items', payload),
     );
 
-    // 3. tasks
     _channel!.onPostgresChanges(
       event: PostgresChangeEvent.all,
       schema: 'public',
@@ -73,10 +124,9 @@ class RealtimeSyncService {
         column: 'home_id',
         value: homeId,
       ),
-      callback: (payload) => _handleTaskEvent(payload),
+      callback: (payload) => _receiveRealtimeEvent('tasks', payload),
     );
 
-    // 4. expenses
     _channel!.onPostgresChanges(
       event: PostgresChangeEvent.all,
       schema: 'public',
@@ -86,10 +136,9 @@ class RealtimeSyncService {
         column: 'home_id',
         value: homeId,
       ),
-      callback: (payload) => _handleExpenseEvent(payload),
+      callback: (payload) => _receiveRealtimeEvent('expenses', payload),
     );
 
-    // 5. inventory_items
     _channel!.onPostgresChanges(
       event: PostgresChangeEvent.all,
       schema: 'public',
@@ -99,10 +148,9 @@ class RealtimeSyncService {
         column: 'home_id',
         value: homeId,
       ),
-      callback: (payload) => _handleInventoryItemEvent(payload),
+      callback: (payload) => _receiveRealtimeEvent('inventory_items', payload),
     );
 
-    // 6. categories
     _channel!.onPostgresChanges(
       event: PostgresChangeEvent.all,
       schema: 'public',
@@ -112,10 +160,9 @@ class RealtimeSyncService {
         column: 'home_id',
         value: homeId,
       ),
-      callback: (payload) => _handleCategoryEvent(payload),
+      callback: (payload) => _receiveRealtimeEvent('categories', payload),
     );
 
-    // 7. home_members (Requirement 11)
     _channel!.onPostgresChanges(
       event: PostgresChangeEvent.all,
       schema: 'public',
@@ -125,7 +172,19 @@ class RealtimeSyncService {
         column: 'home_id',
         value: homeId,
       ),
-      callback: (payload) => _handleHomeMemberEvent(payload),
+      callback: (payload) => _receiveRealtimeEvent('home_members', payload),
+    );
+
+    _channel!.onPostgresChanges(
+      event: PostgresChangeEvent.all,
+      schema: 'public',
+      table: 'notifications',
+      filter: PostgresChangeFilter(
+        type: PostgresChangeFilterType.eq,
+        column: 'home_id',
+        value: homeId,
+      ),
+      callback: (payload) => _receiveRealtimeEvent('notifications', payload),
     );
 
     _channel!.subscribe();
@@ -140,24 +199,74 @@ class RealtimeSyncService {
     if (_channel != null) {
       try {
         _client.removeChannel(_channel!);
-      } catch (_) {}
+      } catch (e) {
+        AppLogger.i('[RealtimeSync] ❌ removeChannel failed: $e');
+      }
       _channel = null;
     }
+
     _currentHomeId = null;
+    _isBuffering = false;
+    _buffer.clear();
   }
 
-  void _debounceSync(String domain, Future<void> Function() action) {
-    _debounceTimers[domain]?.cancel();
-    _debounceTimers[domain] = Timer(const Duration(milliseconds: 800), () async {
-      try {
-        await action();
-      } catch (e, stack) {
-        assert(() {
-          debugPrint('RealtimeSyncService._debounceSync error in domain $domain: $e\n$stack');
-          return true;
-        }());
-      }
+  void _receiveRealtimeEvent(String table, PostgresChangePayload payload) {
+    final homeId = _currentHomeId;
+    if (homeId == null) return;
+
+    final event = RealtimeEvent(homeId: homeId, table: table, payload: payload);
+    if (_isBuffering) {
+      _buffer.add(event);
+      return;
+    }
+
+    _applyRealtimeEvent(event).catchError((e) {
+      AppLogger.i('[RealtimeSync] ❌ Error in $table handler: $e');
     });
+  }
+
+  Future<void> _applyRealtimeEvent(RealtimeEvent event) async {
+    switch (event.table) {
+      case 'shopping_lists':
+        return _handleShoppingListEvent(event.payload);
+      case 'shopping_items':
+        return _handleShoppingItemEvent(event.payload);
+      case 'tasks':
+        return _handleTaskEvent(event.payload);
+      case 'expenses':
+        return _handleExpenseEvent(event.payload);
+      case 'inventory_items':
+        return _handleInventoryItemEvent(event.payload);
+      case 'categories':
+        return _handleCategoryEvent(event.payload);
+      case 'home_members':
+        return _handleHomeMemberEvent(event.payload);
+      case 'notifications':
+        return _handleNotificationEvent(event.payload);
+    }
+  }
+
+  Future<void> _debounceSync(
+    String domain,
+    Future<void> Function() action,
+  ) async {
+    _debounceTimers[domain]?.cancel();
+    if (_isFlushingBuffer) {
+      _debounceTimers.remove(domain);
+      await action();
+      return;
+    }
+
+    _debounceTimers[domain] = Timer(
+      const Duration(milliseconds: 800),
+      () async {
+        try {
+          await action();
+        } catch (e) {
+          AppLogger.i('[RealtimeSync] ❌ Debounce error ($domain): $e');
+        }
+      },
+    );
   }
 
   // MARK: - Event Handlers
@@ -166,53 +275,79 @@ class RealtimeSyncService {
     final homeId = _currentHomeId;
     if (homeId == null) return;
 
-    _debounceSync('shopping_lists', () async {
-      try {
-        final localDS = _ref.read(shoppingLocalDataSourceProvider);
-        final currentLists = await localDS.getShoppingListsStreamCache(homeId: homeId);
-        List<ShoppingListModel> updatedLists = List.from(currentLists);
+    try {
+      final localDS = _ref.read(shoppingLocalDataSourceProvider);
+      final currentLists = await localDS.getShoppingListsStreamCache(
+        homeId: homeId,
+      );
+      List<ShoppingListModel> updatedLists = List.from(currentLists);
 
-        final record = payload.newRecord;
-        final oldRecord = payload.oldRecord;
-        final eventType = payload.eventType;
+      final record = payload.newRecord;
+      final oldRecord = payload.oldRecord;
+      final eventType = payload.eventType;
 
-        if (eventType == PostgresChangeEvent.insert) {
-          if (record.isNotEmpty) {
-            final newList = ShoppingListModel.fromJson(record);
-            if (!updatedLists.any((l) => l.id == newList.id)) {
-              updatedLists.add(newList);
-            }
-          }
-        } else if (eventType == PostgresChangeEvent.update) {
-          if (record.isNotEmpty) {
-            final updatedList = ShoppingListModel.fromJson(record);
-            final index = updatedLists.indexWhere((l) => l.id == updatedList.id);
-            if (index != -1) {
-              if (updatedList.deletedAt != null) {
-                updatedLists.removeAt(index);
-              } else {
-                updatedLists[index] = updatedList;
-              }
-            } else if (updatedList.deletedAt == null) {
-              updatedLists.add(updatedList);
-            }
-          }
-        } else if (eventType == PostgresChangeEvent.delete) {
-          final id = oldRecord['id'] as String?;
-          if (id != null) {
-            updatedLists.removeWhere((l) => l.id == id);
+      if (eventType == PostgresChangeEvent.insert) {
+        if (record.isNotEmpty) {
+          final newList = ShoppingListModel.fromJson(record);
+          if (!updatedLists.any((l) => l.id == newList.id)) {
+            updatedLists.add(newList);
           }
         }
-
-        await localDS.saveShoppingListsStreamCache(homeId: homeId, lists: updatedLists);
-        LocalCacheNotifier.notify(homeId, 'shopping_lists');
-      } catch (e, stack) {
-        assert(() {
-          debugPrint('RealtimeSyncService._handleShoppingListEvent error: $e\n$stack');
-          return true;
-        }());
+      } else if (eventType == PostgresChangeEvent.update) {
+        if (record.isNotEmpty) {
+          final updatedList = ShoppingListModel.fromJson(record);
+          final index = updatedLists.indexWhere((l) => l.id == updatedList.id);
+          if (updatedList.deletedAt != null) {
+            if (localDS is DriftShoppingLocalDataSource) {
+              await localDS.softDeleteShoppingList(
+                listId: updatedList.id,
+                deletedAt: updatedList.deletedAt,
+                localState: localStateSynced,
+              );
+            }
+            updatedLists.removeWhere((l) => l.id == updatedList.id);
+          } else if (index != -1) {
+            updatedLists[index] = updatedList;
+          } else {
+            updatedLists.add(updatedList);
+          }
+        }
+      } else if (eventType == PostgresChangeEvent.delete) {
+        final id = oldRecord['id'] as String?;
+        if (id != null) {
+          if (localDS is DriftShoppingLocalDataSource) {
+            await localDS.softDeleteShoppingList(
+              listId: id,
+              deletedAt: DateTime.now(),
+              localState: localStateSynced,
+            );
+          }
+          updatedLists.removeWhere((l) => l.id == id);
+        }
       }
-    });
+
+      await localDS.saveShoppingListsStreamCache(
+        homeId: homeId,
+        lists: updatedLists,
+      );
+      LocalCacheNotifier.notify(homeId, 'shopping_lists');
+
+      // Bump localSyncTime so periodic sync won't overwrite this Realtime data
+      final updatedAtStr = record['updated_at'] as String?;
+      if (updatedAtStr != null) {
+        final updatedAt = DateTime.tryParse(updatedAtStr);
+        if (updatedAt != null) {
+          final syncService = _ref.read(syncServiceProvider);
+          await syncService.updateLocalSyncTime(
+            homeId,
+            'shopping_lists',
+            updatedAt,
+          );
+        }
+      }
+    } catch (e) {
+      AppLogger.i('[RealtimeSync] ❌ shopping_lists error: $e');
+    }
   }
 
   Future<void> _handleShoppingItemEvent(PostgresChangePayload payload) async {
@@ -224,19 +359,27 @@ class RealtimeSyncService {
     final listId = (record['list_id'] ?? oldRecord['list_id']) as String?;
     if (listId == null) return;
 
-    // T3: Filter out events not belonging to this home immediately before debouncing to save resource loop
     final localDS = _ref.read(shoppingLocalDataSourceProvider);
-    final currentLists = await localDS.getShoppingListsStreamCache(homeId: homeId);
-    final belongsToHome = currentLists.any((l) => l.id == listId);
+    final recordHomeId = (record['home_id'] ?? oldRecord['home_id']) as String?;
+    var belongsToHome = recordHomeId == homeId;
     if (!belongsToHome) {
-      // In case a new list sync is pending, trigger background sync
-      _ref.read(syncCoordinatorProvider.notifier).syncAll(homeId, targetDomain: 'shopping');
+      final currentLists = await localDS.getShoppingListsStreamCache(
+        homeId: homeId,
+      );
+      belongsToHome = currentLists.any((l) => l.id == listId);
+    }
+    if (!belongsToHome) {
+      _ref
+          .read(syncCoordinatorProvider.notifier)
+          .syncAll(homeId, targetDomain: 'shopping');
       return;
     }
 
-    _debounceSync('shopping_items_$listId', () async {
+    await _debounceSync('shopping_items_$listId', () async {
       try {
-        final currentItems = await localDS.getShoppingItemsStreamCache(listId: listId);
+        final currentItems = await localDS.getShoppingItemsStreamCache(
+          listId: listId,
+        );
         List<ShoppingItemModel> updatedItems = List.from(currentItems);
         final eventType = payload.eventType;
 
@@ -250,40 +393,125 @@ class RealtimeSyncService {
         } else if (eventType == PostgresChangeEvent.update) {
           if (record.isNotEmpty) {
             final updatedItem = ShoppingItemModel.fromJson(record);
-            final index = updatedItems.indexWhere((i) => i.id == updatedItem.id);
-            if (index != -1) {
-              if (updatedItem.deletedAt != null) {
-                updatedItems.removeAt(index);
-              } else {
-                updatedItems[index] = updatedItem;
+            final index = updatedItems.indexWhere(
+              (i) => i.id == updatedItem.id,
+            );
+            if (updatedItem.deletedAt != null) {
+              if (localDS is DriftShoppingLocalDataSource) {
+                await localDS.softDeleteShoppingItem(
+                  itemId: updatedItem.id,
+                  deletedAt: updatedItem.deletedAt,
+                  localState: localStateSynced,
+                );
               }
-            } else if (updatedItem.deletedAt == null) {
+              updatedItems.removeWhere((i) => i.id == updatedItem.id);
+            } else if (index != -1) {
+              updatedItems[index] = updatedItem;
+            } else {
               updatedItems.add(updatedItem);
             }
           }
         } else if (eventType == PostgresChangeEvent.delete) {
           final id = oldRecord['id'] as String?;
           if (id != null) {
+            if (localDS is DriftShoppingLocalDataSource) {
+              await localDS.softDeleteShoppingItem(
+                itemId: id,
+                deletedAt: DateTime.now(),
+                localState: localStateSynced,
+              );
+            }
             updatedItems.removeWhere((i) => i.id == id);
           }
         }
 
-        await localDS.saveShoppingItemsStreamCache(listId: listId, items: updatedItems);
-        LocalCacheNotifier.notify(homeId, 'shopping_items');
-      } catch (e, stack) {
-        assert(() {
-          debugPrint('RealtimeSyncService._handleShoppingItemEvent error: $e\n$stack');
-          return true;
-        }());
+        // Use Drift-aware save with homeId from payload
+        if (localDS is DriftShoppingLocalDataSource) {
+          await localDS.saveShoppingItemsWithLocalState(
+            listId: listId,
+            items: updatedItems,
+            localState: localStateSynced,
+            homeId: recordHomeId ?? homeId,
+          );
+        } else {
+          await localDS.saveShoppingItemsStreamCache(
+            listId: listId,
+            items: updatedItems,
+          );
+        }
+
+        // Detect purchase state changes for notification
+        final newStatus = record['status'] as String?;
+        final oldStatus = oldRecord['status'] as String?;
+        final itemName = record['name'] as String?;
+        final completedBy = record['completed_by'] as String?;
+
+        if (newStatus != null && newStatus != oldStatus && itemName != null) {
+          final isPurchased = newStatus == 'completed';
+          LocalCacheNotifier.notifyPurchase(
+            homeId,
+            listId: listId,
+            itemName: itemName,
+            purchaserId: completedBy,
+            isPurchased: isPurchased,
+          );
+        } else {
+          LocalCacheNotifier.notify(homeId, 'shopping_items', listId: listId);
+        }
+
+        // Bump localSyncTime so periodic sync won't overwrite this Realtime data
+        final updatedAtStr = record['updated_at'] as String?;
+        if (updatedAtStr != null) {
+          final updatedAt = DateTime.tryParse(updatedAtStr);
+          if (updatedAt != null) {
+            final syncService = _ref.read(syncServiceProvider);
+            await syncService.updateLocalSyncTime(
+              homeId,
+              'shopping_items',
+              updatedAt,
+            );
+          }
+        }
+      } catch (e) {
+        AppLogger.i('[RealtimeSync] ❌ shopping_items error: $e');
       }
     });
+  }
+
+  Future<void> _handleNotificationEvent(PostgresChangePayload payload) async {
+    final homeId = _currentHomeId;
+    final userId = _client.auth.currentUser?.id;
+    if (homeId == null || userId == null) return;
+
+    try {
+      final record = payload.newRecord;
+      final oldRecord = payload.oldRecord;
+      final targetUserId =
+          (record['user_id'] ?? oldRecord['user_id']) as String?;
+      if (targetUserId != userId) return;
+
+      final dao = NotificationsDao(LocalDatabaseService.instance);
+      if (payload.eventType == PostgresChangeEvent.delete) {
+        final id = oldRecord['id'] as String?;
+        if (id != null) {
+          await dao.deleteById(id);
+        }
+      } else if (record.isNotEmpty) {
+        final notification = NotificationModel.fromJson(record);
+        await dao.upsertNotifications([notification.toLocalRow()]);
+      }
+
+      LocalCacheNotifier.notify(homeId, 'notifications');
+    } catch (e) {
+      AppLogger.i('[RealtimeSync] ❌ notifications error: $e');
+    }
   }
 
   Future<void> _handleTaskEvent(PostgresChangePayload payload) async {
     final homeId = _currentHomeId;
     if (homeId == null) return;
 
-    _debounceSync('tasks', () async {
+    await _debounceSync('tasks', () async {
       try {
         final localDS = _ref.read(taskLocalDataSourceProvider);
         final currentTasks = await localDS.getTasksStreamCache(homeId: homeId);
@@ -303,14 +531,18 @@ class RealtimeSyncService {
         } else if (eventType == PostgresChangeEvent.update) {
           if (record.isNotEmpty) {
             final updatedTask = TaskModel.fromJson(record);
-            final index = updatedTasks.indexWhere((t) => t.id == updatedTask.id);
+            final index = updatedTasks.indexWhere(
+              (t) => t.id == updatedTask.id,
+            );
             if (index != -1) {
-              if (updatedTask.deletedAt != null || updatedTask.archivedAt != null) {
+              if (updatedTask.deletedAt != null ||
+                  updatedTask.archivedAt != null) {
                 updatedTasks.removeAt(index);
               } else {
                 updatedTasks[index] = updatedTask;
               }
-            } else if (updatedTask.deletedAt == null && updatedTask.archivedAt == null) {
+            } else if (updatedTask.deletedAt == null &&
+                updatedTask.archivedAt == null) {
               updatedTasks.add(updatedTask);
             }
           }
@@ -323,11 +555,8 @@ class RealtimeSyncService {
 
         await localDS.saveTasksStreamCache(homeId: homeId, tasks: updatedTasks);
         LocalCacheNotifier.notify(homeId, 'tasks');
-      } catch (e, stack) {
-        assert(() {
-          debugPrint('RealtimeSyncService._handleTaskEvent error: $e\n$stack');
-          return true;
-        }());
+      } catch (e) {
+        AppLogger.i('[RealtimeSync] ❌ tasks error: $e');
       }
     });
   }
@@ -336,10 +565,12 @@ class RealtimeSyncService {
     final homeId = _currentHomeId;
     if (homeId == null) return;
 
-    _debounceSync('expenses', () async {
+    await _debounceSync('expenses', () async {
       try {
         final localDS = _ref.read(expenseLocalDataSourceProvider);
-        final currentExpenses = await localDS.getExpensesStreamCache(homeId: homeId);
+        final currentExpenses = await localDS.getExpensesStreamCache(
+          homeId: homeId,
+        );
         List<ExpenseModel> updatedExpenses = List.from(currentExpenses);
 
         final record = payload.newRecord;
@@ -356,7 +587,9 @@ class RealtimeSyncService {
         } else if (eventType == PostgresChangeEvent.update) {
           if (record.isNotEmpty) {
             final updatedExpense = ExpenseModel.fromJson(record);
-            final index = updatedExpenses.indexWhere((e) => e.id == updatedExpense.id);
+            final index = updatedExpenses.indexWhere(
+              (e) => e.id == updatedExpense.id,
+            );
             if (index != -1) {
               if (updatedExpense.deletedAt != null) {
                 updatedExpenses.removeAt(index);
@@ -374,13 +607,13 @@ class RealtimeSyncService {
           }
         }
 
-        await localDS.saveExpensesStreamCache(homeId: homeId, expenses: updatedExpenses);
+        await localDS.saveExpensesStreamCache(
+          homeId: homeId,
+          expenses: updatedExpenses,
+        );
         LocalCacheNotifier.notify(homeId, 'expenses');
-      } catch (e, stack) {
-        assert(() {
-          debugPrint('RealtimeSyncService._handleExpenseEvent error: $e\n$stack');
-          return true;
-        }());
+      } catch (e) {
+        AppLogger.i('[RealtimeSync] ❌ expenses error: $e');
       }
     });
   }
@@ -389,10 +622,12 @@ class RealtimeSyncService {
     final homeId = _currentHomeId;
     if (homeId == null) return;
 
-    _debounceSync('inventory', () async {
+    await _debounceSync('inventory', () async {
       try {
         final localDS = _ref.read(inventoryLocalDataSourceProvider);
-        final currentItems = await localDS.getInventoryItemsStreamCache(homeId: homeId);
+        final currentItems = await localDS.getInventoryItemsStreamCache(
+          homeId: homeId,
+        );
         List<InventoryItemModel> updatedItems = List.from(currentItems);
 
         final record = payload.newRecord;
@@ -409,7 +644,9 @@ class RealtimeSyncService {
         } else if (eventType == PostgresChangeEvent.update) {
           if (record.isNotEmpty) {
             final updatedItem = InventoryItemModel.fromJson(record);
-            final index = updatedItems.indexWhere((i) => i.id == updatedItem.id);
+            final index = updatedItems.indexWhere(
+              (i) => i.id == updatedItem.id,
+            );
             if (index != -1) {
               if (updatedItem.deletedAt != null) {
                 updatedItems.removeAt(index);
@@ -427,13 +664,13 @@ class RealtimeSyncService {
           }
         }
 
-        await localDS.saveInventoryItemsStreamCache(homeId: homeId, items: updatedItems);
-        LocalCacheNotifier.notify(homeId, 'inventory');
-      } catch (e, stack) {
-        assert(() {
-          debugPrint('RealtimeSyncService._handleInventoryItemEvent error: $e\n$stack');
-          return true;
-        }());
+        await localDS.saveInventoryItemsStreamCache(
+          homeId: homeId,
+          items: updatedItems,
+        );
+        LocalCacheNotifier.notify(homeId, 'inventory_items');
+      } catch (e) {
+        AppLogger.i('[RealtimeSync] ❌ inventory error: $e');
       }
     });
   }
@@ -442,7 +679,7 @@ class RealtimeSyncService {
     final homeId = _currentHomeId;
     if (homeId == null) return;
 
-    _debounceSync('categories', () async {
+    await _debounceSync('categories', () async {
       try {
         final localDS = _ref.read(categoryLocalDataSourceProvider);
         final currentCategories = await localDS.getCategories(homeId: homeId);
@@ -462,31 +699,43 @@ class RealtimeSyncService {
         } else if (eventType == PostgresChangeEvent.update) {
           if (record.isNotEmpty) {
             final updatedCategory = CategoryModel.fromJson(record);
-            final index = updatedCategories.indexWhere((c) => c.id == updatedCategory.id);
-            if (index != -1) {
-              if (updatedCategory.deletedAt != null) {
-                updatedCategories.removeAt(index);
-              } else {
-                updatedCategories[index] = updatedCategory;
+            final index = updatedCategories.indexWhere(
+              (c) => c.id == updatedCategory.id,
+            );
+            if (updatedCategory.deletedAt != null) {
+              if (localDS is DriftCategoryLocalDataSource) {
+                await localDS.softDeleteCategory(
+                  categoryId: updatedCategory.id,
+                  deletedAt: updatedCategory.deletedAt,
+                );
               }
-            } else if (updatedCategory.deletedAt == null) {
+              updatedCategories.removeWhere((c) => c.id == updatedCategory.id);
+            } else if (index != -1) {
+              updatedCategories[index] = updatedCategory;
+            } else {
               updatedCategories.add(updatedCategory);
             }
           }
         } else if (eventType == PostgresChangeEvent.delete) {
           final id = oldRecord['id'] as String?;
           if (id != null) {
+            if (localDS is DriftCategoryLocalDataSource) {
+              await localDS.softDeleteCategory(
+                categoryId: id,
+                deletedAt: DateTime.now(),
+              );
+            }
             updatedCategories.removeWhere((c) => c.id == id);
           }
         }
 
-        await localDS.saveCategories(homeId: homeId, categories: updatedCategories);
+        await localDS.saveCategories(
+          homeId: homeId,
+          categories: updatedCategories,
+        );
         LocalCacheNotifier.notify(homeId, 'categories');
-      } catch (e, stack) {
-        assert(() {
-          debugPrint('RealtimeSyncService._handleCategoryEvent error: $e\n$stack');
-          return true;
-        }());
+      } catch (e) {
+        AppLogger.i('[RealtimeSync] ❌ categories error: $e');
       }
     });
   }
@@ -495,36 +744,50 @@ class RealtimeSyncService {
     final homeId = _currentHomeId;
     if (homeId == null) return;
 
-    _debounceSync('home_members', () async {
+    await _debounceSync('home_members', () async {
       try {
         final userId = _client.auth.currentUser?.id;
         final record = payload.newRecord;
         final oldRecord = payload.oldRecord;
         final eventType = payload.eventType;
 
-        final targetUserId = (record['user_id'] ?? oldRecord['user_id']) as String?;
+        final targetUserId =
+            (record['user_id'] ?? oldRecord['user_id']) as String?;
         final status = (record['status'] ?? oldRecord['status']) as String?;
         final deletedAt = record['deleted_at'] ?? oldRecord['deleted_at'];
 
-        // If the current logged-in user is affected (revoked or deleted)
         if (userId != null && targetUserId == userId) {
-          if (status == 'removed' || deletedAt != null || eventType == PostgresChangeEvent.delete) {
-            // Member was revoked: trigger full homes sync to process revocation and redirect
-            _ref.read(syncCoordinatorProvider.notifier).syncAll(homeId, force: true, targetDomain: 'homes');
+          if (status == 'removed' ||
+              deletedAt != null ||
+              eventType == PostgresChangeEvent.delete) {
+            _ref
+                .read(syncCoordinatorProvider.notifier)
+                .syncAll(homeId, force: true, targetDomain: 'homes');
             return;
           }
         }
 
-        // Otherwise, sync members list to pull updated profiles
-        _ref.read(syncCoordinatorProvider.notifier).syncAll(homeId, targetDomain: 'home_members');
-      } catch (e, stack) {
-        assert(() {
-          debugPrint('RealtimeSyncService._handleHomeMemberEvent error: $e\n$stack');
-          return true;
-        }());
+        _ref
+            .read(syncCoordinatorProvider.notifier)
+            .syncAll(homeId, targetDomain: 'home_members');
+      } catch (e) {
+        AppLogger.i('[RealtimeSync] ❌ home_members error: $e');
       }
     });
   }
+}
+
+@visibleForTesting
+class RealtimeEvent {
+  final String homeId;
+  final String table;
+  final PostgresChangePayload payload;
+
+  const RealtimeEvent({
+    required this.homeId,
+    required this.table,
+    required this.payload,
+  });
 }
 
 /// Provider for [RealtimeSyncService]

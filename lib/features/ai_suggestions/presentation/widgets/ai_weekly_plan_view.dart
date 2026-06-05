@@ -3,7 +3,7 @@ import '../../domain/entities/ai_weekly_plan.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../core/localization/app_localizations.dart';
-import '../../../../core/widgets/beity_cached_image.dart';
+import '../../../../core/widgets/sawa_cached_image.dart';
 
 /// Displays a weekly meal plan with expandable day sections.
 class AiWeeklyPlanView extends StatefulWidget {
@@ -131,7 +131,7 @@ class _AiWeeklyPlanViewState extends State<AiWeeklyPlanView> {
                               borderRadius: BorderRadius.circular(8),
                               child: SizedBox(
                                 width: 50, height: 50,
-                                child: BeityCachedImage(
+                                child: SawaCachedImage(
                                   imageUrl: 'https://tse2.mm.bing.net/th?q=${Uri.encodeComponent('${meal.name} food recipe')}&w=150&h=150&c=7&rs=1&p=0',
                                   fit: BoxFit.cover,
                                   backgroundColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade100,

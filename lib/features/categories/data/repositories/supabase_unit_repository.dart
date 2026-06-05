@@ -1,24 +1,24 @@
-import 'dart:convert';
-import 'package:beity/core/services/shared_prefs_provider.dart';
+import 'dart:async';
+import 'package:sawa/core/local_database/daos/units_dao.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/unit_model.dart';
 import 'unit_repository.dart';
 
 class SupabaseUnitRepository implements UnitRepository {
   final SupabaseClient _client;
+  final UnitsDao? _localDao;
 
-  SupabaseUnitRepository(this._client);
+  SupabaseUnitRepository(this._client, [this._localDao]);
 
   @override
-  Future<List<UnitModel>> getUnits({
-    String? type,
-  }) async {
-    final cacheKey = 'cached_units_${type ?? 'none'}';
+  Future<List<UnitModel>> getUnits({String? type}) async {
+    final cachedUnits = await _localDao?.getUnits(type: type);
+    if (cachedUnits != null && cachedUnits.isNotEmpty) {
+      return cachedUnits;
+    }
+
     try {
-      var query = _client
-          .from('units')
-          .select()
-          .eq('is_default', true);
+      var query = _client.from('units').select().eq('is_default', true);
 
       if (type != null) {
         query = query.eq('type', type);
@@ -29,25 +29,11 @@ class SupabaseUnitRepository implements UnitRepository {
           .map((json) => UnitModel.fromJson(json))
           .toList();
 
-      // Cache units
-      try {
-        final prefs = AppPreferences.instance;
-        final rawJson = jsonEncode(units.map((u) => u.toJson()).toList());
-        await prefs.setString(cacheKey, rawJson);
-      } catch (_) {}
+      await _localDao?.upsertUnits(units);
 
       return units;
-    } catch (e) {
-      // Fallback to cache if offline
-      try {
-        final prefs = AppPreferences.instance;
-        final cached = prefs.getString(cacheKey);
-        if (cached != null) {
-          final List<dynamic> list = jsonDecode(cached);
-          return list.map((json) => UnitModel.fromJson(json)).toList();
-        }
-      } catch (_) {}
-      rethrow;
+    } catch (_) {
+      return cachedUnits ?? const [];
     }
   }
 
@@ -59,7 +45,7 @@ class SupabaseUnitRepository implements UnitRepository {
   }) async {
     final user = _client.auth.currentUser;
     if (user == null) {
-      throw Exception('يجب تسجيل الدخول أولاً');
+      throw Exception('must_login_first');
     }
 
     // Check for duplicate name
@@ -70,7 +56,7 @@ class SupabaseUnitRepository implements UnitRepository {
         .maybeSingle();
 
     if (existingName != null) {
-      throw Exception('اسم الوحدة موجود بالفعل');
+      throw Exception('unit_name_exists');
     }
 
     // Check for duplicate symbol
@@ -81,7 +67,7 @@ class SupabaseUnitRepository implements UnitRepository {
         .maybeSingle();
 
     if (existingSymbol != null) {
-      throw Exception('رمز الوحدة موجود بالفعل');
+      throw Exception('unit_symbol_exists');
     }
 
     final response = await _client
@@ -95,7 +81,9 @@ class SupabaseUnitRepository implements UnitRepository {
         .select()
         .single();
 
-    return UnitModel.fromJson(response);
+    final unit = UnitModel.fromJson(response);
+    await _localDao?.upsertUnits([unit]);
+    return unit;
   }
 
   @override
@@ -106,18 +94,18 @@ class SupabaseUnitRepository implements UnitRepository {
   }) async {
     final user = _client.auth.currentUser;
     if (user == null) {
-      throw Exception('يجب تسجيل الدخول أولاً');
+      throw Exception('must_login_first');
     }
 
     // Check if unit is default
-    final unit = await _client
+    final existingUnit = await _client
         .from('units')
         .select('is_default')
         .eq('id', unitId)
         .single();
 
-    if (unit['is_default'] == true) {
-      throw Exception('لا يمكن تعديل الوحدات الافتراضية');
+    if (existingUnit['is_default'] == true) {
+      throw Exception('cannot_edit_default_units');
     }
 
     final updates = <String, dynamic>{};
@@ -131,16 +119,16 @@ class SupabaseUnitRepository implements UnitRepository {
         .select()
         .single();
 
-    return UnitModel.fromJson(response);
+    final updatedUnit = UnitModel.fromJson(response);
+    await _localDao?.upsertUnits([updatedUnit]);
+    return updatedUnit;
   }
 
   @override
-  Future<void> deleteUnit({
-    required String unitId,
-  }) async {
+  Future<void> deleteUnit({required String unitId}) async {
     final user = _client.auth.currentUser;
     if (user == null) {
-      throw Exception('يجب تسجيل الدخول أولاً');
+      throw Exception('must_login_first');
     }
 
     // Check if unit is default
@@ -151,68 +139,46 @@ class SupabaseUnitRepository implements UnitRepository {
         .single();
 
     if (unit['is_default'] == true) {
-      throw Exception('لا يمكن حذف الوحدات الافتراضية');
+      throw Exception('cannot_delete_default_units');
     }
 
-    await _client
-        .from('units')
-        .delete()
-        .eq('id', unitId);
+    await _client.from('units').delete().eq('id', unitId);
+    await _localDao?.deleteUnit(unitId);
   }
 
   @override
-  Future<UnitModel?> getUnitById({
-    required String unitId,
-  }) async {
-    final response = await _client
-        .from('units')
-        .select()
-        .eq('id', unitId)
-        .maybeSingle();
+  Future<UnitModel?> getUnitById({required String unitId}) async {
+    final cached = await _localDao?.getUnitById(unitId);
+    if (cached != null) return cached;
 
-    if (response == null) return null;
-    return UnitModel.fromJson(response);
-  }
-
-  @override
-  Stream<List<UnitModel>> watchUnits({
-    String? type,
-  }) async* {
-    final cacheKey = 'cached_units_${type ?? 'none'}';
-
-    // 1. Emit cached units immediately
     try {
-      final prefs = AppPreferences.instance;
-      final cached = prefs.getString(cacheKey);
-      if (cached != null) {
-        final List<dynamic> list = jsonDecode(cached);
-        yield list.map((json) => UnitModel.fromJson(json)).toList();
-      }
-    } catch (_) {}
-
-    // 2. Subscribe to remote stream
-    try {
-      await for (final response in _client
+      final response = await _client
           .from('units')
-          .stream(primaryKey: ['id'])
-          .order('name', ascending: true)) {
-        final list = response
-            .map((json) => UnitModel.fromJson(json))
-            .where((unit) =>
-                unit.isDefault &&
-                (type == null || unit.type.name == type))
-            .toList();
+          .select()
+          .eq('id', unitId)
+          .maybeSingle();
 
-        try {
-          final prefs = AppPreferences.instance;
-          final rawJson = jsonEncode(list.map((u) => u.toJson()).toList());
-          await prefs.setString(cacheKey, rawJson);
-        } catch (_) {}
-
-        yield list;
-      }
+      if (response == null) return null;
+      final unit = UnitModel.fromJson(response);
+      await _localDao?.upsertUnits([unit]);
+      return unit;
     } catch (_) {
-      // Absorb stream errors when offline
+      return cached;
     }
+  }
+
+  @override
+  Stream<List<UnitModel>> watchUnits({String? type}) async* {
+    final localDao = _localDao;
+    if (localDao != null) {
+      final cached = await localDao.getUnits(type: type);
+      if (cached.isEmpty) {
+        unawaited(getUnits(type: type));
+      }
+      yield* localDao.watchUnits(type: type);
+      return;
+    }
+
+    yield await getUnits(type: type);
   }
 }

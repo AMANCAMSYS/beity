@@ -1,6 +1,7 @@
 import '../../data/repositories/offline_queue_repository.dart';
 import '../entities/action_type.dart';
 import '../entities/entity_type.dart';
+import '../entities/queue_entry.dart';
 
 class EnqueueActionUseCase {
   final OfflineQueueRepository repository;
@@ -11,7 +12,8 @@ class EnqueueActionUseCase {
     required ActionType actionType,
     required EntityType entityType,
     required String entityId,
-    required String homeId,
+    String? homeId,
+    MutationScope scope = MutationScope.home,
     required Map<String, dynamic> payload,
   }) async {
     await repository.enqueueAction(
@@ -19,6 +21,7 @@ class EnqueueActionUseCase {
       entityType: entityType,
       entityId: entityId,
       homeId: homeId,
+      scope: scope,
       payload: payload,
     );
   }

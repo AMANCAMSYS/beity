@@ -1,10 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:beity/features/shopping_lists/data/models/shopping_item_model.dart';
-import 'package:beity/features/shopping_lists/data/repositories/shopping_list_repository.dart';
-import 'package:beity/features/shopping_lists/domain/usecases/add_item_usecase.dart';
+import 'package:sawa/features/shopping_lists/data/models/shopping_item_model.dart';
+import 'package:sawa/features/shopping_lists/data/repositories/shopping_list_repository.dart';
+import 'package:sawa/features/shopping_lists/domain/usecases/add_item_usecase.dart';
 
-class MockShoppingListRepository extends Mock implements ShoppingListRepository {}
+class MockShoppingListRepository extends Mock
+    implements ShoppingListRepository {}
 
 void main() {
   late MockShoppingListRepository mockRepository;
@@ -38,26 +39,39 @@ void main() {
 
     test('should throw Exception when quantity is <= 0', () async {
       expect(
-        () => useCase(listId: tListId, homeId: tHomeId, name: tItemName, quantity: 0),
+        () => useCase(
+          listId: tListId,
+          homeId: tHomeId,
+          name: tItemName,
+          quantity: 0,
+        ),
         throwsA(isA<Exception>()),
       );
     });
 
-    test('should throw DuplicateItemException when duplicate exists and skipDuplicateCheck is false', () async {
-      when(() => mockRepository.getShoppingItems(listId: any(named: 'listId')))
-          .thenAnswer((_) async => [tItem]);
+    test(
+      'should throw DuplicateItemException when duplicate exists and skipDuplicateCheck is false',
+      () async {
+        when(
+          () => mockRepository.getShoppingItems(listId: any(named: 'listId')),
+        ).thenAnswer((_) async => [tItem]);
 
-      expect(
-        () => useCase(listId: tListId, homeId: tHomeId, name: tItemName),
-        throwsA(isA<DuplicateItemException>()),
-      );
-    });
+        expect(
+          () => useCase(listId: tListId, homeId: tHomeId, name: tItemName),
+          throwsA(isA<DuplicateItemException>()),
+        );
+      },
+    );
 
-    test('should create item and sync template successfully when valid', () async {
-      when(() => mockRepository.getShoppingItems(listId: any(named: 'listId')))
-          .thenAnswer((_) async => []);
+    test(
+      'should create item and sync template successfully when valid',
+      () async {
+        when(
+          () => mockRepository.getShoppingItems(listId: any(named: 'listId')),
+        ).thenAnswer((_) async => []);
 
-      when(() => mockRepository.createShoppingItem(
+        when(
+          () => mockRepository.createShoppingItem(
             listId: any(named: 'listId'),
             name: any(named: 'name'),
             quantity: any(named: 'quantity'),
@@ -66,34 +80,97 @@ void main() {
             price: any(named: 'price'),
             currency: any(named: 'currency'),
             notes: any(named: 'notes'),
-          )).thenAnswer((_) async => tItem);
+          ),
+        ).thenAnswer((_) async => tItem);
 
-      when(() => mockRepository.syncTemplateOnAdd(
+        when(
+          () => mockRepository.syncTemplateOnAdd(
             homeId: any(named: 'homeId'),
             name: any(named: 'name'),
             quantity: any(named: 'quantity'),
             unitId: any(named: 'unitId'),
             categoryId: any(named: 'categoryId'),
-          )).thenAnswer((_) async => {});
+          ),
+        ).thenAnswer((_) async => {});
 
-      final result = await useCase(
-        listId: tListId,
-        homeId: tHomeId,
-        name: tItemName,
-        quantity: tQuantity,
-      );
+        final result = await useCase(
+          listId: tListId,
+          homeId: tHomeId,
+          name: tItemName,
+          quantity: tQuantity,
+        );
 
-      expect(result, tItem);
-      verify(() => mockRepository.createShoppingItem(
+        expect(result, tItem);
+        verify(
+          () => mockRepository.createShoppingItem(
             listId: tListId,
             name: tItemName,
             quantity: tQuantity,
-          )).called(1);
-      verify(() => mockRepository.syncTemplateOnAdd(
+          ),
+        ).called(1);
+        verify(
+          () => mockRepository.syncTemplateOnAdd(
             homeId: tHomeId,
             name: tItemName,
             quantity: tQuantity,
-          )).called(1);
-    });
+          ),
+        ).called(1);
+      },
+    );
+
+    test(
+      'should return created item when template sync fails after add',
+      () async {
+        when(
+          () => mockRepository.getShoppingItems(listId: any(named: 'listId')),
+        ).thenAnswer((_) async => []);
+
+        when(
+          () => mockRepository.createShoppingItem(
+            listId: any(named: 'listId'),
+            name: any(named: 'name'),
+            quantity: any(named: 'quantity'),
+            unitId: any(named: 'unitId'),
+            categoryId: any(named: 'categoryId'),
+            price: any(named: 'price'),
+            currency: any(named: 'currency'),
+            notes: any(named: 'notes'),
+          ),
+        ).thenAnswer((_) async => tItem);
+
+        when(
+          () => mockRepository.syncTemplateOnAdd(
+            homeId: any(named: 'homeId'),
+            name: any(named: 'name'),
+            quantity: any(named: 'quantity'),
+            unitId: any(named: 'unitId'),
+            categoryId: any(named: 'categoryId'),
+          ),
+        ).thenThrow(Exception('offline template sync failed'));
+
+        final result = await useCase(
+          listId: tListId,
+          homeId: tHomeId,
+          name: tItemName,
+          quantity: tQuantity,
+        );
+
+        expect(result, tItem);
+        verify(
+          () => mockRepository.createShoppingItem(
+            listId: tListId,
+            name: tItemName,
+            quantity: tQuantity,
+          ),
+        ).called(1);
+        verify(
+          () => mockRepository.syncTemplateOnAdd(
+            homeId: tHomeId,
+            name: tItemName,
+            quantity: tQuantity,
+          ),
+        ).called(1);
+      },
+    );
   });
 }

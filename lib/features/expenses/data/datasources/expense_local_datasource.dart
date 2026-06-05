@@ -3,7 +3,7 @@ import '../../../../core/services/shared_prefs_provider.dart';
 import '../models/expense_model.dart';
 
 /// Abstract interface for local persistence of Expenses.
-/// Prepares Beity for SQLite/Drift/Isar migrations.
+/// Prepares SAWA for SQLite/Drift/Isar migrations.
 abstract class ExpenseLocalDataSource {
   Future<List<ExpenseModel>> getExpenses({
     required String homeId,

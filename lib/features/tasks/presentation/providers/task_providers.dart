@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:beity/core/services/supabase_service.dart';
-import 'package:beity/core/services/sync_service.dart';
+import 'package:sawa/core/services/supabase_service.dart';
+import 'package:sawa/core/services/sync_service.dart';
 import '../../data/datasources/task_remote_datasource.dart';
 import '../../data/datasources/task_comment_remote_datasource.dart';
 import '../../data/repositories/task_repository_impl.dart';
@@ -23,9 +23,9 @@ final taskLocalDataSourceProvider = Provider<TaskLocalDataSource>((ref) {
 
 final taskCommentRemoteDataSourceProvider =
     Provider<TaskCommentRemoteDataSource>((ref) {
-  final client = SupabaseService.client;
-  return TaskCommentRemoteDataSource(client);
-});
+      final client = SupabaseService.client;
+      return TaskCommentRemoteDataSource(client);
+    });
 
 final taskRepositoryProvider = Provider<TaskRepository>((ref) {
   final dataSource = ref.watch(taskRemoteDataSourceProvider);
@@ -39,24 +39,25 @@ final taskCommentRepositoryProvider = Provider<TaskCommentRepository>((ref) {
   return TaskCommentRepositoryImpl(dataSource);
 });
 
-final tasksProvider =
-    StreamProvider.autoDispose.family<List<Task>, ({String homeId, String? assignedTo})>(
-        (ref, params) {
-  final repository = ref.watch(taskRepositoryProvider);
-  return repository.watchTasks(
-    homeId: params.homeId,
-    assignedTo: params.assignedTo,
-  );
-});
+final tasksProvider = StreamProvider.autoDispose
+    .family<List<Task>, ({String homeId, String? assignedTo})>((ref, params) {
+      final repository = ref.watch(taskRepositoryProvider);
+      return repository.watchTasks(
+        homeId: params.homeId,
+        assignedTo: params.assignedTo,
+      );
+    });
 
-final taskByIdProvider =
-    FutureProvider.family<Task?, String>((ref, taskId) async {
+final taskByIdProvider = FutureProvider.family<Task?, String>((
+  ref,
+  taskId,
+) async {
   final repository = ref.watch(taskRepositoryProvider);
   return repository.getTaskById(taskId: taskId);
 });
 
-final taskCommentsProvider =
-    StreamProvider.autoDispose.family<List<TaskComment>, String>((ref, taskId) {
-  final repository = ref.watch(taskCommentRepositoryProvider);
-  return repository.watchComments(taskId: taskId);
-});
+final taskCommentsProvider = StreamProvider.autoDispose
+    .family<List<TaskComment>, String>((ref, taskId) {
+      final repository = ref.watch(taskCommentRepositoryProvider);
+      return repository.watchComments(taskId: taskId);
+    });

@@ -9,20 +9,51 @@ import 'settings_shared_widgets.dart';
 class SettingsAccountSection extends ConsumerWidget {
   final AppLocalizations l10n;
 
-  const SettingsAccountSection({
-    super.key,
-    required this.l10n,
-  });
+  const SettingsAccountSection({super.key, required this.l10n});
 
   Future<void> _signOut(BuildContext context, WidgetRef ref) async {
     try {
-      await ref.read(authNotifierProvider.notifier).signOut();
+      final deleteLocalData = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(l10n.translate('sign_out_choice_title')),
+          content: Text(l10n.translate('sign_out_choice_desc')),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(l10n.translate('cancel')),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(l10n.translate('sign_out_keep_data')),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.error,
+                foregroundColor: Theme.of(context).colorScheme.onError,
+              ),
+              child: Text(l10n.translate('sign_out_delete_data')),
+            ),
+          ],
+        ),
+      );
+      if (deleteLocalData == null) return;
+
+      await ref
+          .read(authNotifierProvider.notifier)
+          .signOut(deleteLocalData: deleteLocalData);
       if (context.mounted) context.go('/login');
     } catch (error) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(l10n.translate('sign_out_failed', arguments: {'error': error.toString()})),
+            content: Text(
+              l10n.translate(
+                'sign_out_failed',
+                arguments: {'error': error.toString()},
+              ),
+            ),
             backgroundColor: AppColors.error,
           ),
         );

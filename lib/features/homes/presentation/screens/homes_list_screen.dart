@@ -1,11 +1,15 @@
-import 'package:beity/shared/widgets/design_system/beity_snack_bar.dart';
-import 'package:beity/shared/widgets/design_system/beity_empty_state.dart';
+import 'dart:async';
+
+import 'package:sawa/shared/widgets/design_system/sawa_snack_bar.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_empty_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:beity/app/theme/app_spacing.dart';
-import 'package:beity/core/localization/app_localizations.dart';
+import 'package:sawa/app/theme/app_spacing.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
+import 'package:sawa/core/errors/error_formatter.dart';
+import 'package:sawa/core/services/sync_coordinator.dart';
 import '../providers/homes_provider.dart';
 import '../widgets/home_card_widget.dart';
 import '../../../notifications/presentation/providers/notifications_provider.dart';
@@ -45,7 +49,8 @@ class _HomesListScreenState extends ConsumerState<HomesListScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
-            onPressed: () => ref.read(homesNotifierProvider.notifier).refreshHomes(),
+            onPressed: () =>
+                ref.read(homesNotifierProvider.notifier).refreshHomes(),
             tooltip: context.translate('refresh_list'),
           ),
         ],
@@ -62,7 +67,9 @@ class _HomesListScreenState extends ConsumerState<HomesListScreen> {
             },
             color: theme.colorScheme.primary,
             child: ListView.builder(
-              physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+              physics: const AlwaysScrollableScrollPhysics(
+                parent: BouncingScrollPhysics(),
+              ),
               padding: const EdgeInsets.all(AppSpacing.lg),
               itemCount: homes.length,
               itemBuilder: (context, index) {
@@ -75,9 +82,10 @@ class _HomesListScreenState extends ConsumerState<HomesListScreen> {
                     home: home,
                     isActive: isActive,
                     onTap: () async {
-                      final localDataSource = ref.read(homeLocalDataSourceProvider);
-                      await localDataSource.setActiveHome(home.id, home.name);
-                      ref.invalidate(activeHomeIdProvider);
+                      await ref
+                          .read(homesNotifierProvider.notifier)
+                          .switchHome(home.id, home.name);
+                      unawaited(_syncSelectedHome(home.id));
                       // Invalidate home-scoped providers to refresh for new home
                       ref.invalidate(notificationsProvider);
                       ref.invalidate(unreadCountProvider);
@@ -87,9 +95,12 @@ class _HomesListScreenState extends ConsumerState<HomesListScreen> {
                       ref.invalidate(categoryNotifierProvider);
                       ref.invalidate(unitNotifierProvider);
                       if (context.mounted) {
-                        BeitySnackBar.success(
+                        SawaSnackBar.success(
                           context,
-                          context.translate('home_switched_success', arguments: {'name': home.name}),
+                          context.translate(
+                            'home_switched_success',
+                            arguments: {'name': home.name},
+                          ),
                         );
                       }
                     },
@@ -100,9 +111,9 @@ class _HomesListScreenState extends ConsumerState<HomesListScreen> {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => BeityEmptyState(
+        error: (error, stack) => SawaEmptyState(
           title: context.translate('error_occurred'),
-          message: error.toString(),
+          message: ErrorFormatter.format(error, context),
           icon: Icons.error_outline_rounded,
           isError: true,
           actionText: context.translate('retry'),
@@ -120,12 +131,21 @@ class _HomesListScreenState extends ConsumerState<HomesListScreen> {
   }
 
   Widget _buildEmptyState(BuildContext context) {
-    return BeityEmptyState(
+    return SawaEmptyState(
       title: context.translate('no_homes_yet'),
       message: context.translate('create_first_home_guideline'),
       icon: Icons.home_outlined,
       actionText: context.translate('create_first_home'),
       onAction: () => context.push('/homes/create'),
     );
+  }
+
+  Future<void> _syncSelectedHome(String homeId) async {
+    try {
+      await ref.read(syncCoordinatorProvider.notifier).initialFullSync(homeId);
+      await ref
+          .read(homeLocalDataSourceProvider)
+          .setHomeInitialSyncCompleted(homeId, true);
+    } catch (_) {}
   }
 }

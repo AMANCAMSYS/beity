@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:beity/app/theme/app_spacing.dart';
+import 'package:sawa/app/theme/app_spacing.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
 
 class CategoryGroupHeader extends StatelessWidget {
   final String? categoryName;
@@ -13,9 +14,8 @@ class CategoryGroupHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
     final theme = Theme.of(context);
-    final displayName = categoryName ?? (isArabic ? 'بدون تصنيف' : 'Uncategorized');
+    final displayName = categoryName ?? context.translate('uncategorized', fallback: 'Uncategorized');
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, AppSpacing.xs),

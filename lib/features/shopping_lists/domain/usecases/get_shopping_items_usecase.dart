@@ -6,15 +6,7 @@ class GetShoppingItemsUseCase {
 
   GetShoppingItemsUseCase(this._repository);
 
-  Future<List<ShoppingItemModel>> call({
-    required String listId,
-  }) async {
+  Future<List<ShoppingItemModel>> call({required String listId}) async {
     return _repository.getShoppingItems(listId: listId);
-  }
-
-  Stream<List<ShoppingItemModel>> watch({
-    required String listId,
-  }) {
-    return _repository.watchShoppingItems(listId: listId);
   }
 }

@@ -1,8 +1,12 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:beity/core/localization/app_localizations.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
+import '../../../shopping_lists/domain/entities/autocomplete_suggestion.dart';
+import '../../../shopping_lists/domain/usecases/add_item_usecase.dart';
 import '../../../shopping_lists/presentation/providers/shopping_items_provider.dart';
+import '../../../shopping_lists/presentation/providers/shopping_lists_provider.dart';
+import '../../../../shared/widgets/design_system/sawa_dialog.dart';
 
 class ShoppingQuickAddOverlay extends ConsumerStatefulWidget {
   final String listId;
@@ -22,8 +26,6 @@ class ShoppingQuickAddOverlay extends ConsumerStatefulWidget {
   ConsumerState<ShoppingQuickAddOverlay> createState() =>
       _ShoppingQuickAddOverlayState();
 }
-
-
 
 class _ShoppingQuickAddOverlayState
     extends ConsumerState<ShoppingQuickAddOverlay> {
@@ -54,34 +56,79 @@ class _ShoppingQuickAddOverlayState
       return;
     }
 
-    final repository = ref.read(shoppingItemRepositoryProvider);
-    final suggestions = await repository.getAutocompleteSuggestions(
-      homeId: widget.homeId,
-      query: query,
-      limit: 5,
-    );
+    try {
+      final repository = ref.read(
+        shoppingItemRepositoryForHomeProvider(widget.homeId),
+      );
+      final suggestions = await repository.getAutocompleteSuggestions(
+        homeId: widget.homeId,
+        query: query,
+        limit: 5,
+      );
 
-    setState(() => _suggestions = suggestions);
+      if (!mounted) return;
+      setState(() => _suggestions = suggestions);
+    } catch (_) {
+      // Silently fail — suggestions are non-critical
+    }
   }
 
-  Future<void> _addItem(String name) async {
+  Future<void> _addItem(String name, {bool skipDuplicateCheck = false}) async {
     if (name.trim().isEmpty) return;
 
-    final repository = ref.read(shoppingItemRepositoryProvider);
-    await repository.createShoppingItem(
-      listId: widget.listId,
-      name: name.trim(),
-    );
+    try {
+      final repository = ref.read(
+        shoppingItemRepositoryForHomeProvider(widget.homeId),
+      );
+      final useCase = AddItemUseCase(repository);
+      final listAsync = ref.read(
+        shoppingListByIdForHomeProvider((
+          listId: widget.listId,
+          homeId: widget.homeId,
+        )),
+      );
+      final list = listAsync.value;
 
-    widget.onItemAdded();
-    _controller.clear();
-    setState(() => _suggestions = []);
+      await useCase(
+        listId: widget.listId,
+        homeId: list?.homeId ?? widget.homeId,
+        name: name.trim(),
+        skipDuplicateCheck: skipDuplicateCheck,
+      );
 
-    if (!_keepOpen) {
-      widget.onClose();
+      widget.onItemAdded();
+      _controller.clear();
+      setState(() => _suggestions = []);
+
+      if (!_keepOpen) {
+        widget.onClose();
+      }
+
+      _focusNode.requestFocus();
+    } on DuplicateItemException catch (e) {
+      if (mounted) {
+        final shouldAdd = await SawaDialog.show(
+          context,
+          title: context.translate('duplicate_item'),
+          message: context.translate(
+            'duplicate_item_msg',
+            arguments: {'name': e.itemName},
+          ),
+          confirmText: context.translate('add'),
+          cancelText: context.translate('cancel'),
+          icon: Icons.warning_amber_rounded,
+        );
+        if (shouldAdd == true && mounted) {
+          await _addItem(name, skipDuplicateCheck: true);
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.toString())));
+      }
     }
-
-    _focusNode.requestFocus();
   }
 
   @override
@@ -145,16 +192,22 @@ class _ShoppingQuickAddOverlayState
                 // Suggestions
                 if (_suggestions.isNotEmpty) ...[
                   const SizedBox(height: 8),
-                  ..._suggestions.map((suggestion) => ListTile(
-                        leading: const Icon(Icons.history),
-                        title: Text(suggestion.name),
-                        subtitle: suggestion.unitName != null || suggestion.quantity != 1
-                            ? Text(isArabic 
-                                ? '${suggestion.quantity == suggestion.quantity.roundToDouble() ? suggestion.quantity.toInt() : suggestion.quantity.toStringAsFixed(1)}${suggestion.unitName != null ? " ${suggestion.unitName}" : ""}'
-                                : '${suggestion.quantity == suggestion.quantity.roundToDouble() ? suggestion.quantity.toInt() : suggestion.quantity.toStringAsFixed(1)}${suggestion.unitName != null ? " ${suggestion.unitName}" : ""}')
-                            : null,
-                        onTap: () => _addItem(suggestion.name),
-                      )),
+                  ..._suggestions.map(
+                    (suggestion) => ListTile(
+                      leading: const Icon(Icons.history),
+                      title: Text(suggestion.name),
+                      subtitle:
+                          suggestion.unitName != null ||
+                              suggestion.quantity != 1
+                          ? Text(
+                              isArabic
+                                  ? '${suggestion.quantity == suggestion.quantity.roundToDouble() ? suggestion.quantity.toInt() : suggestion.quantity.toStringAsFixed(1)}${suggestion.unitName != null ? " ${suggestion.unitName}" : ""}'
+                                  : '${suggestion.quantity == suggestion.quantity.roundToDouble() ? suggestion.quantity.toInt() : suggestion.quantity.toStringAsFixed(1)}${suggestion.unitName != null ? " ${suggestion.unitName}" : ""}',
+                            )
+                          : null,
+                      onTap: () => _addItem(suggestion.name),
+                    ),
+                  ),
                 ],
                 const SizedBox(height: 16),
                 // Keep open toggle

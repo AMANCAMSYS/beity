@@ -14,6 +14,14 @@ enum ActionType {
   invitationAccepted,
   aiItemsAdded;
 
+  String get translationKey {
+    final snackCase = name.replaceAllMapped(
+      RegExp(r'[A-Z]'),
+      (match) => '_${match.group(0)!.toLowerCase()}',
+    );
+    return 'action_$snackCase';
+  }
+
   String get value {
     switch (this) {
       case ActionType.listCreated:
@@ -120,7 +128,25 @@ enum EntityType {
   shoppingList,
   shoppingItem,
   homeMember,
-  invitation;
+  invitation,
+  task,
+  expense,
+  inventoryItem,
+  category,
+  unit,
+  shoppingModeSession,
+  notification,
+  notificationPreference,
+  home,
+  unknown;
+
+  String get translationKey {
+    final snackCase = name.replaceAllMapped(
+      RegExp(r'[A-Z]'),
+      (match) => '_${match.group(0)!.toLowerCase()}',
+    );
+    return 'entity_type_$snackCase';
+  }
 
   String get value {
     switch (this) {
@@ -132,6 +158,26 @@ enum EntityType {
         return 'home_member';
       case EntityType.invitation:
         return 'invitation';
+      case EntityType.task:
+        return 'task';
+      case EntityType.expense:
+        return 'expense';
+      case EntityType.inventoryItem:
+        return 'inventory_item';
+      case EntityType.category:
+        return 'category';
+      case EntityType.unit:
+        return 'unit';
+      case EntityType.shoppingModeSession:
+        return 'shopping_mode_session';
+      case EntityType.notification:
+        return 'notification';
+      case EntityType.notificationPreference:
+        return 'notification_preference';
+      case EntityType.home:
+        return 'home';
+      case EntityType.unknown:
+        return 'unknown';
     }
   }
 
@@ -145,6 +191,26 @@ enum EntityType {
         return 'عضو';
       case EntityType.invitation:
         return 'دعوة';
+      case EntityType.task:
+        return 'مهمة';
+      case EntityType.expense:
+        return 'مصروف';
+      case EntityType.inventoryItem:
+        return 'عنصر مخزون';
+      case EntityType.category:
+        return 'تصنيف';
+      case EntityType.unit:
+        return 'وحدة';
+      case EntityType.shoppingModeSession:
+        return 'جلسة تسوق';
+      case EntityType.notification:
+        return 'إشعار';
+      case EntityType.notificationPreference:
+        return 'تفضيلات الإشعارات';
+      case EntityType.home:
+        return 'منزل';
+      case EntityType.unknown:
+        return 'عنصر';
     }
   }
 
@@ -158,8 +224,35 @@ enum EntityType {
         return EntityType.homeMember;
       case 'invitation':
         return EntityType.invitation;
+      case 'task':
+      case 'tasks':
+        return EntityType.task;
+      case 'expense':
+      case 'expenses':
+        return EntityType.expense;
+      case 'inventory_item':
+      case 'inventory_items':
+        return EntityType.inventoryItem;
+      case 'category':
+      case 'categories':
+        return EntityType.category;
+      case 'unit':
+      case 'units':
+        return EntityType.unit;
+      case 'shopping_mode_session':
+      case 'shopping_mode_sessions':
+        return EntityType.shoppingModeSession;
+      case 'notification':
+      case 'notifications':
+        return EntityType.notification;
+      case 'notification_preference':
+      case 'notification_preferences':
+        return EntityType.notificationPreference;
+      case 'home':
+      case 'homes':
+        return EntityType.home;
       default:
-        return EntityType.shoppingList;
+        return EntityType.unknown;
     }
   }
 }
@@ -258,8 +351,5 @@ class ActivityActor {
   final String userId;
   final String? displayName;
 
-  const ActivityActor({
-    required this.userId,
-    this.displayName,
-  });
+  const ActivityActor({required this.userId, this.displayName});
 }

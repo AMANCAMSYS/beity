@@ -1,16 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/task_providers.dart';
-import 'package:beity/core/localization/app_localizations.dart';
-import 'package:beity/core/errors/error_formatter.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
+import 'package:sawa/core/errors/error_formatter.dart';
 
 class CommentThread extends ConsumerStatefulWidget {
   final String taskId;
 
-  const CommentThread({
-    super.key,
-    required this.taskId,
-  });
+  const CommentThread({super.key, required this.taskId});
 
   @override
   ConsumerState<CommentThread> createState() => _CommentThreadState();
@@ -34,16 +31,17 @@ class _CommentThreadState extends ConsumerState<CommentThread> {
 
     try {
       final repository = ref.read(taskCommentRepositoryProvider);
-      await repository.addComment(
-        taskId: widget.taskId,
-        content: content,
-      );
+      await repository.addComment(taskId: widget.taskId, content: content);
       _commentController.clear();
       ref.invalidate(taskCommentsProvider);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${context.translate('error_occurred')}: ${ErrorFormatter.format(e, context)}')),
+          SnackBar(
+            content: Text(
+              '${context.translate('error_occurred')}: ${ErrorFormatter.format(e, context)}',
+            ),
+          ),
         );
       }
     } finally {
@@ -99,7 +97,9 @@ class _CommentThreadState extends ConsumerState<CommentThread> {
             );
           },
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (error, _) => Text('${context.translate('error_occurred')}: ${ErrorFormatter.format(error, context)}'),
+          error: (error, _) => Text(
+            '${context.translate('error_occurred')}: ${ErrorFormatter.format(error, context)}',
+          ),
         ),
         const SizedBox(height: 8),
         Row(
@@ -107,13 +107,21 @@ class _CommentThreadState extends ConsumerState<CommentThread> {
             Expanded(
               child: TextField(
                 controller: _commentController,
+                textInputAction: TextInputAction.send,
+                keyboardType: TextInputType.multiline,
                 decoration: InputDecoration(
                   hintText: context.translate('add_comment_placeholder'),
                   border: const OutlineInputBorder(),
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                 ),
-                maxLines: null,
+                minLines: 1,
+                maxLines: 4,
+                onSubmitted: (_) => _isSending ? null : _addComment(),
+                onTapOutside: (_) =>
+                    FocusManager.instance.primaryFocus?.unfocus(),
               ),
             ),
             const SizedBox(width: 8),

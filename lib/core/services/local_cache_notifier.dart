@@ -4,11 +4,24 @@ import 'dart:async';
 class LocalCacheEvent {
   final String homeId;
   final String entityType;
+  final String? listId;
+
+  /// Purchase-specific metadata for overlay notifications.
+  final String? itemName;
+  final String? purchaserId;
+  final bool? isPurchased;
 
   LocalCacheEvent({
     required this.homeId,
     required this.entityType,
+    this.listId,
+    this.itemName,
+    this.purchaserId,
+    this.isPurchased,
   });
+
+  /// Whether this event represents a purchase state change from another user.
+  bool get isPurchaseEvent => itemName != null && isPurchased != null;
 }
 
 /// A global, decoupled reactive broadcaster for local cache updates.
@@ -22,9 +35,40 @@ class LocalCacheNotifier {
   static Stream<LocalCacheEvent> get stream => _controller.stream;
 
   /// Broadcasts a cache update event for a specific [homeId] and [entityType].
-  static void notify(String homeId, String entityType) {
+  ///
+  /// [listId] narrows shopping item updates to one list. A null [listId] means
+  /// the whole entity type changed for the home and listeners may refresh all
+  /// matching scopes.
+  static void notify(String homeId, String entityType, {String? listId}) {
     if (!_controller.isClosed) {
-      _controller.add(LocalCacheEvent(homeId: homeId, entityType: entityType));
+      _controller.add(
+        LocalCacheEvent(homeId: homeId, entityType: entityType, listId: listId),
+      );
+    }
+  }
+
+  /// Broadcasts a purchase state change event with item metadata.
+  ///
+  /// Used by the UI to show "أحمد اشترى تفاح ✅" overlay notifications
+  /// when another user purchases or un-purchases an item.
+  static void notifyPurchase(
+    String homeId, {
+    required String listId,
+    required String itemName,
+    String? purchaserId,
+    required bool isPurchased,
+  }) {
+    if (!_controller.isClosed) {
+      _controller.add(
+        LocalCacheEvent(
+          homeId: homeId,
+          entityType: 'shopping_items',
+          listId: listId,
+          itemName: itemName,
+          purchaserId: purchaserId,
+          isPurchased: isPurchased,
+        ),
+      );
     }
   }
 }

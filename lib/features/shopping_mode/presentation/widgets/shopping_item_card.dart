@@ -29,12 +29,18 @@ class ShoppingItemCard extends StatefulWidget {
 
 class _ShoppingItemCardState extends State<ShoppingItemCard> {
   bool? _optimisticPurchased;
+  bool _isProcessing = false;
 
   @override
   void didUpdateWidget(ShoppingItemCard oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.item.isPurchased != widget.item.isPurchased) {
+    final itemIdentityChanged = oldWidget.item.id != widget.item.id;
+    final purchaseStateChanged =
+        oldWidget.item.isPurchased != widget.item.isPurchased;
+
+    if (itemIdentityChanged || purchaseStateChanged) {
       _optimisticPurchased = null;
+      _isProcessing = false;
     }
   }
 
@@ -43,7 +49,8 @@ class _ShoppingItemCardState extends State<ShoppingItemCard> {
     final theme = Theme.of(context);
     final isArabic = Localizations.localeOf(context).languageCode == 'ar';
     final isPurchased = _optimisticPurchased ?? widget.item.isPurchased;
-    final hasPartialPurchase = widget.item.purchasedQuantity > 0 &&
+    final hasPartialPurchase =
+        widget.item.purchasedQuantity > 0 &&
         widget.item.purchasedQuantity < widget.item.quantity &&
         !isPurchased;
 
@@ -63,7 +70,9 @@ class _ShoppingItemCardState extends State<ShoppingItemCard> {
           child: Ink(
             decoration: BoxDecoration(
               color: isPurchased
-                  ? theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5)
+                  ? theme.colorScheme.surfaceContainerHighest.withValues(
+                      alpha: 0.5,
+                    )
                   : theme.colorScheme.surface,
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
@@ -76,19 +85,30 @@ class _ShoppingItemCardState extends State<ShoppingItemCard> {
             ),
             child: InkWell(
               borderRadius: BorderRadius.circular(12),
-              onTap: () {
-                if (widget.hapticsEnabled) {
-                  HapticFeedback.lightImpact();
-                }
-                setState(() {
-                  _optimisticPurchased = !isPurchased;
-                });
-                Future.delayed(const Duration(milliseconds: 500), () {
-                  if (mounted) {
-                    widget.onTap();
-                  }
-                });
-              },
+              onTap: _isProcessing
+                  ? null
+                  : () {
+                      final tappedItemId = widget.item.id;
+                      final willBePurchased = !isPurchased;
+                      if (widget.hapticsEnabled) {
+                        if (willBePurchased) {
+                          HapticFeedback.mediumImpact();
+                        } else {
+                          HapticFeedback.selectionClick();
+                        }
+                      }
+                      setState(() {
+                        _optimisticPurchased = willBePurchased;
+                        _isProcessing = true;
+                      });
+
+                      // Add a brief delay to show the checkmark before dropping
+                      Future.delayed(const Duration(milliseconds: 500), () {
+                        if (mounted && widget.item.id == tappedItemId) {
+                          widget.onTap();
+                        }
+                      });
+                    },
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Row(
@@ -105,20 +125,28 @@ class _ShoppingItemCardState extends State<ShoppingItemCard> {
                           Text(
                             widget.item.name,
                             style: theme.textTheme.bodyLarge?.copyWith(
-                              decoration:
-                                  isPurchased ? TextDecoration.lineThrough : null,
+                              decoration: isPurchased
+                                  ? TextDecoration.lineThrough
+                                  : null,
                               color: isPurchased
                                   ? theme.colorScheme.onSurfaceVariant
                                   : theme.colorScheme.onSurface,
-                              fontWeight:
-                                  isPurchased ? FontWeight.normal : FontWeight.w500,
+                              fontWeight: isPurchased
+                                  ? FontWeight.normal
+                                  : FontWeight.w500,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          if (widget.item.quantity > 1 || widget.item.unitId != null || hasPartialPurchase) ...[
+                          if (widget.item.quantity > 1 ||
+                              widget.item.unitId != null ||
+                              hasPartialPurchase) ...[
                             const SizedBox(height: 4),
-                            _buildQuantitySubtitle(theme, hasPartialPurchase, isArabic),
+                            _buildQuantitySubtitle(
+                              theme,
+                              hasPartialPurchase,
+                              isArabic,
+                            ),
                           ],
                           if (isPurchased && widget.purchaserName != null) ...[
                             const SizedBox(height: 2),
@@ -156,7 +184,11 @@ class _ShoppingItemCardState extends State<ShoppingItemCard> {
     );
   }
 
-  Widget _buildLeadingIcon(ThemeData theme, bool isPurchased, bool hasPartialPurchase) {
+  Widget _buildLeadingIcon(
+    ThemeData theme,
+    bool isPurchased,
+    bool hasPartialPurchase,
+  ) {
     if (hasPartialPurchase) {
       final progress = widget.item.purchasedQuantity / widget.item.quantity;
       return SizedBox(
@@ -183,7 +215,9 @@ class _ShoppingItemCardState extends State<ShoppingItemCard> {
                 value: progress,
                 strokeWidth: 2.5,
                 backgroundColor: Colors.transparent,
-                valueColor: const AlwaysStoppedAnimation<Color>(AppColors.warning),
+                valueColor: const AlwaysStoppedAnimation<Color>(
+                  AppColors.warning,
+                ),
               ),
             ),
             const Text(
@@ -206,26 +240,32 @@ class _ShoppingItemCardState extends State<ShoppingItemCard> {
         shape: BoxShape.circle,
         color: isPurchased ? theme.colorScheme.primary : Colors.transparent,
         border: Border.all(
-          color: isPurchased ? theme.colorScheme.primary : theme.colorScheme.outline,
+          color: isPurchased
+              ? theme.colorScheme.primary
+              : theme.colorScheme.outline,
           width: 2,
         ),
       ),
       child: isPurchased
-          ? Icon(
-              Icons.check,
-              size: 18,
-              color: theme.colorScheme.onPrimary,
-            )
+          ? Icon(Icons.check, size: 18, color: theme.colorScheme.onPrimary)
           : null,
     );
   }
 
-  Widget _buildQuantitySubtitle(ThemeData theme, bool hasPartialPurchase, bool isArabic) {
+  Widget _buildQuantitySubtitle(
+    ThemeData theme,
+    bool hasPartialPurchase,
+    bool isArabic,
+  ) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         if (hasPartialPurchase) ...[
-          const Icon(Icons.pie_chart_outline, size: 14, color: AppColors.warning),
+          const Icon(
+            Icons.pie_chart_outline,
+            size: 14,
+            color: AppColors.warning,
+          ),
           const SizedBox(width: 4),
         ],
         Text(
@@ -245,14 +285,16 @@ class _ShoppingItemCardState extends State<ShoppingItemCard> {
     final qty = item.quantity == item.quantity.roundToDouble()
         ? item.quantity.toInt().toString()
         : item.quantity.toStringAsFixed(1);
-    
-    final purchasedQty = item.purchasedQuantity == item.purchasedQuantity.roundToDouble()
+
+    final purchasedQty =
+        item.purchasedQuantity == item.purchasedQuantity.roundToDouble()
         ? item.purchasedQuantity.toInt().toString()
         : item.purchasedQuantity.toStringAsFixed(1);
 
-    final showPartial = item.purchasedQuantity > 0 && item.purchasedQuantity < item.quantity;
+    final showPartial =
+        item.purchasedQuantity > 0 && item.purchasedQuantity < item.quantity;
     final qtyString = showPartial ? '$purchasedQty / $qty' : qty;
-    
+
     if (widget.unitName == null || widget.unitName!.isEmpty) return qtyString;
     return '$qtyString ${widget.unitName}';
   }

@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:beity/core/config/feature_flags.dart';
+import 'package:sawa/core/config/feature_flags.dart';
 
 // Since FeatureFlags are static constants, we can't easily mock them in a pure widget test
 // without changing them to a non-constant or using a wrapper.

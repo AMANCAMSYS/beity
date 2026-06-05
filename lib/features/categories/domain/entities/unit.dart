@@ -3,19 +3,6 @@ enum UnitType {
   volume,
   count,
   length;
-
-  String get displayName {
-    switch (this) {
-      case UnitType.weight:
-        return 'وزن';
-      case UnitType.volume:
-        return 'حجم';
-      case UnitType.count:
-        return 'عدد';
-      case UnitType.length:
-        return 'طول';
-    }
-  }
 }
 
 class Unit {

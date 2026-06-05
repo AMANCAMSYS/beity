@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../providers/shopping_items_provider.dart';
+import '../../domain/entities/autocomplete_suggestion.dart';
 
 class ItemSuggestionsWidget extends StatelessWidget {
   final List<AutocompleteSuggestion> suggestions;
@@ -68,7 +68,9 @@ class ItemSuggestionsWidget extends StatelessWidget {
       final qty = suggestion.quantity == suggestion.quantity.roundToDouble()
           ? suggestion.quantity.toInt().toString()
           : suggestion.quantity.toStringAsFixed(1);
-      parts.add(suggestion.unitName != null ? '$qty ${suggestion.unitName}' : qty);
+      parts.add(
+        suggestion.unitName != null ? '$qty ${suggestion.unitName}' : qty,
+      );
     }
     if (parts.isEmpty) return null;
     return Text(
@@ -77,7 +79,11 @@ class ItemSuggestionsWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildHighlightedText(BuildContext context, String text, String query) {
+  Widget _buildHighlightedText(
+    BuildContext context,
+    String text,
+    String query,
+  ) {
     final theme = Theme.of(context);
     final lowerText = text.toLowerCase();
     final lowerQuery = query.toLowerCase();

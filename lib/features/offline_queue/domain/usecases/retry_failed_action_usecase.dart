@@ -5,10 +5,7 @@ class RetryFailedActionUseCase {
   final OfflineQueueRepository repository;
   final Future<void> Function(int entryId) syncEntry;
 
-  RetryFailedActionUseCase({
-    required this.repository,
-    required this.syncEntry,
-  });
+  RetryFailedActionUseCase({required this.repository, required this.syncEntry});
 
   Future<void> execute(int entryId) async {
     final entry = await repository.getEntryById(entryId);

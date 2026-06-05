@@ -16,10 +16,11 @@ class AppLocalizations {
     'tr': trTranslations,
   };
 
-  String translate(String key, {Map<String, String>? arguments}) {
+  String translate(String key, {Map<String, String>? arguments, String? fallback}) {
     final langCode = locale.languageCode;
     String value = _localizedValues[langCode]?[key] ??
         _localizedValues['ar']?[key] ??
+        fallback ??
         key;
 
     if (arguments != null) {
@@ -38,8 +39,8 @@ final appLocalizationsProvider = Provider<AppLocalizations>((ref) {
 });
 
 extension LocalizationExtension on BuildContext {
-  String translate(String key, {Map<String, String>? arguments}) {
+  String translate(String key, {Map<String, String>? arguments, String? fallback}) {
     final container = ProviderScope.containerOf(this, listen: false);
-    return container.read(appLocalizationsProvider).translate(key, arguments: arguments);
+    return container.read(appLocalizationsProvider).translate(key, arguments: arguments, fallback: fallback);
   }
 }

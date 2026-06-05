@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/localization/app_localizations.dart';
-import '../../../../shared/widgets/design_system/beity_bottom_sheet.dart';
+import '../../../../shared/widgets/design_system/sawa_bottom_sheet.dart';
 import '../../../homes/presentation/providers/homes_provider.dart';
 
 class CurrencyBottomSheet extends ConsumerWidget {
@@ -24,7 +24,7 @@ class CurrencyBottomSheet extends ConsumerWidget {
     required String currentCurrency,
     required AppLocalizations l10n,
   }) {
-    return BeityBottomSheet.show(
+    return SawaBottomSheet.show(
       context,
       title: l10n.translate('select_default_currency'),
       child: CurrencyBottomSheet(
@@ -39,12 +39,12 @@ class CurrencyBottomSheet extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final currencies = [
-      {'code': 'TRY', 'name': 'Türk Lirası (TRY)'},
-      {'code': 'SAR', 'name': 'SAR - ريال سعودي'},
-      {'code': 'USD', 'name': 'USD - دولار أمريكي'},
-      {'code': 'EUR', 'name': 'EUR - يورو'},
-      {'code': 'EGP', 'name': 'EGP - جنيه مصري'},
-      {'code': 'AED', 'name': 'AED - درهم إماراتي'},
+      {'code': 'TRY', 'key': 'currency_try'},
+      {'code': 'SAR', 'key': 'currency_sar'},
+      {'code': 'USD', 'key': 'currency_usd'},
+      {'code': 'EUR', 'key': 'currency_eur'},
+      {'code': 'EGP', 'key': 'currency_egp'},
+      {'code': 'AED', 'key': 'currency_aed'},
     ];
 
     return ListView.separated(
@@ -55,7 +55,8 @@ class CurrencyBottomSheet extends ConsumerWidget {
       itemBuilder: (context, index) {
         final curr = currencies[index];
         final code = curr['code']!;
-        final name = curr['name']!;
+        final nameKey = curr['key']!;
+        final name = l10n.translate(nameKey);
         final isSelected = code == currentCurrency;
 
         return ListTile(

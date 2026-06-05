@@ -1,28 +1,32 @@
 import 'dart:async';
-import 'package:beity/core/services/supabase_service.dart';
+import 'package:sawa/core/services/supabase_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:beity/app/theme/app_spacing.dart';
-import 'package:beity/app/theme/app_colors.dart';
-import 'package:beity/shared/widgets/design_system/beity_empty_state.dart';
-import 'package:beity/shared/widgets/design_system/beity_snack_bar.dart';
+import 'package:sawa/app/theme/app_spacing.dart';
+import 'package:sawa/app/theme/app_colors.dart';
+import 'package:sawa/app/router/shopping_route_paths.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_empty_state.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_snack_bar.dart';
 import '../providers/shopping_items_provider.dart';
 import '../providers/shopping_lists_provider.dart';
 import '../providers/realtime_providers.dart';
 import '../widgets/quick_add_item_bottom_sheet.dart';
 import '../widgets/category_filter_widget.dart';
 import '../widgets/presence_indicator_widget.dart';
-import '../widgets/connection_status_widget.dart';
 import '../widgets/list_detail_search_bar.dart';
 import '../widgets/list_detail_summary_bar.dart';
-import '../widgets/list_detail_category_section.dart';
 import '../widgets/shopping_item_tile_widget.dart';
 import '../../domain/usecases/mark_item_purchased_usecase.dart';
+import '../../domain/usecases/update_item_purchase_state_usecase.dart';
+import '../../../../shared/widgets/purchase_notification_overlay.dart';
+import '../../../../core/services/local_cache_notifier.dart';
+import '../../../../core/services/notification_service.dart';
 import '../../domain/usecases/delete_item_usecase.dart';
 import '../../data/models/shopping_item_model.dart';
+import '../../domain/entities/shopping_item.dart';
 import '../../../categories/presentation/providers/categories_provider.dart';
 import '../../../settings/presentation/providers/app_settings_provider.dart';
 import '../../../categories/presentation/providers/units_provider.dart';
@@ -33,17 +37,24 @@ import '../../../shopping_mode/presentation/widgets/shopping_guide_dialog.dart';
 import '../../../offline_queue/presentation/providers/offline_queue_provider.dart';
 import '../../../offline_queue/presentation/providers/connectivity_provider.dart';
 import '../../../offline_queue/domain/entities/sync_status.dart';
+import '../../../homes/presentation/providers/homes_provider.dart';
 import '../../../../core/services/realtime_service.dart';
 import '../../../../core/config/feature_flags.dart';
 import '../../../../core/utils/action_debouncer.dart';
 import '../../../../core/localization/app_localizations.dart';
+import '../../../../core/errors/error_formatter.dart';
 
 enum _ListAction { shoppingMode, summary, activity, quickAdd }
 
 class ShoppingListDetailScreen extends ConsumerStatefulWidget {
   final String listId;
+  final String homeId;
 
-  const ShoppingListDetailScreen({super.key, required this.listId});
+  const ShoppingListDetailScreen({
+    super.key,
+    required this.listId,
+    required this.homeId,
+  });
 
   @override
   ConsumerState<ShoppingListDetailScreen> createState() =>
@@ -53,29 +64,61 @@ class ShoppingListDetailScreen extends ConsumerStatefulWidget {
 class _ShoppingListDetailScreenState
     extends ConsumerState<ShoppingListDetailScreen> {
   // Undo delete state
-  ShoppingItemModel? _lastDeletedItem;
+  ShoppingItem? _lastDeletedItem;
   Timer? _undoTimer;
 
   // Search/filter state
   bool _isSearchVisible = false;
-  final _searchController = TextEditingController();
-  String _searchQuery = '';
-  String? _filterCategoryId;
-
-  // Category expansion state
   final Map<String?, bool> _expandedCategories = {};
 
   // Conflict highlight state
   final Map<String, DateTime> _highlightedItems = {};
 
+  StreamSubscription? _cacheSubscription;
+  final ScrollController _scrollController = ScrollController();
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  String? _filterCategoryId;
+
+  ({String listId, String homeId}) get _itemsProviderParams =>
+      (listId: widget.listId, homeId: widget.homeId);
+
   @override
   void initState() {
     super.initState();
     _joinPresence();
+    NotificationService.addActiveScreenSubscription(
+      ShoppingRoutePaths.detail(widget.listId),
+    );
+
+    // Listen to real-time purchase updates from other users
+    _cacheSubscription = LocalCacheNotifier.stream.listen((event) {
+      if (event.isPurchaseEvent && event.listId == widget.listId && mounted) {
+        // Resolve purchaser ID to name using home members
+        final members =
+            ref.read(homeMembersProvider(widget.homeId)).value ?? [];
+        final purchaserName = members
+            .where((m) => m.userId == event.purchaserId)
+            .map((m) => m.userName)
+            .firstOrNull;
+
+        PurchaseNotificationOverlay.show(
+          context,
+          itemName: event.itemName!,
+          purchaserName: purchaserName,
+          isPurchased: event.isPurchased!,
+        );
+      }
+    });
   }
 
   @override
   void dispose() {
+    NotificationService.removeActiveScreenSubscription(
+      ShoppingRoutePaths.detail(widget.listId),
+    );
+    _cacheSubscription?.cancel();
+    _scrollController.dispose();
     _undoTimer?.cancel();
     _searchController.dispose();
     _leavePresence();
@@ -96,7 +139,7 @@ class _ShoppingListDetailScreenState
           userId: currentUser.id,
           displayName:
               currentUser.userMetadata?['full_name'] as String? ??
-                  ref.read(appLocalizationsProvider).translate('user'),
+              ref.read(appLocalizationsProvider).translate('user'),
           avatarUrl: currentUser.userMetadata?['avatar_url'] as String?,
         ),
       );
@@ -115,17 +158,20 @@ class _ShoppingListDetailScreenState
 
   @override
   Widget build(BuildContext context) {
-    final listAsync = ref.watch(shoppingListByIdProvider(widget.listId));
-    final itemsAsync = ref.watch(shoppingItemsProvider(widget.listId));
-    final connectionState = ref.watch(connectionStateProvider);
+    final listAsync = ref.watch(
+      shoppingListByIdForHomeProvider((
+        listId: widget.listId,
+        homeId: widget.homeId,
+      )),
+    );
+    final itemsAsync = ref.watch(
+      shoppingItemsForHomeProvider(_itemsProviderParams),
+    );
+    final list = listAsync.value;
+    final homeId = widget.homeId;
     final currentUser = SupabaseService.client.auth.currentUser;
-    final settings = ref.watch(appSettingsProvider);
 
-    final list = listAsync.valueOrNull;
-    final homeId = list?.homeId ?? '';
-    final presenceAsync = ref.watch(presenceProvider(widget.listId));
-
-    // Load units for display
+    // Load units for display (read instead of watch to avoid rebuilds, or watch but don't care much since it's cached)
     final unitsAsync = ref.watch(unitsProvider(null));
     final unitNames = <String, String>{};
     unitsAsync.whenData((units) {
@@ -139,16 +185,8 @@ class _ShoppingListDetailScreenState
     // Load categories for filter
     final categoriesAsync = ref.watch(categoriesProvider(homeId));
 
-    // Offline queue status
-    final connectivityStatus = ref.watch(connectivityStatusProvider);
-    final isOffline = connectivityStatus.valueOrNull?.isOffline ?? false;
-    final canSyncNow = ref.watch(canSyncNowProvider);
-    final pendingCount = homeId.isNotEmpty
-        ? ref.watch(pendingCountProvider(homeId)).valueOrNull ?? 0
-        : 0;
-    final failedCount = homeId.isNotEmpty
-        ? ref.watch(failedCountProvider(homeId)).valueOrNull ?? 0
-        : 0;
+    // Get settings with select to avoid rebuilds on irrelevant setting changes
+    final settings = ref.watch(appSettingsProvider.select((s) => s));
 
     return ConnectivityListener(
       homeId: homeId,
@@ -157,10 +195,10 @@ class _ShoppingListDetailScreenState
           leading: IconButton(
             icon: const BackButtonIcon(),
             onPressed: () {
-              if (Navigator.of(context).canPop()) {
-                Navigator.of(context).pop();
+              if (context.canPop()) {
+                context.pop();
               } else {
-                context.go('/shopping-lists');
+                context.go(ShoppingRoutePaths.lists);
               }
             },
             tooltip: context.translate('back'),
@@ -182,13 +220,12 @@ class _ShoppingListDetailScreenState
                   color: AppColors.accent,
                 ),
                 onPressed: () => ActionDebouncer.execute(() async {
-                  final list = listAsync.valueOrNull;
+                  final list = listAsync.value;
                   if (list != null) {
                     final existingItemNames =
-                        itemsAsync.valueOrNull?.map((e) => e.name).toList() ??
-                        [];
+                        itemsAsync.value?.map((e) => e.name).toList() ?? [];
                     context.push(
-                      '/shopping-list/${widget.listId}/ai-suggestions',
+                      ShoppingRoutePaths.aiSuggestions(widget.listId),
                       extra: {
                         'listId': list.id,
                         'listTitle': list.name,
@@ -228,10 +265,10 @@ class _ShoppingListDetailScreenState
                 switch (action) {
                   case _ListAction.shoppingMode:
                     ActionDebouncer.execute(() async {
-                      final list = listAsync.valueOrNull;
+                      final list = listAsync.value;
                       if (list != null) {
                         context.push(
-                          '/shopping-list/${widget.listId}/shopping-mode',
+                          ShoppingRoutePaths.shoppingMode(widget.listId),
                           extra: {'homeId': list.homeId, 'listName': list.name},
                         );
                       }
@@ -240,14 +277,14 @@ class _ShoppingListDetailScreenState
                   case _ListAction.summary:
                     ActionDebouncer.execute(
                       () => context.push(
-                        '/shopping-list/${widget.listId}/summary',
+                        ShoppingRoutePaths.summary(widget.listId),
                       ),
                     );
                     break;
                   case _ListAction.activity:
                     ActionDebouncer.execute(
                       () => context.push(
-                        '/shopping-list/${widget.listId}/activity',
+                        ShoppingRoutePaths.activity(widget.listId),
                         extra: {
                           'homeId': list?.homeId ?? '',
                           'listName':
@@ -259,7 +296,7 @@ class _ShoppingListDetailScreenState
                   case _ListAction.quickAdd:
                     ActionDebouncer.execute(
                       () => context.push(
-                        '/shopping-list/${widget.listId}/quick-add',
+                        ShoppingRoutePaths.quickAdd(widget.listId),
                         extra: list?.homeId ?? '',
                       ),
                     );
@@ -305,49 +342,34 @@ class _ShoppingListDetailScreenState
         ),
         body: Column(
           children: [
-            SyncStatusBanner(
-              pendingCount: pendingCount,
-              failedCount: failedCount,
-              isOffline: isOffline,
-              canSyncNow: canSyncNow,
-              onRetryAll: () => _retryFailedEntries(homeId),
-            ),
-            // Connection status
-            connectionState.when(
-              data: (state) => ConnectionStatusWidget(connectionState: state),
-              loading: () => const SizedBox.shrink(),
-              error: (error, stackTrace) => const SizedBox.shrink(),
-            ),
-            // Presence indicators
-            presenceAsync.when(
-              data: (presences) => PresenceIndicatorWidget(
-                presences: presences,
-                currentUserId: currentUser?.id ?? '',
-              ),
-              loading: () => const SizedBox.shrink(),
-              error: (error, stackTrace) => const SizedBox.shrink(),
+            _IsolatedSyncStatusBanner(homeId: homeId),
+            _IsolatedPresenceIndicatorWidget(
+              listId: widget.listId,
+              currentUserId: currentUser?.id ?? '',
             ),
             // Main content
             Expanded(
               child: listAsync.when(
+                skipLoadingOnReload: true,
                 data: (list) {
                   if (list == null) {
-                    return BeityEmptyState(
+                    return SawaEmptyState(
                       title: context.translate('list_not_found'),
                       message: context.translate('list_not_found_desc'),
                       icon: Icons.error_outline_rounded,
                       isError: true,
                       actionText: context.translate('back_to_lists'),
                       onAction: () => ActionDebouncer.execute(
-                        () async => context.go('/shopping-lists'),
+                        () async => context.go(ShoppingRoutePaths.lists),
                       ),
                     );
                   }
 
                   return itemsAsync.when(
+                    skipLoadingOnReload: true,
                     data: (items) {
                       if (items.isEmpty) {
-                        return BeityEmptyState(
+                        return SawaEmptyState(
                           title: context.translate('list_empty'),
                           message: context.translate('list_empty_desc'),
                           icon: Icons.shopping_basket_rounded,
@@ -384,7 +406,7 @@ class _ShoppingListDetailScreenState
                       }
 
                       if (filtered.isEmpty) {
-                        return BeityEmptyState(
+                        return SawaEmptyState(
                           title: context.translate('no_results'),
                           message: context.translate('no_results_desc'),
                           icon: Icons.search_off_rounded,
@@ -399,28 +421,113 @@ class _ShoppingListDetailScreenState
                         );
                       }
 
-                      final grouped = <String?, List<ShoppingItemModel>>{};
+                      final unpurchasedTotal = items
+                          .where((i) => !i.isPurchased && i.price != null)
+                          .fold<double>(0, (sum, i) => sum + i.price!);
+                      final queueEntriesAsync = ref.watch(
+                        queueEntriesProvider(homeId),
+                      );
+                      final queueEntries = queueEntriesAsync.value ?? [];
+                      final pendingIds = queueEntries
+                          .where((e) => e.isPending)
+                          .map((e) => e.entityId)
+                          .toSet();
+
+                      final categories = categoriesAsync.value ?? [];
+                      final categoryById = {
+                        for (final c in categories) c.id: c,
+                      };
+
+                      final List<ListDetailItem> flattenedList = [];
                       if (settings.groupedByCategory) {
+                        final grouped = <String?, List<ShoppingItemModel>>{};
                         for (final item in filtered) {
                           grouped
                               .putIfAbsent(item.categoryId, () => [])
                               .add(item);
                         }
-                        for (final group in grouped.values) {
-                          group.sort((a, b) {
+                        for (final entry in grouped.entries) {
+                          final categoryId = entry.key;
+                          final groupItems = entry.value;
+
+                          // 3. Sort items within group
+                          groupItems.sort((a, b) {
+                            // A. Purchased status first (unpurchased at top)
+                            if (a.isPurchased != b.isPurchased) {
+                              return a.isPurchased ? 1 : -1;
+                            }
+
+                            // B. If both are purchased, sort by recently purchased
+                            if (a.isPurchased) {
+                              final aTime =
+                                  a.purchasedAt ?? a.updatedAt ?? a.createdAt;
+                              final bTime =
+                                  b.purchasedAt ?? b.updatedAt ?? b.createdAt;
+                              if (aTime != null && bTime != null) {
+                                return bTime.compareTo(aTime); // descending
+                              }
+                              return 0;
+                            }
+
+                            // C. If both are unpurchased, sort by priority
+                            final aPriority = ShoppingItem.priorityOrder(
+                              a.priority,
+                            );
+                            final bPriority = ShoppingItem.priorityOrder(
+                              b.priority,
+                            );
+                            if (aPriority != bPriority) {
+                              return aPriority.compareTo(bPriority);
+                            }
+
+                            // D. Fallback to name alphabetical
+                            return a.name.compareTo(b.name);
+                          });
+
+                          final isExpanded =
+                              _expandedCategories[categoryId] ?? true;
+                          final unpurchasedCount = groupItems
+                              .where((i) => !i.isPurchased)
+                              .length;
+
+                          final cat = categoryById[categoryId];
+                          final categoryName =
+                              cat?.name ?? context.translate('uncategorized');
+
+                          flattenedList.add(
+                            CategoryHeaderItem(
+                              categoryId: categoryId,
+                              categoryName: categoryName,
+                              unpurchasedCount: unpurchasedCount,
+                              isExpanded: isExpanded,
+                            ),
+                          );
+
+                          if (isExpanded) {
+                            for (final item in groupItems) {
+                              final hasPending = pendingIds.contains(item.id);
+                              flattenedList.add(
+                                ShoppingItemRow(
+                                  item: item,
+                                  hasPending: hasPending,
+                                ),
+                              );
+                            }
+                          }
+                        }
+                      } else {
+                        final sorted = [...filtered]
+                          ..sort((a, b) {
                             if (a.isPurchased == b.isPurchased) return 0;
                             return a.isPurchased ? 1 : -1;
                           });
+                        for (final item in sorted) {
+                          final hasPending = pendingIds.contains(item.id);
+                          flattenedList.add(
+                            ShoppingItemRow(item: item, hasPending: hasPending),
+                          );
                         }
-                      } else {
-                        filtered.sort((a, b) {
-                          if (a.isPurchased == b.isPurchased) return 0;
-                          return a.isPurchased ? 1 : -1;
-                        });
                       }
-                      final unpurchasedTotal = items
-                          .where((i) => !i.isPurchased && i.price != null)
-                          .fold<double>(0, (sum, i) => sum + i.price!);
 
                       return Column(
                         children: [
@@ -454,71 +561,141 @@ class _ShoppingListDetailScreenState
                                 const SizedBox.shrink(),
                           ),
                           Expanded(
-                            child: ListView(
+                            child: ListView.builder(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: AppSpacing.lg,
                               ),
-                              children: [
-                                if (settings.groupedByCategory)
-                                  ...grouped.entries.map((entry) {
-                                    final categoryId = entry.key;
-                                    final groupItems = entry.value;
-                                    final isExpanded =
-                                        _expandedCategories[categoryId] ?? true;
+                              itemCount: flattenedList.length + 1,
+                              itemBuilder: (context, index) {
+                                if (index == flattenedList.length) {
+                                  return const SizedBox(height: AppSpacing.md);
+                                }
 
-                                    return ListDetailCategorySection(
-                                      categoryId: categoryId,
-                                      items: groupItems,
-                                      isExpanded: isExpanded,
-                                      homeId: homeId,
-                                      unitNames: unitNames,
-                                      listId: widget.listId,
-                                      highlightedItems: _highlightedItems,
+                                final listItem = flattenedList[index];
+
+                                if (listItem is CategoryHeaderItem) {
+                                  final isDark =
+                                      Theme.of(context).brightness ==
+                                      Brightness.dark;
+                                  return InkWell(
+                                    onTap: () {
+                                      setState(() {
+                                        _expandedCategories[listItem
+                                                .categoryId] =
+                                            !listItem.isExpanded;
+                                      });
+                                    },
+                                    borderRadius: BorderRadius.circular(
+                                      AppSpacing.radiusMd,
+                                    ),
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: AppSpacing.sm,
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            listItem.isExpanded
+                                                ? Icons
+                                                      .keyboard_arrow_down_rounded
+                                                : Icons
+                                                      .keyboard_arrow_right_rounded,
+                                            color: isDark
+                                                ? AppColors.textSecondaryDark
+                                                : AppColors.textSecondaryLight,
+                                            size: 24,
+                                          ),
+                                          AppSpacing.gapXS,
+                                          Text(
+                                            listItem.categoryName,
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .titleSmall
+                                                ?.copyWith(
+                                                  color: isDark
+                                                      ? AppColors
+                                                            .textSecondaryDark
+                                                      : AppColors
+                                                            .textSecondaryLight,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                          ),
+                                          AppSpacing.gapSM,
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 10,
+                                              vertical: 2,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: Theme.of(context)
+                                                  .primaryColor
+                                                  .withValues(alpha: 0.1),
+                                              borderRadius:
+                                                  BorderRadius.circular(
+                                                    AppSpacing.radiusXl,
+                                                  ),
+                                            ),
+                                            child: Text(
+                                              '${listItem.unpurchasedCount}',
+                                              style: Theme.of(context)
+                                                  .textTheme
+                                                  .bodySmall
+                                                  ?.copyWith(
+                                                    color: Theme.of(
+                                                      context,
+                                                    ).primaryColor,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                } else if (listItem is ShoppingItemRow) {
+                                  final item = listItem.item;
+                                  return Padding(
+                                    padding: const EdgeInsets.only(
+                                      bottom: AppSpacing.xs,
+                                    ),
+                                    child: ShoppingItemTileWidget(
+                                      item: item,
+                                      unitName: item.unitId != null
+                                          ? unitNames[item.unitId]
+                                          : null,
+                                      highlightUntil:
+                                          _highlightedItems[item.id],
+                                      showPendingIndicator: listItem.hasPending,
                                       isCompact: settings.compactListMode,
                                       hapticsEnabled: settings.hapticFeedback,
                                       soundsEnabled: settings.soundEffects,
-                                      onExpansionChanged: (expanded) {
-                                        setState(() {
-                                          _expandedCategories[categoryId] = expanded;
-                                        });
-                                      },
-                                      onTogglePurchased: _togglePurchased,
-                                      onDelete: _deleteItem,
-                                    );
-                                  })
-                                else
-                                  ...filtered.map((item) {
-                                    final queueEntries = ref.watch(queueEntriesProvider(homeId));
-                                    final hasPending = queueEntries.when(
-                                      data: (entries) =>
-                                          entries.any((e) => e.entityId == item.id && e.isPending),
-                                      loading: () => false,
-                                      error: (error, stackTrace) => false,
-                                    );
-
-                                    return Padding(
-                                      padding: const EdgeInsets.only(bottom: AppSpacing.xs),
-                                      child: ShoppingItemTileWidget(
-                                        item: item,
-                                        unitName: item.unitId != null ? unitNames[item.unitId] : null,
-                                        highlightUntil: _highlightedItems[item.id],
-                                        showPendingIndicator: hasPending,
-                                        isCompact: settings.compactListMode,
-                                        hapticsEnabled: settings.hapticFeedback,
-                                        soundsEnabled: settings.soundEffects,
-                                        onTogglePurchased: () => _togglePurchased(item.id, !item.isPurchased),
-                                        onQuantityTap: () => _handleQuantityTap(item.id),
-                                        onEdit: () => ActionDebouncer.execute(
-                                          () => context.push(
-                                            '/shopping-list/${widget.listId}/edit-item/${item.id}',
+                                      onTogglePurchased: () =>
+                                          ActionDebouncer.execute(
+                                            () => _togglePurchased(
+                                              item.id,
+                                              !item.isPurchased,
+                                            ),
                                           ),
+                                      onQuantityTap: () =>
+                                          _handleQuantityTap(item.id),
+                                      onEdit: () => ActionDebouncer.execute(
+                                        () => context.push(
+                                          ShoppingRoutePaths.editItem(
+                                            widget.listId,
+                                            item.id,
+                                            homeId: widget.homeId,
+                                          ),
+                                          extra: {'homeId': widget.homeId},
                                         ),
-                                        onDelete: () => ActionDebouncer.execute(() => _deleteItem(item)),
                                       ),
-                                    );
-                                  }),
-                                const SizedBox(height: AppSpacing.md),
-                              ],
+                                      onDelete: () => ActionDebouncer.execute(
+                                        () => _deleteItem(item),
+                                      ),
+                                    ),
+                                  );
+                                }
+                                return const SizedBox.shrink();
+                              },
                             ),
                           ),
                           ListDetailSummaryBar(
@@ -531,26 +708,31 @@ class _ShoppingListDetailScreenState
                     },
                     loading: () =>
                         const Center(child: CircularProgressIndicator()),
-                    error: (error, _) => BeityEmptyState(
+                    error: (error, _) => SawaEmptyState(
                       title: context.translate('load_items_failed'),
                       message: error.toString(),
                       icon: Icons.error_outline_rounded,
                       isError: true,
                       actionText: context.translate('retry'),
-                      onAction: () =>
-                          ref.invalidate(shoppingItemsProvider(widget.listId)),
+                      onAction: () => ref.invalidate(
+                        shoppingItemsForHomeProvider(_itemsProviderParams),
+                      ),
                     ),
                   );
                 },
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (error, _) => BeityEmptyState(
+                error: (error, _) => SawaEmptyState(
                   title: context.translate('load_list_failed'),
                   message: error.toString(),
                   icon: Icons.error_outline_rounded,
                   isError: true,
                   actionText: context.translate('retry'),
-                  onAction: () =>
-                      ref.invalidate(shoppingListByIdProvider(widget.listId)),
+                  onAction: () => ref.invalidate(
+                    shoppingListByIdForHomeProvider((
+                      listId: widget.listId,
+                      homeId: widget.homeId,
+                    )),
+                  ),
                 ),
               ),
             ),
@@ -561,32 +743,40 @@ class _ShoppingListDetailScreenState
   }
 
   Future<void> _togglePurchased(String itemId, bool isPurchased) async {
-    final itemsAsync = ref.read(shoppingItemsProvider(widget.listId));
-    final items = itemsAsync.valueOrNull ?? [];
+    final itemsAsync = ref.read(
+      shoppingItemsForHomeProvider(_itemsProviderParams),
+    );
+    final items = itemsAsync.value ?? [];
     final item = items.where((i) => i.id == itemId).firstOrNull;
     if (item == null) return;
 
-    final repository = ref.read(shoppingItemRepositoryProvider);
+    final repository = ref.read(
+      shoppingItemRepositoryForHomeProvider(widget.homeId),
+    );
 
-    if (!isPurchased) {
-      await repository.updateShoppingItem(
-        itemId: item.id,
-        purchasedQuantity: 0.0,
-      );
+    try {
+      final useCase = MarkItemPurchasedUseCase(repository);
+      await useCase(itemId: itemId, isPurchased: isPurchased);
+    } catch (e) {
+      if (mounted) {
+        SawaSnackBar.error(context, ErrorFormatter.format(e, context));
+      }
     }
-    final useCase = MarkItemPurchasedUseCase(repository);
-    await useCase(itemId: itemId, isPurchased: isPurchased);
   }
 
   Future<void> _handleQuantityTap(String itemId) async {
-    final itemsAsync = ref.read(shoppingItemsProvider(widget.listId));
-    final items = itemsAsync.valueOrNull ?? [];
+    final itemsAsync = ref.read(
+      shoppingItemsForHomeProvider(_itemsProviderParams),
+    );
+    final items = itemsAsync.value ?? [];
     final item = items.where((i) => i.id == itemId).firstOrNull;
     if (item == null || item.isPurchased) return;
 
-    final repository = ref.read(shoppingItemRepositoryProvider);
+    final repository = ref.read(
+      shoppingItemRepositoryForHomeProvider(widget.homeId),
+    );
     final unitsAsync = ref.read(unitsProvider(null));
-    final units = unitsAsync.valueOrNull ?? [];
+    final units = unitsAsync.value ?? [];
     final unit = units.where((u) => u.id == item.unitId).firstOrNull;
 
     final result = await showDialog<double>(
@@ -596,88 +786,163 @@ class _ShoppingListDetailScreenState
     );
 
     if (result != null && result > 0 && mounted) {
-      final isFullyPurchased = result >= item.quantity;
-      await repository.updateShoppingItem(
-        itemId: item.id,
-        purchasedQuantity: result,
-      );
-      if (isFullyPurchased) {
-        await repository.markItemPurchased(
-          itemId: item.id,
-          isPurchased: true,
-        );
+      try {
+        final useCase = UpdateItemPurchaseStateUseCase(repository);
+        await useCase(itemId: item.id, purchasedQuantity: result);
+        ref.invalidate(shoppingItemsForHomeProvider(_itemsProviderParams));
+      } catch (e) {
+        if (mounted) {
+          SawaSnackBar.error(context, ErrorFormatter.format(e, context));
+        }
       }
-      ref.invalidate(shoppingItemsProvider(widget.listId));
     }
   }
 
   Future<void> _deleteItem(ShoppingItemModel item) async {
-    final repository = ref.read(shoppingItemRepositoryProvider);
-    final useCase = DeleteItemUseCase(repository);
-
-    final deletedItem = await useCase.callAndReturn(itemId: item.id);
-
-    if (mounted && deletedItem != null) {
-      final hapticEnabled = ref.read(appSettingsProvider).hapticFeedback;
-      if (hapticEnabled) {
-        HapticFeedback.mediumImpact();
-      }
-      setState(() => _lastDeletedItem = deletedItem);
-
-      BeitySnackBar.success(
-        context,
-        context.translate('deleted_item_success', arguments: {'name': item.name}),
-        actionLabel: context.translate('undo'),
-        onAction: () => _undoDelete(),
+    try {
+      final repository = ref.read(
+        shoppingItemRepositoryForHomeProvider(widget.homeId),
       );
+      final useCase = DeleteItemUseCase(repository);
 
-      _undoTimer?.cancel();
-      _undoTimer = Timer(const Duration(seconds: 5), () {
-        if (mounted) {
-          setState(() => _lastDeletedItem = null);
+      final deletedItem = await useCase.callAndReturn(itemId: item.id);
+
+      if (mounted && deletedItem != null) {
+        final hapticEnabled = ref.read(appSettingsProvider).hapticFeedback;
+        if (hapticEnabled) {
+          HapticFeedback.mediumImpact();
         }
-      });
+        setState(() => _lastDeletedItem = deletedItem);
+
+        SawaSnackBar.success(
+          context,
+          context.translate(
+            'deleted_item_success',
+            arguments: {'name': item.name},
+          ),
+          actionLabel: context.translate('undo'),
+          onAction: () => _undoDelete(),
+        );
+
+        _undoTimer?.cancel();
+        _undoTimer = Timer(const Duration(seconds: 5), () {
+          if (mounted) {
+            setState(() => _lastDeletedItem = null);
+          }
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        SawaSnackBar.error(context, ErrorFormatter.format(e, context));
+      }
     }
   }
 
   Future<void> _undoDelete() async {
     if (_lastDeletedItem == null) return;
 
-    final repository = ref.read(shoppingItemRepositoryProvider);
-    final useCase = DeleteItemUseCase(repository);
-    await useCase.restoreItem(item: _lastDeletedItem!);
+    try {
+      final repository = ref.read(
+        shoppingItemRepositoryForHomeProvider(widget.homeId),
+      );
+      final useCase = DeleteItemUseCase(repository);
+      await useCase.restoreItem(item: _lastDeletedItem!);
 
-    _undoTimer?.cancel();
-    final hapticEnabled = ref.read(appSettingsProvider).hapticFeedback;
-    if (hapticEnabled) {
-      HapticFeedback.lightImpact();
-    }
-    if (mounted) {
-      setState(() => _lastDeletedItem = null);
+      _undoTimer?.cancel();
+      final hapticEnabled = ref.read(appSettingsProvider).hapticFeedback;
+      if (hapticEnabled) {
+        HapticFeedback.lightImpact();
+      }
+      if (mounted) {
+        setState(() => _lastDeletedItem = null);
+      }
+    } catch (e) {
+      if (mounted) {
+        SawaSnackBar.error(context, ErrorFormatter.format(e, context));
+      }
     }
   }
+}
 
-  Future<void> _retryFailedEntries(String homeId) async {
-    final repository = ref.read(offlineQueueRepositoryProvider);
-    final failedEntries = await repository.getFailedEntries(homeId);
+class _IsolatedSyncStatusBanner extends ConsumerWidget {
+  final String homeId;
+  const _IsolatedSyncStatusBanner({required this.homeId});
 
-    for (final entry in failedEntries) {
-      await repository.updateEntryStatus(
-        entryId: entry.id!,
-        status: SyncStatus.pending,
-      );
-    }
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final connectivityStatus = ref.watch(connectivityStatusProvider);
+    final isOffline = connectivityStatus.value?.isOffline ?? false;
+    final canSyncNow = ref.watch(canSyncNowProvider);
+    final pendingCount = homeId.isNotEmpty
+        ? ref.watch(pendingCountProvider(homeId)).value ?? 0
+        : 0;
+    final failedCount = homeId.isNotEmpty
+        ? ref.watch(failedCountProvider(homeId)).value ?? 0
+        : 0;
 
-    // Refresh providers
-    ref.invalidate(queueEntriesProvider(homeId));
-    ref.invalidate(pendingCountProvider(homeId));
-    ref.invalidate(failedCountProvider(homeId));
-
-    if (mounted) {
-      BeitySnackBar.info(
-        context,
-        context.translate('retrying_items', arguments: {'count': failedEntries.length.toString()}),
-      );
-    }
+    return SyncStatusBanner(
+      pendingCount: pendingCount,
+      failedCount: failedCount,
+      isOffline: isOffline,
+      canSyncNow: canSyncNow,
+      onRetryAll: () async {
+        final repository = ref.read(offlineQueueRepositoryProvider);
+        final failedEntries = await repository.getFailedEntries(homeId);
+        for (final entry in failedEntries) {
+          await repository.updateEntryStatus(
+            entryId: entry.id!,
+            status: SyncStatus.pending,
+          );
+        }
+        ref.invalidate(queueEntriesProvider(homeId));
+        ref.invalidate(pendingCountProvider(homeId));
+        ref.invalidate(failedCountProvider(homeId));
+      },
+    );
   }
+}
+
+class _IsolatedPresenceIndicatorWidget extends ConsumerWidget {
+  final String listId;
+  final String currentUserId;
+  const _IsolatedPresenceIndicatorWidget({
+    required this.listId,
+    required this.currentUserId,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final presenceAsync = ref.watch(presenceProvider(listId));
+    return presenceAsync.when(
+      data: (presences) => PresenceIndicatorWidget(
+        presences: presences,
+        currentUserId: currentUserId,
+      ),
+      loading: () => const SizedBox.shrink(),
+      error: (error, stackTrace) => const SizedBox.shrink(),
+    );
+  }
+}
+
+sealed class ListDetailItem {}
+
+class CategoryHeaderItem extends ListDetailItem {
+  final String? categoryId;
+  final String categoryName;
+  final int unpurchasedCount;
+  final bool isExpanded;
+
+  CategoryHeaderItem({
+    required this.categoryId,
+    required this.categoryName,
+    required this.unpurchasedCount,
+    required this.isExpanded,
+  });
+}
+
+class ShoppingItemRow extends ListDetailItem {
+  final ShoppingItemModel item;
+  final bool hasPending;
+
+  ShoppingItemRow({required this.item, required this.hasPending});
 }

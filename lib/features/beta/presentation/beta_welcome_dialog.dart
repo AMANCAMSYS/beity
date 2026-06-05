@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
 
 import '../data/beta_preferences.dart';
 
@@ -20,38 +21,38 @@ class BetaWelcomeDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     return AlertDialog(
       title: Semantics(
-        label: 'Beity Beta welcome',
-        child: const Text('بيتي - نسخة تجريبية'),
+        label: 'SAWA Beta welcome',
+        child: Text(context.translate('beta_welcome_title')),
       ),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'مرحباً بك في نسخة بيتى التجريبية!',
+            context.translate('beta_welcome_greeting'),
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 8),
           Text(
-            'أنت من أول من يجرّب تطبيقنا لإدارة المنزل.',
+            context.translate('beta_welcome_desc'),
             style: Theme.of(context).textTheme.bodyMedium,
           ),
           const SizedBox(height: 16),
           const Divider(),
           const SizedBox(height: 16),
           Text(
-            'كيفية الإبلاغ عن مشكلة:',
+            context.translate('beta_how_to_report'),
             style: Theme.of(context).textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
           ),
           const SizedBox(height: 8),
-          const Text('• اضغط على القائمة (☰) في أي شاشة'),
-          const Text('• اختر "إرسال ملاحظات"'),
-          const Text('• اصف ما حدث'),
+          Text(context.translate('beta_step_1')),
+          Text(context.translate('beta_step_2')),
+          Text(context.translate('beta_step_3')),
           const SizedBox(height: 16),
           Text(
-            'ملاحظاتك تساعدنا على التحسين!',
+            context.translate('beta_feedback_helps'),
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Colors.grey[600],
                 ),
@@ -69,7 +70,7 @@ class BetaWelcomeDialog extends StatelessWidget {
                 Navigator.of(context).pop();
               }
             },
-            child: const Text('فهمت!'),
+            child: Text(context.translate('got_it')),
           ),
         ),
       ],

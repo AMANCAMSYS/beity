@@ -3,16 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/task_providers.dart';
 import '../widgets/task_card.dart';
-import '../../../../shared/widgets/design_system/beity_empty_state.dart';
-import 'package:beity/core/localization/app_localizations.dart';
+import '../../../../shared/widgets/design_system/sawa_empty_state.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
 
 class ArchivedTasksScreen extends ConsumerWidget {
   final String homeId;
 
-  const ArchivedTasksScreen({
-    super.key,
-    required this.homeId,
-  });
+  const ArchivedTasksScreen({super.key, required this.homeId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -27,17 +24,14 @@ class ArchivedTasksScreen extends ConsumerWidget {
         title: Text(context.translate('archived_tasks')),
       ),
       body: FutureBuilder(
-        future: repository.getTasks(
-          homeId: homeId,
-          activeOnly: false,
-        ),
+        future: repository.getTasks(homeId: homeId, activeOnly: false),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
 
           if (snapshot.hasError) {
-            return BeityEmptyState(
+            return SawaEmptyState(
               title: context.translate('error_occurred'),
               message: snapshot.error.toString(),
               icon: Icons.error_outline_rounded,
@@ -46,11 +40,10 @@ class ArchivedTasksScreen extends ConsumerWidget {
           }
 
           final tasks = snapshot.data ?? [];
-          final archivedTasks =
-              tasks.where((t) => t.isArchived).toList();
+          final archivedTasks = tasks.where((t) => t.isArchived).toList();
 
           if (archivedTasks.isEmpty) {
-            return BeityEmptyState(
+            return SawaEmptyState(
               title: context.translate('no_archived_tasks'),
               message: context.translate('archived_tasks_desc'),
               icon: Icons.archive_outlined,
@@ -62,6 +55,7 @@ class ArchivedTasksScreen extends ConsumerWidget {
             itemBuilder: (context, index) {
               final task = archivedTasks[index];
               return TaskCard(
+                key: ValueKey(task.id),
                 task: task,
                 onTap: () {
                   context.push('/home/$homeId/tasks/${task.id}');

@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/errors/error_formatter.dart';
+import '../../../../core/localization/app_localizations.dart';
 
-import 'package:beity/app/theme/app_colors.dart';
-import 'package:beity/app/theme/app_spacing.dart';
-import 'package:beity/shared/widgets/design_system/beity_button.dart';
-import 'package:beity/shared/widgets/design_system/beity_text_field.dart';
-import 'package:beity/shared/widgets/design_system/beity_card.dart';
+import 'package:sawa/app/theme/app_colors.dart';
+import 'package:sawa/app/theme/app_spacing.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_button.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_text_field.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_card.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../providers/homes_provider.dart';
 import '../../../settings/presentation/providers/app_settings_provider.dart';
@@ -59,24 +61,17 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   void _prefillHomeName() {
-    final user = ref.read(currentUserProvider).valueOrNull;
+    final user = ref.read(currentUserProvider).value;
     final userName = user?.fullName ?? '';
     if (userName.isNotEmpty) {
-      if (_selectedLang == 'ar') {
-        _homeNameController.text = 'بيت $userName';
-      } else if (_selectedLang == 'tr') {
-        _homeNameController.text = '$userName\'nin Evi';
-      } else {
-        _homeNameController.text = '$userName\'s Home';
-      }
+      _homeNameController.text = AppLocalizations(Locale(_selectedLang)).translate(
+        'home_name_user_prefill',
+        arguments: {'name': userName},
+      );
     } else {
-      if (_selectedLang == 'ar') {
-        _homeNameController.text = 'منزلي الجميل';
-      } else if (_selectedLang == 'tr') {
-        _homeNameController.text = 'Evim';
-      } else {
-        _homeNameController.text = 'My Home';
-      }
+      _homeNameController.text = AppLocalizations(Locale(_selectedLang)).translate(
+        'home_name_default_prefill',
+      );
     }
   }
 
@@ -147,7 +142,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${_translate('setup_failed')}: $e'),
+            content: Text('${_translate('setup_failed')}: ${ErrorFormatter.format(e, context)}'),
             backgroundColor: AppColors.error,
             behavior: SnackBarBehavior.floating,
           ),
@@ -160,162 +155,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     }
   }
 
-  // Self-contained localized translation strings to avoid modifying massive app_localizations.dart
   String _translate(String key) {
-    final translations = {
-      'ar': {
-        'welcome_title': 'مرحباً بك في بيتي',
-        'welcome_subtitle': 'دعنا نجهز تطبيقك بلمسة شخصية تناسب بلدك ولغتك',
-        'choose_lang': 'اختر اللغة المفضلة',
-        'choose_lang_desc': 'سيتم تخصيص واجهة التطبيق كاملة باللغة التي تختارها',
-        'lang_ar': 'العربية',
-        'lang_en': 'English',
-        'lang_tr': 'Türkçe',
-        'choose_country': 'اختر بلدك ولهجة الذكاء الاصطناعي',
-        'choose_country_desc': 'هذا الخيار يحدد عملة حسابك ومصطلحات الذكاء الاصطناعي لتناسب مطبخك!',
-        'setup_home': 'إعداد منزلك الأول',
-        'setup_home_desc': 'المنزل هو مساحتك المشتركة لقوائم التسوق والمصاريف والمخازن مع عائلتك',
-        'why_home_title': 'لماذا أحتاج إلى منزل؟ 🤔',
-        'why_home_desc': 'تطبيق بيتي يعتمد على نظام "المنازل" لضمان الخصوصية التامة ومشاركة القوائم بشكل آمن مع عائلتك أو شركائك في السكن. بما أنك لا تنتمي لأي منزل حالياً، دعنا ننشئ مساحتك الخاصة!',
-        'home_name_label': 'اسم المنزل',
-        'home_name_hint': 'مثال: بيت العائلة، شقتنا الجديدة',
-        'home_name_required': 'يرجى إدخال اسم المنزل',
-        'home_type_label': 'نوع المنزل / المشاركة',
-        'currency_label': 'العملة الافتراضية',
-        'create_new_home': 'إنشاء منزل جديد',
-        'join_existing_home': 'الانضمام لمنزل',
-        'join_home_title': 'لديك دعوة؟ 💌',
-        'join_home_desc': 'إذا قام أحد أفراد عائلتك بدعوتك، يمكنك التحقق من الدعوات المعلقة لقبولها والانضمام إليهم فوراً.',
-        'check_invitations': 'التحقق من الدعوات',
-        'family': 'عائلة',
-        'couple': 'شريكين / زوجين',
-        'single': 'شخص واحد',
-        'shared': 'سكن مشترك',
-        'next': 'التالي',
-        'back': 'رجوع',
-        'start_journey': 'ابدأ الرحلة المشتركة ✨',
-        'setup_failed': 'فشل إكمال الإعداد',
-        'country_sa': 'المملكة العربية السعودية',
-        'country_eg': 'جمهورية مصر العربية',
-        'country_tr': 'الجمهورية التركية',
-        'country_ae': 'الإمارات العربية المتحدة',
-        'country_jo': 'الأردن وبلاد الشام',
-        'country_other': 'دولة أخرى / عالمي',
-        'dialect_gulf': 'لهجة خليجية ومصطلحات سعودية',
-        'dialect_egyptian': 'لهجة مصرية ومصطلحات المطبخ المصري',
-        'dialect_turkish': 'لهجة ومصطلحات تركية بالكامل',
-        'dialect_levantine': 'لهجة شامية ومصطلحات أردنية/شامية',
-        'dialect_standard': 'عربية فصحى مبسطة وعالمية',
-        'currency_sa': 'ريال سعودي (SAR)',
-        'currency_eg': 'جنيه مصري (EGP)',
-        'currency_tr': 'ليرة تركية (TRY)',
-        'currency_ae': 'درهم إماراتي (AED)',
-        'currency_jo': 'دينار أردني (JOD)',
-        'currency_other': 'دولار أمريكي (USD)',
-      },
-      'en': {
-        'welcome_title': 'Welcome to Beity',
-        'welcome_subtitle': 'Let\'s personalize your app according to your country and language',
-        'choose_lang': 'Choose Language',
-        'choose_lang_desc': 'The entire interface will be customized in your preferred language',
-        'lang_ar': 'العربية',
-        'lang_en': 'English',
-        'lang_tr': 'Türkçe',
-        'choose_country': 'Choose Country & AI Dialect',
-        'choose_country_desc': 'This sets your currency and customizes AI ingredients to fit your kitchen!',
-        'setup_home': 'Setup Your First Home',
-        'setup_home_desc': 'A Home is your shared workspace for shopping, expenses, and inventory',
-        'why_home_title': 'Why do I need a Home? 🤔',
-        'why_home_desc': 'Beity app relies on a "Homes" system to ensure complete privacy and secure sharing of lists with your family or roommates. Since you don\'t belong to any home yet, let\'s create your private space!',
-        'home_name_label': 'Home Name',
-        'home_name_hint': 'e.g. Family House, My Apartment',
-        'home_name_required': 'Please enter a home name',
-        'home_type_label': 'Home Type',
-        'currency_label': 'Default Currency',
-        'create_new_home': 'Create New Home',
-        'join_existing_home': 'Join Existing Home',
-        'join_home_title': 'Got an invite? 💌',
-        'join_home_desc': 'If a family member invited you, you can check your pending invitations and join their home instantly.',
-        'check_invitations': 'Check Invitations',
-        'family': 'Family',
-        'couple': 'Couple',
-        'single': 'Single User',
-        'shared': 'Shared House',
-        'next': 'Next',
-        'back': 'Back',
-        'start_journey': 'Start Journey ✨',
-        'setup_failed': 'Setup failed',
-        'country_sa': 'Saudi Arabia',
-        'country_eg': 'Egypt',
-        'country_tr': 'Turkey',
-        'country_ae': 'United Arab Emirates',
-        'country_jo': 'Jordan & Levant',
-        'country_other': 'Other / Global',
-        'dialect_gulf': 'Gulf/Saudi dialect & local naming',
-        'dialect_egyptian': 'Egyptian dialect & kitchen naming',
-        'dialect_turkish': 'Turkish dialect & terminology',
-        'dialect_levantine': 'Levantine dialect & naming',
-        'dialect_standard': 'Standard Modern Arabic / English',
-        'currency_sa': 'Saudi Riyal (SAR)',
-        'currency_eg': 'Egyptian Pound (EGP)',
-        'currency_tr': 'Turkish Lira (TRY)',
-        'currency_ae': 'UAE Dirham (AED)',
-        'currency_jo': 'Jordanian Dinar (JOD)',
-        'currency_other': 'US Dollar (USD)',
-      },
-      'tr': {
-        'welcome_title': 'Beity\'e Hoş Geldiniz',
-        'welcome_subtitle': 'Uygulamanızı ülkenize ve dilinize göre özelleştirelim',
-        'choose_lang': 'Dil Seçin',
-        'choose_lang_desc': 'Tüm arayüz tercih ettiğiniz dilde özelleştirilecektir',
-        'lang_ar': 'العربية',
-        'lang_en': 'English',
-        'lang_tr': 'Türkçe',
-        'choose_country': 'Ülke ve Yapay Zeka Ağzı Seçin',
-        'choose_country_desc': 'Bu ayar para biriminizi belirler ve YZ malzemelerini mutfağınıza uyarlar!',
-        'setup_home': 'İlk Evinizi Kurun',
-        'setup_home_desc': 'Ev, alışveriş, masraflar ve envanter için ortak çalışma alanınızdır',
-        'why_home_title': 'Neden bir Eve ihtiyacım var? 🤔',
-        'why_home_desc': 'Beity uygulaması, tam gizlilik sağlamak ve aileniz veya ev arkadaşlarınızla güvenli paylaşım yapmak için bir "Evler" sistemine dayanır. Henüz bir eve ait olmadığınız için kendi özel alanınızı oluşturalım!',
-        'home_name_label': 'Ev Adı',
-        'home_name_hint': 'Örn: Aile Evi, Yeni Dairemiz',
-        'home_name_required': 'Lütfen bir ev adı girin',
-        'home_type_label': 'Ev Tipi',
-        'currency_label': 'Varsayılan Para Birimi',
-        'create_new_home': 'Yeni Ev Oluştur',
-        'join_existing_home': 'Mevcut Bir Eve Katıl',
-        'join_home_title': 'Davetiniz mi var? 💌',
-        'join_home_desc': 'Bir aile üyesi sizi davet ettiyse, bekleyen davetlerinizi kontrol edip hemen katılabilirsiniz.',
-        'check_invitations': 'Davetleri Kontrol Et',
-        'family': 'Aile',
-        'couple': 'Çift',
-        'single': 'Tek Kullanıcı',
-        'shared': 'Ortak Ev',
-        'next': 'İleri',
-        'back': 'Geri',
-        'start_journey': 'Yolculuğu Başlat ✨',
-        'setup_failed': 'Kurulum başarısız oldu',
-        'country_sa': 'Suudi Arabistan',
-        'country_eg': 'Mısır',
-        'country_tr': 'Türkiye',
-        'country_ae': 'Birleşik Arap Emirlikleri',
-        'country_jo': 'Ürdün ve Levant',
-        'country_other': 'Diğer / Küresel',
-        'dialect_gulf': 'Körfez/Suudi ağzı ve yerel adlandırma',
-        'dialect_egyptian': 'Mısır ağzı ve mutfak adlandırması',
-        'dialect_turkish': 'Tamamen Türkçe ağız ve terimler',
-        'dialect_levantine': 'Levant ağzı ve yerel adlandırma',
-        'dialect_standard': 'Standart Modern Arapça / Türkçe',
-        'currency_sa': 'Suudi Riyali (SAR)',
-        'currency_eg': 'Mısır Lirası (EGP)',
-        'currency_tr': 'Türk Lirası (TRY)',
-        'currency_ae': 'BAE Dirhemi (AED)',
-        'currency_jo': 'Ürdün Dinarı (JOD)',
-        'currency_other': 'ABD Doları (USD)',
-      }
-    };
-
-    return translations[_selectedLang]?[key] ?? translations['ar']?[key] ?? key;
+    return AppLocalizations(Locale(_selectedLang)).translate(key);
   }
 
   @override
@@ -401,16 +242,16 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   children: [
                     if (_currentStep > 0)
                       Expanded(
-                        child: BeityButton(
+                        child: SawaButton(
                           text: _translate('back'),
-                          type: BeityButtonType.outline,
+                          type: SawaButtonType.outline,
                           onPressed: _isSubmitting ? null : _prevStep,
                         ),
                       ),
                     if (_currentStep > 0) const SizedBox(width: 12),
                     Expanded(
                       flex: 2,
-                      child: BeityButton(
+                      child: SawaButton(
                         text: _currentStep == 2
                             ? _translate('start_journey')
                             : _translate('next'),
@@ -441,9 +282,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     final theme = Theme.of(context);
 
     final languages = [
-      {'code': 'ar', 'name': _translate('lang_ar'), 'flag': '🇸🇦', 'subtitle': 'العربية كلغة افتراضية'},
-      {'code': 'en', 'name': _translate('lang_en'), 'flag': '🇬🇧', 'subtitle': 'English as default'},
-      {'code': 'tr', 'name': _translate('lang_tr'), 'flag': '🇹🇷', 'subtitle': 'Türkçe varsayılan olarak'},
+      {'code': 'ar', 'name': _translate('lang_ar'), 'flag': '🇸🇦', 'subtitle': _translate('lang_ar_desc')},
+      {'code': 'en', 'name': _translate('lang_en'), 'flag': '🇬🇧', 'subtitle': _translate('lang_en_desc')},
+      {'code': 'tr', 'name': _translate('lang_tr'), 'flag': '🇹🇷', 'subtitle': _translate('lang_tr_desc')},
     ];
 
     return SingleChildScrollView(
@@ -470,7 +311,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               child: AnimatedScale(
                 scale: isSelected ? 1.02 : 1.0,
                 duration: const Duration(milliseconds: 200),
-                child: BeityCard(
+                child: SawaCard(
                   hasBorder: isSelected,
                   backgroundColor: isSelected ? theme.primaryColor.withValues(alpha: 0.12) : null,
                   onTap: () {
@@ -623,7 +464,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               child: AnimatedScale(
                 scale: isSelected ? 1.02 : 1.0,
                 duration: const Duration(milliseconds: 200),
-                child: BeityCard(
+                child: SawaCard(
                   hasBorder: isSelected,
                   backgroundColor: isSelected ? theme.primaryColor.withValues(alpha: 0.12) : null,
                   onTap: () {
@@ -848,7 +689,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
             if (_isCreateMode) ...[
               // Home Name Text Field
-              BeityTextField(
+              SawaTextField(
                 controller: _homeNameController,
                 labelText: _translate('home_name_label'),
                 hintText: _translate('home_name_hint'),
@@ -885,7 +726,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   return AnimatedScale(
                     scale: isSelected ? 1.03 : 1.0,
                     duration: const Duration(milliseconds: 150),
-                    child: BeityCard(
+                    child: SawaCard(
                       hasBorder: isSelected,
                       backgroundColor: isSelected ? theme.primaryColor.withValues(alpha: 0.12) : null,
                       onTap: () {
@@ -957,7 +798,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               ),
             ] else ...[
               // Join Mode Content
-              BeityCard(
+              SawaCard(
                 child: Padding(
                   padding: const EdgeInsets.all(AppSpacing.lg),
                   child: Column(
@@ -984,7 +825,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       const SizedBox(height: 24),
                       SizedBox(
                         width: double.infinity,
-                        child: BeityButton(
+                        child: SawaButton(
                           text: _translate('check_invitations'),
                           icon: Icons.list_alt_rounded,
                           onPressed: () {

@@ -1,11 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:beity/features/ai_suggestions/data/datasources/ai_suggestion_remote_data_source.dart';
-import 'package:beity/features/ai_suggestions/data/models/ai_suggestion_model.dart';
-import 'package:beity/features/ai_suggestions/data/models/ai_suggestion_request_model.dart';
-import 'package:beity/features/ai_suggestions/data/repositories/ai_suggestion_repository_impl.dart';
-import 'package:beity/features/ai_suggestions/domain/entities/ai_suggestion_request.dart';
-import 'package:beity/core/errors/app_exception.dart';
+import 'package:sawa/features/ai_suggestions/data/datasources/ai_suggestion_remote_data_source.dart';
+import 'package:sawa/features/ai_suggestions/data/models/ai_suggestion_model.dart';
+import 'package:sawa/features/ai_suggestions/data/models/ai_suggestion_request_model.dart';
+import 'package:sawa/features/ai_suggestions/data/repositories/ai_suggestion_repository_impl.dart';
+import 'package:sawa/features/ai_suggestions/domain/entities/ai_suggestion_request.dart';
+import 'package:sawa/core/errors/app_exception.dart';
 
 class MockAiSuggestionRemoteDataSource extends Mock implements AiSuggestionRemoteDataSource {}
 

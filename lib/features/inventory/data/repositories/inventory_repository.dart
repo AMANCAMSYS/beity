@@ -42,6 +42,12 @@ abstract class InventoryRepository {
     String? unitId,
   });
 
+  Future<void> transferItemsBatch({
+    required String listId,
+    required String homeId,
+    required List<Map<String, dynamic>> items,
+  });
+
   Future<List<InventoryItemModel>> searchInventoryItems({
     required String homeId,
     required String query,

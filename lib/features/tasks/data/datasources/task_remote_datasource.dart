@@ -59,7 +59,7 @@ class TaskRemoteDataSource {
   }) async {
     final user = _client.auth.currentUser;
     if (user == null) {
-      throw Exception('يجب تسجيل الدخول أولاً');
+      throw Exception('must_login_first');
     }
 
     final response = await _client
@@ -91,10 +91,13 @@ class TaskRemoteDataSource {
   }) async {
     final user = _client.auth.currentUser;
     if (user == null) {
-      throw Exception('يجب تسجيل الدخول أولاً');
+      throw Exception('must_login_first');
     }
 
-    final updates = <String, dynamic>{};
+    final updates = <String, dynamic>{
+      'updated_at': DateTime.now().toIso8601String(),
+      'updated_by': user.id,
+    };
     if (title != null) updates['title'] = title;
     if (description != null) updates['description'] = description;
     if (dueDate != null) {
@@ -120,12 +123,16 @@ class TaskRemoteDataSource {
   }) async {
     final user = _client.auth.currentUser;
     if (user == null) {
-      throw Exception('يجب تسجيل الدخول أولاً');
+      throw Exception('must_login_first');
     }
 
     final response = await _client
         .from('tasks')
-        .update({'assigned_to': assignedTo})
+        .update({
+          'assigned_to': assignedTo,
+          'updated_at': DateTime.now().toIso8601String(),
+          'updated_by': user.id,
+        })
         .eq('id', taskId)
         .select()
         .single();
@@ -138,13 +145,15 @@ class TaskRemoteDataSource {
   }) async {
     final user = _client.auth.currentUser;
     if (user == null) {
-      throw Exception('يجب تسجيل الدخول أولاً');
+      throw Exception('must_login_first');
     }
 
     await _client
         .from('tasks')
         .update({
           'deleted_at': DateTime.now().toIso8601String(),
+          'updated_at': DateTime.now().toIso8601String(),
+          'updated_by': user.id,
         })
         .eq('id', taskId);
   }
@@ -154,7 +163,7 @@ class TaskRemoteDataSource {
   }) async {
     final user = _client.auth.currentUser;
     if (user == null) {
-      throw Exception('يجب تسجيل الدخول أولاً');
+      throw Exception('must_login_first');
     }
 
     final response = await _client
@@ -163,6 +172,8 @@ class TaskRemoteDataSource {
           'status': 'completed',
           'completed_by': user.id,
           'completed_at': DateTime.now().toIso8601String(),
+          'updated_at': DateTime.now().toIso8601String(),
+          'updated_by': user.id,
         })
         .eq('id', taskId)
         .select()
@@ -176,7 +187,7 @@ class TaskRemoteDataSource {
   }) async {
     final user = _client.auth.currentUser;
     if (user == null) {
-      throw Exception('يجب تسجيل الدخول أولاً');
+      throw Exception('must_login_first');
     }
 
     final response = await _client
@@ -185,6 +196,8 @@ class TaskRemoteDataSource {
           'status': 'incomplete',
           'completed_by': null,
           'completed_at': null,
+          'updated_at': DateTime.now().toIso8601String(),
+          'updated_by': user.id,
         })
         .eq('id', taskId)
         .select()

@@ -1,7 +1,7 @@
-# Beity Project Agent Rules
+# SAWA Project Agent Rules
 
 ## Product Direction
-Beity is a home management app focused first on shared shopping lists, then inventory, expenses, tasks, and AI suggestions.
+SAWA is a home management app focused first on shared shopping lists, then inventory, expenses, tasks, and AI suggestions.
 
 ## MVP Priority
 Do not implement inventory, expenses, tasks, stores, OCR, payments, or AI before the core shared shopping-list MVP is stable.
@@ -41,23 +41,6 @@ Use the following sequence for each spec:
 6. /speckit.implement
 
 ## Current Phase
-SPEC 00 - Project Foundation (COMPLETED)
-SPEC 01 - Auth and User Profile (COMPLETED)
-SPEC 02 - Homes and Members (COMPLETED)
-SPEC 03 - Invitations and Roles (COMPLETED)
-SPEC 04 - Categories and Units (COMPLETED)
-SPEC 05 - Shopping Lists (COMPLETED)
-SPEC 06 - Shopping Items (COMPLETED)
-SPEC 07 - Realtime Sync (COMPLETED)
-SPEC 08 - Activity Logs (COMPLETED)
-SPEC 09 - Notifications (COMPLETED)
-SPEC 10 - Shopping Mode (COMPLETED)
-SPEC 11 - Offline Queue (COMPLETED)
-SPEC 12 - MVP Hardening & Beta (COMPLETED)
-SPEC 13 - Inventory Phase (COMPLETED)
-SPEC 14 - Expenses Phase (COMPLETED)
-SPEC 15 - Tasks Phase (COMPLETED)
-SPEC 16 - AI Phase 1 (COMPLETED)
 
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,

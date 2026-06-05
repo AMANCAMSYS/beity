@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:beity/app/theme/app_spacing.dart';
-import 'package:beity/core/localization/app_localizations.dart';
-import 'package:beity/core/utils/action_debouncer.dart';
+import 'package:sawa/app/theme/app_spacing.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
+import 'package:sawa/core/utils/action_debouncer.dart';
 import 'quick_add_item_bottom_sheet.dart';
 
 class ListDetailSummaryBar extends StatelessWidget {

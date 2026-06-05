@@ -1,14 +1,15 @@
-import 'package:beity/core/errors/error_formatter.dart';
+import 'package:sawa/core/errors/error_formatter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:beity/core/utils/auth_error_messages.dart';
-import 'package:beity/core/utils/action_debouncer.dart';
-import 'package:beity/app/theme/app_spacing.dart';
-import 'package:beity/app/theme/app_colors.dart';
-import 'package:beity/shared/widgets/design_system/beity_button.dart';
-import 'package:beity/shared/widgets/design_system/beity_text_field.dart';
+import 'package:sawa/core/utils/auth_error_messages.dart';
+import 'package:sawa/core/utils/action_guard.dart';
+import 'package:sawa/app/theme/app_spacing.dart';
+import 'package:sawa/app/theme/app_colors.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_button.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_text_field.dart';
+import '../../data/repositories/auth_repository.dart';
 import '../providers/auth_provider.dart';
 import '../../../../core/localization/app_localizations.dart';
 
@@ -25,38 +26,63 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  final _nameFocusNode = FocusNode();
+  final _emailFocusNode = FocusNode();
+  final _passwordFocusNode = FocusNode();
+  final _confirmPasswordFocusNode = FocusNode();
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  final _guard = ActionGuard();
 
   @override
   void dispose() {
+    _guard.dispose();
     _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
+    _nameFocusNode.dispose();
+    _emailFocusNode.dispose();
+    _passwordFocusNode.dispose();
+    _confirmPasswordFocusNode.dispose();
     super.dispose();
   }
 
   Future<void> _register() async {
     if (!_formKey.currentState!.validate()) return;
+    FocusManager.instance.primaryFocus?.unfocus();
 
     setState(() => _isLoading = true);
 
     try {
-      await ref.read(authNotifierProvider.notifier).signUp(
+      await ref
+          .read(authNotifierProvider.notifier)
+          .signUp(
             email: _emailController.text.trim(),
             password: _passwordController.text,
             fullName: _nameController.text.trim(),
+            language: Localizations.localeOf(context).languageCode,
           );
 
       if (mounted) {
-        final redirect = GoRouterState.of(context).uri.queryParameters['redirect'];
+        final redirect = GoRouterState.of(
+          context,
+        ).uri.queryParameters['redirect'];
         if (redirect != null && redirect.isNotEmpty) {
           context.go(redirect);
         } else {
           context.go('/');
         }
+      }
+    } on EmailConfirmationRequiredException {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(context.translate('verification_email_sent')),
+            backgroundColor: AppColors.success,
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -83,6 +109,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             padding: const EdgeInsets.all(AppSpacing.lg),
             child: Form(
               key: _formKey,
@@ -90,61 +117,73 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Icon(
-                    Icons.home_rounded,
-                    size: 80,
-                    color: theme.primaryColor,
-                  ),
+                  Icon(Icons.home_rounded, size: 80, color: theme.primaryColor),
                   AppSpacing.gapMD,
                   Text(
-                    context.translate('beity'),
+                    context.translate('sawa'),
                     textAlign: TextAlign.center,
                     style: theme.textTheme.headlineLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   AppSpacing.gapSM,
                   Text(
                     context.translate('create_new_account'),
                     textAlign: TextAlign.center,
                     style: theme.textTheme.titleMedium?.copyWith(
-                          color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                        ),
+                      color: isDark
+                          ? AppColors.textSecondaryDark
+                          : AppColors.textSecondaryLight,
+                    ),
                   ),
                   AppSpacing.gapXXL,
 
                   // Name Field
-                  BeityTextField(
+                  SawaTextField(
                     controller: _nameController,
+                    focusNode: _nameFocusNode,
                     textDirection: TextDirection.rtl,
+                    textInputAction: TextInputAction.next,
                     labelText: context.translate('full_name'),
                     prefixIcon: Icons.person_rounded,
                     validator: (value) {
-                      final error = AuthErrorMessages.validateName(context, value);
+                      final error = AuthErrorMessages.validateName(
+                        context,
+                        value,
+                      );
                       return error.isEmpty ? null : error;
                     },
+                    onSubmitted: (_) => _emailFocusNode.requestFocus(),
                   ),
                   AppSpacing.gapMD,
 
                   // Email Field
-                  BeityTextField(
+                  SawaTextField(
                     controller: _emailController,
+                    focusNode: _emailFocusNode,
                     keyboardType: TextInputType.emailAddress,
+                    textInputAction: TextInputAction.next,
                     textDirection: TextDirection.ltr,
                     labelText: context.translate('email'),
                     hintText: 'example@email.com',
                     prefixIcon: Icons.email_rounded,
                     validator: (value) {
-                      final error = AuthErrorMessages.validateEmail(context, value);
+                      final error = AuthErrorMessages.validateEmail(
+                        context,
+                        value,
+                      );
                       return error.isEmpty ? null : error;
                     },
+                    onSubmitted: (_) => _passwordFocusNode.requestFocus(),
                   ),
                   AppSpacing.gapMD,
 
                   // Password Field
-                  BeityTextField(
+                  SawaTextField(
                     controller: _passwordController,
+                    focusNode: _passwordFocusNode,
                     obscureText: _obscurePassword,
+                    textInputAction: TextInputAction.next,
                     textDirection: TextDirection.ltr,
                     labelText: context.translate('password'),
                     prefixIcon: Icons.lock_rounded,
@@ -153,7 +192,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         _obscurePassword
                             ? Icons.visibility_off_rounded
                             : Icons.visibility_rounded,
-                        color: isDark ? AppColors.textHintDark : AppColors.textHintLight,
+                        color: isDark
+                            ? AppColors.textHintDark
+                            : AppColors.textHintLight,
                       ),
                       onPressed: () {
                         setState(() {
@@ -162,16 +203,23 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       },
                     ),
                     validator: (value) {
-                      final error = AuthErrorMessages.validatePassword(context, value);
+                      final error = AuthErrorMessages.validatePassword(
+                        context,
+                        value,
+                      );
                       return error.isEmpty ? null : error;
                     },
+                    onSubmitted: (_) =>
+                        _confirmPasswordFocusNode.requestFocus(),
                   ),
                   AppSpacing.gapMD,
 
                   // Confirm Password Field
-                  BeityTextField(
+                  SawaTextField(
                     controller: _confirmPasswordController,
+                    focusNode: _confirmPasswordFocusNode,
                     obscureText: _obscureConfirmPassword,
+                    textInputAction: TextInputAction.done,
                     textDirection: TextDirection.ltr,
                     labelText: context.translate('confirm_password'),
                     prefixIcon: Icons.lock_outline_rounded,
@@ -180,7 +228,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         _obscureConfirmPassword
                             ? Icons.visibility_off_rounded
                             : Icons.visibility_rounded,
-                        color: isDark ? AppColors.textHintDark : AppColors.textHintLight,
+                        color: isDark
+                            ? AppColors.textHintDark
+                            : AppColors.textHintLight,
                       ),
                       onPressed: () {
                         setState(() {
@@ -197,14 +247,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       }
                       return null;
                     },
+                    onSubmitted: (_) => _guard.run(_register),
                   ),
                   AppSpacing.gapLG,
 
                   // Register Button
-                  BeityButton(
+                  SawaButton(
                     text: context.translate('create_account'),
                     isLoading: _isLoading,
-                    onPressed: () => ActionDebouncer.execute(_register),
+                    onPressed: () => _guard.run(_register),
                   ),
                   AppSpacing.gapMD,
 

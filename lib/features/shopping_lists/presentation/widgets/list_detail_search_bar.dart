@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:beity/app/theme/app_spacing.dart';
-import 'package:beity/core/localization/app_localizations.dart';
+import 'package:sawa/app/theme/app_spacing.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
 
 class ListDetailSearchBar extends StatelessWidget {
   final TextEditingController controller;
@@ -22,6 +22,7 @@ class ListDetailSearchBar extends StatelessWidget {
       padding: const EdgeInsets.all(AppSpacing.lg),
       child: TextField(
         controller: controller,
+        textInputAction: TextInputAction.search,
         decoration: InputDecoration(
           hintText: context.translate('search_items_placeholder'),
           prefixIcon: const Icon(Icons.search_rounded),
@@ -33,6 +34,8 @@ class ListDetailSearchBar extends StatelessWidget {
               : null,
         ),
         onChanged: onChanged,
+        onSubmitted: (_) => FocusManager.instance.primaryFocus?.unfocus(),
+        onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
       ),
     );
   }

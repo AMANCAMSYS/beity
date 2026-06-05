@@ -8,7 +8,7 @@ class AcceptInvitationUseCase {
 
   Future<Invitation> call({required String token}) async {
     if (token.isEmpty) {
-      throw Exception('رمز الدعوة غير صالح');
+      throw Exception('invalid_invitation_code');
     }
 
     return _repository.acceptInvitation(token: token);

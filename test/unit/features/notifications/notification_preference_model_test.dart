@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:beity/features/notifications/data/models/notification_preference_model.dart';
-import 'package:beity/features/notifications/domain/entities/notification_preference.dart';
+import 'package:sawa/features/notifications/data/models/notification_preference_model.dart';
+import 'package:sawa/features/notifications/domain/entities/notification_preference.dart';
 
 void main() {
   group('NotificationPreferencesModel', () {

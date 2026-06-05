@@ -1,19 +1,31 @@
-import 'package:beity/app/theme/app_colors.dart';
-import 'package:beity/core/services/supabase_service.dart';
-import 'package:beity/app/theme/app_spacing.dart';
-import 'package:beity/shared/widgets/design_system/beity_empty_state.dart';
-import 'package:beity/shared/widgets/design_system/beity_filter_chips.dart';
+import 'package:sawa/app/theme/app_colors.dart';
+import 'package:sawa/core/services/supabase_service.dart';
+import 'package:sawa/app/theme/app_spacing.dart';
+import 'package:sawa/app/router/feature_route_paths.dart';
+import 'package:sawa/app/router/shopping_route_paths.dart';
+import 'package:sawa/core/config/feature_flags.dart';
+import 'package:sawa/core/services/notification_service.dart';
+import 'package:sawa/core/services/app_logger.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_empty_state.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_filter_chips.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_snack_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:async';
+import 'package:sawa/core/services/local_cache_notifier.dart';
+import 'package:sawa/shared/widgets/purchase_notification_overlay.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/utils/action_debouncer.dart';
 import '../../presentation/providers/shopping_mode_provider.dart';
 import '../../presentation/providers/shopping_mode_items_provider.dart';
 import '../../presentation/providers/shopping_mode_session_provider.dart';
+import '../../data/services/shopping_mode_session_recovery_service.dart';
 import '../../../shopping_lists/presentation/providers/shopping_items_provider.dart';
 import '../../../shopping_lists/presentation/providers/shopping_lists_provider.dart';
 import '../../../shopping_lists/domain/usecases/mark_item_purchased_usecase.dart';
+import '../../../shopping_lists/domain/usecases/update_item_purchase_state_usecase.dart';
+import '../../../shopping_lists/domain/usecases/complete_list_usecase.dart';
 import '../../../categories/presentation/providers/units_provider.dart';
 import '../../../categories/presentation/providers/categories_provider.dart';
 import '../../../inventory/presentation/providers/inventory_provider.dart';
@@ -26,8 +38,9 @@ import '../../../beta/data/beta_config.dart';
 import '../../../beta/presentation/satisfaction_survey_dialog.dart';
 import '../../../../core/monitoring/monitoring_service.dart';
 import '../../../../core/localization/app_localizations.dart';
+import '../../../../core/errors/error_formatter.dart';
 import '../../../shopping_lists/data/models/shopping_item_model.dart';
-import 'package:beity/features/settings/presentation/providers/app_settings_provider.dart';
+import 'package:sawa/features/settings/presentation/providers/app_settings_provider.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import '../widgets/partial_purchase_dialog.dart';
 
@@ -52,11 +65,19 @@ class _ShoppingModeScreenState extends ConsumerState<ShoppingModeScreen> {
   final _searchController = TextEditingController();
   String _searchQuery = '';
   String? _filterCategoryId;
+  bool _isTransferring = false;
+  StreamSubscription? _cacheSubscription;
+
+  ({String listId, String homeId}) get _itemsProviderParams =>
+      (listId: widget.listId, homeId: widget.homeId);
 
   @override
   void initState() {
     super.initState();
     _startSession();
+    NotificationService.addActiveScreenSubscription(
+      ShoppingRoutePaths.detail(widget.listId),
+    );
 
     // Request screen wake lock if setting is enabled to prevent sleep during shopping
     try {
@@ -65,19 +86,36 @@ class _ShoppingModeScreenState extends ConsumerState<ShoppingModeScreen> {
         WakelockPlus.enable();
       }
     } catch (e) {
-      debugPrint('Wakelock enable failed: $e');
+      AppLogger.i('Wakelock enable failed: $e');
       MonitoringService().log('Wakelock enable failed: $e');
     }
+
+    // Listen to real-time purchase updates from other users
+    _cacheSubscription = LocalCacheNotifier.stream.listen((event) {
+      if (event.isPurchaseEvent && event.listId == widget.listId && mounted) {
+        PurchaseNotificationOverlay.show(
+          context,
+          itemName: event.itemName!,
+          purchaserName:
+              event.purchaserId, // Could map to user name if we had the map
+          isPurchased: event.isPurchased!,
+        );
+      }
+    });
   }
 
   @override
   void dispose() {
+    NotificationService.removeActiveScreenSubscription(
+      ShoppingRoutePaths.detail(widget.listId),
+    );
+    _cacheSubscription?.cancel();
     _searchController.dispose();
     // Safely disable wake lock when leaving shopping mode to restore normal battery saving
     try {
       WakelockPlus.disable();
     } catch (e) {
-      debugPrint('Wakelock disable failed: $e');
+      AppLogger.i('Wakelock disable failed: $e');
       MonitoringService().log('Wakelock disable failed: $e');
     }
     super.dispose();
@@ -87,43 +125,68 @@ class _ShoppingModeScreenState extends ConsumerState<ShoppingModeScreen> {
     final currentUser = SupabaseService.client.auth.currentUser;
     if (currentUser == null) return;
 
-    final itemsAsync = ref.read(shoppingItemsProvider(widget.listId));
-    final totalItems = itemsAsync.when(
-      data: (items) => items.length,
-      loading: () => 0,
-      error: (error, stack) => 0,
-    );
+    int totalItems = 0;
+    try {
+      final items = await ref.read(
+        shoppingItemsForHomeProvider(_itemsProviderParams).future,
+      );
+      if (!mounted) return;
+      totalItems = items.length;
+    } catch (e) {
+      AppLogger.i('[ShoppingModeScreen] Failed to preload item count: $e');
+    }
 
-    final useCase = ref.read(startShoppingSessionUseCaseProvider);
-    final session = await useCase.call(
-      listId: widget.listId,
-      userId: currentUser.id,
-      homeId: widget.homeId,
-      itemsTotalCount: totalItems,
-    );
+    try {
+      final useCase = ref.read(startShoppingSessionUseCaseProvider);
+      final session = await useCase.call(
+        listId: widget.listId,
+        userId: currentUser.id,
+        homeId: widget.homeId,
+        itemsTotalCount: totalItems,
+      );
 
-    ref.read(shoppingModeProvider.notifier).activate(session.id);
+      if (!mounted) return;
+      ref.read(shoppingModeProvider.notifier).activate(session.id);
+      await ref
+          .read(shoppingModeSessionRecoveryServiceProvider)
+          .markSessionActive(
+            sessionId: session.id,
+            userId: currentUser.id,
+            listId: widget.listId,
+            homeId: widget.homeId,
+            startedAt: session.startedAt,
+          );
+    } catch (e) {
+      if (mounted) {
+        SawaSnackBar.error(context, ErrorFormatter.format(e, context));
+      }
+    }
   }
 
-  Future<void> _togglePurchased(String itemId) async {
-    final itemsAsync = ref.read(shoppingItemsProvider(widget.listId));
-    final items = itemsAsync.valueOrNull ?? [];
-    final item = items.where((i) => i.id == itemId).firstOrNull;
-    if (item == null) return;
-
-    final repository = ref.read(shoppingItemRepositoryProvider);
-    final useCase = MarkItemPurchasedUseCase(repository);
-    await useCase.call(itemId: itemId, isPurchased: !item.isPurchased);
+  Future<void> _togglePurchased(String itemId, bool isPurchased) async {
+    try {
+      final repository = ref.read(
+        shoppingItemRepositoryForHomeProvider(widget.homeId),
+      );
+      final useCase = MarkItemPurchasedUseCase(repository);
+      await useCase.call(itemId: itemId, isPurchased: isPurchased);
+    } catch (e) {
+      if (mounted) {
+        SawaSnackBar.error(context, ErrorFormatter.format(e, context));
+      }
+    }
   }
 
   Future<void> _handleQuantityTap(String itemId) async {
-    final itemsAsync = ref.read(shoppingItemsProvider(widget.listId));
-    final items = itemsAsync.valueOrNull ?? [];
+    final items = await ref.read(
+      shoppingItemsForHomeProvider(_itemsProviderParams).future,
+    );
+    if (!mounted) return;
     final item = items.where((i) => i.id == itemId).firstOrNull;
     if (item == null || item.isPurchased) return;
 
     final unitsAsync = ref.read(unitsProvider(null));
-    final units = unitsAsync.valueOrNull ?? [];
+    final units = unitsAsync.value ?? [];
     final unit = units.where((u) => u.id == item.unitId).firstOrNull;
 
     final result = await showDialog<double>(
@@ -133,13 +196,7 @@ class _ShoppingModeScreenState extends ConsumerState<ShoppingModeScreen> {
     );
 
     if (result != null && result > 0 && mounted) {
-      if (result == item.quantity) {
-        if (!item.isPurchased) {
-          await _togglePurchased(item.id);
-        }
-      } else {
-        await _processPartialPurchase(item, result);
-      }
+      await _processPartialPurchase(item, result);
     }
   }
 
@@ -147,25 +204,26 @@ class _ShoppingModeScreenState extends ConsumerState<ShoppingModeScreen> {
     ShoppingItemModel originalItem,
     double purchasedQuantity,
   ) async {
-    final repository = ref.read(shoppingItemRepositoryProvider);
-    final currentUser = SupabaseService.client.auth.currentUser;
-    if (currentUser == null) return;
-
-    final isFullyPurchased = purchasedQuantity >= originalItem.quantity;
-
-    await repository.updateShoppingItem(
-      itemId: originalItem.id,
-      purchasedQuantity: purchasedQuantity,
+    final repository = ref.read(
+      shoppingItemRepositoryForHomeProvider(widget.homeId),
     );
 
-    if (isFullyPurchased) {
-      await repository.markItemPurchased(
+    try {
+      final useCase = UpdateItemPurchaseStateUseCase(repository);
+      await useCase(
         itemId: originalItem.id,
-        isPurchased: true,
+        purchasedQuantity: purchasedQuantity,
       );
+      final hapticEnabled = ref.read(appSettingsProvider).hapticFeedback;
+      if (hapticEnabled) {
+        HapticFeedback.mediumImpact();
+      }
+    } catch (_) {
+      // Optimistic UI will correct on next provider rebuild
     }
 
-    ref.invalidate(shoppingItemsProvider(widget.listId));
+    if (!mounted) return;
+    ref.invalidate(shoppingItemsForHomeProvider(_itemsProviderParams));
   }
 
   @override
@@ -173,9 +231,34 @@ class _ShoppingModeScreenState extends ConsumerState<ShoppingModeScreen> {
     final theme = Theme.of(context);
     final shoppingMode = ref.watch(shoppingModeProvider);
     final settings = ref.watch(appSettingsProvider);
+    final listAsync = ref.watch(
+      shoppingListByIdForHomeProvider((
+        listId: widget.listId,
+        homeId: widget.homeId,
+      )),
+    );
     final groupsAsync = ref.watch(
       shoppingModeItemsProvider((listId: widget.listId, homeId: widget.homeId)),
     );
+
+    final list = listAsync.value;
+    if (list != null &&
+        (!list.isActive || list.inventoryTransferredAt != null)) {
+      return Scaffold(
+        appBar: AppBar(title: Text(widget.listName)),
+        body: SawaEmptyState(
+          title: context.translate('list_not_available_for_shopping'),
+          message: context.translate('list_not_available_for_shopping_desc'),
+          icon: Icons.task_alt_rounded,
+          actionText: context.translate('back'),
+          onAction: () {
+            if (context.canPop()) {
+              context.pop();
+            }
+          },
+        ),
+      );
+    }
 
     // Load units for display
     final unitsAsync = ref.watch(unitsProvider(null));
@@ -225,12 +308,14 @@ class _ShoppingModeScreenState extends ConsumerState<ShoppingModeScreen> {
           // Progress bar (sticky)
           ShoppingProgressBar(
             purchasedCount: ref.watch(
-              shoppingModePurchasedCountProvider(widget.listId),
+              shoppingModePurchasedCountForHomeProvider(_itemsProviderParams),
             ),
             totalCount: ref.watch(
-              shoppingModeTotalCountProvider(widget.listId),
+              shoppingModeTotalCountForHomeProvider(_itemsProviderParams),
             ),
-            progress: ref.watch(shoppingModeProgressProvider(widget.listId)),
+            progress: ref.watch(
+              shoppingModeProgressForHomeProvider(_itemsProviderParams),
+            ),
           ),
           // Search bar
           if (_isSearchVisible)
@@ -276,7 +361,7 @@ class _ShoppingModeScreenState extends ConsumerState<ShoppingModeScreen> {
               final selectedIndex = _filterCategoryId == null
                   ? 0
                   : categories.indexWhere((c) => c.id == _filterCategoryId) + 1;
-              return BeityFilterChips(
+              return SawaFilterChips(
                 labels: labels,
                 selectedIndex: selectedIndex,
                 onSelected: (index) {
@@ -331,7 +416,7 @@ class _ShoppingModeScreenState extends ConsumerState<ShoppingModeScreen> {
                 }
 
                 if (filteredGroups.isEmpty) {
-                  return BeityEmptyState(
+                  return SawaEmptyState(
                     title: _searchQuery.isNotEmpty
                         ? context.translate('no_results_found')
                         : _filterCategoryId != null
@@ -367,15 +452,13 @@ class _ShoppingModeScreenState extends ConsumerState<ShoppingModeScreen> {
                     final group = filteredGroups[index];
                     final categoryId = group.categoryId ?? 'uncategorized';
 
-                    final bool isCollapsed =
-                        shoppingMode.categoryStates.containsKey(categoryId)
-                        ? shoppingMode.categoryStates[categoryId]!
-                        : (shoppingMode.collapsedCategories.contains(
-                                categoryId,
-                              ) ||
-                              group.allPurchased);
+                    final bool isCollapsed = shoppingMode.isCategoryCollapsed(
+                      categoryId,
+                      fallback: group.allPurchased,
+                    );
 
                     return ShoppingCategoryGroup(
+                      key: ValueKey(categoryId),
                       group: group,
                       unitNames: unitNames,
                       isCollapsed: isCollapsed,
@@ -383,11 +466,12 @@ class _ShoppingModeScreenState extends ConsumerState<ShoppingModeScreen> {
                       onToggle: () => ActionDebouncer.execute(
                         () async => ref
                             .read(shoppingModeProvider.notifier)
-                            .toggleCategory(categoryId, isCollapsed),
+                            .toggleCategory(categoryId),
                       ),
-                      onItemTap: (itemId) => ActionDebouncer.execute(
-                        () async => _togglePurchased(itemId),
-                      ),
+                      onItemTap: (itemId, isPurchased) =>
+                          ActionDebouncer.execute(
+                            () async => _togglePurchased(itemId, isPurchased),
+                          ),
                       onQuantityTap: (itemId) => ActionDebouncer.execute(
                         () async => _handleQuantityTap(itemId),
                       ),
@@ -396,14 +480,15 @@ class _ShoppingModeScreenState extends ConsumerState<ShoppingModeScreen> {
                 );
               },
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, stack) => BeityEmptyState(
+              error: (error, stack) => SawaEmptyState(
                 title: context.translate('error_title'),
                 message: error.toString(),
                 icon: Icons.error_outline_rounded,
                 isError: true,
                 actionText: context.translate('retry'),
-                onAction: () =>
-                    ref.invalidate(shoppingItemsProvider(widget.listId)),
+                onAction: () => ref.invalidate(
+                  shoppingItemsForHomeProvider(_itemsProviderParams),
+                ),
               ),
             ),
           ),
@@ -419,7 +504,9 @@ class _ShoppingModeScreenState extends ConsumerState<ShoppingModeScreen> {
               listId: widget.listId,
               homeId: widget.homeId,
               onItemAdded: () {
-                ref.invalidate(shoppingItemsProvider(widget.listId));
+                ref.invalidate(
+                  shoppingItemsForHomeProvider(_itemsProviderParams),
+                );
                 ref.invalidate(
                   shoppingModeItemsProvider((
                     listId: widget.listId,
@@ -452,9 +539,11 @@ class _ShoppingModeScreenState extends ConsumerState<ShoppingModeScreen> {
 
   void _showExitConfirmation(BuildContext context) {
     final purchasedCount = ref.read(
-      shoppingModePurchasedCountProvider(widget.listId),
+      shoppingModePurchasedCountForHomeProvider(_itemsProviderParams),
     );
-    final totalCount = ref.read(shoppingModeTotalCountProvider(widget.listId));
+    final totalCount = ref.read(
+      shoppingModeTotalCountForHomeProvider(_itemsProviderParams),
+    );
     final unpurchasedCount = totalCount - purchasedCount;
 
     if (unpurchasedCount > 0) {
@@ -474,21 +563,21 @@ class _ShoppingModeScreenState extends ConsumerState<ShoppingModeScreen> {
               child: Text(context.translate('cancel')),
             ),
             FilledButton(
-              onPressed: () {
+              onPressed: () => ActionDebouncer.execute(() async {
                 Navigator.pop(context);
-                if (purchasedCount > 0) {
-                  _autoTransferToInventory();
+                if (FeatureFlags.enableInventory && purchasedCount > 0) {
+                  await _autoTransferToInventory();
                 } else {
-                  _exitShoppingMode();
+                  await _exitShoppingMode();
                 }
-              },
+              }),
               child: Text(context.translate('exit')),
             ),
           ],
         ),
       );
     } else {
-      if (purchasedCount > 0) {
+      if (FeatureFlags.enableInventory && purchasedCount > 0) {
         _autoTransferToInventory();
       } else {
         _exitShoppingMode();
@@ -496,27 +585,37 @@ class _ShoppingModeScreenState extends ConsumerState<ShoppingModeScreen> {
     }
   }
 
-  Future<void> _exitShoppingMode() async {
+  Future<void> _exitShoppingMode({
+    bool completeList = true,
+    bool endSession = true,
+  }) async {
     final stopwatch = Stopwatch()..start();
 
-    final shoppingMode = ref.read(shoppingModeProvider);
-    if (shoppingMode.sessionId != null) {
-      final purchasedCount = ref.read(
-        shoppingModePurchasedCountProvider(widget.listId),
-      );
-      final useCase = ref.read(endShoppingSessionUseCaseProvider);
-      await useCase.call(
-        sessionId: shoppingMode.sessionId!,
-        itemsPurchasedCount: purchasedCount,
-      );
+    if (endSession) {
+      try {
+        await _endActiveSession();
+      } catch (e) {
+        await MonitoringService().log('Failed to end shopping session: $e');
+        if (!mounted) return;
+        SawaSnackBar.error(context, ErrorFormatter.format(e, context));
+        return;
+      }
     }
 
-    // Auto-archive the shopping list after finishing
-    try {
-      final archiveUseCase = ref.read(archiveListUseCaseProvider);
-      await archiveUseCase.call(listId: widget.listId);
-    } catch (e) {
-      await MonitoringService().log('Failed to auto-archive list: $e');
+    if (completeList) {
+      try {
+        final repository = ref.read(
+          shoppingListRepositoryForHomeProvider(widget.homeId),
+        );
+        await CompleteListUseCase(repository).call(listId: widget.listId);
+        if (!mounted) return;
+        ref.invalidate(shoppingListsProvider(widget.homeId));
+      } catch (e) {
+        await MonitoringService().log('Failed to complete list: $e');
+        if (!mounted) return;
+        SawaSnackBar.error(context, ErrorFormatter.format(e, context));
+        return;
+      }
     }
 
     ref.read(shoppingModeProvider.notifier).deactivate();
@@ -531,30 +630,60 @@ class _ShoppingModeScreenState extends ConsumerState<ShoppingModeScreen> {
     await MonitoringService().log(
       'Shopping mode exit took ${stopwatch.elapsedMilliseconds}ms',
     );
+    if (!mounted) return;
 
-    if (mounted) {
-      Navigator.pop(context);
+    if (context.canPop()) {
+      context.pop();
+    }
 
-      // Show satisfaction survey for beta users
-      if (BetaConfig.isBeta) {
-        await SatisfactionSurveyDialog.showIfNeeded(context);
-      }
+    // Show satisfaction survey for beta users
+    if (BetaConfig.isBeta && mounted) {
+      await SatisfactionSurveyDialog.showIfNeeded(context);
+    }
+  }
+
+  Future<void> _endActiveSession() async {
+    final shoppingMode = ref.read(shoppingModeProvider);
+    if (shoppingMode.sessionId == null) return;
+
+    final purchasedCount = ref.read(
+      shoppingModePurchasedCountForHomeProvider(_itemsProviderParams),
+    );
+    final useCase = ref.read(endShoppingSessionUseCaseProvider);
+    await useCase.call(
+      sessionId: shoppingMode.sessionId!,
+      itemsPurchasedCount: purchasedCount,
+    );
+    final currentUser = SupabaseService.client.auth.currentUser;
+    if (currentUser != null) {
+      await ref
+          .read(shoppingModeSessionRecoveryServiceProvider)
+          .clearActiveSession(currentUser.id);
     }
   }
 
   Future<void> _autoTransferToInventory() async {
-    final itemsAsync = ref.read(shoppingItemsProvider(widget.listId));
-    final purchasedItems = itemsAsync.when(
-      data: (items) => items.where((i) => i.isPurchased).toList(),
-      loading: () => <ShoppingItemModel>[],
-      error: (e, s) => <ShoppingItemModel>[],
-    );
-
-    if (purchasedItems.isEmpty) {
-      _exitShoppingMode();
+    List<ShoppingItemModel> purchasedItems;
+    try {
+      final items = await ref.read(
+        shoppingItemsForHomeProvider(_itemsProviderParams).future,
+      );
+      purchasedItems = items
+          .where((i) => i.isPurchased || i.purchasedQuantity > 0)
+          .toList();
+    } catch (e) {
+      if (mounted) {
+        SawaSnackBar.error(context, ErrorFormatter.format(e, context));
+      }
       return;
     }
 
+    if (purchasedItems.isEmpty) {
+      await _exitShoppingMode();
+      return;
+    }
+
+    if (!mounted) return;
     _showInventoryConfirmDialog(purchasedItems);
   }
 
@@ -591,16 +720,19 @@ class _ShoppingModeScreenState extends ConsumerState<ShoppingModeScreen> {
                           child: Consumer(
                             builder: (context, ref, _) {
                               final unitsAsync = ref.watch(unitsProvider(null));
-                              final units = unitsAsync.valueOrNull ?? [];
+                              final units = unitsAsync.value ?? [];
                               final unit = units
                                   .where((u) => u.id == item.unitId)
                                   .firstOrNull;
                               final unitName = unit?.symbol;
 
+                              final qtyToTransfer = item.purchasedQuantity > 0
+                                  ? item.purchasedQuantity
+                                  : item.quantity;
                               final qty =
-                                  item.quantity == item.quantity.roundToDouble()
-                                  ? item.quantity.toInt().toString()
-                                  : item.quantity.toStringAsFixed(1);
+                                  qtyToTransfer == qtyToTransfer.roundToDouble()
+                                  ? qtyToTransfer.toInt().toString()
+                                  : qtyToTransfer.toStringAsFixed(1);
 
                               final displayQty =
                                   unitName != null && unitName.isNotEmpty
@@ -626,11 +758,18 @@ class _ShoppingModeScreenState extends ConsumerState<ShoppingModeScreen> {
           ],
         ),
         actions: [
-          FilledButton.icon(
-            onPressed: () {
+          TextButton(
+            onPressed: () => ActionDebouncer.execute(() async {
               Navigator.pop(context);
-              _transferToInventory(purchasedItems);
-            },
+              await _exitShoppingMode();
+            }),
+            child: Text(context.translate('exit')),
+          ),
+          FilledButton.icon(
+            onPressed: () => ActionDebouncer.execute(() async {
+              Navigator.pop(context);
+              await _transferToInventory(purchasedItems);
+            }),
             icon: const Icon(Icons.inventory_2),
             label: Text(context.translate('add_to_inventory')),
           ),
@@ -642,87 +781,113 @@ class _ShoppingModeScreenState extends ConsumerState<ShoppingModeScreen> {
   Future<void> _transferToInventory(
     List<ShoppingItemModel> purchasedItems,
   ) async {
-    final stopwatch = Stopwatch()..start();
-
-    // Show a loading dialog during transfer
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
-    );
-
-    final useCase = ref.read(addPurchasedToInventoryUseCaseProvider);
-    int successCount = 0;
+    if (_isTransferring) return;
+    _isTransferring = true;
 
     try {
-      final inputs = purchasedItems
-          .map(
-            (item) => PurchasedItemInput(
-              name: item.name,
-              quantity: item.quantity,
-              unitId: item.unitId,
-              categoryId: item.categoryId,
-            ),
-          )
-          .toList();
+      final stopwatch = Stopwatch()..start();
 
-      await useCase.callBatch(homeId: widget.homeId, items: inputs);
-      successCount = purchasedItems.length;
-    } catch (e) {
-      await MonitoringService().log(
-        'Failed to transfer batch of items to inventory: $e',
+      // Show a loading dialog during transfer
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
       );
-    }
 
-    stopwatch.stop();
-    await MonitoringService().log(
-      'Inventory transfer: $successCount/${purchasedItems.length} items in ${stopwatch.elapsedMilliseconds}ms',
-    );
+      final useCase = ref.read(addPurchasedToInventoryUseCaseProvider);
+      int successCount = 0;
 
-    if (!mounted) return;
+      try {
+        final inputs = purchasedItems
+            .map(
+              (item) => PurchasedItemInput(
+                name: item.name,
+                quantity: item.purchasedQuantity > 0
+                    ? item.purchasedQuantity
+                    : item.quantity,
+                unitId: item.unitId,
+                categoryId: item.categoryId,
+              ),
+            )
+            .toList();
 
-    if (mounted) {
-      Navigator.pop(context); // Dismiss the loading dialog
-    }
-
-    await _exitShoppingMode();
-
-    // Show success message after screen is popped
-    if (successCount > 0) {
-      await Future.delayed(const Duration(milliseconds: 300));
-      if (mounted) {
-        final messenger = ScaffoldMessenger.of(context);
-        messenger.showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    context.translate(
-                      'added_to_inventory_success',
-                      arguments: {'count': successCount.toString()},
-                    ),
-                    style: const TextStyle(color: Colors.white, fontSize: 14),
-                  ),
-                ),
-              ],
-            ),
-            backgroundColor: AppColors.success,
-            duration: const Duration(seconds: 4),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-            margin: const EdgeInsets.all(16),
-            action: SnackBarAction(
-              label: context.translate('view_inventory'),
-              textColor: Colors.white,
-              onPressed: () => GoRouter.of(context).push('/inventory'),
-            ),
-          ),
+        await _endActiveSession();
+        await useCase.callBatch(
+          listId: widget.listId,
+          homeId: widget.homeId,
+          items: inputs,
         );
+        successCount = purchasedItems.length;
+      } catch (e) {
+        await MonitoringService().log(
+          'Failed to transfer batch of items to inventory: $e',
+        );
+        if (mounted) {
+          Navigator.pop(context); // Dismiss the loading dialog
+          SawaSnackBar.error(context, ErrorFormatter.format(e, context));
+        }
+        return; // Stop execution, don't exit shopping mode
+      }
+
+      stopwatch.stop();
+      await MonitoringService().log(
+        'Inventory transfer: $successCount/${purchasedItems.length} items in ${stopwatch.elapsedMilliseconds}ms',
+      );
+
+      if (!mounted) return;
+
+      if (mounted) {
+        Navigator.pop(context); // Dismiss the loading dialog
+      }
+
+      ref.invalidate(shoppingListsProvider(widget.homeId));
+      await _exitShoppingMode(completeList: false, endSession: false);
+
+      // Show success message after screen is popped
+      if (successCount > 0) {
+        await Future.delayed(const Duration(milliseconds: 300));
+        if (mounted) {
+          final messenger = ScaffoldMessenger.of(context);
+          messenger.showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(
+                    Icons.check_circle_rounded,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      context.translate(
+                        'added_to_inventory_success',
+                        arguments: {'count': successCount.toString()},
+                      ),
+                      style: const TextStyle(color: Colors.white, fontSize: 14),
+                    ),
+                  ),
+                ],
+              ),
+              backgroundColor: AppColors.success,
+              duration: const Duration(seconds: 4),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              margin: const EdgeInsets.all(16),
+              action: SnackBarAction(
+                label: context.translate('view_inventory'),
+                textColor: Colors.white,
+                onPressed: () => context.push(FeatureRoutePaths.inventory),
+              ),
+            ),
+          );
+        }
+      }
+    } finally {
+      if (mounted) {
+        _isTransferring = false;
       }
     }
   }

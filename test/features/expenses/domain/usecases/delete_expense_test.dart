@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:beity/features/expenses/domain/repositories/expense_repository.dart';
-import 'package:beity/features/expenses/domain/usecases/delete_expense.dart';
+import 'package:sawa/features/expenses/domain/repositories/expense_repository.dart';
+import 'package:sawa/features/expenses/domain/usecases/delete_expense.dart';
 
 class MockExpenseRepository extends Mock implements ExpenseRepository {}
 

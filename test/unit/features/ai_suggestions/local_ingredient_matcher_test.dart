@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:beity/features/ai_suggestions/data/models/local_food_key_mapper.dart';
-import 'package:beity/features/ai_suggestions/domain/entities/local_ingredient_context.dart';
-import 'package:beity/features/ai_suggestions/domain/entities/ai_recipe_ingredient.dart';
-import 'package:beity/features/inventory/domain/entities/inventory_item.dart';
-import 'package:beity/features/shopping_lists/domain/entities/shopping_item.dart';
+import 'package:sawa/features/ai_suggestions/data/models/local_food_key_mapper.dart';
+import 'package:sawa/features/ai_suggestions/domain/entities/local_ingredient_context.dart';
+import 'package:sawa/features/ai_suggestions/domain/entities/ai_recipe_ingredient.dart';
+import 'package:sawa/features/inventory/domain/entities/inventory_item.dart';
+import 'package:sawa/features/shopping_lists/domain/entities/shopping_item.dart';
 
 // Helper class to mock items dynamically since the builder supports duck-typing List<dynamic>
 class MockInventoryItem extends InventoryItem {

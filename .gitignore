@@ -49,6 +49,10 @@ app.*.map.json
 .env.local
 .env.production
 
+# Android signing
+android/key.properties
+android/app/upload-keystore.jks
+
 # IDE
 .idea/
 .vscode/
@@ -75,3 +79,6 @@ skills-lock.json
 
 # Image files (large)
 image.png
+drive/
+drive/
+firbase/

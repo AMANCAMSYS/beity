@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
 
 class RetryButton extends StatelessWidget {
   final VoidCallback onPressed;
@@ -21,9 +22,9 @@ class RetryButton extends StatelessWidget {
               child: CircularProgressIndicator(strokeWidth: 2),
             )
           : const Icon(Icons.refresh, size: 16),
-      label: const Text(
-        'إعادة المحاولة',
-        style: TextStyle(fontSize: 12),
+      label: Text(
+        context.translate('retry', fallback: 'Retry'),
+        style: const TextStyle(fontSize: 12),
       ),
       style: TextButton.styleFrom(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),

@@ -1,5 +1,5 @@
 #!/bin/bash
-# سكريبت لتشغيل تطبيق Beity في وضع التطوير (Debug Mode) لدعم التحديث الفوري للأكواد (Hot Reload)
+# سكريبت لتشغيل تطبيق SAWA في وضع التطوير (Debug Mode) لدعم التحديث الفوري للأكواد (Hot Reload)
 
 # المسار الكامل لبرنامج adb
 ADB_CMD="$HOME/Android/Sdk/platform-tools/adb"

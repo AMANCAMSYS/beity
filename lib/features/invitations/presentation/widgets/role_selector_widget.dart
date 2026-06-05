@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
 
 class RoleSelectorWidget extends StatelessWidget {
   final String currentRole;
@@ -14,18 +15,18 @@ class RoleSelectorWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return DropdownButton<String>(
       value: currentRole,
-      items: const [
+      items: [
         DropdownMenuItem(
           value: 'admin',
-          child: Text('مدير'),
+          child: Text(context.translate('admin')),
         ),
         DropdownMenuItem(
           value: 'member',
-          child: Text('عضو'),
+          child: Text(context.translate('member')),
         ),
         DropdownMenuItem(
           value: 'viewer',
-          child: Text('مشاهد'),
+          child: Text(context.translate('viewer')),
         ),
       ],
       onChanged: (value) {
@@ -40,39 +41,39 @@ class RoleSelectorWidget extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text(
-          'تغيير الدور',
+        title: Text(
+          context.translate('change_role'),
           textDirection: TextDirection.rtl,
         ),
         content: Text(
-          'هل أنت متأكد من تغيير الدور إلى ${_getRoleName(newRole)}؟',
+          context.translate('confirm_change_role', arguments: {'role': _getRoleName(context, newRole)}),
           textDirection: TextDirection.rtl,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('إلغاء'),
+            child: Text(context.translate('cancel')),
           ),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
               onChanged(newRole);
             },
-            child: const Text('تأكيد'),
+            child: Text(context.translate('confirm')),
           ),
         ],
       ),
     );
   }
 
-  String _getRoleName(String role) {
+  String _getRoleName(BuildContext context, String role) {
     switch (role) {
       case 'admin':
-        return 'مدير';
+        return context.translate('admin');
       case 'member':
-        return 'عضو';
+        return context.translate('member');
       case 'viewer':
-        return 'مشاهد';
+        return context.translate('viewer');
       default:
         return role;
     }

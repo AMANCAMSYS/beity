@@ -2,17 +2,6 @@ enum CategoryType {
   shopping,
   inventory,
   expense;
-
-  String get displayName {
-    switch (this) {
-      case CategoryType.shopping:
-        return 'تسوق';
-      case CategoryType.inventory:
-        return 'مخزون';
-      case CategoryType.expense:
-        return 'مصروفات';
-    }
-  }
 }
 
 class Category {

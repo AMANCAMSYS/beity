@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
 import '../providers/ai_suggestions_provider.dart';
 import '../../domain/entities/ai_suggestion_request.dart';
 import '../../../../core/utils/action_debouncer.dart';
@@ -71,7 +72,7 @@ class _AiPromptInputState extends ConsumerState<AiPromptInput> {
                 textInputAction: TextInputAction.send,
                 onSubmitted: (_) => _submit(),
                 decoration: InputDecoration(
-                  hintText: isArabic ? 'ماذا تحتاج؟' : 'What do you need?',
+                  hintText: context.translate('ai_prompt_hint'),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),

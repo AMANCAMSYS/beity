@@ -1,4 +1,4 @@
-# Beity v0.2.0-preview Manual Test Plan
+# SAWA v0.2.0-preview Manual Test Plan
 
 ## Environment Setup
 - **Device A**: Primary test device (Android/iOS)
@@ -46,7 +46,7 @@
 
 ### TC-02a: First Home (Onboarding)
 1. Login with new account (no homes)
-2. **Verify**: Onboarding screen appears with "مرحباً بك في بيتي"
+2. **Verify**: Onboarding screen appears with "مرحباً بك في سوا"
 3. Tap "إنشاء منزل جديد" (Create new home)
 4. Enter home name: "منزلي الأول"
 5. Select home type: "family"

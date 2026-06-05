@@ -1,7 +1,10 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 
 enum TaskSortBy { dueDate, createdAt }
+
 enum TaskSortOrder { ascending, descending }
+
+const Object _unset = Object();
 
 class TaskFilterState {
   final String? assignedTo;
@@ -19,16 +22,20 @@ class TaskFilterState {
   });
 
   TaskFilterState copyWith({
-    String? assignedTo,
-    String? status,
-    String? dueDateFilter,
+    Object? assignedTo = _unset,
+    Object? status = _unset,
+    Object? dueDateFilter = _unset,
     TaskSortBy? sortBy,
     TaskSortOrder? sortOrder,
   }) {
     return TaskFilterState(
-      assignedTo: assignedTo ?? this.assignedTo,
-      status: status ?? this.status,
-      dueDateFilter: dueDateFilter ?? this.dueDateFilter,
+      assignedTo: assignedTo == _unset
+          ? this.assignedTo
+          : assignedTo as String?,
+      status: status == _unset ? this.status : status as String?,
+      dueDateFilter: dueDateFilter == _unset
+          ? this.dueDateFilter
+          : dueDateFilter as String?,
       sortBy: sortBy ?? this.sortBy,
       sortOrder: sortOrder ?? this.sortOrder,
     );
@@ -65,5 +72,5 @@ class TaskFilterNotifier extends StateNotifier<TaskFilterState> {
 
 final taskFilterProvider =
     StateNotifierProvider<TaskFilterNotifier, TaskFilterState>((ref) {
-  return TaskFilterNotifier();
-});
+      return TaskFilterNotifier();
+    });

@@ -25,18 +25,19 @@ import '../../features/expenses/presentation/screens/expense_summary_screen.dart
 import '../../features/expenses/presentation/screens/balances_screen.dart';
 import '../../features/homes/presentation/widgets/no_active_home_widget.dart';
 import '../../core/config/feature_flags.dart';
+import 'feature_route_paths.dart';
 
 List<GoRoute> featureRoutes(String Function(GoRouterState) getEffectiveHomeId) => [
   GoRoute(
-    path: '/profile',
+    path: FeatureRoutePaths.profile,
     builder: (context, state) => const ProfileScreen(),
   ),
   GoRoute(
-    path: '/onboarding',
+    path: FeatureRoutePaths.onboarding,
     builder: (context, state) => const OnboardingScreen(),
   ),
   GoRoute(
-    path: '/categories',
+    path: FeatureRoutePaths.categories,
     builder: (context, state) {
       final homeId = getEffectiveHomeId(state);
       if (homeId.isEmpty) return const NoActiveHomeWidget();
@@ -44,7 +45,7 @@ List<GoRoute> featureRoutes(String Function(GoRouterState) getEffectiveHomeId) =
     },
   ),
   GoRoute(
-    path: '/categories/create',
+    path: FeatureRoutePaths.createCategory,
     builder: (context, state) {
       final homeId = getEffectiveHomeId(state);
       if (homeId.isEmpty) return const NoActiveHomeWidget();
@@ -52,34 +53,35 @@ List<GoRoute> featureRoutes(String Function(GoRouterState) getEffectiveHomeId) =
     },
   ),
   GoRoute(
-    path: '/units',
+    path: FeatureRoutePaths.units,
     builder: (context, state) => const UnitsListScreen(),
   ),
   GoRoute(
-    path: '/units/create',
+    path: FeatureRoutePaths.createUnit,
     builder: (context, state) => const CreateUnitScreen(),
   ),
   GoRoute(
     path: '/activity/:id',
     builder: (context, state) {
-      final log = state.extra as ActivityLogModel;
-      return ActivityDetailScreen(log: log);
+      final id = state.pathParameters['id']!;
+      final log = state.extra as ActivityLogModel?;
+      return ActivityDetailScreen(activityId: id, initialLog: log);
     },
   ),
   GoRoute(
-    path: '/notifications',
+    path: FeatureRoutePaths.notifications,
     builder: (context, state) => const NotificationCenterScreen(),
   ),
   GoRoute(
-    path: '/notifications/preferences',
+    path: FeatureRoutePaths.notificationPreferences,
     builder: (context, state) => const NotificationPreferencesScreen(),
   ),
   GoRoute(
-    path: '/settings/sync-status',
+    path: FeatureRoutePaths.syncStatus,
     builder: (context, state) => const SyncStatusScreen(),
   ),
   GoRoute(
-    path: '/inventory',
+    path: FeatureRoutePaths.inventory,
     builder: (context, state) {
       final homeId = getEffectiveHomeId(state);
       if (homeId.isEmpty) return const NoActiveHomeWidget();
@@ -91,7 +93,7 @@ List<GoRoute> featureRoutes(String Function(GoRouterState) getEffectiveHomeId) =
     },
   ),
   GoRoute(
-    path: '/inventory/add',
+    path: FeatureRoutePaths.addInventory,
     builder: (context, state) {
       final homeId = getEffectiveHomeId(state);
       if (homeId.isEmpty) return const NoActiveHomeWidget();
@@ -135,7 +137,7 @@ List<GoRoute> featureRoutes(String Function(GoRouterState) getEffectiveHomeId) =
     },
   ),
   GoRoute(
-    path: '/expenses',
+    path: FeatureRoutePaths.expenses,
     builder: (context, state) {
       final homeId = getEffectiveHomeId(state);
       if (homeId.isEmpty) return const NoActiveHomeWidget();
@@ -147,7 +149,7 @@ List<GoRoute> featureRoutes(String Function(GoRouterState) getEffectiveHomeId) =
     },
   ),
   GoRoute(
-    path: '/expenses/add',
+    path: FeatureRoutePaths.addExpense,
     builder: (context, state) {
       final homeId = getEffectiveHomeId(state);
       if (homeId.isEmpty) return const NoActiveHomeWidget();
@@ -159,7 +161,7 @@ List<GoRoute> featureRoutes(String Function(GoRouterState) getEffectiveHomeId) =
     },
   ),
   GoRoute(
-    path: '/expenses/summary',
+    path: FeatureRoutePaths.expenseSummary,
     builder: (context, state) {
       final homeId = getEffectiveHomeId(state);
       if (homeId.isEmpty) return const NoActiveHomeWidget();
@@ -171,7 +173,7 @@ List<GoRoute> featureRoutes(String Function(GoRouterState) getEffectiveHomeId) =
     },
   ),
   GoRoute(
-    path: '/expenses/balances',
+    path: FeatureRoutePaths.balances,
     builder: (context, state) {
       final homeId = getEffectiveHomeId(state);
       if (homeId.isEmpty) return const NoActiveHomeWidget();
@@ -184,8 +186,14 @@ List<GoRoute> featureRoutes(String Function(GoRouterState) getEffectiveHomeId) =
   ),
   GoRoute(
     path: '/expenses/:id',
-    builder: (context, state) =>
-        ExpenseDetailScreen(expenseId: state.pathParameters['id']!),
+    builder: (context, state) {
+      final homeId = getEffectiveHomeId(state);
+      if (homeId.isEmpty) return const NoActiveHomeWidget();
+      return ExpenseDetailScreen(
+        expenseId: state.pathParameters['id']!,
+        homeId: homeId,
+      );
+    },
     redirect: (context, state) {
       if (!FeatureFlags.enableExpenses) return '/';
       return null;

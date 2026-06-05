@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui';
 
@@ -16,12 +17,16 @@ import 'app/router/app_router.dart';
 import 'core/services/supabase_service.dart';
 import 'core/services/notification_service.dart';
 import 'core/services/sync_coordinator.dart';
+import 'core/services/startup_prefetch_provider.dart';
+import 'core/services/app_logger.dart';
 import 'core/monitoring/monitoring_service.dart';
+import 'core/local_database/local_data_migration_service.dart';
 import 'features/auth/presentation/providers/auth_provider.dart';
 import 'features/settings/presentation/providers/app_settings_provider.dart';
 import 'features/homes/presentation/providers/homes_provider.dart';
 import 'core/services/shared_prefs_provider.dart';
-import 'core/errors/beity_error_widget.dart';
+import 'core/errors/sawa_error_widget.dart';
+import 'shared/widgets/keyboard_dismiss_scope.dart';
 import 'firebase_options.dart';
 
 const bool isBeta = bool.fromEnvironment('BETA', defaultValue: false);
@@ -32,13 +37,20 @@ void main() async {
   // 1. Initialize SharedPreferences Singleton synchronously (required for local cache layout on first frame)
   await AppPreferences.init();
 
-  // 2. Load environment variables
+  // 2. Migrate legacy SharedPreferences caches into the permanent SQLite store.
+  try {
+    await LocalDataMigrationService().migrateFromSharedPreferences();
+  } catch (e) {
+    AppLogger.i('[Main] Local data migration failed: $e');
+  }
+
+  // 3. Load environment variables
   await dotenv.load(fileName: '.env');
 
-  // 3. Initialize Supabase (required by GoRouter immediately in BeityApp build)
+  // 4. Initialize Supabase (required by GoRouter immediately in SawaApp build)
   await SupabaseService.initialize();
 
-  // 4. Keep app content inside the visible system-safe area.
+  // 5. Keep app content inside the visible system-safe area.
   SystemChrome.setEnabledSystemUIMode(
     SystemUiMode.manual,
     overlays: SystemUiOverlay.values,
@@ -54,57 +66,62 @@ void main() async {
     ),
   );
 
-  // 5. Initialize secondary, background-friendly services asynchronously.
-  // This completely unblocks the UI startup flow, rendering the dashboard instantly!
-  _initializeBackgroundServices();
-
   // Set Arabic locale for timeago
   timeago.setLocaleMessages('ar', timeago.ArMessages());
 
   // Setup Global Error Boundary UI
   ErrorWidget.builder = (FlutterErrorDetails details) {
-    return BeityErrorWidget(details: details);
+    return SawaErrorWidget(details: details);
   };
 
-  runApp(const ProviderScope(child: BeityApp()));
+  runApp(const ProviderScope(child: SawaApp()));
+
+  // Non-critical services must not block the first Flutter frame. If Firebase,
+  // Crashlytics, or FCM is slow on a device, the app should still leave the
+  // native splash and render its normal UI.
+  unawaited(_initializeBackgroundServices());
 }
 
 /// Initializes auxiliary third-party services in the background without holding up the first frame UI paint.
 Future<void> _initializeBackgroundServices() async {
   try {
     // Initialize Firebase
-    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
 
     // Initialize Crashlytics monitoring
     await MonitoringService().initialize();
 
     // Catch all uncaught async errors
     PlatformDispatcher.instance.onError = (error, stack) {
-      MonitoringService().logError(error, stack, reason: 'Uncaught platform error', fatal: true);
+      MonitoringService().logError(
+        error,
+        stack,
+        reason: 'Uncaught platform error',
+        fatal: true,
+      );
       return true;
     };
 
-    // Initialize Notification Service
-    await NotificationService.initialize();
-
-    // Set navigator key for deep linking
     NotificationService.setNavigatorKey(appNavigatorKey);
-  } catch (e, stack) {
-    assert(() {
-      debugPrint('Failed to initialize background services: $e\n$stack');
-      return true;
-    }());
+    await NotificationService.initialize();
+  } catch (e) {
+    NotificationService.markInitializationFailed();
+    AppLogger.i('[Main] Failed to initialize background services: $e');
   }
 }
 
-class BeityApp extends ConsumerStatefulWidget {
-  const BeityApp({super.key});
+class SawaApp extends ConsumerStatefulWidget {
+  const SawaApp({super.key});
 
   @override
-  ConsumerState<BeityApp> createState() => _BeityAppState();
+  ConsumerState<SawaApp> createState() => _SawaAppState();
 }
 
-class _BeityAppState extends ConsumerState<BeityApp> with WidgetsBindingObserver {
+class _SawaAppState extends ConsumerState<SawaApp> with WidgetsBindingObserver {
+  bool _handlingRemoteSignOut = false;
+
   @override
   void initState() {
     super.initState();
@@ -117,11 +134,13 @@ class _BeityAppState extends ConsumerState<BeityApp> with WidgetsBindingObserver
           // Navigate to login - the GoRouter redirect will handle this
           // but we also need to clear local state
           final authStateValue = ref.read(authNotifierProvider);
-          if (authStateValue.value != null && !authStateValue.isLoading) {
-            ref
-                .read(authNotifierProvider.notifier)
-                .signOut()
-                .catchError((_) {});
+          if (!_handlingRemoteSignOut &&
+              authStateValue.value != null &&
+              !authStateValue.isLoading) {
+            _handlingRemoteSignOut = true;
+            ref.read(authNotifierProvider.notifier).signOut().whenComplete(() {
+              _handlingRemoteSignOut = false;
+            });
           }
         }
       });
@@ -137,9 +156,17 @@ class _BeityAppState extends ConsumerState<BeityApp> with WidgetsBindingObserver
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
+      unawaited(
+        NotificationService.ready.then((ready) {
+          if (ready) return NotificationService.refreshToken();
+        }),
+      );
+
       final activeHomeId = ref.read(cachedActiveHomeIdProvider);
       if (activeHomeId != null && activeHomeId.isNotEmpty) {
-        ref.read(syncCoordinatorProvider.notifier).smartResumeSync(activeHomeId);
+        ref
+            .read(syncCoordinatorProvider.notifier)
+            .smartResumeSync(activeHomeId);
       }
     }
   }
@@ -148,6 +175,7 @@ class _BeityAppState extends ConsumerState<BeityApp> with WidgetsBindingObserver
   Widget build(BuildContext context) {
     final router = ref.watch(appRouterProvider);
     final settings = ref.watch(appSettingsProvider);
+    ref.watch(startupPrefetchProvider);
 
     return Directionality(
       textDirection: settings.locale.languageCode == 'ar'
@@ -180,7 +208,9 @@ class _BeityAppState extends ConsumerState<BeityApp> with WidgetsBindingObserver
               padding: safePadding,
               textScaler: TextScaler.linear(settings.fontSizeScale),
             ),
-            child: child ?? const SizedBox.shrink(),
+            child: KeyboardDismissScope(
+              child: child ?? const SizedBox.shrink(),
+            ),
           );
         },
         localizationsDelegates: const [

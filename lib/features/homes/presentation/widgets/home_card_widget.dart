@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 
-import 'package:beity/app/theme/app_spacing.dart';
-import 'package:beity/app/theme/app_colors.dart';
-import 'package:beity/shared/widgets/design_system/beity_card.dart';
+import 'package:sawa/app/theme/app_spacing.dart';
+import 'package:sawa/app/theme/app_colors.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_card.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
 import '../../domain/entities/home_type.dart';
 import '../../data/models/home_model.dart';
 
@@ -23,10 +24,10 @@ class HomeCardWidget extends StatelessWidget {
     final homeType = HomeType.fromValue(home.type);
     final theme = Theme.of(context);
 
-    return BeityCard(
+    return SawaCard(
       onTap: onTap,
       margin: const EdgeInsets.only(bottom: AppSpacing.md),
-      variant: isActive ? BeityCardVariant.outlined : BeityCardVariant.elevated,
+      variant: isActive ? SawaCardVariant.outlined : SawaCardVariant.elevated,
       child: Row(
         children: [
           Container(
@@ -72,7 +73,7 @@ class HomeCardWidget extends StatelessWidget {
                           borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
                         ),
                         child: Text(
-                          'نشط',
+                          context.translate('active'),
                           style: theme.textTheme.labelSmall?.copyWith(
                             color: AppColors.success,
                             fontWeight: FontWeight.bold,
@@ -83,7 +84,7 @@ class HomeCardWidget extends StatelessWidget {
                 ),
                 AppSpacing.gapXXS,
                 Text(
-                  homeType.arabicName,
+                  context.translate(homeType.translationKey),
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),

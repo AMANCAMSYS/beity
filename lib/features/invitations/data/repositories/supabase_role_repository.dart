@@ -1,3 +1,7 @@
+import 'dart:convert';
+
+import 'package:sawa/core/local_database/daos/homes_dao.dart';
+import 'package:sawa/core/local_database/local_database_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/role_permission_model.dart';
 import '../../../homes/data/models/home_member_model.dart';
@@ -5,8 +9,12 @@ import 'role_repository.dart';
 
 class SupabaseRoleRepository implements RoleRepository {
   final SupabaseClient _client;
+  final HomesDao _metaDao;
 
-  SupabaseRoleRepository(this._client);
+  SupabaseRoleRepository(this._client, {HomesDao? metaDao})
+    : _metaDao = metaDao ?? HomesDao(LocalDatabaseService.instance);
+
+  static const _rolePermissionsMetaKey = 'role_permissions:all';
 
   @override
   Future<HomeMemberModel> changeMemberRole({
@@ -16,7 +24,7 @@ class SupabaseRoleRepository implements RoleRepository {
   }) async {
     final user = _client.auth.currentUser;
     if (user == null) {
-      throw Exception('يجب تسجيل الدخول أولاً');
+      throw Exception('must_login_first');
     }
 
     // Check if current user is owner
@@ -28,7 +36,7 @@ class SupabaseRoleRepository implements RoleRepository {
         .maybeSingle();
 
     if (currentMembership == null || currentMembership['role'] != 'owner') {
-      throw Exception('فقط المالك يمكنه تغيير الأدوار');
+      throw Exception('only_owner_can_change_roles');
     }
 
     // Check if target is owner (cannot demote owner)
@@ -40,7 +48,7 @@ class SupabaseRoleRepository implements RoleRepository {
         .maybeSingle();
 
     if (targetMembership != null && targetMembership['role'] == 'owner') {
-      throw Exception('لا يمكن تغيير دور المالك');
+      throw Exception('cannot_change_owner_role');
     }
 
     // Update role
@@ -76,7 +84,7 @@ class SupabaseRoleRepository implements RoleRepository {
   }) async {
     final user = _client.auth.currentUser;
     if (user == null) {
-      throw Exception('يجب تسجيل الدخول أولاً');
+      throw Exception('must_login_first');
     }
 
     // Check permissions
@@ -88,7 +96,7 @@ class SupabaseRoleRepository implements RoleRepository {
         .maybeSingle();
 
     if (currentMembership == null) {
-      throw Exception('أنت لست عضواً في هذا المنزل');
+      throw Exception('not_member_of_home');
     }
 
     final targetMembership = await _client
@@ -99,23 +107,23 @@ class SupabaseRoleRepository implements RoleRepository {
         .maybeSingle();
 
     if (targetMembership == null) {
-      throw Exception('العضو غير موجود');
+      throw Exception('member_not_found');
     }
 
     // Cannot remove owner
     if (targetMembership['role'] == 'owner') {
-      throw Exception('لا يمكن إزالة المالك');
+      throw Exception('cannot_remove_owner');
     }
 
     // Admin cannot remove admin
     if (currentMembership['role'] == 'admin' &&
         targetMembership['role'] == 'admin') {
-      throw Exception('لا يمكن للمدير إزالة مدير آخر');
+      throw Exception('admin_cannot_remove_admin');
     }
 
     // Cannot remove self
     if (userId == user.id) {
-      throw Exception('لا يمكن إزالة نفسك، يجب نقل الملكية أولاً');
+      throw Exception('cannot_remove_self');
     }
 
     // Soft delete member
@@ -147,7 +155,7 @@ class SupabaseRoleRepository implements RoleRepository {
   }) async {
     final user = _client.auth.currentUser;
     if (user == null) {
-      throw Exception('يجب تسجيل الدخول أولاً');
+      throw Exception('must_login_first');
     }
 
     // Check if current user is owner
@@ -159,7 +167,7 @@ class SupabaseRoleRepository implements RoleRepository {
         .maybeSingle();
 
     if (currentMembership == null || currentMembership['role'] != 'owner') {
-      throw Exception('فقط المالك يمكنه نقل الملكية');
+      throw Exception('only_owner_can_transfer_ownership');
     }
 
     // Check if new owner is a member
@@ -171,36 +179,13 @@ class SupabaseRoleRepository implements RoleRepository {
         .maybeSingle();
 
     if (newOwnerMembership == null) {
-      throw Exception('المالك الجديد يجب أن يكون عضواً في المنزل');
+      throw Exception('new_owner_must_be_member');
     }
 
-    // Promote new owner FIRST (before demoting old owner) to avoid trigger conflict
-    await _client
-        .from('home_members')
-        .update({
-          'role': 'owner',
-          'updated_at': DateTime.now().toIso8601String(),
-          'updated_by': user.id,
-        })
-        .eq('home_id', homeId)
-        .eq('user_id', newOwnerId);
-
-    // Now demote current owner to admin
-    await _client
-        .from('home_members')
-        .update({
-          'role': 'admin',
-          'updated_at': DateTime.now().toIso8601String(),
-          'updated_by': user.id,
-        })
-        .eq('home_id', homeId)
-        .eq('user_id', user.id);
-
-    // Update home owner_id
-    await _client.from('homes').update({
-      'owner_id': newOwnerId,
-      'updated_at': DateTime.now().toIso8601String(),
-    }).eq('id', homeId);
+    await _client.rpc(
+      'transfer_home_ownership',
+      params: {'p_home_id': homeId, 'p_new_owner_id': newOwnerId},
+    );
 
     // Log activity
     await _client.from('activity_logs').insert({
@@ -214,8 +199,7 @@ class SupabaseRoleRepository implements RoleRepository {
   }
 
   @override
-  Future<List<HomeMemberModel>> getHomeMembers(
-      {required String homeId}) async {
+  Future<List<HomeMemberModel>> getHomeMembers({required String homeId}) async {
     final response = await _client
         .from('home_members')
         .select('*, users:user_id(id, full_name, email, avatar_url)')
@@ -228,30 +212,44 @@ class SupabaseRoleRepository implements RoleRepository {
   }
 
   @override
-  Future<List<RolePermissionModel>> getRolePermissions(
-      {required String role}) async {
-    final response = await _client
-        .from('role_permissions')
-        .select()
-        .eq('role', role);
+  Future<List<RolePermissionModel>> getRolePermissions({
+    required String role,
+  }) async {
+    final cached = await _getCachedRolePermissions(role: role);
+    if (cached.isNotEmpty) return cached;
 
-    return (response as List)
-        .map((json) => RolePermissionModel.fromJson(json))
-        .toList();
+    try {
+      final response = await _client
+          .from('role_permissions')
+          .select()
+          .eq('role', role);
+
+      final permissions = (response as List)
+          .map((json) => RolePermissionModel.fromJson(json))
+          .toList();
+      await _mergeCachedRolePermissions(permissions);
+      return permissions;
+    } catch (_) {
+      return cached;
+    }
   }
 
   @override
-  Future<Map<String, List<RolePermissionModel>>>
-      getAllRolePermissions() async {
-    final response = await _client.from('role_permissions').select();
+  Future<Map<String, List<RolePermissionModel>>> getAllRolePermissions() async {
+    final cached = await _getCachedRolePermissions();
+    if (cached.isNotEmpty) return _groupPermissionsByRole(cached);
 
-    final Map<String, List<RolePermissionModel>> permissions = {};
-    for (final json in response as List) {
-      final perm = RolePermissionModel.fromJson(json);
-      permissions.putIfAbsent(perm.role, () => []).add(perm);
+    try {
+      final response = await _client.from('role_permissions').select();
+
+      final permissions = (response as List)
+          .map((json) => RolePermissionModel.fromJson(json))
+          .toList();
+      await _saveRolePermissions(permissions);
+      return _groupPermissionsByRole(permissions);
+    } catch (_) {
+      return _groupPermissionsByRole(cached);
     }
-
-    return permissions;
   }
 
   @override
@@ -271,14 +269,14 @@ class SupabaseRoleRepository implements RoleRepository {
 
     final role = membership['role'] as String;
 
-    final perm = await _client
-        .from('role_permissions')
-        .select('allowed')
-        .eq('role', role)
-        .eq('permission', permission)
-        .maybeSingle();
+    final cachedPermissions = await getRolePermissions(role: role);
+    for (final cachedPermission in cachedPermissions) {
+      if (cachedPermission.permission == permission) {
+        return cachedPermission.allowed;
+      }
+    }
 
-    return perm != null && perm['allowed'] == true;
+    return false;
   }
 
   @override
@@ -288,7 +286,66 @@ class SupabaseRoleRepository implements RoleRepository {
         .stream(primaryKey: ['id'])
         .eq('home_id', homeId)
         .order('joined_at', ascending: true)
-        .map((response) =>
-            response.map((json) => HomeMemberModel.fromJson(json)).toList());
+        .map(
+          (response) =>
+              response.map((json) => HomeMemberModel.fromJson(json)).toList(),
+        );
+  }
+
+  Future<List<RolePermissionModel>> _getCachedRolePermissions({
+    String? role,
+  }) async {
+    try {
+      final raw = await _metaDao.getMeta(_rolePermissionsMetaKey);
+      if (raw == null || raw.isEmpty) return [];
+      final decoded = jsonDecode(raw);
+      if (decoded is! List) return [];
+      final permissions = decoded
+          .whereType<Map>()
+          .map(
+            (json) =>
+                RolePermissionModel.fromJson(Map<String, dynamic>.from(json)),
+          )
+          .where((permission) => role == null || permission.role == role)
+          .toList();
+      return permissions;
+    } catch (_) {
+      return [];
+    }
+  }
+
+  Future<void> _mergeCachedRolePermissions(
+    List<RolePermissionModel> permissions,
+  ) async {
+    if (permissions.isEmpty) return;
+    final existing = await _getCachedRolePermissions();
+    final merged = {
+      for (final permission in existing) permission.id: permission,
+      for (final permission in permissions) permission.id: permission,
+    }.values.toList();
+    await _saveRolePermissions(merged);
+  }
+
+  Future<void> _saveRolePermissions(
+    List<RolePermissionModel> permissions,
+  ) async {
+    try {
+      await _metaDao.setMeta(
+        _rolePermissionsMetaKey,
+        jsonEncode(
+          permissions.map((permission) => permission.toJson()).toList(),
+        ),
+      );
+    } catch (_) {}
+  }
+
+  Map<String, List<RolePermissionModel>> _groupPermissionsByRole(
+    List<RolePermissionModel> permissions,
+  ) {
+    final grouped = <String, List<RolePermissionModel>>{};
+    for (final permission in permissions) {
+      grouped.putIfAbsent(permission.role, () => []).add(permission);
+    }
+    return grouped;
   }
 }

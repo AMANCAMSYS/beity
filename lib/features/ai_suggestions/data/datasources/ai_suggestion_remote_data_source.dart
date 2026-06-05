@@ -1,5 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:beity/core/services/supabase_service.dart';
+import 'package:sawa/core/services/supabase_service.dart';
 import '../../domain/entities/ai_response.dart';
 import '../../domain/entities/ai_assistant_request.dart';
 import '../models/ai_assistant_request_model.dart';
@@ -48,27 +48,27 @@ class AiSuggestionRemoteDataSource {
             return AiResponseModel.fromLegacyJson(data);
           }
         } else {
-          throw const AiServiceException('تعذر قراءة الاقتراحات، حاول مرة أخرى');
+          throw const AiServiceException('ai_error_parsing');
         }
       } else if (response.status == 400) {
-        final errorMsg = _extractErrorMessage(response.data) ?? 'طلب غير صالح';
+        final errorMsg = _extractErrorMessage(response.data) ?? 'invalid_request';
         throw AiValidationException(errorMsg);
       } else {
-        final errorMsg = _extractErrorMessage(response.data) ?? 'تعذر إنشاء الاقتراحات، حاول مرة أخرى';
+        final errorMsg = _extractErrorMessage(response.data) ?? 'ai_error_parsing';
         throw AiServiceException(errorMsg);
       }
     } on FunctionException catch (e) {
       if (e.status == 400) {
-        final errorMsg = _extractErrorMessage(e.details) ?? 'طلب غير صالح';
+        final errorMsg = _extractErrorMessage(e.details) ?? 'invalid_request';
         throw AiValidationException(errorMsg);
       }
-      final errorMsg = _extractErrorMessage(e.details) ?? e.reasonPhrase ?? 'الخدمة غير متاحة';
+      final errorMsg = _extractErrorMessage(e.details) ?? e.reasonPhrase ?? 'service_unavailable';
       throw AiServiceException(errorMsg);
     } catch (e) {
       if (e is AiValidationException || e is AiServiceException) {
         rethrow;
       }
-      throw AiServiceException('حدث خطأ غير متوقع: ${e.toString()}');
+      throw AiServiceException('unexpected_error_retry: ${e.toString()}');
     }
   }
 

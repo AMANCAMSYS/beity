@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:beity/core/localization/app_localizations.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
 
 import '../../app/theme/app_colors.dart';
 

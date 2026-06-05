@@ -10,15 +10,6 @@ class GetShoppingListsUseCase {
     required String homeId,
     String? status,
   }) async {
-    return _repository.getShoppingLists(
-      homeId: homeId,
-      status: status,
-    );
-  }
-
-  Stream<List<ShoppingListModel>> watch({
-    required String homeId,
-  }) {
-    return _repository.watchShoppingLists(homeId: homeId);
+    return _repository.getShoppingLists(homeId: homeId, status: status);
   }
 }

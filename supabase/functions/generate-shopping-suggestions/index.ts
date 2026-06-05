@@ -1,4 +1,6 @@
+// @ts-ignore: VS Code's TypeScript service does not resolve Deno JSR imports; Deno/Supabase resolves this at runtime.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+// @ts-ignore: VS Code's TypeScript service does not resolve Deno JSR imports; Deno/Supabase resolves this at runtime.
 import { createClient, type SupabaseClient } from "jsr:@supabase/supabase-js@2";
 import { suggestionMessages } from "../_shared/templates.ts";
 
@@ -16,7 +18,25 @@ const corsHeaders = {
 // Localized message resolver
 function getMessage(key: string, lang: string): string {
   const l = (lang === 'tr' || lang === 'en' || lang === 'ar') ? lang : 'ar';
-  return suggestionMessages[l]?.[key] || suggestionMessages.ar[key] || key;
+
+  const selectedMessages =
+    l === 'tr'
+      ? suggestionMessages.tr
+      : l === 'en'
+        ? suggestionMessages.en
+        : suggestionMessages.ar;
+
+  const message = new Map(Object.entries(selectedMessages)).get(key);
+  if (message != null) {
+    return message;
+  }
+
+  const fallbackMessage = new Map(Object.entries(suggestionMessages.ar)).get(key);
+  if (fallbackMessage != null) {
+    return fallbackMessage;
+  }
+
+  return key;
 }
 
 async function requireUser(req: Request, admin: SupabaseClient, lang: string) {
@@ -119,7 +139,7 @@ function buildSystemPrompt(mode: string, context: any, language: string, userTer
   let modeInstruction = '';
 
   switch (mode) {
-    case 'shopping_suggestions': modeInstruction = 'Suggest grocery items. Type: shopping_suggestions.'; break;
+    case 'shopping_suggestions': modeInstruction = 'Suggest shopping-list items for groceries, household supplies, cleaning, baby care, stationery, clothing, electronics, hardware, sports/fitness, travel, and other home needs. Type: shopping_suggestions.'; break;
     case 'what_to_cook': modeInstruction = 'Suggest meal ideas. Type: meal_suggestions.'; break;
     case 'recipe_ingredients': modeInstruction = 'Full ingredient list & steps for a meal. Type: recipe_ingredients. You MUST generate real, detailed cooking instructions step-by-step in the steps/st array. Do not use generic fallback text.'; break;
     case 'cook_by_vegetables': modeInstruction = 'Meals using specific vegetables. Type: meal_suggestions.'; break;
@@ -176,7 +196,7 @@ Dialect/Tone & Naming Preferences:
 - CRITICAL: You MUST use the exact localized names, dialect, and naming conventions for ingredients and dishes for this country and dialect (e.g. if Saudi/Gulf: use Gulf terms like "طماطم", "كوسا", "باذنجان", "رز"; if Egypt: use Egyptian terms like "طماطم" or "قوطة", "كوسة", "بتنجان"; if Turkey: use Turkish standard names). Write all recipes, descriptions, and instructions in the chosen dialect/tone (${d}) rather than standard formal Arabic where appropriate, keeping it friendly, premium, and natural for that specific region.`;
   }
 
-  return `You are a professional cooking/grocery assistant for "Beity" app.
+  return `You are a professional home-shopping and cooking assistant for "SAWA" app.
 Language: ${lang}. If 'ar', use Arabic for all text fields. If 'tr', use Turkish for all text fields.
 ${dialectInstruction}
 
@@ -184,19 +204,19 @@ Mode: ${mode} (${modeInstruction})
 Context: ${contextSection || 'None'}${userTermsSection}
 
 CRITICAL RULES:
-1. ONLY answer questions related to cooking, recipes, groceries, meal planning, and kitchen management.
+1. ONLY answer questions related to shopping-list planning, home supplies, cooking, recipes, groceries, meal planning, and home management. Shopping-list topics include groceries, cleaning supplies, baby care, stationery, clothing, electronics, hardware/tools, sports/fitness equipment, travel supplies, and similar household purchases.
 2. If the user asks about ANY unrelated topic, return: { "type": "not_related", "message": "${getMessage('unrelated_topic', language)}" }
-3. If the prompt is completely vague, empty, or lacks any culinary or grocery context (e.g., just 'مرحباً', 'أهلاً', or 'hello'), you may ask clarifying questions: return '{ "type": "clarifying_questions", "questions": ["string"], "quickOptions": ["string"] }' with a customized, helpful question and 3 customized, relevant quick choices. However, for any culinary or grocery topic (e.g., 'قائمة رمضان', 'عشاء سريع', 'للضيوف', 'وجبة أطفال', 'أفكار'), you MUST NOT ask clarifying questions. Directly generate and return the final results (shopping suggestions, meals, or recipes) immediately.
+3. If the prompt is completely vague, empty, or lacks any shopping, household, culinary, or grocery context (e.g., just 'مرحباً', 'أهلاً', or 'hello'), you may ask clarifying questions: return '{ "type": "clarifying_questions", "questions": ["string"], "quickOptions": ["string"] }' with a customized, helpful question and 3 customized, relevant quick choices. However, for any shopping-list, home-supplies, culinary, or grocery topic (e.g., 'قائمة رمضان', 'عشاء سريع', 'للضيوف', 'وجبة أطفال', 'أدوات رياضية للبيت', 'معدات تنظيف', 'أفكار'), you MUST NOT ask clarifying questions. Directly generate and return the final results (shopping suggestions, meals, or recipes) immediately.
 4. Return ONLY valid, highly-compressed JSON. No markdown formatting, no conversational filler.
-5. Maximize relevance to the user's request. Carefully scale the ingredient quantities ("q") based on the number of people, family size, and duration mentioned by the user (e.g., 7 people for 30 days requires bulk quantities like 20 kilos of rice, 30 liters of milk, etc.). Ensure the suggestions are highly diverse, realistic, and comprehensive to cover the entire period.
-6. Use stable, standard snake_case food keys in the "k" field. Prefer common generic keys (e.g., 'tomato', 'onion', 'chicken', 'rice_basmati', 'milk', 'egg', 'potato', 'garlic'). Do not create overly specific food keys unless absolutely necessary.
-7. Use the exact preferred names for ingredients from the provided "user_terms" mapping inside the recipe ingredient list ("n"), display names, and cooking steps ("st") if their corresponding "foodKey" is used.
+5. Maximize relevance to the user's request. Carefully scale quantities ("q") based on family size, duration, or use case mentioned by the user. For food, use cooking quantities; for non-food items, use realistic count units like "حبة", "قطعة", "علبة", "رزمة", or "زوج". Ensure the suggestions are highly diverse, realistic, and comprehensive to cover the request.
+6. Use stable, standard snake_case keys in the "k" field when useful. For cooking modes, prefer common generic food keys (e.g., 'tomato', 'onion', 'chicken', 'rice_basmati', 'milk', 'egg'). For shopping suggestions outside food, use generic item keys (e.g., 'dumbbell', 'resistance_band', 'charger', 'screwdriver', 'notebook'). Do not create overly specific keys unless absolutely necessary.
+7. Use the exact preferred names from the provided "user_terms" mapping inside item names ("n"), recipe ingredient names, display names, and cooking steps ("st") if their corresponding key is used.
 8. NEVER include status, availability, reason, or comparisons with the user's inventory/lists. Do not output fields like "status" or "reason". The app client will perform matching locally.
-9. If the Mode is 'shopping_suggestions', you MUST return a response of type 'shopping_suggestions'. Even if the user asks for a specific recipe, meal, or what to cook, do not return 'meal_suggestions' or 'recipe_ingredients'. Instead, extract the required grocery items for that meal/recipe and suggest them as a list of shopping items in the 'shopping_suggestions' format.
+9. If the Mode is 'shopping_suggestions', you MUST return a response of type 'shopping_suggestions'. Even if the user asks for a specific recipe, meal, sports setup, cleaning kit, school kit, repair kit, or travel kit, do not return another type. Instead, suggest the required shopping items in the 'shopping_suggestions' format.
 
 RESPONSE SCHEMAS (Use the following compressed schemas to minimize tokens. You MUST output fully valid JSON with correct colons and brackets. NEVER output empty braces or syntax anomalies):
 - clarifying_questions: { "type": "clarifying_questions", "questions": ["سؤال توضيحي؟"], "quickOptions": ["خيار 1", "خيار 2"] }
-- shopping_suggestions: { "type": "shopping_suggestions", "sug": [{ "n": "طماطم", "q": 2.5, "u": "كيلو", "category": "خضروات" }, { "n": "حليب", "q": 1, "u": "لتر", "category": "ألبان" }] }
+- shopping_suggestions: { "type": "shopping_suggestions", "sug": [{ "n": "طماطم", "q": 2.5, "u": "كيلو", "category": "خضروات" }, { "n": "دمبل", "q": 2, "u": "قطعة", "category": "أدوات رياضية" }, { "n": "حبل مقاومة", "q": 1, "u": "قطعة", "category": "أدوات رياضية" }] }
 - meal_suggestions: {
     "type": "meal_suggestions",
     "sum": "ملخص الاقتراحات",
@@ -390,21 +410,38 @@ function sanitizeDayMeal(m: any): any {
   };
 }
 
-// --- Rate Limiter (in-memory, per-user) ---
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT_MAX = 10;       // max requests
-const RATE_LIMIT_WINDOW_MS = 60_000; // per 60 seconds
 
-function checkRateLimit(userId: string, lang: string): Response | null {
-  const now = Date.now();
-  const entry = rateLimitMap.get(userId);
+async function checkRateLimitDB(
+  admin: SupabaseClient,
+  userId: string,
+  endpoint: string,
+  maxRequests: number,
+  lang: string,
+): Promise<Response | null> {
+  const windowStart = new Date();
+  windowStart.setSeconds(0, 0);
 
-  if (!entry || now > entry.resetAt) {
-    rateLimitMap.set(userId, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
-    return null;
+  const { data, error } = await admin.rpc("check_and_increment_rate_limit", {
+    p_user_id: userId,
+    p_endpoint: endpoint,
+    p_window_start: windowStart.toISOString(),
+    p_max_requests: maxRequests,
+  });
+
+  if (error) {
+    console.error("Rate limit RPC failed:", error);
+    return new Response(
+      JSON.stringify({
+        type: 'error',
+        error: 'Rate limit unavailable',
+        message_ar: getMessage('api_error_fallback', lang),
+      }),
+      { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
   }
 
-  if (entry.count >= RATE_LIMIT_MAX) {
+  if (data === false) {
     return new Response(
       JSON.stringify({
         type: 'error',
@@ -414,8 +451,6 @@ function checkRateLimit(userId: string, lang: string): Response | null {
       { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   }
-
-  entry.count++;
   return null;
 }
 
@@ -444,7 +479,13 @@ Deno.serve(async (req: Request) => {
     }
 
     // Rate limiting
-    const rateLimitError = checkRateLimit(authResult.user.id, reqLang);
+    const rateLimitError = await checkRateLimitDB(
+      supabaseAdmin,
+      authResult.user.id,
+      'generate-shopping-suggestions',
+      RATE_LIMIT_MAX,
+      reqLang,
+    );
     if (rateLimitError) return rateLimitError;
 
     const DEEPSEEK_API_KEY = Deno.env.get("DEEPSEEK_API_KEY");
@@ -538,10 +579,31 @@ Deno.serve(async (req: Request) => {
 
     // Verify the user has access to active home before continuing
     const homeIdHeader = req.headers.get("x-home-id") || body.homeId || body.home_id;
-    if (homeIdHeader) {
-      const membershipError = await requireActiveHomeMember(supabaseAdmin, homeIdHeader, authResult.user.id, effectiveLanguage);
-      if (membershipError) {
-        return membershipError;
+    if (!homeIdHeader) {
+      return new Response(
+        JSON.stringify({ type: 'error', error: "Missing homeId", message_ar: "معرف المنزل مفقود" }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const membershipError = await requireActiveHomeMember(supabaseAdmin, homeIdHeader, authResult.user.id, effectiveLanguage);
+    if (membershipError) {
+      return membershipError;
+    }
+
+    const listId = body.listId || body.list_id;
+    if (listId) {
+      const { data: listData, error: listError } = await supabaseAdmin
+        .from('shopping_lists')
+        .select('home_id')
+        .eq('id', listId)
+        .single();
+
+      if (listError || !listData || listData.home_id !== homeIdHeader) {
+         return new Response(
+          JSON.stringify({ type: 'error', error: "Invalid listId or homeId mismatch", message_ar: "القائمة غير صالحة أو لا تنتمي لهذا المنزل" }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
     }
 
@@ -620,7 +682,11 @@ Deno.serve(async (req: Request) => {
 
     let parsed: any;
     try {
-      const content = result.choices[0].message.content || "";
+      const message = result.choices[0].message;
+      if (message.refusal) {
+        throw new Error("Model refused the request: " + message.refusal);
+      }
+      const content = message.content || "";
       if (!content) throw new Error("Empty content");
 
       // Robust JSON extraction: find the first '{' and the last '}'
@@ -637,7 +703,7 @@ Deno.serve(async (req: Request) => {
       parsed = JSON.parse(jsonStr);
     } catch (e) {
       console.error("Failed to parse AI response as JSON:", e);
-      console.error("Raw content that failed to parse:", result.choices[0].message.content);
+      console.error("Raw content that failed to parse:", result.choices[0].message?.content);
 
       return new Response(
         JSON.stringify({

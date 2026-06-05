@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:beity/core/services/supabase_service.dart';
+import 'package:sawa/core/services/supabase_service.dart';
 import '../../../../core/services/realtime_service.dart';
 import '../../../../core/services/sync_coordinator.dart';
 import '../../../offline_queue/presentation/providers/offline_queue_provider.dart';
@@ -19,8 +19,8 @@ final connectionStateProvider = StreamProvider<ConnectionStateModel>((ref) {
 final offlineQueueFlushProvider = Provider<void>((ref) {
   ref.listen<AsyncValue<ConnectionStateModel>>(connectionStateProvider,
       (previous, next) async {
-    final currentState = next.valueOrNull;
-    final previousState = previous?.valueOrNull;
+    final currentState = next.value;
+    final previousState = previous?.value;
     if (currentState != null &&
         currentState.status == ConnectionStatus.connected &&
         previousState?.status != ConnectionStatus.connected) {

@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:beity/core/utils/arabic_number_parser.dart';
+import 'package:sawa/core/utils/arabic_number_parser.dart';
 
 void main() {
   group('ArabicNumberParser tests', () {

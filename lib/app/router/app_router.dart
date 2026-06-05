@@ -1,5 +1,6 @@
 import 'dart:async';
-import 'package:beity/core/services/supabase_service.dart';
+import 'package:sawa/core/services/supabase_service.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
@@ -8,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/services/notification_service.dart';
 import '../../features/home/presentation/screens/home_screen.dart';
 import '../../features/home/presentation/widgets/main_shell.dart';
+import '../../features/homes/data/models/home_selection.dart';
 import '../../features/homes/presentation/providers/homes_provider.dart';
 import '../../features/homes/presentation/widgets/no_active_home_widget.dart';
 import '../../features/shopping_lists/presentation/screens/shopping_lists_screen.dart';
@@ -18,28 +20,60 @@ import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../../features/onboarding/data/onboarding_storage.dart';
 import '../../features/onboarding/presentation/screens/welcome_onboarding_screen.dart';
 import 'auth_routes.dart';
+import 'shopping_route_paths.dart';
 import 'shopping_routes.dart';
 import 'home_routes.dart';
 import 'feature_routes.dart';
 
 final GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
 
-final appRouterProvider = Provider<GoRouter>((ref) {
-  String getEffectiveHomeId(GoRouterState state) {
-    if (state.extra is String && (state.extra as String).isNotEmpty) {
-      return state.extra as String;
+String getEffectiveHomeId(GoRouterState state, Ref ref) {
+  final queryHomeId = state.uri.queryParameters['homeId'];
+  if (queryHomeId != null && queryHomeId.isNotEmpty) {
+    return queryHomeId;
+  }
+  if (state.extra is String && (state.extra as String).isNotEmpty) {
+    return state.extra as String;
+  }
+  if (state.extra is Map<String, dynamic>) {
+    final extraMap = state.extra as Map<String, dynamic>;
+    if (extraMap['homeId'] is String &&
+        (extraMap['homeId'] as String).isNotEmpty) {
+      return extraMap['homeId'] as String;
     }
-    final activeId = ref.read(cachedActiveHomeIdProvider);
-    if (activeId != null && activeId.isNotEmpty) {
-      return activeId;
+  }
+  final homes = ref.read(cachedUserHomesProvider);
+  final activeId = ref.read(cachedActiveHomeIdProvider);
+  final activeHome = findAvailableHomeById(homes, activeId);
+  if (activeHome != null) {
+    return activeHome.id;
+  }
+  return newestAvailableHome(homes)?.id ?? '';
+}
+
+String getEffectiveHomeName(GoRouterState state, Ref ref) {
+  if (state.extra is String && (state.extra as String).isNotEmpty) {
+    return state.extra as String;
+  }
+  if (state.extra is Map<String, dynamic>) {
+    final extraMap = state.extra as Map<String, dynamic>;
+    if (extraMap['homeName'] is String &&
+        (extraMap['homeName'] as String).isNotEmpty) {
+      return extraMap['homeName'] as String;
     }
-    final homes = ref.read(cachedUserHomesProvider);
-    if (homes.isNotEmpty) {
-      return homes.first.id;
-    }
-    return '';
   }
 
+  final homeId = state.pathParameters['id'] ?? getEffectiveHomeId(state, ref);
+  if (homeId.isNotEmpty) {
+    final homes = ref.read(cachedUserHomesProvider);
+    for (final home in homes) {
+      if (home.id == homeId) return home.name;
+    }
+  }
+  return 'Home';
+}
+
+final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     navigatorKey: appNavigatorKey,
     initialLocation: NotificationService.initialRoute ?? '/',
@@ -48,16 +82,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       SupabaseService.client.auth.onAuthStateChange,
     ),
     errorBuilder: (context, state) => Scaffold(
-      appBar: AppBar(title: const Text('Not Found')),
+      appBar: AppBar(title: Text(context.translate('page_not_found_title'))),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text('Page not found: ${state.uri.toString()}'),
+            Text(context.translate('page_not_found_message')),
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: () => context.go('/'),
-              child: const Text('Go to Dashboard'),
+              child: Text(context.translate('go_to_dashboard')),
             ),
           ],
         ),
@@ -66,7 +100,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     routes: [
       // Welcome onboarding (pre-auth, no shell)
       GoRoute(
-        path: '/onboarding',
+        path: '/welcome-onboarding',
         builder: (context, state) => const WelcomeOnboardingScreen(),
       ),
 
@@ -91,9 +125,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/shopping-lists',
+                path: ShoppingRoutePaths.lists,
                 builder: (context, state) {
-                  final homeId = getEffectiveHomeId(state);
+                  final homeId = getEffectiveHomeId(state, ref);
                   if (homeId.isEmpty) return const NoActiveHomeWidget();
                   return ShoppingListsScreen(homeId: homeId);
                 },
@@ -104,9 +138,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/shopping-mode',
+                path: ShoppingRoutePaths.mode,
                 builder: (context, state) {
-                  final homeId = getEffectiveHomeId(state);
+                  final homeId = getEffectiveHomeId(state, ref);
                   if (homeId.isEmpty) return const NoActiveHomeWidget();
                   return ShoppingModeListScreen(homeId: homeId);
                 },
@@ -119,7 +153,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/activity',
                 builder: (context, state) {
-                  final homeId = getEffectiveHomeId(state);
+                  final homeId = getEffectiveHomeId(state, ref);
                   if (homeId.isEmpty) return const NoActiveHomeWidget();
                   return ActivityFeedScreen(homeId: homeId);
                 },
@@ -138,21 +172,23 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         ],
       ),
       // Other feature and sub routes
-      ...homeRoutes(),
-      ...shoppingRoutes(getEffectiveHomeId),
-      ...featureRoutes(getEffectiveHomeId),
+      ...homeRoutes(
+        resolveHomeName: (state) => getEffectiveHomeName(state, ref),
+      ),
+      ...shoppingRoutes((state) => getEffectiveHomeId(state, ref)),
+      ...featureRoutes((state) => getEffectiveHomeId(state, ref)),
     ],
     redirect: (context, state) {
       final session = SupabaseService.client.auth.currentSession;
-      final isAuthenticated = session != null && !session.isExpired;
+      final isAuthenticated = session != null;
       final isOnAuthRoute =
           state.matchedLocation == '/login' ||
           state.matchedLocation == '/register';
-      final isOnOnboarding = state.matchedLocation == '/onboarding';
+      final isOnOnboarding = state.matchedLocation == '/welcome-onboarding';
 
       // 1. First-launch welcome onboarding (pre-auth, versioned check).
       if (OnboardingStorage.shouldShowWelcomeOnboarding() && !isOnOnboarding) {
-        return '/onboarding';
+        return '/welcome-onboarding';
       }
 
       // 2. Auth guard.
@@ -178,7 +214,6 @@ class GoRouterRefreshStream extends ChangeNotifier {
   late final StreamSubscription<dynamic> _subscription;
 
   GoRouterRefreshStream(Stream<dynamic> stream) {
-    notifyListeners();
     _subscription = stream.asBroadcastStream().listen(
       (dynamic _) => notifyListeners(),
     );

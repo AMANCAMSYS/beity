@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:beity/core/localization/app_localizations.dart';
-import 'package:beity/features/onboarding/presentation/providers/app_tour_target_registry.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
 
 class DrawerToggleButton extends ConsumerWidget {
   final String? tooltip;
@@ -15,7 +14,6 @@ class DrawerToggleButton extends ConsumerWidget {
     final resolvedTooltip = tooltip ?? l10n.translate('menu');
 
     return IconButton(
-      key: AppTourTargetRegistry.drawerMenuKey,
       icon: CustomPaint(
         size: const Size(22, 22),
         painter: _SidebarIconPainter(

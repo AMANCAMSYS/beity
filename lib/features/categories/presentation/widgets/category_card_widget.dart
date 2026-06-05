@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:beity/shared/widgets/design_system/beity_snack_bar.dart';
-import 'package:beity/core/localization/app_localizations.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_snack_bar.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
+import '../../../../core/errors/error_formatter.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../data/models/category_model.dart';
 import '../../domain/entities/category.dart';
@@ -147,13 +148,13 @@ class CategoryCardWidget extends ConsumerWidget {
                     .read(categoryNotifierProvider.notifier)
                     .deleteCategory(categoryId: category.id);
                 if (context.mounted) {
-                  BeitySnackBar.success(context, context.translate('category_deleted_success'));
+                  SawaSnackBar.success(context, context.translate('category_deleted_success'));
                 }
               } catch (e) {
                 if (context.mounted) {
-                  BeitySnackBar.error(
+                  SawaSnackBar.error(
                     context,
-                    e.toString().replaceAll('Exception: ', ''),
+                    ErrorFormatter.format(e, context),
                   );
                 }
               }

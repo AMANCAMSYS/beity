@@ -32,19 +32,16 @@ class AddItemUseCase {
     bool skipDuplicateCheck = false,
   }) async {
     if (name.trim().isEmpty) {
-      throw Exception('اسم المنتج مطلوب');
+      throw Exception('product_name_required');
     }
 
     if (quantity <= 0) {
-      throw Exception('الكمية يجب أن تكون أكبر من صفر');
+      throw Exception('quantity_must_be_greater_than_zero');
     }
 
     // Duplicate check
     if (!skipDuplicateCheck) {
-      final isDuplicate = await checkDuplicate(
-        listId: listId,
-        name: name,
-      );
+      final isDuplicate = await checkDuplicate(listId: listId, name: name);
       if (isDuplicate) {
         throw DuplicateItemException(name.trim());
       }
@@ -61,14 +58,17 @@ class AddItemUseCase {
       notes: notes?.trim(),
     );
 
-    // Auto-create or update template
-    await _repository.syncTemplateOnAdd(
-      homeId: homeId,
-      name: name.trim(),
-      quantity: quantity,
-      unitId: unitId,
-      categoryId: categoryId,
-    );
+    // Template sync is a secondary convenience feature. The item add itself is
+    // already complete here, so template failures must not surface as add errors.
+    try {
+      await _repository.syncTemplateOnAdd(
+        homeId: homeId,
+        name: name.trim(),
+        quantity: quantity,
+        unitId: unitId,
+        categoryId: categoryId,
+      );
+    } catch (_) {}
 
     return item;
   }

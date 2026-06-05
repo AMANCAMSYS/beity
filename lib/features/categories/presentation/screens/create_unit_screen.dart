@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/localization/app_localizations.dart';
+import '../../../../core/errors/error_formatter.dart';
 import '../../../../core/utils/action_debouncer.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:beity/shared/widgets/design_system/beity_snack_bar.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_snack_bar.dart';
 import '../providers/units_provider.dart';
 import '../../../settings/presentation/providers/app_settings_provider.dart';
 
@@ -48,14 +49,14 @@ class _CreateUnitScreenState extends ConsumerState<CreateUnitScreen> {
       }
 
       if (mounted) {
-        BeitySnackBar.success(context, context.translate('unit_created_success'));
+        SawaSnackBar.success(context, context.translate('unit_created_success'));
         context.pop();
       }
     } catch (e) {
       if (mounted) {
-        BeitySnackBar.error(
+        SawaSnackBar.error(
           context,
-          e.toString().replaceAll('Exception: ', ''),
+          ErrorFormatter.format(e, context),
         );
       }
     } finally {

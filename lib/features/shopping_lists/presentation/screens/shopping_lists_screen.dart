@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/providers/permissions_provider.dart';
 
-import 'package:beity/app/theme/app_spacing.dart';
-import 'package:beity/app/theme/app_colors.dart';
-import 'package:beity/shared/widgets/design_system/beity_button.dart';
-import 'package:beity/shared/widgets/design_system/beity_text_field.dart';
-import 'package:beity/shared/widgets/design_system/beity_snack_bar.dart';
-import 'package:beity/shared/widgets/design_system/beity_empty_state.dart';
+import 'package:sawa/app/router/shopping_route_paths.dart';
+import 'package:sawa/app/router/feature_route_paths.dart';
+import 'package:sawa/app/theme/app_spacing.dart';
+import 'package:sawa/app/theme/app_colors.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_button.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_text_field.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_snack_bar.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_empty_state.dart';
 import '../../../homes/presentation/providers/homes_provider.dart';
 import '../../../home/presentation/widgets/app_drawer.dart';
 import '../../../home/presentation/widgets/drawer_toggle_button.dart';
@@ -20,9 +23,10 @@ import '../../domain/usecases/archive_list_usecase.dart';
 import '../../domain/usecases/delete_list_usecase.dart';
 import '../../../../core/utils/action_debouncer.dart';
 import '../../../../core/config/feature_flags.dart';
-import 'package:beity/features/ai_suggestions/presentation/widgets/ai_list_selector_sheet.dart';
+import 'package:sawa/features/ai_suggestions/presentation/widgets/ai_list_selector_sheet.dart';
 import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/monitoring/monitoring_service.dart';
+import '../../../../core/errors/error_formatter.dart';
 
 class ShoppingListsScreen extends ConsumerStatefulWidget {
   final String homeId;
@@ -41,7 +45,7 @@ class _ShoppingListsScreenState extends ConsumerState<ShoppingListsScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
   }
 
   @override
@@ -64,7 +68,10 @@ class _ShoppingListsScreenState extends ConsumerState<ShoppingListsScreen>
 
     final listsAsync = ref.watch(shoppingListsProvider(homeId));
     final activeLists = ref.watch(activeShoppingListsProvider(homeId));
+    final completedLists = ref.watch(completedShoppingListsProvider(homeId));
     final archivedLists = ref.watch(archivedShoppingListsProvider(homeId));
+    final permissions = ref.watch(currentHomePermissionsProvider(homeId));
+    final canManage = permissions.canEdit;
 
     return Scaffold(
       drawer: const AppDrawer(),
@@ -97,32 +104,38 @@ class _ShoppingListsScreenState extends ConsumerState<ShoppingListsScreen>
           unselectedLabelStyle: theme.textTheme.titleSmall,
           tabs: [
             Tab(
-              text: context.translate('active_lists_count', arguments: {'count': activeLists.length.toString()}),
+              text: context.translate(
+                'active_lists_count',
+                arguments: {'count': activeLists.length.toString()},
+              ),
             ),
             Tab(
-              text: context.translate('archived_lists_count', arguments: {'count': archivedLists.length.toString()}),
+              text: context.translate(
+                'completed_lists_count',
+                arguments: {'count': completedLists.length.toString()},
+              ),
+            ),
+            Tab(
+              text: context.translate(
+                'archived_lists_count',
+                arguments: {'count': archivedLists.length.toString()},
+              ),
             ),
           ],
         ),
       ),
       body: listsAsync.when(
+        skipLoadingOnReload: true,
         data: (_) => TabBarView(
           controller: _tabController,
           children: [
-            _buildListsList(
-              activeLists,
-              homeId: homeId,
-              isArchived: false,
-            ),
-            _buildListsList(
-              archivedLists,
-              homeId: homeId,
-              isArchived: true,
-            ),
+            _buildListsList(activeLists, homeId: homeId),
+            _buildListsList(completedLists, homeId: homeId, isCompleted: true),
+            _buildListsList(archivedLists, homeId: homeId, isArchived: true),
           ],
         ),
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => BeityEmptyState(
+        error: (error, _) => SawaEmptyState(
           title: context.translate('error_loading_lists'),
           message: error.toString(),
           icon: Icons.error_outline_rounded,
@@ -131,40 +144,53 @@ class _ShoppingListsScreenState extends ConsumerState<ShoppingListsScreen>
           onAction: () => ref.invalidate(shoppingListsProvider(homeId)),
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => ActionDebouncer.execute(
-          () => context.push('/shopping-lists/create', extra: homeId),
-        ),
-        label: Text(context.translate('new_list')),
-        icon: const Icon(Icons.add_rounded),
-        backgroundColor: theme.colorScheme.primary,
-        foregroundColor: theme.colorScheme.onPrimary,
-      ),
+      floatingActionButton: canManage
+          ? FloatingActionButton.extended(
+              onPressed: () => ActionDebouncer.execute(
+                () => context.push(ShoppingRoutePaths.create, extra: homeId),
+              ),
+              label: Text(context.translate('new_list')),
+              icon: const Icon(Icons.add_rounded),
+              backgroundColor: theme.colorScheme.primary,
+              foregroundColor: theme.colorScheme.onPrimary,
+            )
+          : null,
     );
   }
 
   Widget _buildListsList(
     List<ShoppingList> lists, {
     required String homeId,
-    required bool isArchived,
+    bool isArchived = false,
+    bool isCompleted = false,
   }) {
     final theme = Theme.of(context);
+    final permissions = ref.watch(currentHomePermissionsProvider(homeId));
+    final canManage = permissions.canEdit;
 
     if (lists.isEmpty) {
-      return BeityEmptyState(
-        title: isArchived
+      return SawaEmptyState(
+        title: isCompleted
+            ? context.translate('no_completed_lists')
+            : isArchived
             ? context.translate('no_archived_lists')
             : context.translate('no_shopping_lists'),
-        message: isArchived
+        message: isCompleted
+            ? context.translate('no_completed_lists_desc')
+            : isArchived
             ? context.translate('no_archived_lists_desc')
             : context.translate('no_shopping_lists_desc'),
-        icon: isArchived ? Icons.archive_outlined : Icons.shopping_bag_outlined,
-        actionText: !isArchived
+        icon: isCompleted
+            ? Icons.task_alt_rounded
+            : isArchived
+            ? Icons.archive_outlined
+            : Icons.shopping_bag_outlined,
+        actionText: (!isArchived && !isCompleted && canManage)
             ? context.translate('create_first_list')
             : null,
-        onAction: !isArchived
+        onAction: (!isArchived && !isCompleted && canManage)
             ? () => ActionDebouncer.execute(
-                () => context.push('/shopping-lists/create', extra: homeId),
+                () => context.push(ShoppingRoutePaths.create, extra: homeId),
               )
             : null,
       );
@@ -186,27 +212,31 @@ class _ShoppingListsScreenState extends ConsumerState<ShoppingListsScreen>
             child: ShoppingListCardWidget(
               shoppingList: list,
               onTap: () => ActionDebouncer.execute(
-                () async => context.push('/shopping-list/${list.id}'),
+                () async => context.push(ShoppingRoutePaths.detail(list.id)),
               ),
-              onRename: isArchived
+              onRename: (isArchived || !canManage)
                   ? null
                   : () => ActionDebouncer.execute(
                       () async => _showRenameDialog(context, list),
                     ),
-              onArchive: isArchived
+              onArchive: (isArchived || isCompleted || !canManage)
+                  ? null
+                  : () =>
+                        ActionDebouncer.execute(() async => _archiveList(list)),
+              onDelete: !canManage
                   ? null
                   : () => ActionDebouncer.execute(
-                      () async => _archiveList(list.id),
+                      () async => _showDeleteConfirmation(context, list),
                     ),
-              onDelete: () => ActionDebouncer.execute(
-                () async => _showDeleteConfirmation(context, list),
-              ),
-              onRestore: isArchived
-                  ? () => ActionDebouncer.execute(
-                      () async => _restoreList(list.id),
-                    )
+              onRestore: (isArchived && canManage)
+                  ? () =>
+                        ActionDebouncer.execute(() async => _restoreList(list))
                   : null,
-              onTransferToInventory: isArchived
+              onTransferToInventory:
+                  (FeatureFlags.enableInventory &&
+                      isCompleted &&
+                      canManage &&
+                      list.canTransferToInventory)
                   ? () => ActionDebouncer.execute(
                       () async => _transferListToInventory(context, list),
                     )
@@ -218,10 +248,7 @@ class _ShoppingListsScreenState extends ConsumerState<ShoppingListsScreen>
     );
   }
 
-  void _showRenameDialog(
-    BuildContext context,
-    ShoppingList list,
-  ) {
+  void _showRenameDialog(BuildContext context, ShoppingList list) {
     final nameController = TextEditingController(text: list.name);
 
     showDialog(
@@ -243,7 +270,7 @@ class _ShoppingListsScreenState extends ConsumerState<ShoppingListsScreen>
           AppSpacing.lg,
           AppSpacing.md,
         ),
-        content: BeityTextField(
+        content: SawaTextField(
           controller: nameController,
           labelText: context.translate('new_list_name'),
           prefixIcon: Icons.edit_rounded,
@@ -256,20 +283,20 @@ class _ShoppingListsScreenState extends ConsumerState<ShoppingListsScreen>
           Row(
             children: [
               Expanded(
-                child: BeityButton(
+                child: SawaButton(
                   onPressed: () => Navigator.pop(dialogContext),
                   text: context.translate('cancel'),
-                  type: BeityButtonType.secondary,
+                  type: SawaButtonType.secondary,
                 ),
               ),
               AppSpacing.gapMD,
               Expanded(
-                child: BeityButton(
+                child: SawaButton(
                   onPressed: () => ActionDebouncer.execute(
                     () => _performRename(dialogContext, list, nameController),
                   ),
                   text: context.translate('save'),
-                  type: BeityButtonType.primary,
+                  type: SawaButtonType.primary,
                 ),
               ),
             ],
@@ -286,35 +313,60 @@ class _ShoppingListsScreenState extends ConsumerState<ShoppingListsScreen>
   ) async {
     if (controller.text.trim().isNotEmpty) {
       try {
-        final repository = ref.read(shoppingListRepositoryProvider);
+        final repository = ref.read(
+          shoppingListRepositoryForHomeProvider(list.homeId),
+        );
         await repository.updateShoppingList(
           listId: list.id,
           name: controller.text.trim(),
         );
+        ref.invalidate(shoppingListsProvider(list.homeId));
         if (context.mounted) {
           Navigator.pop(context);
-          BeitySnackBar.success(context, context.translate('list_renamed_success'));
+          SawaSnackBar.success(
+            context,
+            context.translate('list_renamed_success'),
+          );
         }
       } catch (e) {
         if (context.mounted) {
-          BeitySnackBar.error(context, e.toString());
+          SawaSnackBar.error(context, ErrorFormatter.format(e, context));
         }
       }
     }
   }
 
-  Future<void> _archiveList(String listId) async {
-    final repository = ref.read(shoppingListRepositoryProvider);
-    final useCase = ArchiveListUseCase(repository);
-    await useCase(listId: listId);
+  Future<void> _archiveList(ShoppingList list) async {
+    try {
+      final repository = ref.read(
+        shoppingListRepositoryForHomeProvider(list.homeId),
+      );
+      final useCase = ArchiveListUseCase(repository);
+      await useCase(listId: list.id);
+    } catch (e) {
+      if (mounted) {
+        SawaSnackBar.error(context, ErrorFormatter.format(e, context));
+      }
+    }
   }
 
-  Future<void> _restoreList(String listId) async {
-    final repository = ref.read(shoppingListRepositoryProvider);
-    final useCase = ArchiveListUseCase(repository);
-    await useCase.restore(listId: listId);
-    if (mounted) {
-      BeitySnackBar.success(context, context.translate('list_restored_success'));
+  Future<void> _restoreList(ShoppingList list) async {
+    try {
+      final repository = ref.read(
+        shoppingListRepositoryForHomeProvider(list.homeId),
+      );
+      final useCase = ArchiveListUseCase(repository);
+      await useCase.restore(listId: list.id);
+      if (mounted) {
+        SawaSnackBar.success(
+          context,
+          context.translate('list_restored_success'),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        SawaSnackBar.error(context, ErrorFormatter.format(e, context));
+      }
     }
   }
 
@@ -332,19 +384,20 @@ class _ShoppingListsScreenState extends ConsumerState<ShoppingListsScreen>
     );
 
     try {
-      final repository = ref.read(shoppingListRepositoryProvider);
+      final repository = ref.read(
+        shoppingListRepositoryForHomeProvider(list.homeId),
+      );
       final items = await repository.getShoppingItems(listId: list.id);
-      
+
       if (!context.mounted) return;
 
-      final purchasedItems = items.where((i) => i.isPurchased).toList();
+      final purchasedItems = items
+          .where((i) => i.isPurchased || i.purchasedQuantity > 0)
+          .toList();
 
       if (purchasedItems.isEmpty) {
         Navigator.pop(context);
-        BeitySnackBar.error(
-          context,
-          context.translate('no_purchased_items'),
-        );
+        SawaSnackBar.error(context, context.translate('no_purchased_items'));
         return;
       }
 
@@ -353,7 +406,9 @@ class _ShoppingListsScreenState extends ConsumerState<ShoppingListsScreen>
           .map(
             (item) => PurchasedItemInput(
               name: item.name,
-              quantity: item.quantity,
+              quantity: item.purchasedQuantity > 0
+                  ? item.purchasedQuantity
+                  : item.quantity,
               unitId: item.unitId,
               categoryId: item.categoryId,
             ),
@@ -361,6 +416,7 @@ class _ShoppingListsScreenState extends ConsumerState<ShoppingListsScreen>
           .toList();
 
       await inventoryUseCase.callBatch(
+        listId: list.id,
         homeId: list.homeId,
         items: inputs,
       );
@@ -368,12 +424,17 @@ class _ShoppingListsScreenState extends ConsumerState<ShoppingListsScreen>
       if (!context.mounted) return;
 
       Navigator.pop(context);
+      ref.invalidate(shoppingListsProvider(list.homeId));
 
       messenger.showSnackBar(
         SnackBar(
           content: Row(
             children: [
-              const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+              const Icon(
+                Icons.check_circle_rounded,
+                color: Colors.white,
+                size: 20,
+              ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -388,14 +449,12 @@ class _ShoppingListsScreenState extends ConsumerState<ShoppingListsScreen>
           backgroundColor: AppColors.success,
           duration: const Duration(seconds: 4),
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           margin: const EdgeInsets.all(16),
           action: SnackBarAction(
             label: context.translate('view_inventory'),
             textColor: Colors.white,
-            onPressed: () => context.push('/inventory'),
+            onPressed: () => context.push(FeatureRoutePaths.inventory),
           ),
         ),
       );
@@ -403,14 +462,11 @@ class _ShoppingListsScreenState extends ConsumerState<ShoppingListsScreen>
       await MonitoringService().log('Failed to transfer list to inventory: $e');
       if (!context.mounted) return;
       Navigator.pop(context);
-      BeitySnackBar.error(context, e.toString());
+      SawaSnackBar.error(context, ErrorFormatter.format(e, context));
     }
   }
 
-  void _showDeleteConfirmation(
-    BuildContext context,
-    ShoppingList list,
-  ) {
+  void _showDeleteConfirmation(BuildContext context, ShoppingList list) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -426,39 +482,47 @@ class _ShoppingListsScreenState extends ConsumerState<ShoppingListsScreen>
           borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
         ),
         content: Text(
-          context.translate('delete_list_confirm_msg', arguments: {'name': list.name}),
+          context.translate(
+            'delete_list_confirm_msg',
+            arguments: {'name': list.name},
+          ),
           textAlign: TextAlign.center,
         ),
         actions: [
           Row(
             children: [
               Expanded(
-                child: BeityButton(
+                child: SawaButton(
                   onPressed: () => Navigator.pop(context),
                   text: context.translate('cancel'),
-                  type: BeityButtonType.secondary,
+                  type: SawaButtonType.secondary,
                 ),
               ),
               AppSpacing.gapMD,
               Expanded(
-                child: BeityButton(
+                child: SawaButton(
                   onPressed: () => ActionDebouncer.execute(() async {
                     try {
-                      final repository = ref.read(shoppingListRepositoryProvider);
+                      final repository = ref.read(
+                        shoppingListRepositoryForHomeProvider(list.homeId),
+                      );
                       final useCase = DeleteListUseCase(repository);
                       await useCase(listId: list.id);
                       if (context.mounted) {
                         Navigator.pop(context);
-                        BeitySnackBar.success(context, context.translate('list_deleted_success'));
+                        SawaSnackBar.success(
+                          context,
+                          context.translate('list_deleted_success'),
+                        );
                       }
                     } catch (e) {
                       if (context.mounted) {
-                        BeitySnackBar.error(context, e.toString());
+                        SawaSnackBar.error(context, ErrorFormatter.format(e, context));
                       }
                     }
                   }),
                   text: context.translate('delete'),
-                  type: BeityButtonType.secondary,
+                  type: SawaButtonType.secondary,
                 ),
               ),
             ],

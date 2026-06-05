@@ -1,20 +1,28 @@
 import '../models/shopping_list_model.dart';
 import '../models/shopping_item_model.dart';
 import '../models/item_template_model.dart';
-import '../../presentation/providers/shopping_items_provider.dart';
+import '../../domain/entities/autocomplete_suggestion.dart';
+import '../../domain/constants/shopping_constants.dart';
+
+export '../../domain/constants/shopping_constants.dart';
 
 abstract class ShoppingListRepository {
   // Shopping Lists
   Future<List<ShoppingListModel>> getShoppingLists({
     required String homeId,
     String? status,
+    bool includeDeleted = false,
   });
 
-  Future<ShoppingListModel?> getShoppingListById({
-    required String listId,
+  Stream<List<ShoppingListModel>> watchShoppingLists({
+    required String homeId,
+    String? status,
   });
+
+  Future<ShoppingListModel?> getShoppingListById({required String listId});
 
   Future<ShoppingListModel> createShoppingList({
+    String? id,
     required String homeId,
     required String name,
     String? description,
@@ -28,22 +36,22 @@ abstract class ShoppingListRepository {
     String? status,
   });
 
-  Future<void> deleteShoppingList({
-    required String listId,
-  });
-
-  Stream<List<ShoppingListModel>> watchShoppingLists({
-    required String homeId,
-  });
+  Future<void> deleteShoppingList({required String listId});
 
   // Shopping Items
   Future<List<ShoppingItemModel>> getShoppingItems({
     required String listId,
+    bool includeDeleted = false,
   });
 
-  Future<ShoppingItemModel?> getShoppingItemById({
-    required String itemId,
+  Stream<List<ShoppingItemModel>> watchShoppingItems({required String listId});
+
+  Future<Map<String, List<ShoppingItemModel>>> getShoppingItemsForLists({
+    required List<String> listIds,
+    bool includeDeleted = false,
   });
+
+  Future<ShoppingItemModel?> getShoppingItemById({required String itemId});
 
   Future<ShoppingItemModel> createShoppingItem({
     String? id,
@@ -62,14 +70,16 @@ abstract class ShoppingListRepository {
     String? name,
     double? quantity,
     double? purchasedQuantity,
-    String? unitId,
-    String? categoryId,
-    double? price,
-    String? notes,
+    Object? unitId = shoppingFieldUnchanged,
+    Object? categoryId = shoppingFieldUnchanged,
+    Object? price = shoppingFieldUnchanged,
+    Object? notes = shoppingFieldUnchanged,
   });
 
-  Future<void> deleteShoppingItem({
-    required String itemId,
+  Future<void> deleteShoppingItem({required String itemId});
+
+  Future<ShoppingItemModel> restoreShoppingItem({
+    required ShoppingItemModel item,
   });
 
   Future<ShoppingItemModel> markItemPurchased({
@@ -77,19 +87,18 @@ abstract class ShoppingListRepository {
     required bool isPurchased,
   });
 
+  Future<ShoppingItemModel> updateItemPurchaseState({
+    required String itemId,
+    required double purchasedQuantity,
+  });
+
   Future<List<ShoppingItemModel>> getPurchaseHistory({
     required String homeId,
     int limit = 50,
   });
 
-  Stream<List<ShoppingItemModel>> watchShoppingItems({
-    required String listId,
-  });
-
   // Item Templates
-  Future<List<ItemTemplateModel>> getItemTemplates({
-    required String homeId,
-  });
+  Future<List<ItemTemplateModel>> getItemTemplates({required String homeId});
 
   Future<ItemTemplateModel> createItemTemplate({
     required String homeId,
@@ -99,13 +108,9 @@ abstract class ShoppingListRepository {
     String? defaultCategoryId,
   });
 
-  Future<void> incrementTemplateUsage({
-    required String templateId,
-  });
+  Future<void> incrementTemplateUsage({required String templateId});
 
-  Stream<List<ItemTemplateModel>> watchItemTemplates({
-    required String homeId,
-  });
+  Stream<List<ItemTemplateModel>> watchItemTemplates({required String homeId});
 
   // Autocomplete suggestions
   Future<List<AutocompleteSuggestion>> getAutocompleteSuggestions({

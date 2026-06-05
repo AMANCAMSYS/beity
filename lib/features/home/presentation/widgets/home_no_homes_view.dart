@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../../core/localization/app_localizations.dart';
-import '../../../../shared/widgets/design_system/beity_card.dart';
-import '../../../../shared/widgets/design_system/beity_button.dart';
+import '../../../../shared/widgets/design_system/sawa_card.dart';
+import '../../../../shared/widgets/design_system/sawa_button.dart';
 import 'drawer_toggle_button.dart';
 import 'app_drawer.dart';
 import '../../../notifications/presentation/widgets/notification_badge_widget.dart';
@@ -31,7 +31,7 @@ class HomeNoHomesView extends ConsumerWidget {
           builder: (context) => const DrawerToggleButton(),
         ),
         title: Text(
-          context.translate('beity'),
+          context.translate('sawa'),
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
@@ -51,7 +51,7 @@ class HomeNoHomesView extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Welcome card
-              BeityCard(
+              SawaCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -74,7 +74,7 @@ class HomeNoHomesView extends ConsumerWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                '${context.translate('welcome_to_beity')} 👋',
+                                '${context.translate('welcome_to_sawa')} 👋',
                                 style: Theme.of(context)
                                     .textTheme
                                     .titleLarge
@@ -111,11 +111,11 @@ class HomeNoHomesView extends ConsumerWidget {
                     const SizedBox(height: 24),
                     SizedBox(
                       width: double.infinity,
-                      child: BeityButton(
+                      child: SawaButton(
                         onPressed: () => context.push('/homes/create'),
                         text: context.translate('create_new_home'),
                         icon: Icons.add_home_outlined,
-                        type: BeityButtonType.primary,
+                        type: SawaButtonType.primary,
                       ),
                     ),
                   ],
@@ -135,7 +135,7 @@ class HomeNoHomesView extends ConsumerWidget {
                   final pendingInvitations =
                       invitations.where((inv) => inv.isPending).toList();
                   if (pendingInvitations.isEmpty) {
-                    return BeityCard(
+                    return SawaCard(
                       child: Center(
                         child: Padding(
                           padding: const EdgeInsets.symmetric(
@@ -188,7 +188,7 @@ class HomeNoHomesView extends ConsumerWidget {
                     child: CircularProgressIndicator(),
                   ),
                 ),
-                error: (err, _) => BeityCard(
+                error: (err, _) => SawaCard(
                   child: Text(
                     context.translate('error_loading_invitations',
                         arguments: {'error': err.toString()}),

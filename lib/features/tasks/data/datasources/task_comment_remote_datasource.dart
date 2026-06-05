@@ -26,7 +26,7 @@ class TaskCommentRemoteDataSource {
   }) async {
     final user = _client.auth.currentUser;
     if (user == null) {
-      throw Exception('يجب تسجيل الدخول أولاً');
+      throw Exception('must_login_first');
     }
 
     final response = await _client
@@ -47,7 +47,7 @@ class TaskCommentRemoteDataSource {
   }) async {
     final user = _client.auth.currentUser;
     if (user == null) {
-      throw Exception('يجب تسجيل الدخول أولاً');
+      throw Exception('must_login_first');
     }
 
     await _client

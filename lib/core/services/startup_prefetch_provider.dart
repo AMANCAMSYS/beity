@@ -1,9 +1,24 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../features/homes/presentation/providers/homes_provider.dart';
 import 'sync_coordinator.dart';
 import 'realtime_sync_service.dart';
 import 'initial_data_hydration_service.dart';
+import 'app_logger.dart';
+
+final Set<String> _prefetchedHomeIds = <String>{};
+
+void resetStartupPrefetchState() {
+  _prefetchedHomeIds.clear();
+}
+
+void resetStartupPrefetchStateForTesting() {
+  resetStartupPrefetchState();
+}
+
+void markStartupPrefetchCompletedForTesting(String homeId) {
+  if (homeId.isEmpty) return;
+  _prefetchedHomeIds.add(homeId);
+}
 
 /// Progressive startup prefetch provider rewritten to leverage the global SyncCoordinator.
 ///
@@ -26,27 +41,26 @@ final startupPrefetchProvider = Provider<void>((ref) {
   Future.microtask(() async {
     try {
       final localDataSource = ref.read(homeLocalDataSourceProvider);
-      final isHomeSynced = await localDataSource.isHomeInitialSyncCompleted(homeId);
+      final isHomeSynced = await localDataSource.isHomeInitialSyncCompleted(
+        homeId,
+      );
 
       final coordinator = ref.read(syncCoordinatorProvider.notifier);
       if (!isHomeSynced) {
-        // Explicit flag: home not hydrated yet, run initialFullSync!
         await coordinator.initialFullSync(homeId);
         await localDataSource.setHomeInitialSyncCompleted(homeId, true);
       } else {
-        // Standard resume sync policy
         await coordinator.smartResumeSync(homeId);
       }
 
-      // 3. Postpone Supabase Realtime subscription by 600ms to free up launch thread (Phase 5)
+      // Postpone Supabase Realtime subscription to free up launch thread
       Future.delayed(const Duration(milliseconds: 600), () {
         ref.read(realtimeSyncServiceProvider).init(homeId);
       });
-    } catch (e, stack) {
-      assert(() {
-        debugPrint('startupPrefetchProvider sync error: $e\n$stack');
-        return true;
-      }());
+
+      _prefetchedHomeIds.add(homeId);
+    } catch (e) {
+      AppLogger.i('[StartupPrefetch] Sync error: $e');
     }
   });
 });

@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:beity/core/services/supabase_service.dart';
+import 'package:sawa/core/services/supabase_service.dart';
 import '../../data/datasources/settlement_remote_datasource.dart';
 import '../../data/repositories/settlement_repository_impl.dart';
 import '../../domain/entities/balance.dart';
@@ -26,7 +26,7 @@ final settlementsProvider =
 final balancesProvider =
     FutureProvider.family<List<Balance>, String>((ref, homeId) async {
   if (homeId.isEmpty) {
-    throw Exception('لم يتم تحديد المنزل بشكل صحيح');
+    throw Exception('error_home_not_selected');
   }
   final repository = ref.watch(settlementRepositoryProvider);
   return repository.calculateBalances(homeId: homeId);

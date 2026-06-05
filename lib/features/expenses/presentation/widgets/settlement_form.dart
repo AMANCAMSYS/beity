@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:beity/app/theme/app_spacing.dart';
-import 'package:beity/app/theme/app_colors.dart';
-import 'package:beity/shared/widgets/design_system/beity_text_field.dart';
-import 'package:beity/shared/widgets/design_system/beity_button.dart';
-import 'package:beity/shared/widgets/design_system/beity_card.dart';
+import 'package:sawa/app/theme/app_spacing.dart';
+import 'package:sawa/app/theme/app_colors.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_text_field.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_button.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_card.dart';
 import '../providers/balance_providers.dart';
-import 'package:beity/core/utils/action_debouncer.dart';
+import 'package:sawa/core/utils/action_debouncer.dart';
 import 'package:intl/intl.dart' as intl;
-import 'package:beity/core/errors/error_formatter.dart';
-import 'package:beity/core/utils/arabic_number_parser.dart';
+import 'package:sawa/core/errors/error_formatter.dart';
+import 'package:sawa/core/utils/arabic_number_parser.dart';
+import 'package:sawa/features/settings/presentation/providers/app_settings_provider.dart';
 
 class SettlementForm extends ConsumerStatefulWidget {
   final String homeId;
@@ -78,8 +81,6 @@ class _SettlementFormState extends ConsumerState<SettlementForm> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
-
     ActionDebouncer.execute(() async {
       setState(() => _isLoading = true);
       try {
@@ -101,15 +102,15 @@ class _SettlementFormState extends ConsumerState<SettlementForm> {
         ref.invalidate(settlementsProvider(widget.homeId));
 
         if (mounted) {
+          final hapticEnabled = ref.read(appSettingsProvider).hapticFeedback;
+          if (hapticEnabled) {
+            HapticFeedback.mediumImpact();
+          }
           widget.onSuccess?.call();
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               behavior: SnackBarBehavior.floating,
-              content: Text(
-                isArabic
-                    ? 'تم تسجيل الدفعة بنجاح'
-                    : 'Settlement recorded successfully',
-              ),
+              content: Text(context.translate('settlement_recorded_success')),
               backgroundColor: AppColors.success,
             ),
           );
@@ -120,7 +121,9 @@ class _SettlementFormState extends ConsumerState<SettlementForm> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               behavior: SnackBarBehavior.floating,
-              content: Text('${isArabic ? 'خطأ' : 'Error'}: ${ErrorFormatter.format(e, context)}'),
+              content: Text(
+                '${context.translate('error', fallback: 'Error')}: ${ErrorFormatter.format(e, context)}',
+              ),
               backgroundColor: Theme.of(context).colorScheme.error,
             ),
           );
@@ -135,7 +138,6 @@ class _SettlementFormState extends ConsumerState<SettlementForm> {
 
   @override
   Widget build(BuildContext context) {
-    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
     final dateFormat = intl.DateFormat.yMMMd(
       Localizations.localeOf(context).toString(),
     );
@@ -147,34 +149,37 @@ class _SettlementFormState extends ConsumerState<SettlementForm> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          BeityCard(
+          SawaCard(
             padding: const EdgeInsets.all(AppSpacing.md),
             child: Column(
               children: [
-                BeityTextField(
+                SawaTextField(
                   controller: _amountController,
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
-                  labelText: isArabic ? 'المبلغ' : 'Amount',
+                  labelText: context.translate('amount', fallback: 'Amount'),
                   hintText: '0.00',
                   suffixIcon: const Icon(Icons.currency_exchange_rounded),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return isArabic
-                          ? 'الرجاء إدخال المبلغ'
-                          : 'Please enter amount';
+                      return context.translate(
+                        'please_enter_amount',
+                        fallback: 'Please enter amount',
+                      );
                     }
                     final amount = value.tryParseDouble();
                     if (amount == null || amount <= 0) {
-                      return isArabic
-                          ? 'الرجاء إدخال مبلغ صحيح'
-                          : 'Please enter a valid amount';
+                      return context.translate(
+                        'please_enter_valid_amount',
+                        fallback: 'Please enter a valid amount',
+                      );
                     }
                     if (amount * 100 > widget.maxAmount) {
-                      return isArabic
-                          ? 'المبلغ أكبر من الرصيد المتبقي'
-                          : 'Amount exceeds remaining balance';
+                      return context.translate(
+                        'amount_exceeds_balance',
+                        fallback: 'Amount exceeds remaining balance',
+                      );
                     }
                     return null;
                   },
@@ -185,7 +190,7 @@ class _SettlementFormState extends ConsumerState<SettlementForm> {
                   initialValue: _paymentMethod,
                   style: theme.textTheme.bodyLarge,
                   decoration: InputDecoration(
-                    labelText: isArabic ? 'طريقة الدفع' : 'Payment Method',
+                    labelText: context.translate('payment_method', fallback: 'Payment Method'),
                     prefixIcon: const Icon(Icons.payments_rounded),
                     labelStyle: theme.textTheme.bodyMedium?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
@@ -217,15 +222,15 @@ class _SettlementFormState extends ConsumerState<SettlementForm> {
                   items: [
                     DropdownMenuItem(
                       value: 'cash',
-                      child: Text(isArabic ? 'نقدي' : 'Cash'),
+                      child: Text(context.translate('cash', fallback: 'Cash')),
                     ),
                     DropdownMenuItem(
                       value: 'transfer',
-                      child: Text(isArabic ? 'تحويل بنكي' : 'Bank Transfer'),
+                      child: Text(context.translate('bank_transfer', fallback: 'Bank Transfer')),
                     ),
                     DropdownMenuItem(
                       value: 'other',
-                      child: Text(isArabic ? 'أخرى' : 'Other'),
+                      child: Text(context.translate('other', fallback: 'Other')),
                     ),
                   ],
                   onChanged: (value) {
@@ -270,7 +275,7 @@ class _SettlementFormState extends ConsumerState<SettlementForm> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              isArabic ? 'التاريخ' : 'Date',
+                              context.translate('date', fallback: 'Date'),
                               style: theme.textTheme.labelSmall?.copyWith(
                                 color: theme.colorScheme.onSurfaceVariant,
                                 fontWeight: FontWeight.bold,
@@ -293,8 +298,8 @@ class _SettlementFormState extends ConsumerState<SettlementForm> {
           ),
           AppSpacing.gapXL,
 
-          BeityButton(
-            text: isArabic ? 'تسجيل الدفعة' : 'Record Settlement',
+          SawaButton(
+            text: context.translate('record_payment', fallback: 'Record Payment'),
             onPressed: _submit,
             isLoading: _isLoading,
             icon: Icons.check_circle_outline_rounded,

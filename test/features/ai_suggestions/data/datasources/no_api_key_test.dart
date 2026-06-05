@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:beity/features/ai_suggestions/data/models/ai_suggestion_request_model.dart';
-import 'package:beity/features/ai_suggestions/domain/entities/ai_suggestion_request.dart';
+import 'package:sawa/features/ai_suggestions/data/models/ai_suggestion_request_model.dart';
+import 'package:sawa/features/ai_suggestions/domain/entities/ai_suggestion_request.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 

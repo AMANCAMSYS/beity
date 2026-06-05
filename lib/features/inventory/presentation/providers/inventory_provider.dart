@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:beity/core/services/supabase_service.dart';
-import 'package:beity/core/services/sync_service.dart';
+import 'package:sawa/core/services/supabase_service.dart';
+import 'package:sawa/core/services/sync_service.dart';
 import '../../data/datasources/inventory_local_datasource.dart';
 import '../../data/models/inventory_item_model.dart';
 import '../../data/repositories/inventory_repository.dart';

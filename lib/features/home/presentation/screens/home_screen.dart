@@ -1,9 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
+import '../../../../app/router/shopping_route_paths.dart';
 import '../../../homes/presentation/providers/homes_provider.dart';
+import '../../../homes/data/models/home_model.dart';
 import '../../../activity_logs/presentation/providers/activity_logs_provider.dart';
 import '../../../activity_logs/presentation/utils/activity_localizer.dart';
 import '../../../shopping_lists/presentation/providers/shopping_lists_provider.dart';
@@ -19,16 +23,16 @@ import '../../../homes/presentation/screens/onboarding_screen.dart';
 import '../widgets/home_quick_actions.dart';
 import '../widgets/home_active_list_card.dart';
 import '../widgets/home_header_sliver.dart';
-import 'package:beity/app/theme/app_spacing.dart';
-import 'package:beity/app/theme/app_colors.dart';
-import 'package:beity/shared/widgets/design_system/beity_card.dart';
-import 'package:beity/shared/widgets/design_system/beity_empty_state.dart';
-import 'package:beity/shared/widgets/design_system/beity_button.dart';
-import 'package:beity/core/localization/app_localizations.dart';
-import 'package:beity/core/services/startup_prefetch_provider.dart';
-import 'package:beity/core/services/sync_coordinator.dart';
-import 'package:beity/core/services/initial_data_hydration_service.dart';
-import 'package:beity/features/offline_queue/presentation/providers/connectivity_provider.dart';
+import 'package:sawa/app/theme/app_spacing.dart';
+import 'package:sawa/app/theme/app_colors.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_card.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_empty_state.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_button.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
+import 'package:sawa/core/services/startup_prefetch_provider.dart';
+import 'package:sawa/core/services/sync_coordinator.dart';
+import 'package:sawa/core/services/initial_data_hydration_service.dart';
+import 'package:sawa/features/offline_queue/presentation/providers/connectivity_provider.dart';
 import '../../data/models/home_dashboard_snapshot.dart';
 import '../../data/datasources/home_dashboard_snapshot_datasource.dart';
 import '../providers/home_dashboard_snapshot_updater.dart';
@@ -42,6 +46,7 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   bool _tourScheduled = false;
+  Timer? _tourTimer;
 
   @override
   void initState() {
@@ -55,6 +60,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   @override
+  void dispose() {
+    _tourTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     // Start progressive prefetching of all user data in the background (Phase 3)
     ref.watch(startupPrefetchProvider);
@@ -64,11 +75,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     if (hydration.status == HydrationStatus.hydratingHomes ||
         hydration.status == HydrationStatus.hydratingData) {
-      final locale = Localizations.localeOf(context).languageCode;
-      final titleText = locale == 'ar' ? 'جاري تجهيز بيانات منزلك...' : 'Preparing your home data...';
-      final subtitleText = locale == 'ar'
-          ? 'نعمل على مزامنة قوائمك وإعداداتك لتكون جاهزة للاستخدام فوراً.'
-          : 'We are syncing your lists and settings to be ready immediately.';
       return Scaffold(
         body: Center(
           child: Padding(
@@ -79,16 +85,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 const CircularProgressIndicator(),
                 AppSpacing.gapXL,
                 Text(
-                  titleText,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                  context.translate('preparing_home_data'),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                   textAlign: TextAlign.center,
                 ),
                 AppSpacing.gapMD,
                 Text(
-                  subtitleText,
+                  context.translate('syncing_lists_message'),
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                   textAlign: TextAlign.center,
                 ),
               ],
@@ -99,13 +107,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
 
     if (hydration.status == HydrationStatus.error) {
-      final locale = Localizations.localeOf(context).languageCode;
-      final errorTitle = locale == 'ar' ? 'فشلت المزامنة الأولية' : 'Initial sync failed';
-      final errorSubtitle = locale == 'ar'
-          ? 'يرجى التحقق من اتصال الشبكة وإعادة المحاولة.'
-          : 'Please check your network connection and try again.';
-      final retryText = locale == 'ar' ? 'إعادة المحاولة' : 'Retry';
-
       return Scaffold(
         body: Center(
           child: Padding(
@@ -120,23 +121,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
                 AppSpacing.gapXL,
                 Text(
-                  errorTitle,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                  context.translate('initial_sync_failed'),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                   textAlign: TextAlign.center,
                 ),
                 AppSpacing.gapMD,
                 Text(
-                  hydration.error ?? errorSubtitle,
+                  hydration.error ?? context.translate('check_network_retry'),
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                   textAlign: TextAlign.center,
                 ),
                 AppSpacing.gapXXL,
-                BeityButton(
-                  text: retryText,
+                SawaButton(
+                  text: context.translate('retry'),
                   onPressed: () {
-                    ref.read(initialDataHydrationServiceProvider.notifier).hydrate(force: true);
+                    ref
+                        .read(initialDataHydrationServiceProvider.notifier)
+                        .hydrate(force: true);
                   },
                 ),
               ],
@@ -148,26 +153,45 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     // 1. Synchronous reads for instant WhatsApp-like rendering (Phase 1 & 6)
     final homes = ref.watch(cachedUserHomesProvider);
-    final activeHomeId = ref.watch(cachedActiveHomeIdProvider);
+    final activeHomeId = ref.watch(resolvedActiveHomeIdProvider);
     final hasHomesAsync = ref.watch(hasHomesProvider);
 
-    final hasHomes = hasHomesAsync.valueOrNull ?? true;
+    if (hasHomesAsync.isLoading && !hasHomesAsync.hasValue) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    final hasHomes = hasHomesAsync.value ?? true;
 
     // Trigger onboarding if initial sync completed and there are no homes
-    if (hasHomesAsync.valueOrNull == false || (!hasHomes && homes.isEmpty)) {
+    final isHydrationComplete = hydration.status == HydrationStatus.success;
+    if (hasHomesAsync.value == false || (!hasHomes && homes.isEmpty) || (isHydrationComplete && homes.isEmpty)) {
       return const OnboardingScreen();
     }
 
     if (homes.isEmpty) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      // idle = hydration hasn't started yet (transient), hydratingHomes/Data = in progress.
+      // Both are caught here as a spinner. If hydrate() fails, the outer try-catch
+      // sets status to error → caught at line 116 above → error screen, not this spinner.
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    final activeHome = homes.firstWhere(
-      (h) => h.id == activeHomeId,
-      orElse: () => homes.first,
-    );
+    HomeModel? activeHome;
+    if (activeHomeId != null && activeHomeId.isNotEmpty) {
+      for (final home in homes) {
+        if (home.id == activeHomeId) {
+          activeHome = home;
+          break;
+        }
+      }
+    }
+
+    if (activeHome == null) {
+      // Only show spinner during active hydration; otherwise fall back to first home.
+      if (hydration.status == HydrationStatus.hydratingHomes ||
+          hydration.status == HydrationStatus.hydratingData) {
+        return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      }
+      activeHome = homes.first;
+    }
 
     final homeId = activeHome.id;
 
@@ -179,7 +203,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       _tourScheduled = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         // Wait briefly for animations/layout to settle
-        Future.delayed(const Duration(milliseconds: 800), () {
+        _tourTimer = Timer(const Duration(milliseconds: 800), () {
           if (!context.mounted) return;
           ref.read(appTourControllerProvider.notifier).maybeStartTour(context);
         });
@@ -198,7 +222,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final syncState = ref.watch(syncCoordinatorProvider);
     final connectivityAsync = ref.watch(connectivityStatusProvider);
 
-    final isOffline = connectivityAsync.valueOrNull?.isOffline ?? false;
+    final isOffline = connectivityAsync.value?.isOffline ?? false;
 
     return CustomScrollView(
       physics: const BouncingScrollPhysics(),
@@ -220,9 +244,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
               // ── Active list summary ──
               shoppingListsAsync.when(
+                skipLoadingOnReload: true,
                 data: (lists) {
-                  if (lists.isEmpty) return _buildEmptyListCard(homeId);
-                  final activeList = lists.first;
+                  final activeLists = lists.where((l) => l.isActive).toList();
+                  if (activeLists.isEmpty) return _buildEmptyListCard(homeId);
+                  final activeList = activeLists.first;
                   return HomeActiveListCard(activeList: activeList);
                 },
                 loading: () {
@@ -230,7 +256,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   if (snapshot != null && snapshot.activeListId != null) {
                     return _buildActiveListSnapshotCard(snapshot);
                   }
-                  return const BeityCard(
+                  return const SawaCard(
                     child: Padding(
                       padding: EdgeInsets.all(AppSpacing.xl),
                       child: Center(child: CircularProgressIndicator()),
@@ -241,13 +267,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   if (snapshot != null && snapshot.activeListId != null) {
                     return _buildActiveListSnapshotCard(snapshot);
                   }
-                  return BeityEmptyState(
+                  return SawaEmptyState(
                     title: context.translate('error_loading_lists'),
-                    message: e.toString(),
+                    message: context.translate('error_loading_lists_message'),
                     icon: Icons.error_outline_rounded,
                     isError: true,
                     actionText: context.translate('retry'),
-                    onAction: () => ref.invalidate(shoppingListsProvider(homeId)),
+                    onAction: () =>
+                        ref.invalidate(shoppingListsProvider(homeId)),
                   );
                 },
               ),
@@ -255,6 +282,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
               // ── All shopping lists ──
               shoppingListsAsync.when(
+                skipLoadingOnReload: true,
                 data: (lists) {
                   if (lists.isEmpty) return const SizedBox.shrink();
                   return _buildShoppingListsSection(lists);
@@ -276,12 +304,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   // ─── Active list snapshot fallback card (Phase 4 & 6) ──────────────────────────────────────────
   Widget _buildActiveListSnapshotCard(HomeDashboardSnapshot snapshot) {
+    final activeListId = snapshot.activeListId;
+    if (activeListId == null || activeListId.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
     final total = snapshot.totalShoppingItemsCount;
     final remaining = snapshot.remainingShoppingItemsCount;
     final progress = total > 0 ? (total - remaining) / total : 0.0;
 
-    return BeityCard(
-      onTap: () => context.push('/shopping-list/${snapshot.activeListId}'),
+    return SawaCard(
+      onTap: () => context.push(ShoppingRoutePaths.detail(activeListId)),
       padding: EdgeInsets.zero,
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.lg),
@@ -293,7 +326,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 Container(
                   padding: const EdgeInsets.all(AppSpacing.md),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
                   ),
                   child: Icon(
@@ -309,27 +344,35 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     children: [
                       Text(
                         snapshot.activeListName ?? '',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                       Text(
                         remaining == 0
                             ? context.translate('list_empty')
-                            : context.translate('items_remaining_count', arguments: {
-                                'remaining': remaining.toString(),
-                                'total': total.toString(),
-                              }),
+                            : context.translate(
+                                'items_remaining_count',
+                                arguments: {
+                                  'remaining': remaining.toString(),
+                                  'total': total.toString(),
+                                },
+                              ),
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            ),
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
                       ),
                     ],
                   ),
                 ),
                 if (total > 0)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.xs),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.md,
+                      vertical: AppSpacing.xs,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.success.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
@@ -353,7 +396,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   value: progress,
                   minHeight: 8,
                   backgroundColor: AppColors.success.withValues(alpha: 0.15),
-                  valueColor: const AlwaysStoppedAnimation<Color>(AppColors.success),
+                  valueColor: const AlwaysStoppedAnimation<Color>(
+                    AppColors.success,
+                  ),
                 ),
               ),
             ],
@@ -361,19 +406,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             Row(
               children: [
                 Expanded(
-                  child: BeityButton(
-                    onPressed: () => context.push('/shopping-list/${snapshot.activeListId}'),
+                  child: SawaButton(
+                    onPressed: () =>
+                        context.push(ShoppingRoutePaths.detail(activeListId)),
                     text: context.translate('open_list'),
-                    type: BeityButtonType.secondary,
+                    type: SawaButtonType.secondary,
                     icon: Icons.list_alt_rounded,
                   ),
                 ),
                 AppSpacing.gapMD,
                 Expanded(
-                  child: BeityButton(
+                  child: SawaButton(
                     onPressed: () {
                       context.push(
-                        '/shopping-list/${snapshot.activeListId}/shopping-mode',
+                        ShoppingRoutePaths.shoppingMode(activeListId),
                         extra: {
                           'homeId': snapshot.homeId,
                           'listName': snapshot.activeListName ?? '',
@@ -381,7 +427,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       );
                     },
                     text: context.translate('shopping_mode'),
-                    type: BeityButtonType.primary,
+                    type: SawaButtonType.primary,
                     icon: Icons.shopping_bag_rounded,
                   ),
                 ),
@@ -396,13 +442,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   // ─── Sync Status Micro Bar Widget (Phase 8) ──────────────────────────────────────────
   Widget _buildSyncStatusBar(SyncState syncState, bool isOffline) {
     if (isOffline) {
-      final locale = Localizations.localeOf(context).languageCode;
-      final text = locale == 'ar'
-          ? 'أنت تعمل دون اتصال، سيتم حفظ التغييرات ومزامنتها لاحقاً'
-          : 'You are working offline. Changes will be synced later.';
       return Container(
         margin: const EdgeInsets.only(bottom: AppSpacing.md),
-        padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm, horizontal: AppSpacing.md),
+        padding: const EdgeInsets.symmetric(
+          vertical: AppSpacing.sm,
+          horizontal: AppSpacing.md,
+        ),
         decoration: BoxDecoration(
           color: AppColors.warning.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
@@ -410,11 +455,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
         child: Row(
           children: [
-            const Icon(Icons.wifi_off_rounded, color: AppColors.warning, size: 18),
+            const Icon(
+              Icons.wifi_off_rounded,
+              color: AppColors.warning,
+              size: 18,
+            ),
             AppSpacing.gapMD,
             Expanded(
               child: Text(
-                text,
+                context.translate('offline_mode_message'),
                 style: const TextStyle(
                   color: AppColors.warning,
                   fontWeight: FontWeight.bold,
@@ -428,11 +477,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
 
     if (syncState.status == SyncStatus.syncing) {
-      final locale = Localizations.localeOf(context).languageCode;
-      final text = locale == 'ar' ? 'جاري تحديث البيانات...' : 'Updating data...';
       return Container(
         margin: const EdgeInsets.only(bottom: AppSpacing.md),
-        padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm, horizontal: AppSpacing.md),
+        padding: const EdgeInsets.symmetric(
+          vertical: AppSpacing.sm,
+          horizontal: AppSpacing.md,
+        ),
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
@@ -444,13 +494,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               height: 14,
               child: CircularProgressIndicator(
                 strokeWidth: 2,
-                valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.primary),
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  Theme.of(context).colorScheme.primary,
+                ),
               ),
             ),
             AppSpacing.gapMD,
             Expanded(
               child: Text(
-                text,
+                context.translate('updating_data'),
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.primary,
                   fontSize: 14,
@@ -480,18 +532,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
             ),
             TextButton(
-              onPressed: () => context.push('/shopping-lists'),
+              onPressed: () => context.go(ShoppingRoutePaths.lists),
               child: Text(context.translate('view_all')),
             ),
           ],
         ),
         AppSpacing.gapSM,
         ...lists
+            .where((l) => l.isActive)
             .take(5)
             .map(
               (list) => Padding(
                 padding: const EdgeInsets.only(bottom: AppSpacing.sm),
                 child: ShoppingListTile(
+                  homeId: list.homeId,
                   listId: list.id,
                   listName: list.name,
                   icon: list.icon,
@@ -504,12 +558,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   // ─── Empty list card ─────────────────────────────────────────────────
   Widget _buildEmptyListCard(String homeId) {
-    return BeityEmptyState(
+    return SawaEmptyState(
       title: context.translate('no_shopping_lists'),
       message: context.translate('no_shopping_lists_desc'),
       icon: Icons.shopping_cart_outlined,
       actionText: context.translate('create_list'),
-      onAction: () => context.push('/shopping-lists/create', extra: homeId),
+      onAction: () => context.push(ShoppingRoutePaths.create, extra: homeId),
     );
   }
 
@@ -530,7 +584,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
               ),
               AppSpacing.gapLG,
-              BeityEmptyState(
+              SawaEmptyState(
                 title: context.translate('no_activities_yet'),
                 message: context.translate('no_activities_desc'),
                 icon: Icons.history_rounded,
@@ -546,7 +600,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               .map(
                 (a) => ActivityItem(
                   userName: a.actorName ?? context.translate('user_label'),
-                  action: a.getLocalizedDescription(context).replaceAll(a.entityName ?? '', '').trim(),
+                  action: a
+                      .getLocalizedDescription(context)
+                      .replaceAll(a.entityName ?? '', '')
+                      .trim(),
                   itemName: a.entityName ?? '',
                   icon: _getActionIcon(a.action.value),
                   color: _getActionColor(a.action.value),
@@ -554,7 +611,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
               )
               .toList(),
-          onViewAll: () => context.push('/activity'),
+          onViewAll: () => context.go('/activity'),
         );
       },
       loading: () {
@@ -580,13 +637,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
             ),
             AppSpacing.gapLG,
-            BeityEmptyState(
-              title: context.translate('error_loading_activities', arguments: {'error': e.toString()}),
-              message: e.toString(),
+            SawaEmptyState(
+              title: context.translate('error_loading_activities'),
+              message: context.translate('error_loading_activities_message'),
               icon: Icons.error_outline_rounded,
               isError: true,
               actionText: context.translate('retry'),
-              onAction: () => ref.invalidate(recentHomeActivityProvider(homeId)),
+              onAction: () =>
+                  ref.invalidate(recentHomeActivityProvider(homeId)),
             ),
           ],
         );
@@ -601,7 +659,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       children: [
         Text(
           context.translate('recent_activity'),
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
         ),
         AppSpacing.gapLG,
         RecentActivityWidget(
@@ -615,7 +675,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               timeAgo: '',
             ),
           ],
-          onViewAll: () => context.push('/activity'),
+          onViewAll: () => context.go('/activity'),
         ),
       ],
     );

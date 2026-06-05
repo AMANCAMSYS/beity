@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:beity/features/ai_suggestions/data/models/ai_suggestion_model.dart';
+import 'package:sawa/features/ai_suggestions/data/models/ai_suggestion_model.dart';
 
 void main() {
   group('AiSuggestionModel', () {

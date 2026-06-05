@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:beity/core/services/shared_prefs_provider.dart';
+import 'package:sawa/core/services/shared_prefs_provider.dart';
 
 /// Versioned onboarding storage.
 ///

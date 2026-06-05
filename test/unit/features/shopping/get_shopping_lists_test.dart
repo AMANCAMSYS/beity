@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:beity/features/shopping_lists/domain/entities/shopping_list.dart';
-import 'package:beity/features/shopping_lists/data/models/shopping_list_model.dart';
-import 'package:beity/features/shopping_lists/data/repositories/shopping_list_repository.dart';
-import 'package:beity/features/shopping_lists/domain/usecases/get_shopping_lists_usecase.dart';
+import 'package:sawa/features/shopping_lists/domain/entities/shopping_list.dart';
+import 'package:sawa/features/shopping_lists/data/models/shopping_list_model.dart';
+import 'package:sawa/features/shopping_lists/data/repositories/shopping_list_repository.dart';
+import 'package:sawa/features/shopping_lists/domain/usecases/get_shopping_lists_usecase.dart';
 
 class MockShoppingListRepository extends Mock implements ShoppingListRepository {}
 

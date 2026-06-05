@@ -1,12 +1,14 @@
 import 'dart:ui';
-import 'package:beity/core/services/supabase_service.dart';
-import 'package:beity/app/theme/app_colors.dart';
-import 'package:beity/core/config/feature_flags.dart';
-import 'package:beity/features/ai_suggestions/presentation/widgets/ai_list_selector_sheet.dart';
-import 'package:beity/features/beta/data/beta_config.dart';
-import 'package:beity/features/beta/presentation/feedback_bottom_sheet.dart';
-import 'package:beity/features/auth/presentation/providers/auth_provider.dart';
-import 'package:beity/features/homes/presentation/providers/homes_provider.dart';
+import 'package:sawa/app/router/shopping_route_paths.dart';
+import 'package:sawa/core/services/supabase_service.dart';
+import 'package:sawa/app/theme/app_colors.dart';
+import 'package:sawa/core/config/feature_flags.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
+import 'package:sawa/features/ai_suggestions/presentation/widgets/ai_list_selector_sheet.dart';
+import 'package:sawa/features/beta/data/beta_config.dart';
+import 'package:sawa/features/beta/presentation/feedback_bottom_sheet.dart';
+import 'package:sawa/features/auth/presentation/providers/auth_provider.dart';
+import 'package:sawa/features/homes/presentation/providers/homes_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -57,12 +59,12 @@ class AppDrawer extends ConsumerWidget {
                     child: ListView(
                       padding: const EdgeInsets.symmetric(horizontal: 6),
                       children: [
-                        _label(context, 'رئيسي'),
+                        _label(context, context.translate('drawer_section_main')),
                         _item(
                           context,
                           theme,
                           Icons.home_rounded,
-                          'الرئيسية',
+                          context.translate('home_tab'),
                           path == '/',
                           () => _go(context, '/'),
                         ),
@@ -70,36 +72,36 @@ class AppDrawer extends ConsumerWidget {
                           context,
                           theme,
                           Icons.shopping_cart_rounded,
-                          'قوائم التسوق',
-                          path.startsWith('/shopping-list'),
-                          () => _go(context, '/shopping-lists'),
+                          context.translate('shopping_lists'),
+                          path.startsWith(ShoppingRoutePaths.detailPrefix),
+                          () => _go(context, ShoppingRoutePaths.lists),
                           enabled: hasHome,
                         ),
                         _item(
                           context,
                           theme,
                           Icons.shopping_bag_rounded,
-                          'وضع التسوق',
-                          path == '/shopping-mode',
-                          () => _go(context, '/shopping-mode'),
+                          context.translate('shopping_mode'),
+                          path == ShoppingRoutePaths.mode,
+                          () => _go(context, ShoppingRoutePaths.mode),
                           enabled: hasHome,
                         ),
                         _item(
                           context,
                           theme,
                           Icons.history_rounded,
-                          'النشاطات',
+                          context.translate('activity_tab'),
                           path.startsWith('/activity'),
                           () => _go(context, '/activity'),
                           enabled: hasHome,
                         ),
                         _sep(context),
-                        _label(context, 'المنزل'),
+                        _label(context, context.translate('drawer_section_home')),
                         _item(
                           context,
                           theme,
                           Icons.home_work_rounded,
-                          'المنازل',
+                          context.translate('homes'),
                           path.startsWith('/homes'),
                           () => _push(context, '/homes'),
                         ),
@@ -107,7 +109,7 @@ class AppDrawer extends ConsumerWidget {
                           context,
                           theme,
                           Icons.group_rounded,
-                          'الأعضاء',
+                          context.translate('home_members'),
                           path.contains('/members'),
                           () => _push(context, '/homes/$homeId/members'),
                           enabled: hasHome,
@@ -116,7 +118,7 @@ class AppDrawer extends ConsumerWidget {
                           context,
                           theme,
                           Icons.mail_rounded,
-                          'الدعوات',
+                          context.translate('invitations'),
                           path.startsWith('/invitations'),
                           () => _push(context, '/invitations'),
                         ),
@@ -125,13 +127,13 @@ class AppDrawer extends ConsumerWidget {
                             FeatureFlags.enableTasks ||
                             FeatureFlags.enableAi) ...[
                           _sep(context),
-                          _label(context, 'الأدوات'),
+                          _label(context, context.translate('drawer_section_tools')),
                           if (FeatureFlags.enableInventory)
                             _item(
                               context,
                               theme,
                               Icons.inventory_2_rounded,
-                              'المخزون',
+                              context.translate('inventory'),
                               path.startsWith('/inventory'),
                               () => _push(context, '/inventory'),
                               enabled: hasHome,
@@ -141,7 +143,7 @@ class AppDrawer extends ConsumerWidget {
                               context,
                               theme,
                               Icons.account_balance_wallet_rounded,
-                              'المصروفات',
+                              context.translate('expenses'),
                               path.startsWith('/expenses'),
                               () => _push(context, '/expenses'),
                               enabled: hasHome,
@@ -151,7 +153,7 @@ class AppDrawer extends ConsumerWidget {
                               context,
                               theme,
                               Icons.task_alt_rounded,
-                              'المهام',
+                              context.translate('tasks'),
                               path.contains('/tasks'),
                               () => _push(context, '/home/$homeId/tasks'),
                               enabled: hasHome,
@@ -161,7 +163,7 @@ class AppDrawer extends ConsumerWidget {
                               context,
                               theme,
                               Icons.auto_awesome_rounded,
-                              'المساعد الذكي',
+                              context.translate('ai_assistant'),
                               false,
                               () => _runAfterClosingDrawer(
                                 context,
@@ -173,12 +175,12 @@ class AppDrawer extends ConsumerWidget {
                             ),
                         ],
                         _sep(context),
-                        _label(context, 'إعدادات'),
+                        _label(context, context.translate('drawer_section_settings')),
                         _item(
                           context,
                           theme,
                           Icons.settings_rounded,
-                          'الإعدادات العامة',
+                          context.translate('settings'),
                           path == '/settings',
                           () => _go(context, '/settings'),
                         ),
@@ -186,7 +188,7 @@ class AppDrawer extends ConsumerWidget {
                           context,
                           theme,
                           Icons.person_rounded,
-                          'الملف الشخصي',
+                          context.translate('profile'),
                           path == '/profile',
                           () => _push(context, '/profile'),
                         ),
@@ -194,7 +196,7 @@ class AppDrawer extends ConsumerWidget {
                           context,
                           theme,
                           Icons.category_rounded,
-                          'التصنيفات',
+                          context.translate('categories'),
                           path.startsWith('/categories'),
                           () => _push(context, '/categories'),
                           enabled: hasHome,
@@ -203,7 +205,7 @@ class AppDrawer extends ConsumerWidget {
                           context,
                           theme,
                           Icons.straighten_rounded,
-                          'وحدات القياس',
+                          context.translate('units'),
                           path.startsWith('/units'),
                           () => _push(context, '/units'),
                           enabled: hasHome,
@@ -212,7 +214,7 @@ class AppDrawer extends ConsumerWidget {
                           context,
                           theme,
                           Icons.notifications_rounded,
-                          'الإشعارات',
+                          context.translate('notifications'),
                           path.startsWith('/notifications'),
                           () => _push(context, '/notifications'),
                         ),
@@ -225,7 +227,7 @@ class AppDrawer extends ConsumerWidget {
                       context,
                       theme,
                       Icons.feedback_rounded,
-                      'ملاحظات',
+                      context.translate('feedback'),
                       false,
                       () => _runAfterClosingDrawer(
                         context,
@@ -236,7 +238,7 @@ class AppDrawer extends ConsumerWidget {
                     context,
                     theme,
                     Icons.logout_rounded,
-                    'تسجيل الخروج',
+                    context.translate('sign_out'),
                     false,
                     () => _runAfterClosingDrawer(context, () async {
                       try {
@@ -245,8 +247,8 @@ class AppDrawer extends ConsumerWidget {
                       } catch (e) {
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('فشل تسجيل الخروج'),
+                            SnackBar(
+                              content: Text(context.translate('sign_out_failed')),
                               backgroundColor: AppColors.error,
                             ),
                           );
@@ -305,7 +307,7 @@ class AppDrawer extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      name.isNotEmpty ? name : 'مستخدم',
+                      name.isNotEmpty ? name : context.translate('user'),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodySmall?.copyWith(

@@ -37,10 +37,13 @@ class SyncStatusState {
   bool get isOnline => deviceStatus.isOnline;
 }
 
-final syncStatusProvider =
-    FutureProvider.family<SyncStatusState, String>((ref, homeId) async {
-  final connectivityStatus =
-      await ref.watch(currentConnectivityProvider.future);
+final syncStatusProvider = FutureProvider.family<SyncStatusState, String>((
+  ref,
+  homeId,
+) async {
+  final connectivityStatus = await ref.watch(
+    currentConnectivityProvider.future,
+  );
   final pendingCount = await ref.watch(pendingCountProvider(homeId).future);
 
   final failedEntries = await ref

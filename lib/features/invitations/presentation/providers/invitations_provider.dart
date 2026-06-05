@@ -1,13 +1,19 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:beity/core/services/supabase_service.dart';
+import 'package:flutter_riverpod/legacy.dart';
+import 'package:sawa/core/services/supabase_service.dart';
 
 import '../../../homes/presentation/providers/homes_provider.dart';
 import '../../data/models/invitation_model.dart';
 import '../../data/repositories/invitation_repository.dart';
-import '../../data/repositories/supabase_invitation_repository.dart';
+import '../../data/repositories/local_first_invitation_repository.dart';
+import '../../../offline_queue/presentation/providers/offline_queue_provider.dart';
 
 final invitationRepositoryProvider = Provider<InvitationRepository>((ref) {
-  return SupabaseInvitationRepository(SupabaseService.client);
+  final queueDataSource = ref.read(queueDataSourceProvider);
+  return LocalFirstInvitationRepository(
+    client: SupabaseService.client,
+    queueDataSource: queueDataSource,
+  );
 });
 
 final userInvitationsProvider = FutureProvider<List<InvitationModel>>((ref) async {
@@ -76,6 +82,13 @@ class InvitationNotifier extends StateNotifier<AsyncValue<void>> {
       final invitation = await _repo.acceptInvitation(
         token: token,
       );
+      
+      try {
+        final homeRepo = _ref.read(homeRepositoryProvider);
+        await homeRepo.syncHomesWithServer();
+        await homeRepo.syncMembersWithServer(invitation.homeId);
+      } catch (_) {}
+
       _invalidateRelatedProviders(invitation.homeId);
       state = const AsyncValue.data(null);
       return invitation;

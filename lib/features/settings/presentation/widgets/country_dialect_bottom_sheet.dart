@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_spacing.dart';
-import '../../../../shared/widgets/design_system/beity_button.dart';
-import '../../../../shared/widgets/design_system/beity_card.dart';
+import '../../../../shared/widgets/design_system/sawa_button.dart';
+import '../../../../shared/widgets/design_system/sawa_card.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../providers/app_settings_provider.dart';
+import '../../../../core/localization/app_localizations.dart';
 
 class CountryDialectBottomSheet extends ConsumerStatefulWidget {
   final String? currentCountry;
@@ -55,68 +56,11 @@ class _CountryDialectBottomSheetState extends ConsumerState<CountryDialectBottom
   }
 
   String _translate(String key) {
-    final Map<String, Map<String, String>> localizedValues = {
-      'ar': {
-        'title': 'بلد اللهجة والذكاء الاصطناعي',
-        'subtitle': 'اختر بلدك لتخصيص مصطلحات ولهجة الذكاء الاصطناعي حسب مطبخك المحلي',
-        'save': 'حفظ التغييرات',
-        'saving': 'جاري الحفظ...',
-        'success': 'تم تحديث بلد اللهجة بنجاح',
-        'failed': 'فشل التحديث، حاول مرة أخرى',
-        'country_sa': 'المملكة العربية السعودية',
-        'country_eg': 'جمهورية مصر العربية',
-        'country_tr': 'الجمهورية التركية',
-        'country_ae': 'الإمارات العربية المتحدة',
-        'country_jo': 'الأردن وبلاد الشام',
-        'country_other': 'دولة أخرى / عالمي',
-        'dialect_gulf': 'لهجة خليجية ومصطلحات سعودية',
-        'dialect_egyptian': 'لهجة مصرية ومصطلحات مصرية',
-        'dialect_turkish': 'لهجة ومصطلحات تركية',
-        'dialect_levantine': 'لهجة شامية ومصطلحات شامية',
-        'dialect_standard': 'عربية فصحى مبسطة وعالمية',
-      },
-      'en': {
-        'title': 'AI Country & Dialect',
-        'subtitle': 'Select your country to customize AI terminology and dialect to fit your local kitchen',
-        'save': 'Save Changes',
-        'saving': 'Saving...',
-        'success': 'Country & dialect updated successfully',
-        'failed': 'Update failed, please try again',
-        'country_sa': 'Saudi Arabia',
-        'country_eg': 'Egypt',
-        'country_tr': 'Turkey',
-        'country_ae': 'United Arab Emirates',
-        'country_jo': 'Jordan & Levant',
-        'country_other': 'Other / Global',
-        'dialect_gulf': 'Gulf/Saudi dialect & local naming',
-        'dialect_egyptian': 'Egyptian dialect & kitchen naming',
-        'dialect_turkish': 'Turkish dialect & terminology',
-        'dialect_levantine': 'Levantine dialect & naming',
-        'dialect_standard': 'Standard Modern Arabic / English',
-      },
-      'tr': {
-        'title': 'YZ Ülke ve Ağız Ayarı',
-        'subtitle': 'YZ terimlerini ve ağzını yerel mutfağınıza göre özelleştirmek için ülkenizi seçin',
-        'save': 'Değişiklikleri Kaydet',
-        'saving': 'Kaydediliyor...',
-        'success': 'Ülke ve ağız başarıyla güncellendi',
-        'failed': 'Güncelleme başarısız oldu, lütfen tekrar deneyin',
-        'country_sa': 'Suudi Arabistan',
-        'country_eg': 'Mısır',
-        'country_tr': 'Türkiye',
-        'country_ae': 'Birleşik Arap Emirlikleri',
-        'country_jo': 'Ürdün ve Levant',
-        'country_other': 'Diğer / Küresel',
-        'dialect_gulf': 'Körfez/Suudi ağzı ve yerel adlandırma',
-        'dialect_egyptian': 'Mısır ağzı ve mutfak adlandırması',
-        'dialect_turkish': 'Türkçe ağız ve terimler',
-        'dialect_levantine': 'Levant ağzı ve yerel adlandırma',
-        'dialect_standard': 'Standart Modern Arapça / Türkçe',
-      }
-    };
-
-    final lang = widget.languageCode;
-    return localizedValues[lang]?[key] ?? localizedValues['ar']?[key] ?? key;
+    if (key == 'title') return context.translate('ai_country_dialect');
+    if (key == 'subtitle') return context.translate('ai_country_dialect_desc');
+    if (key == 'success') return context.translate('ai_country_dialect_success');
+    if (key == 'failed') return context.translate('ai_country_dialect_failed');
+    return context.translate(key);
   }
 
   Future<void> _save() async {
@@ -267,7 +211,7 @@ class _CountryDialectBottomSheetState extends ConsumerState<CountryDialectBottom
                       child: AnimatedScale(
                         scale: isSelected ? 1.02 : 1.0,
                         duration: const Duration(milliseconds: 150),
-                        child: BeityCard(
+                        child: SawaCard(
                           backgroundColor: isSelected ? theme.primaryColor.withValues(alpha: 0.12) : null,
                           hasBorder: isSelected,
                           onTap: () {
@@ -320,7 +264,7 @@ class _CountryDialectBottomSheetState extends ConsumerState<CountryDialectBottom
                 ),
               ),
               const SizedBox(height: 16),
-              BeityButton(
+              SawaButton(
                 text: _translate('save'),
                 isLoading: _isLoading,
                 onPressed: _save,

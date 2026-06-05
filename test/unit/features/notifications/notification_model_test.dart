@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:beity/features/notifications/data/models/notification_model.dart';
+import 'package:sawa/features/notifications/data/models/notification_model.dart';
 
 void main() {
   group('NotificationModel.fromJson', () {

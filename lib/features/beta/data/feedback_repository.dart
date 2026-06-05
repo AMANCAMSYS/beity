@@ -1,5 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:beity/core/services/supabase_service.dart';
+import 'package:sawa/core/services/supabase_service.dart';
 
 import '../../../core/monitoring/device_info_service.dart';
 import '../../../core/monitoring/app_log_buffer.dart';

@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:sawa/core/services/supabase_service.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../homes/presentation/providers/homes_provider.dart';
 import '../../domain/entities/task.dart';
 import '../providers/task_providers.dart';
-import '../widgets/recurrence_selector.dart';
 import '../widgets/comment_thread.dart';
 import '../../../../core/utils/action_debouncer.dart';
-import '../../../../shared/widgets/design_system/beity_empty_state.dart';
-import '../../../../shared/widgets/design_system/beity_snack_bar.dart';
-import 'package:beity/core/localization/app_localizations.dart';
-import 'package:beity/core/errors/error_formatter.dart';
-import 'package:beity/features/settings/presentation/providers/app_settings_provider.dart';
+import '../../../../shared/widgets/design_system/sawa_empty_state.dart';
+import '../../../../shared/widgets/design_system/sawa_snack_bar.dart';
+import '../../../../shared/widgets/design_system/sawa_text_field.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
+import 'package:sawa/core/errors/error_formatter.dart';
+import 'package:sawa/features/settings/presentation/providers/app_settings_provider.dart';
 
 class TaskDetailScreen extends ConsumerStatefulWidget {
   final String taskId;
@@ -35,6 +37,8 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
   // Edit state
   final _editTitleController = TextEditingController();
   final _editDescriptionController = TextEditingController();
+  final _editTitleFocusNode = FocusNode();
+  final _editDescriptionFocusNode = FocusNode();
   DateTime? _editDueDate;
   String? _editRecurrenceType;
   String? _editAssignedTo;
@@ -43,6 +47,8 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
   void dispose() {
     _editTitleController.dispose();
     _editDescriptionController.dispose();
+    _editTitleFocusNode.dispose();
+    _editDescriptionFocusNode.dispose();
     super.dispose();
   }
 
@@ -55,9 +61,13 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
     setState(() {
       _isEditing = true;
     });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _editTitleFocusNode.requestFocus();
+    });
   }
 
   void _cancelEditing() {
+    FocusManager.instance.primaryFocus?.unfocus();
     setState(() {
       _isEditing = false;
     });
@@ -66,10 +76,14 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
   Future<void> _saveEditing() async {
     if (_editTitleController.text.trim().isEmpty) {
       if (mounted) {
-        BeitySnackBar.warning(context, context.translate('please_enter_task_title'));
+        SawaSnackBar.warning(
+          context,
+          context.translate('please_enter_task_title'),
+        );
       }
       return;
     }
+    FocusManager.instance.primaryFocus?.unfocus();
 
     setState(() => _isLoading = true);
 
@@ -95,14 +109,17 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
         if (hapticEnabled) {
           HapticFeedback.lightImpact();
         }
-        BeitySnackBar.success(context, context.translate('task_updated_success'));
+        SawaSnackBar.success(
+          context,
+          context.translate('task_updated_success'),
+        );
         setState(() {
           _isEditing = false;
         });
       }
     } catch (e) {
       if (mounted) {
-        BeitySnackBar.error(
+        SawaSnackBar.error(
           context,
           '${context.translate('error_occurred')}: ${ErrorFormatter.format(e, context)}',
         );
@@ -115,9 +132,9 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
   }
 
   Future<void> _toggleComplete() async {
-    final task = await ref.read(taskRepositoryProvider).getTaskById(
-          taskId: widget.taskId,
-        );
+    final task = await ref
+        .read(taskRepositoryProvider)
+        .getTaskById(taskId: widget.taskId);
     if (task == null) return;
 
     setState(() => _isLoading = true);
@@ -131,7 +148,10 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
         }
         await repository.uncompleteTask(taskId: widget.taskId);
         if (mounted) {
-          BeitySnackBar.success(context, context.translate('task_uncompleted_success'));
+          SawaSnackBar.success(
+            context,
+            context.translate('task_uncompleted_success'),
+          );
         }
       } else {
         if (hapticEnabled) {
@@ -142,14 +162,17 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
           await repository.createNextRecurringTask(taskId: widget.taskId);
         }
         if (mounted) {
-          BeitySnackBar.success(context, context.translate('task_completed_success'));
+          SawaSnackBar.success(
+            context,
+            context.translate('task_completed_success'),
+          );
         }
       }
       ref.invalidate(tasksProvider);
       ref.invalidate(taskByIdProvider);
     } catch (e) {
       if (mounted) {
-        BeitySnackBar.error(
+        SawaSnackBar.error(
           context,
           '${context.translate('error_occurred')}: ${ErrorFormatter.format(e, context)}',
         );
@@ -192,12 +215,15 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
           if (hapticEnabled) {
             HapticFeedback.mediumImpact();
           }
-          BeitySnackBar.success(context, context.translate('task_deleted_success'));
-          Navigator.pop(context);
+          SawaSnackBar.success(
+            context,
+            context.translate('task_deleted_success'),
+          );
+          context.pop();
         }
       } catch (e) {
         if (mounted) {
-          BeitySnackBar.error(
+          SawaSnackBar.error(
             context,
             '${context.translate('error_occurred')}: ${ErrorFormatter.format(e, context)}',
           );
@@ -211,6 +237,7 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
   }
 
   Future<void> _selectEditDueDate() async {
+    FocusManager.instance.primaryFocus?.unfocus();
     final picked = await showDatePicker(
       context: context,
       initialDate: _editDueDate ?? DateTime.now(),
@@ -277,7 +304,10 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
                     children: [
                       const Icon(Icons.delete, color: AppColors.error),
                       const SizedBox(width: 8),
-                      Text(context.translate('delete'), style: const TextStyle(color: AppColors.error)),
+                      Text(
+                        context.translate('delete'),
+                        style: const TextStyle(color: AppColors.error),
+                      ),
                     ],
                   ),
                 ),
@@ -288,7 +318,7 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
       body: taskAsync.when(
         data: (task) {
           if (task == null) {
-            return BeityEmptyState(
+            return SawaEmptyState(
               title: context.translate('task_not_found'),
               message: context.translate('task_not_found_desc'),
               icon: Icons.task_alt_rounded,
@@ -296,6 +326,7 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
           }
 
           return SingleChildScrollView(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -306,21 +337,25 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        TextFormField(
+                        SawaTextField(
                           controller: _editTitleController,
-                          decoration: InputDecoration(
-                            labelText: context.translate('task_title'),
-                            border: const OutlineInputBorder(),
-                          ),
+                          focusNode: _editTitleFocusNode,
+                          labelText: context.translate('task_title'),
+                          prefixIcon: Icons.task_alt_rounded,
+                          textInputAction: TextInputAction.next,
+                          onSubmitted: (_) =>
+                              _editDescriptionFocusNode.requestFocus(),
                         ),
                         const SizedBox(height: 16),
-                        TextFormField(
+                        SawaTextField(
                           controller: _editDescriptionController,
+                          focusNode: _editDescriptionFocusNode,
+                          labelText: context.translate('description_optional'),
+                          prefixIcon: Icons.notes_rounded,
                           maxLines: 3,
-                          decoration: InputDecoration(
-                            labelText: context.translate('description_optional'),
-                            border: const OutlineInputBorder(),
-                          ),
+                          textInputAction: TextInputAction.done,
+                          onSubmitted: (_) =>
+                              ActionDebouncer.execute(_saveEditing),
                         ),
                         const SizedBox(height: 16),
                         ListTile(
@@ -351,6 +386,7 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
                             side: BorderSide(color: Colors.grey.shade400),
                           ),
                         ),
+                        /*
                         const SizedBox(height: 16),
                         RecurrenceSelector(
                           selectedRecurrence: _editRecurrenceType,
@@ -360,9 +396,19 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
                             });
                           },
                         ),
+                        */
                         const SizedBox(height: 16),
                         membersAsync.when(
                           data: (members) {
+                            final currentUserId =
+                                SupabaseService.client.auth.currentUser?.id;
+                            final activeMembers = members
+                                .where(
+                                  (m) =>
+                                      m.status == 'active' &&
+                                      m.userId != currentUserId,
+                                )
+                                .toList();
                             return DropdownButtonFormField<String>(
                               initialValue: _editAssignedTo,
                               decoration: InputDecoration(
@@ -374,13 +420,23 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
                                   value: null,
                                   child: Text(context.translate('unassigned')),
                                 ),
-                                ...members.map((member) =>
-                                    DropdownMenuItem<String>(
-                                      value: member.userId,
-                                      child: Text(member.userName ??
+                                if (currentUserId != null)
+                                  DropdownMenuItem<String>(
+                                    value: currentUserId,
+                                    child: Text(
+                                      context.translate('assign_to_me'),
+                                    ),
+                                  ),
+                                ...activeMembers.map(
+                                  (member) => DropdownMenuItem<String>(
+                                    value: member.userId,
+                                    child: Text(
+                                      member.userName ??
                                           member.userEmail ??
-                                          context.translate('member')),
-                                    )),
+                                          context.translate('member'),
+                                    ),
+                                  ),
+                                ),
                               ],
                               onChanged: (value) {
                                 setState(() {
@@ -389,8 +445,7 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
                               },
                             );
                           },
-                          loading: () =>
-                              const CircularProgressIndicator(),
+                          loading: () => const CircularProgressIndicator(),
                           error: (e, _) =>
                               Text(context.translate('error_occurred')),
                         ),
@@ -406,13 +461,17 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
                             const SizedBox(width: 16),
                             Expanded(
                               child: ElevatedButton(
-                                onPressed: _isLoading ? null : () => ActionDebouncer.execute(_saveEditing),
+                                onPressed: _isLoading
+                                    ? null
+                                    : () =>
+                                          ActionDebouncer.execute(_saveEditing),
                                 child: _isLoading
                                     ? const SizedBox(
                                         height: 20,
                                         width: 20,
                                         child: CircularProgressIndicator(
-                                            strokeWidth: 2),
+                                          strokeWidth: 2,
+                                        ),
                                       )
                                     : Text(context.translate('save')),
                               ),
@@ -434,9 +493,7 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
                             Expanded(
                               child: Text(
                                 task.title,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .headlineSmall
+                                style: Theme.of(context).textTheme.headlineSmall
                                     ?.copyWith(
                                       decoration: task.isCompleted
                                           ? TextDecoration.lineThrough
@@ -447,7 +504,9 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
                             if (task.isRecurring && task.recurrenceType != null)
                               Chip(
                                 avatar: const Icon(Icons.repeat, size: 16),
-                                label: Text(context.translate(task.recurrenceType!)),
+                                label: Text(
+                                  context.translate(task.recurrenceType!),
+                                ),
                               ),
                           ],
                         ),
@@ -465,7 +524,8 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
                             leading: const Icon(Icons.person),
                             title: Text(context.translate('assign_to')),
                             subtitle: Text(
-                              memberNames[task.assignedTo] ?? context.translate('member'),
+                              memberNames[task.assignedTo] ??
+                                  context.translate('member'),
                             ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
@@ -489,13 +549,25 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
                         if (task.isCompleted) ...[
                           const SizedBox(height: 8),
                           ListTile(
-                            leading: const Icon(Icons.check_circle,
-                                color: AppColors.success),
+                            leading: const Icon(
+                              Icons.check_circle,
+                              color: AppColors.success,
+                            ),
                             title: Text(context.translate('completed')),
                             subtitle: Text(
-                              task.completedAt != null
-                                  ? '${task.completedAt!.day}/${task.completedAt!.month}/${task.completedAt!.year}'
-                                  : '',
+                              [
+                                if (task.completedBy != null)
+                                  context.translate(
+                                    'completed_by_name',
+                                    arguments: {
+                                      'name':
+                                          memberNames[task.completedBy] ??
+                                          context.translate('member'),
+                                    },
+                                  ),
+                                if (task.completedAt != null)
+                                  '${task.completedAt!.day}/${task.completedAt!.month}/${task.completedAt!.year}',
+                              ].join('\n'),
                             ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
@@ -507,7 +579,10 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton.icon(
-                            onPressed: _isLoading ? null : () => ActionDebouncer.execute(_toggleComplete),
+                            onPressed: _isLoading
+                                ? null
+                                : () =>
+                                      ActionDebouncer.execute(_toggleComplete),
                             icon: Icon(
                               task.isCompleted
                                   ? Icons.undo
@@ -540,7 +615,7 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => BeityEmptyState(
+        error: (error, _) => SawaEmptyState(
           title: context.translate('error_occurred'),
           message: ErrorFormatter.format(error, context),
           icon: Icons.error_outline_rounded,

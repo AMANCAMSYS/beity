@@ -13,7 +13,7 @@ class CreateShoppingListUseCase {
     String? icon,
   }) async {
     if (name.trim().isEmpty) {
-      throw Exception('اسم القائمة مطلوب');
+      throw Exception('list_name_required');
     }
 
     return _repository.createShoppingList(

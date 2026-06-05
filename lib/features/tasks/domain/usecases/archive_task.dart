@@ -1,12 +1,17 @@
-import '../repositories/task_repository.dart';
+import 'package:sawa/core/services/supabase_service.dart';
 
 class ArchiveTask {
-  final TaskRepository _repository;
-
-  ArchiveTask(this._repository);
+  ArchiveTask();
 
   Future<void> call(ArchiveTaskParams params) async {
-    return _repository.deleteTask(taskId: params.taskId);
+    final client = SupabaseService.client;
+    final user = client.auth.currentUser;
+    if (user != null) {
+      await client.from('tasks').update({
+        'archived_at': DateTime.now().toIso8601String(),
+        'updated_by': user.id,
+      }).eq('id', params.taskId);
+    }
   }
 }
 

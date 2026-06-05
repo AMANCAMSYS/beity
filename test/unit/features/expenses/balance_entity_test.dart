@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:beity/features/expenses/domain/entities/balance.dart';
+import 'package:sawa/features/expenses/domain/entities/balance.dart';
 
 void main() {
   group('Balance', () {

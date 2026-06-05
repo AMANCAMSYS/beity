@@ -2,20 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/theme/app_spacing.dart';
-import '../../../../shared/widgets/design_system/beity_button.dart';
-import '../../../../shared/widgets/design_system/beity_text_field.dart';
-import '../../../../shared/widgets/design_system/beity_snack_bar.dart';
-import '../../../../shared/widgets/design_system/beity_dialog.dart';
+import '../../../../shared/widgets/design_system/sawa_button.dart';
+import '../../../../shared/widgets/design_system/sawa_text_field.dart';
+import '../../../../shared/widgets/design_system/sawa_snack_bar.dart';
+import '../../../../shared/widgets/design_system/sawa_dialog.dart';
 import '../../../../core/utils/action_debouncer.dart';
 import '../../../../core/localization/app_localizations.dart';
-import 'package:beity/core/errors/error_formatter.dart';
+import 'package:sawa/core/errors/error_formatter.dart';
 import '../providers/shopping_items_provider.dart';
-import '../providers/shopping_lists_provider.dart';
+
 import '../../domain/usecases/add_item_usecase.dart';
 import '../../../categories/presentation/providers/units_provider.dart';
 import '../../../categories/presentation/providers/categories_provider.dart';
 import '../../../settings/presentation/providers/app_settings_provider.dart';
-import 'package:beity/core/utils/arabic_number_parser.dart';
+import 'package:sawa/core/utils/arabic_number_parser.dart';
 
 class QuickAddItemBottomSheet extends ConsumerStatefulWidget {
   final String listId;
@@ -28,14 +28,16 @@ class QuickAddItemBottomSheet extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<QuickAddItemBottomSheet> createState() => _QuickAddItemBottomSheetState();
+  ConsumerState<QuickAddItemBottomSheet> createState() =>
+      _QuickAddItemBottomSheetState();
 }
 
-class _QuickAddItemBottomSheetState extends ConsumerState<QuickAddItemBottomSheet> {
+class _QuickAddItemBottomSheetState
+    extends ConsumerState<QuickAddItemBottomSheet> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _quantityController = TextEditingController(text: '1');
-  
+
   final _nameFocusNode = FocusNode();
 
   String? _selectedUnitId;
@@ -116,7 +118,9 @@ class _QuickAddItemBottomSheetState extends ConsumerState<QuickAddItemBottomShee
                 height: 4,
                 margin: const EdgeInsets.symmetric(vertical: AppSpacing.md),
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.2),
+                  color: theme.colorScheme.onSurfaceVariant.withValues(
+                    alpha: 0.2,
+                  ),
                   borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
                 ),
               ),
@@ -142,10 +146,12 @@ class _QuickAddItemBottomSheetState extends ConsumerState<QuickAddItemBottomShee
                       ),
                       AppSpacing.gapLG,
                       // Item Name Input
-                      BeityTextField(
+                      SawaTextField(
                         controller: _nameController,
                         focusNode: _nameFocusNode,
-                        labelText: context.translate('item_name_required_label'),
+                        labelText: context.translate(
+                          'item_name_required_label',
+                        ),
                         hintText: context.translate('item_name_hint'),
                         prefixIcon: Icons.shopping_basket_outlined,
                         validator: (value) {
@@ -183,21 +189,33 @@ class _QuickAddItemBottomSheetState extends ConsumerState<QuickAddItemBottomShee
                                     Expanded(
                                       child: TextField(
                                         controller: _quantityController,
-                                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                        keyboardType:
+                                            const TextInputType.numberWithOptions(
+                                              decimal: true,
+                                            ),
                                         textAlign: TextAlign.center,
                                         decoration: InputDecoration(
                                           isDense: true,
-                                          contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                                          contentPadding:
+                                              const EdgeInsets.symmetric(
+                                                vertical: 10,
+                                              ),
                                           border: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                                            borderRadius: BorderRadius.circular(
+                                              AppSpacing.radiusMd,
+                                            ),
                                             borderSide: BorderSide(
-                                              color: theme.colorScheme.outline.withValues(alpha: 0.3),
+                                              color: theme.colorScheme.outline
+                                                  .withValues(alpha: 0.3),
                                             ),
                                           ),
                                           enabledBorder: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                                            borderRadius: BorderRadius.circular(
+                                              AppSpacing.radiusMd,
+                                            ),
                                             borderSide: BorderSide(
-                                              color: theme.colorScheme.outline.withValues(alpha: 0.2),
+                                              color: theme.colorScheme.outline
+                                                  .withValues(alpha: 0.2),
                                             ),
                                           ),
                                         ),
@@ -221,14 +239,25 @@ class _QuickAddItemBottomSheetState extends ConsumerState<QuickAddItemBottomShee
                                 initialValue: _selectedUnitId,
                                 decoration: InputDecoration(
                                   labelText: context.translate('unit'),
-                                  prefixIcon: const Icon(Icons.straighten, size: 20),
+                                  prefixIcon: const Icon(
+                                    Icons.straighten,
+                                    size: 20,
+                                  ),
                                   filled: true,
-                                  fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                                  fillColor: theme
+                                      .colorScheme
+                                      .surfaceContainerHighest
+                                      .withValues(alpha: 0.3),
                                   border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                                    borderRadius: BorderRadius.circular(
+                                      AppSpacing.radiusMd,
+                                    ),
                                     borderSide: BorderSide.none,
                                   ),
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 8,
+                                  ),
                                 ),
                                 style: theme.textTheme.bodyMedium,
                                 items: [
@@ -239,14 +268,16 @@ class _QuickAddItemBottomSheetState extends ConsumerState<QuickAddItemBottomShee
                                       style: theme.textTheme.bodyMedium,
                                     ),
                                   ),
-                                  ...units.map((unit) => DropdownMenuItem(
-                                        value: unit.id,
-                                        child: Text(
-                                          '${unit.name} (${unit.symbol})',
-                                          style: theme.textTheme.bodyMedium,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      )),
+                                  ...units.map(
+                                    (unit) => DropdownMenuItem(
+                                      value: unit.id,
+                                      child: Text(
+                                        '${unit.name} (${unit.symbol})',
+                                        style: theme.textTheme.bodyMedium,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ),
                                 ],
                                 onChanged: (value) {
                                   setState(() {
@@ -257,10 +288,13 @@ class _QuickAddItemBottomSheetState extends ConsumerState<QuickAddItemBottomShee
                               loading: () => const Center(
                                 child: Padding(
                                   padding: EdgeInsets.only(top: 24),
-                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
                                 ),
                               ),
-                              error: (e, s) => Text(context.translate('load_units_failed')),
+                              error: (e, s) =>
+                                  Text(context.translate('load_units_failed')),
                             ),
                           ),
                         ],
@@ -272,11 +306,17 @@ class _QuickAddItemBottomSheetState extends ConsumerState<QuickAddItemBottomShee
                           initialValue: _selectedCategoryId,
                           decoration: InputDecoration(
                             labelText: context.translate('category'),
-                            prefixIcon: const Icon(Icons.category_outlined, size: 20),
+                            prefixIcon: const Icon(
+                              Icons.category_outlined,
+                              size: 20,
+                            ),
                             filled: true,
-                            fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                            fillColor: theme.colorScheme.surfaceContainerHighest
+                                .withValues(alpha: 0.3),
                             border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                              borderRadius: BorderRadius.circular(
+                                AppSpacing.radiusMd,
+                              ),
                               borderSide: BorderSide.none,
                             ),
                           ),
@@ -285,12 +325,16 @@ class _QuickAddItemBottomSheetState extends ConsumerState<QuickAddItemBottomShee
                               value: null,
                               child: Text(context.translate('no_category')),
                             ),
-                            ...categories.map((category) => DropdownMenuItem(
-                                  value: category.id,
-                                  child: Text(category.name == 'Other'
+                            ...categories.map(
+                              (category) => DropdownMenuItem(
+                                value: category.id,
+                                child: Text(
+                                  category.name == 'Other'
                                       ? context.translate('other')
-                                      : category.name),
-                                )),
+                                      : category.name,
+                                ),
+                              ),
+                            ),
                           ],
                           onChanged: (value) {
                             setState(() {
@@ -301,11 +345,12 @@ class _QuickAddItemBottomSheetState extends ConsumerState<QuickAddItemBottomShee
                         loading: () => const Center(
                           child: CircularProgressIndicator(strokeWidth: 2),
                         ),
-                        error: (e, s) => Text(context.translate('load_categories_failed')),
+                        error: (e, s) =>
+                            Text(context.translate('load_categories_failed')),
                       ),
                       AppSpacing.gapXL,
                       // Add Button
-                      BeityButton(
+                      SawaButton(
                         text: _isLoading
                             ? context.translate('adding')
                             : context.translate('add'),
@@ -329,19 +374,17 @@ class _QuickAddItemBottomSheetState extends ConsumerState<QuickAddItemBottomShee
   Future<void> _saveItem({required bool skipDuplicateCheck}) async {
     if (!_formKey.currentState!.validate()) return;
 
-    final listAsync = ref.read(shoppingListByIdProvider(widget.listId));
-    final list = listAsync.valueOrNull;
-    if (list == null) return;
-
     setState(() => _isLoading = true);
 
     try {
-      final repository = ref.read(shoppingItemRepositoryProvider);
+      final repository = ref.read(
+        shoppingItemRepositoryForHomeProvider(widget.homeId),
+      );
       final useCase = AddItemUseCase(repository);
 
       await useCase(
         listId: widget.listId,
-        homeId: list.homeId,
+        homeId: widget.homeId,
         name: _nameController.text,
         quantity: _quantityController.text.parseDouble(),
         unitId: _selectedUnitId,
@@ -358,9 +401,12 @@ class _QuickAddItemBottomSheetState extends ConsumerState<QuickAddItemBottomShee
       // so we do not need to explicitly invalidate the provider.
       if (mounted) {
         Navigator.pop(context);
-        BeitySnackBar.success(
+        SawaSnackBar.success(
           context,
-          context.translate('added_item_success', arguments: {'name': _nameController.text}),
+          context.translate(
+            'added_item_success',
+            arguments: {'name': _nameController.text},
+          ),
         );
       }
     } on DuplicateItemException catch (e) {
@@ -372,7 +418,10 @@ class _QuickAddItemBottomSheetState extends ConsumerState<QuickAddItemBottomShee
       }
     } catch (e) {
       if (mounted) {
-        BeitySnackBar.error(context, '${context.translate('error')}: ${ErrorFormatter.format(e, context)}');
+        SawaSnackBar.error(
+          context,
+          '${context.translate('error')}: ${ErrorFormatter.format(e, context)}',
+        );
       }
     } finally {
       if (mounted) {
@@ -382,10 +431,13 @@ class _QuickAddItemBottomSheetState extends ConsumerState<QuickAddItemBottomShee
   }
 
   Future<bool?> _showDuplicateWarning(String itemName) {
-    return BeityDialog.show(
+    return SawaDialog.show(
       context,
       title: context.translate('duplicate_item'),
-      message: context.translate('duplicate_item_msg', arguments: {'name': itemName}),
+      message: context.translate(
+        'duplicate_item_msg',
+        arguments: {'name': itemName},
+      ),
       confirmText: context.translate('add'),
       cancelText: context.translate('cancel'),
       icon: Icons.warning_amber_rounded,

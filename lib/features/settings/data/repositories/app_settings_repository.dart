@@ -1,5 +1,5 @@
 import 'dart:ui' as ui;
-import 'package:beity/core/services/shared_prefs_provider.dart';
+import 'package:sawa/core/services/shared_prefs_provider.dart';
 import 'package:flutter/material.dart';
 
 class AppSettingsRepository {
@@ -12,6 +12,7 @@ class AppSettingsRepository {
   static const _compactListModeKey = 'settings.compact_list_mode';
   static const _groupedByCategoryKey = 'settings.grouped_by_category';
   static const _syncOverWifiOnlyKey = 'settings.sync_over_wifi_only';
+  static const _purchaseNotificationsKey = 'settings.purchase_notifications';
   static const _countryKey = 'settings.country';
   static const _dialectKey = 'settings.dialect';
 
@@ -131,6 +132,16 @@ class AppSettingsRepository {
   Future<void> setSyncOverWifiOnly(bool enabled) async {
     final prefs = AppPreferences.instance;
     await prefs.setBool(_syncOverWifiOnlyKey, enabled);
+  }
+
+  Future<bool> getPurchaseNotifications() async {
+    final prefs = AppPreferences.instance;
+    return prefs.getBool(_purchaseNotificationsKey) ?? true;
+  }
+
+  Future<void> setPurchaseNotifications(bool enabled) async {
+    final prefs = AppPreferences.instance;
+    await prefs.setBool(_purchaseNotificationsKey, enabled);
   }
 
   Future<String?> getCountry() async {

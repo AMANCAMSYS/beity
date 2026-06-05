@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../core/localization/app_localizations.dart';
-import '../../../../shared/widgets/design_system/beity_bottom_sheet.dart';
+import '../../../../shared/widgets/design_system/sawa_bottom_sheet.dart';
 import '../providers/app_settings_provider.dart';
 
 class FontSizeBottomSheet extends ConsumerStatefulWidget {
@@ -21,7 +21,7 @@ class FontSizeBottomSheet extends ConsumerStatefulWidget {
     required double initialScale,
     required AppLocalizations l10n,
   }) {
-    return BeityBottomSheet.show(
+    return SawaBottomSheet.show(
       context,
       title: l10n.translate('font_size'),
       child: FontSizeBottomSheet(

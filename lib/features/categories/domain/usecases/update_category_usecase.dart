@@ -1,3 +1,4 @@
+import '../../../../core/errors/app_exception.dart';
 import '../entities/category.dart';
 import '../../data/repositories/category_repository.dart';
 
@@ -15,11 +16,11 @@ class UpdateCategoryUseCase {
   }) async {
     // Validate name if provided
     if (name != null && name.isEmpty) {
-      throw Exception('يرجى إدخال اسم التصنيف');
+      throw const ValidationException(message: 'please_enter_category_name_validation');
     }
 
     if (name != null && name.length > 100) {
-      throw Exception('اسم التصنيف طويل جداً');
+      throw const ValidationException(message: 'category_name_too_long');
     }
 
     return _repository.updateCategory(

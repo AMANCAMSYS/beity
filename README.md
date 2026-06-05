@@ -1,4 +1,4 @@
-# بيتي - Beity 🏠
+# سوا - SAWA 🏠
 
 [![Flutter](https://img.shields.io/badge/Flutter-v3.33+-02569B?logo=flutter&logoColor=white)](https://flutter.dev)
 [![Riverpod](https://img.shields.io/badge/State--Management-Riverpod-8A2BE2)](https://riverpod.dev)
@@ -6,7 +6,7 @@
 [![Analysis](https://img.shields.io/badge/flutter--analyze-passing-brightgreen)](https://github.com)
 [![Tests](https://img.shields.io/badge/tests-139%20%2F%20139%20passed-brightgreen)](https://github.com)
 
-**بيتي (Beity)** هو تطبيق ذكي ومتكامل لإدارة المنزل المشترك، يركز بشكل أساسي على تسهيل وتنظيم المشتريات اليومية عبر قوائم تسوق تفاعلية ولحظية، مع مزايا متكاملة لتتبع المخزون المنزلي، وإدارة المصاريف المشتركة، وجدولة المهام اليومية، والاستعانة بالذكاء الاصطناعي الذكي لاقتراح الوجبات وقوائم الشراء.
+**سوا (SAWA)** هو تطبيق ذكي ومتكامل لإدارة المنزل المشترك، يركز بشكل أساسي على تسهيل وتنظيم المشتريات اليومية عبر قوائم تسوق تفاعلية ولحظية، مع مزايا متكاملة لتتبع المخزون المنزلي، وإدارة المصاريف المشتركة، وجدولة المهام اليومية، والاستعانة بالذكاء الاصطناعي الذكي لاقتراح الوجبات وقوائم الشراء.
 
 ---
 
@@ -79,7 +79,7 @@ flutter pub get
 
 ### 3. توليد الأكواد المعيارية (JSON Serialization & Riverpod Generators)
 ```bash
-dart run build_runner build --delete-conflicting-outputs
+dart run build_runner build
 ```
 
 ### 4. تشغيل التطبيق

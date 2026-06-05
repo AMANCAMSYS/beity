@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:beity/features/tasks/domain/repositories/task_repository.dart';
-import 'package:beity/features/tasks/domain/usecases/complete_task.dart';
-import 'package:beity/features/tasks/domain/entities/task.dart';
+import 'package:sawa/features/tasks/domain/repositories/task_repository.dart';
+import 'package:sawa/features/tasks/domain/usecases/complete_task.dart';
+import 'package:sawa/features/tasks/domain/entities/task.dart';
 
 class MockTaskRepository extends Mock implements TaskRepository {}
 

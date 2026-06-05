@@ -8,7 +8,7 @@ class CancelInvitationUseCase {
 
   Future<Invitation> call({required String invitationId}) async {
     if (invitationId.isEmpty) {
-      throw Exception('معرف الدعوة غير صالح');
+      throw Exception('invalid_invitation_id');
     }
 
     return _repository.cancelInvitation(invitationId: invitationId);

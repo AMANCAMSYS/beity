@@ -23,6 +23,8 @@ abstract class ActivityLogRepository {
     int offset = 0,
   });
 
+  Future<ActivityLogModel?> getActivityLogById(String id);
+
   Future<List<ActivityActor>> getHomeActors({required String homeId});
 
   Future<void> logActivity({

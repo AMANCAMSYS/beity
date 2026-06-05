@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:beity/app/theme/app_spacing.dart';
-import 'package:beity/app/theme/app_colors.dart';
-import 'package:beity/shared/widgets/design_system/beity_card.dart';
-import 'package:beity/shared/widgets/design_system/beity_empty_state.dart';
-import 'package:beity/core/services/sync_coordinator.dart';
+import 'package:sawa/app/theme/app_spacing.dart';
+import 'package:sawa/app/theme/app_colors.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_card.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_empty_state.dart';
+import 'package:sawa/core/services/sync_coordinator.dart';
 import '../../../categories/presentation/providers/categories_provider.dart';
 import '../../../homes/data/models/home_member_model.dart';
 import '../../../homes/presentation/providers/homes_provider.dart';
@@ -31,11 +31,13 @@ class _ExpenseSummaryScreenState extends ConsumerState<ExpenseSummaryScreen> {
   void initState() {
     super.initState();
     _updateDateRange();
-    
+
     // Trigger silent background prefetch/sync to ensure cache is populated with members, categories, and expenses
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        ref.read(syncCoordinatorProvider.notifier).syncAll(widget.homeId, force: false);
+        ref
+            .read(syncCoordinatorProvider.notifier)
+            .syncAll(widget.homeId, force: false);
       }
     });
   }
@@ -63,7 +65,8 @@ class _ExpenseSummaryScreenState extends ConsumerState<ExpenseSummaryScreen> {
 
   Widget _buildSyncIndicator(WidgetRef ref, ThemeData theme) {
     final syncState = ref.watch(syncCoordinatorProvider);
-    if (syncState.status == SyncStatus.idle || syncState.status == SyncStatus.success) {
+    if (syncState.status == SyncStatus.idle ||
+        syncState.status == SyncStatus.success) {
       return const SizedBox.shrink();
     }
 
@@ -83,7 +86,10 @@ class _ExpenseSummaryScreenState extends ConsumerState<ExpenseSummaryScreen> {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: AppSpacing.md),
+      padding: const EdgeInsets.symmetric(
+        vertical: 4,
+        horizontal: AppSpacing.md,
+      ),
       color: color.withValues(alpha: 0.08),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -123,13 +129,17 @@ class _ExpenseSummaryScreenState extends ConsumerState<ExpenseSummaryScreen> {
       error: (error, stackTrace) => const <String, String>{},
     );
 
-    final summaryAsync = ref.watch(expenseSummaryProvider((
-      homeId: widget.homeId,
-      startDate: _startDate,
-      endDate: _endDate,
-    )));
+    final summaryAsync = ref.watch(
+      expenseSummaryProvider((
+        homeId: widget.homeId,
+        startDate: _startDate,
+        endDate: _endDate,
+      )),
+    );
 
-    final initialSyncCompletedAsync = ref.watch(initialSyncCompletedExpensesProvider(widget.homeId));
+    final initialSyncCompletedAsync = ref.watch(
+      initialSyncCompletedExpensesProvider(widget.homeId),
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -145,11 +155,14 @@ class _ExpenseSummaryScreenState extends ConsumerState<ExpenseSummaryScreen> {
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
             tooltip: context.translate('refresh'),
-            onPressed: () => ref.read(syncCoordinatorProvider.notifier).syncAll(
-              widget.homeId,
-              force: true,
-              targetDomain: 'expenses',
-            ),
+            onPressed: () => ref
+                .read(syncCoordinatorProvider.notifier)
+                .syncAll(
+                  widget.homeId,
+                  force: true,
+                  targetDomain: 'expenses',
+                  repairMissing: true,
+                ),
           ),
           PopupMenuButton<String>(
             icon: const Icon(Icons.calendar_today_rounded),
@@ -190,22 +203,26 @@ class _ExpenseSummaryScreenState extends ConsumerState<ExpenseSummaryScreen> {
             child: summaryAsync.when(
               data: (summary) {
                 if (summary.expenseCount == 0) {
-                  final isSyncCompleted = initialSyncCompletedAsync.value ?? false;
+                  final isSyncCompleted =
+                      initialSyncCompletedAsync.value ?? false;
                   if (!isSyncCompleted) {
                     return const Center(child: CircularProgressIndicator());
                   }
                   return RefreshIndicator(
-                    onRefresh: () => ref.read(syncCoordinatorProvider.notifier).syncAll(
-                      widget.homeId,
-                      force: true,
-                      targetDomain: 'expenses',
-                    ),
+                    onRefresh: () => ref
+                        .read(syncCoordinatorProvider.notifier)
+                        .syncAll(
+                          widget.homeId,
+                          force: true,
+                          targetDomain: 'expenses',
+                          repairMissing: true,
+                        ),
                     child: SingleChildScrollView(
                       physics: const AlwaysScrollableScrollPhysics(),
                       child: Container(
                         height: MediaQuery.of(context).size.height * 0.7,
                         alignment: Alignment.center,
-                        child: BeityEmptyState(
+                        child: SawaEmptyState(
                           title: context.translate('no_data_for_period'),
                           message: context.translate('no_data_for_period_desc'),
                           icon: Icons.analytics_rounded,
@@ -216,11 +233,14 @@ class _ExpenseSummaryScreenState extends ConsumerState<ExpenseSummaryScreen> {
                 }
 
                 return RefreshIndicator(
-                  onRefresh: () => ref.read(syncCoordinatorProvider.notifier).syncAll(
-                    widget.homeId,
-                    force: true,
-                    targetDomain: 'expenses',
-                  ),
+                  onRefresh: () => ref
+                      .read(syncCoordinatorProvider.notifier)
+                      .syncAll(
+                        widget.homeId,
+                        force: true,
+                        targetDomain: 'expenses',
+                        repairMissing: true,
+                      ),
                   child: ListView(
                     padding: const EdgeInsets.all(AppSpacing.lg),
                     physics: const AlwaysScrollableScrollPhysics(),
@@ -236,23 +256,27 @@ class _ExpenseSummaryScreenState extends ConsumerState<ExpenseSummaryScreen> {
                 );
               },
               loading: () {
-                final isSyncCompleted = initialSyncCompletedAsync.value ?? false;
+                final isSyncCompleted =
+                    initialSyncCompletedAsync.value ?? false;
                 if (!isSyncCompleted) {
                   return const Center(child: CircularProgressIndicator());
                 }
                 return const Center(child: CircularProgressIndicator());
               },
-              error: (error, stackTrace) => BeityEmptyState(
+              error: (error, stackTrace) => SawaEmptyState(
                 title: context.translate('error_title'),
                 message: error.toString(),
                 icon: Icons.error_outline_rounded,
                 isError: true,
                 actionText: context.translate('retry'),
-                onAction: () => ref.read(syncCoordinatorProvider.notifier).syncAll(
-                  widget.homeId,
-                  force: true,
-                  targetDomain: 'expenses',
-                ),
+                onAction: () => ref
+                    .read(syncCoordinatorProvider.notifier)
+                    .syncAll(
+                      widget.homeId,
+                      force: true,
+                      targetDomain: 'expenses',
+                      repairMissing: true,
+                    ),
               ),
             ),
           ),
@@ -263,7 +287,7 @@ class _ExpenseSummaryScreenState extends ConsumerState<ExpenseSummaryScreen> {
 
   Widget _buildTotalCard(ExpenseSummary summary) {
     final theme = Theme.of(context);
-    return BeityCard(
+    return SawaCard(
       padding: const EdgeInsets.all(AppSpacing.xl),
       child: Column(
         children: [
@@ -299,9 +323,10 @@ class _ExpenseSummaryScreenState extends ConsumerState<ExpenseSummaryScreen> {
                 ),
                 AppSpacing.gapXS,
                 Text(
-                  context.translate('expenses_count_label', arguments: {
-                    'count': summary.expenseCount.toString(),
-                  }),
+                  context.translate(
+                    'expenses_count_label',
+                    arguments: {'count': summary.expenseCount.toString()},
+                  ),
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: AppColors.primary,
                     fontWeight: FontWeight.bold,
@@ -315,9 +340,7 @@ class _ExpenseSummaryScreenState extends ConsumerState<ExpenseSummaryScreen> {
     );
   }
 
-  Map<String, String> _memberNames(
-    List<HomeMemberModel> members,
-  ) {
+  Map<String, String> _memberNames(List<HomeMemberModel> members) {
     final names = <String, String>{};
     for (final member in members) {
       final displayName = (member.userName?.trim().isNotEmpty ?? false)
@@ -331,20 +354,14 @@ class _ExpenseSummaryScreenState extends ConsumerState<ExpenseSummaryScreen> {
     return names;
   }
 
-  String _categoryLabel(
-    String categoryId,
-    Map<String, String> categoryNames,
-  ) {
+  String _categoryLabel(String categoryId, Map<String, String> categoryNames) {
     if (categoryId == 'uncategorized' || categoryId.isEmpty) {
       return context.translate('uncategorized');
     }
     return categoryNames[categoryId] ?? context.translate('unknown_category');
   }
 
-  String _memberLabel(
-    String memberId,
-    Map<String, String> memberNames,
-  ) {
+  String _memberLabel(String memberId, Map<String, String> memberNames) {
     return memberNames[memberId] ?? context.translate('unknown_member');
   }
 
@@ -365,7 +382,7 @@ class _ExpenseSummaryScreenState extends ConsumerState<ExpenseSummaryScreen> {
           ),
         ),
         AppSpacing.gapMD,
-        BeityCard(
+        SawaCard(
           padding: EdgeInsets.zero,
           child: Column(
             children: [
@@ -409,7 +426,7 @@ class _ExpenseSummaryScreenState extends ConsumerState<ExpenseSummaryScreen> {
           ),
         ),
         AppSpacing.gapMD,
-        BeityCard(
+        SawaCard(
           padding: EdgeInsets.zero,
           child: Column(
             children: [

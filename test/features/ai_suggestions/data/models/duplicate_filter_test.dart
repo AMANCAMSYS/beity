@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:beity/features/ai_suggestions/domain/entities/ai_suggestion.dart';
+import 'package:sawa/features/ai_suggestions/domain/entities/ai_suggestion.dart';
 
 void main() {
   group('Duplicate Detection Logic', () {

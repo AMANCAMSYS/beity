@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:beity/app/theme/app_spacing.dart';
-import 'package:beity/app/theme/app_colors.dart';
+import 'package:sawa/app/theme/app_spacing.dart';
+import 'package:sawa/app/theme/app_colors.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
 
 class LowStockBadge extends StatelessWidget {
   const LowStockBadge({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
     final theme = Theme.of(context);
 
     return Container(
@@ -23,7 +23,7 @@ class LowStockBadge extends StatelessWidget {
           const Icon(Icons.warning_amber_rounded, size: 12, color: AppColors.warning),
           AppSpacing.gapXXS,
           Text(
-            isArabic ? 'مخزون منخفض' : 'Low Stock',
+            context.translate('low_stock', fallback: 'Low Stock'),
             style: theme.textTheme.labelSmall?.copyWith(
               fontSize: 10,
               fontWeight: FontWeight.bold,

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:beity/core/localization/app_localizations.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
 import '../../../shopping_lists/data/models/shopping_item_model.dart';
 
 class PartialPurchaseDialog extends StatefulWidget {

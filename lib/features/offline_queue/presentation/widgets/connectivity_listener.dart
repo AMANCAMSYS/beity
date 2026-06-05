@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:beity/core/services/supabase_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
+import 'package:sawa/core/services/supabase_service.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../domain/entities/device_sync_status.dart';
 import '../providers/connectivity_provider.dart';
 import '../providers/offline_queue_provider.dart';
-import '../../domain/usecases/sync_queue_usecase.dart';
-import '../../data/datasources/queue_action_executor.dart';
 import '../../../../core/services/sync_coordinator.dart';
 
 class ConnectivityListener extends ConsumerStatefulWidget {
@@ -33,8 +32,7 @@ class _ConnectivityListenerState extends ConsumerState<ConnectivityListener> {
     final connectivityAsync = ref.watch(connectivityStatusProvider);
 
     connectivityAsync.whenData((status) {
-      if (_previousStatus == DeviceSyncStatus.offline &&
-          status.isOnline) {
+      if (_previousStatus == DeviceSyncStatus.offline && status.isOnline) {
         // Transitioned from offline to online - trigger sync
         _triggerSync();
       }
@@ -45,28 +43,26 @@ class _ConnectivityListenerState extends ConsumerState<ConnectivityListener> {
   }
 
   Future<void> _triggerSync() async {
-    final repository = ref.read(offlineQueueRepositoryProvider);
-    final connectivityRepository = ref.read(connectivityRepositoryProvider);
-    final client = SupabaseService.client;
-    final executor = QueueActionExecutor(client);
+    final syncUseCase = ref.read(syncQueueUseCaseProvider);
 
-    final syncUseCase = SyncQueueUseCase(
-      queueRepository: repository,
-      connectivityRepository: connectivityRepository,
-      executeAction: (entry) => executor.execute(entry),
-    );
-
+    // 1. Sync home-scoped entries
     final result = await syncUseCase.execute(widget.homeId);
+
+    // 2. Sync user-scoped and global-scoped entries
+    final userId = SupabaseService.client.auth.currentUser?.id;
+    if (userId != null) {
+      await syncUseCase.executeUserScope(userId);
+    }
 
     if (result.hasResults && mounted) {
       String message;
       Color backgroundColor;
 
       if (result.allSucceeded) {
-        message = 'تمت مزامنة البيانات بنجاح';
+        message = context.translate('sync_success');
         backgroundColor = AppColors.success;
       } else {
-        message = 'فشلت مزامنة بعض العناصر. سيتم إعادة المحاولة عند توفر اتصال مستقر';
+        message = context.translate('sync_partial_failed');
         backgroundColor = AppColors.error;
       }
 
@@ -83,7 +79,9 @@ class _ConnectivityListenerState extends ConsumerState<ConnectivityListener> {
       ref.invalidate(pendingCountProvider(widget.homeId));
 
       // Trigger a Delta Sync on all tables to pull updates for the home
-      ref.read(syncCoordinatorProvider.notifier).syncAll(widget.homeId, force: true);
+      ref
+          .read(syncCoordinatorProvider.notifier)
+          .syncAll(widget.homeId, force: true);
     }
   }
 }

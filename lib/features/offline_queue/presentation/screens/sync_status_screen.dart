@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:go_router/go_router.dart';
-import 'package:beity/core/localization/app_localizations.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
+import '../../../../core/errors/error_formatter.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_spacing.dart';
-import '../../../../features/settings/presentation/providers/app_settings_provider.dart';
+import '../../../../core/services/sync_coordinator.dart' as global_sync;
 import '../../../../features/homes/presentation/providers/homes_provider.dart';
 import '../../domain/entities/queue_entry.dart';
 import '../../domain/entities/sync_status.dart';
@@ -25,29 +26,12 @@ class SyncStatusScreen extends ConsumerStatefulWidget {
 class _SyncStatusScreenState extends ConsumerState<SyncStatusScreen> {
   bool _isSyncingInProgress = false;
 
-  String _getActionDisplayName(ActionType type, bool isArabic) {
-    if (isArabic) {
-      return switch (type) {
-        ActionType.addItem => 'إضافة عنصر',
-        ActionType.updateItem => 'تعديل عنصر',
-        ActionType.deleteItem => 'حذف عنصر',
-        ActionType.markPurchased => 'تحديد كمشترى',
-        ActionType.updateQuantity => 'تعديل الكمية',
-      };
-    } else {
-      return type.displayName;
-    }
+  String _getActionDisplayName(BuildContext context, ActionType type) {
+    return context.translate(type.translationKey, fallback: type.displayName);
   }
 
-  String _getEntityDisplayName(EntityType type, bool isArabic) {
-    if (isArabic) {
-      return switch (type) {
-        EntityType.shoppingItem => 'عنصر تسوق',
-        EntityType.shoppingList => 'قائمة تسوق',
-      };
-    } else {
-      return type.displayName;
-    }
+  String _getEntityDisplayName(BuildContext context, EntityType type) {
+    return context.translate(type.translationKey, fallback: type.displayName);
   }
 
   String _getPayloadSummary(QueueEntry entry) {
@@ -64,23 +48,40 @@ class _SyncStatusScreenState extends ConsumerState<SyncStatusScreen> {
     return 'ID: ${entry.entityId}';
   }
 
-  Future<void> _syncAll(String homeId, bool isArabic) async {
+  Future<void> _syncAll(String homeId) async {
     setState(() => _isSyncingInProgress = true);
     try {
       final syncUseCase = ref.read(syncQueueUseCaseProvider);
-      await syncUseCase.execute(homeId);
-      
+      final outboxResult = await syncUseCase.execute(homeId);
+      await ref
+          .read(global_sync.syncCoordinatorProvider.notifier)
+          .syncAll(homeId, force: true, repairMissing: true);
+
       // Refresh state
       ref.invalidate(queueEntriesProvider(homeId));
+      ref.invalidate(pendingCountProvider(homeId));
+      ref.invalidate(failedCountProvider(homeId));
       ref.invalidate(syncStatusProvider(homeId));
 
       if (mounted) {
+        final hasOutboxFailure = !outboxResult.allSucceeded;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              isArabic ? 'تمت مزامنة البيانات بنجاح' : 'Data synced successfully',
+              hasOutboxFailure
+                  ? context.translate(
+                      'sync_partial_success',
+                      fallback:
+                          'Data was fetched, but some pending actions did not sync',
+                    )
+                  : context.translate(
+                      'sync_success_msg',
+                      fallback: 'Data synced successfully',
+                    ),
             ),
-            backgroundColor: AppColors.success,
+            backgroundColor: hasOutboxFailure
+                ? AppColors.warning
+                : AppColors.success,
           ),
         );
       }
@@ -89,9 +90,11 @@ class _SyncStatusScreenState extends ConsumerState<SyncStatusScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              isArabic
-                  ? 'فشلت المزامنة: ${e.toString()}'
-                  : 'Sync failed: ${e.toString()}',
+              context.translate(
+                'sync_failed_msg',
+                arguments: {'error': e.toString()},
+                fallback: 'Sync failed: ${e.toString()}',
+              ),
             ),
             backgroundColor: AppColors.error,
           ),
@@ -104,31 +107,47 @@ class _SyncStatusScreenState extends ConsumerState<SyncStatusScreen> {
     }
   }
 
-  Future<void> _retryEntry(String homeId, QueueEntry entry, bool isArabic) async {
+  Future<void> _retryEntry(String homeId, QueueEntry entry) async {
     final entryId = entry.id;
     if (entryId == null) return;
 
     try {
-      await ref.read(offlineQueueRepositoryProvider).updateEntryStatus(
-            entryId: entryId,
-            status: SyncStatus.pending,
-          );
-      
+      await ref
+          .read(offlineQueueRepositoryProvider)
+          .updateEntryStatus(entryId: entryId, status: SyncStatus.pending);
+
       // Execute sync
       final syncUseCase = ref.read(syncQueueUseCaseProvider);
-      await syncUseCase.execute(homeId);
+      final outboxResult = await syncUseCase.execute(homeId);
+      await ref
+          .read(global_sync.syncCoordinatorProvider.notifier)
+          .syncAll(homeId, force: true, repairMissing: true);
 
       // Refresh
       ref.invalidate(queueEntriesProvider(homeId));
+      ref.invalidate(pendingCountProvider(homeId));
+      ref.invalidate(failedCountProvider(homeId));
       ref.invalidate(syncStatusProvider(homeId));
 
       if (mounted) {
+        final hasOutboxFailure = !outboxResult.allSucceeded;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              isArabic ? 'تمت إعادة محاولة المزامنة' : 'Sync retry triggered',
+              hasOutboxFailure
+                  ? context.translate(
+                      'sync_retry_partial_failure',
+                      fallback:
+                          'Data was fetched, but some retry actions failed',
+                    )
+                  : context.translate(
+                      'sync_retry_triggered',
+                      fallback: 'Sync retry triggered',
+                    ),
             ),
-            backgroundColor: AppColors.success,
+            backgroundColor: hasOutboxFailure
+                ? AppColors.warning
+                : AppColors.success,
           ),
         );
       }
@@ -137,9 +156,11 @@ class _SyncStatusScreenState extends ConsumerState<SyncStatusScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              isArabic
-                  ? 'فشلت محاولة إعادة المزامنة: ${e.toString()}'
-                  : 'Failed to retry sync: ${e.toString()}',
+              context.translate(
+                'sync_retry_failed',
+                arguments: {'error': e.toString()},
+                fallback: 'Failed to retry sync: ${e.toString()}',
+              ),
             ),
             backgroundColor: AppColors.error,
           ),
@@ -148,28 +169,35 @@ class _SyncStatusScreenState extends ConsumerState<SyncStatusScreen> {
     }
   }
 
-  Future<void> _deleteEntry(String homeId, QueueEntry entry, bool isArabic) async {
+  Future<void> _deleteEntry(String homeId, QueueEntry entry) async {
     final entryId = entry.id;
     if (entryId == null) return;
 
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(isArabic ? 'حذف العنصر؟' : 'Delete Action?'),
+        title: Text(
+          context.translate(
+            'sync_delete_action_title',
+            fallback: 'Delete Action?',
+          ),
+        ),
         content: Text(
-          isArabic
-              ? 'هل أنت متأكد من حذف هذا الإجراء من قائمة المزامنة؟ قد يؤدي هذا لتراجع التعديلات التي قمت بها.'
-              : 'Are you sure you want to delete this action? This will undo your local modification.',
+          context.translate(
+            'sync_delete_action_confirm',
+            fallback:
+                'Are you sure you want to delete this action? This will undo your local modification.',
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: Text(isArabic ? 'إلغاء' : 'Cancel'),
+            child: Text(context.translate('cancel', fallback: 'Cancel')),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
             style: TextButton.styleFrom(foregroundColor: AppColors.error),
-            child: Text(isArabic ? 'حذف' : 'Delete'),
+            child: Text(context.translate('delete', fallback: 'Delete')),
           ),
         ],
       ),
@@ -178,7 +206,7 @@ class _SyncStatusScreenState extends ConsumerState<SyncStatusScreen> {
     if (confirm == true) {
       try {
         await ref.read(offlineQueueRepositoryProvider).deleteEntry(entryId);
-        
+
         ref.invalidate(queueEntriesProvider(homeId));
         ref.invalidate(syncStatusProvider(homeId));
 
@@ -186,7 +214,7 @@ class _SyncStatusScreenState extends ConsumerState<SyncStatusScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                isArabic ? 'تم حذف العنصر بنجاح' : 'Action deleted successfully',
+                context.translate('inventory_item_deleted_success'),
               ),
             ),
           );
@@ -195,7 +223,9 @@ class _SyncStatusScreenState extends ConsumerState<SyncStatusScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Error: ${e.toString()}'),
+              content: Text(
+                '${context.translate('error')}: ${ErrorFormatter.format(e, context)}',
+              ),
               backgroundColor: AppColors.error,
             ),
           );
@@ -207,54 +237,57 @@ class _SyncStatusScreenState extends ConsumerState<SyncStatusScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isArabic = ref.watch(appSettingsProvider).locale.languageCode == 'ar';
     final activeHomeId = ref.watch(cachedActiveHomeIdProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(isArabic ? 'حالة المزامنة' : 'Sync Status'),
+        title: Text(context.translate('sync_status', fallback: 'Sync Status')),
         centerTitle: true,
       ),
       body: activeHomeId == null || activeHomeId.isEmpty
-          ? _buildNoHomeState(theme, isArabic)
-          : ref.watch(syncStatusProvider(activeHomeId)).when(
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (err, stack) => Center(
-                  child: Text(
-                    isArabic
-                        ? '${context.translate('error_loading_data')}: $err'
-                        : 'Error loading sync details: $err',
-                    style: const TextStyle(color: AppColors.error),
+          ? _buildNoHomeState(theme)
+          : ref
+                .watch(syncStatusProvider(activeHomeId))
+                .when(
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  error: (err, stack) => Center(
+                    child: Text(
+                      '${context.translate('error_loading_data', fallback: 'Error loading data')}: $err',
+                      style: const TextStyle(color: AppColors.error),
+                    ),
                   ),
-                ),
-                data: (statusState) {
-                  return ref.watch(queueEntriesProvider(activeHomeId)).when(
-                        loading: () =>
-                            const Center(child: CircularProgressIndicator()),
-                        error: (err, stack) => Center(
-                          child: Text(
-                            isArabic
-                                ? 'خطأ في جلب عناصر المزامنة: $err'
-                                : 'Error fetching sync entries: $err',
+                  data: (statusState) {
+                    return ref
+                        .watch(queueEntriesProvider(activeHomeId))
+                        .when(
+                          loading: () =>
+                              const Center(child: CircularProgressIndicator()),
+                          error: (err, stack) => Center(
+                            child: Text(
+                              context.translate(
+                                'sync_fetch_error',
+                                arguments: {'error': err.toString()},
+                                fallback: 'Error fetching sync entries: $err',
+                              ),
+                            ),
                           ),
-                        ),
-                        data: (entries) {
-                          return _buildMainLayout(
-                            context,
-                            theme,
-                            activeHomeId,
-                            statusState,
-                            entries,
-                            isArabic,
-                          );
-                        },
-                      );
-                },
-              ),
+                          data: (entries) {
+                            return _buildMainLayout(
+                              context,
+                              theme,
+                              activeHomeId,
+                              statusState,
+                              entries,
+                            );
+                          },
+                        );
+                  },
+                ),
     );
   }
 
-  Widget _buildNoHomeState(ThemeData theme, bool isArabic) {
+  Widget _buildNoHomeState(ThemeData theme) {
     return Padding(
       padding: const EdgeInsets.all(AppSpacing.xl),
       child: Center(
@@ -268,18 +301,21 @@ class _SyncStatusScreenState extends ConsumerState<SyncStatusScreen> {
             ),
             AppSpacing.gapLG,
             Text(
-              isArabic
-                  ? 'لم يتم تحديد منزل نشط بعد'
-                  : 'No active home selected',
+              context.translate(
+                'sync_no_active_home',
+                fallback: 'No active home selected',
+              ),
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
             ),
             AppSpacing.gapSM,
             Text(
-              isArabic
-                  ? context.translate('select_home_for_sync')
-                  : 'Please go to Manage Homes and select an active home to sync.',
+              context.translate(
+                'sync_select_home_instructions',
+                fallback:
+                    'Please go to Manage Homes and select an active home to sync.',
+              ),
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
@@ -289,7 +325,9 @@ class _SyncStatusScreenState extends ConsumerState<SyncStatusScreen> {
             ElevatedButton.icon(
               onPressed: () => context.push('/homes'),
               icon: const Icon(Icons.home),
-              label: Text(isArabic ? 'إدارة المنازل' : 'Manage Homes'),
+              label: Text(
+                context.translate('manage_homes', fallback: 'Manage Homes'),
+              ),
             ),
           ],
         ),
@@ -303,12 +341,13 @@ class _SyncStatusScreenState extends ConsumerState<SyncStatusScreen> {
     String homeId,
     SyncStatusState statusState,
     List<QueueEntry> entries,
-    bool isArabic,
   ) {
     final isDeviceOffline = statusState.isOffline;
     final totalActions = entries.length;
     final failedCount = entries.where((e) => e.isFailed).length;
-    final pendingCount = entries.where((e) => e.isPending || e.isSyncing).length;
+    final pendingCount = entries
+        .where((e) => e.isPending || e.isSyncing)
+        .length;
 
     return RefreshIndicator(
       onRefresh: () async {
@@ -320,7 +359,7 @@ class _SyncStatusScreenState extends ConsumerState<SyncStatusScreen> {
         padding: const EdgeInsets.all(AppSpacing.lg),
         children: [
           // 1. Connection status card
-          _buildConnectionCard(theme, isDeviceOffline, isArabic),
+          _buildConnectionCard(theme, isDeviceOffline),
           AppSpacing.gapLG,
 
           // 2. Stats Row
@@ -329,7 +368,7 @@ class _SyncStatusScreenState extends ConsumerState<SyncStatusScreen> {
               Expanded(
                 child: _buildStatBox(
                   theme,
-                  isArabic ? 'بانتظار المزامنة' : 'Pending',
+                  context.translate('sync_status_pending', fallback: 'Pending'),
                   pendingCount.toString(),
                   AppColors.info,
                 ),
@@ -338,7 +377,7 @@ class _SyncStatusScreenState extends ConsumerState<SyncStatusScreen> {
               Expanded(
                 child: _buildStatBox(
                   theme,
-                  isArabic ? 'عمليات فشلت' : 'Failed',
+                  context.translate('sync_status_failed', fallback: 'Failed'),
                   failedCount.toString(),
                   failedCount > 0 ? AppColors.error : theme.colorScheme.outline,
                 ),
@@ -352,7 +391,7 @@ class _SyncStatusScreenState extends ConsumerState<SyncStatusScreen> {
             ElevatedButton.icon(
               onPressed: (isDeviceOffline || _isSyncingInProgress)
                   ? null
-                  : () => _syncAll(homeId, isArabic),
+                  : () => _syncAll(homeId),
               style: ElevatedButton.styleFrom(
                 backgroundColor: theme.colorScheme.primary,
                 foregroundColor: theme.colorScheme.onPrimary,
@@ -374,9 +413,12 @@ class _SyncStatusScreenState extends ConsumerState<SyncStatusScreen> {
                   : const Icon(Icons.sync_rounded),
               label: Text(
                 _isSyncingInProgress
-                    ? (isArabic ? 'جاري المزامنة...' : 'Syncing...')
-                    : (isArabic ? 'المزامنة الآن' : 'Sync Now'),
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    ? context.translate('syncing_dots', fallback: 'Syncing...')
+                    : context.translate('sync_now', fallback: 'Sync Now'),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
               ),
             ),
           AppSpacing.gapXL,
@@ -386,13 +428,20 @@ class _SyncStatusScreenState extends ConsumerState<SyncStatusScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                isArabic ? 'تفاصيل السجلات المعلقة' : 'Pending Action Logs',
+                context.translate(
+                  'sync_pending_logs_title',
+                  fallback: 'Pending Action Logs',
+                ),
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
               ),
               Text(
-                '$totalActions ${isArabic ? 'إجراء' : 'actions'}',
+                context.translate(
+                  'sync_actions_count',
+                  arguments: {'count': totalActions.toString()},
+                  fallback: '$totalActions actions',
+                ),
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
@@ -403,7 +452,7 @@ class _SyncStatusScreenState extends ConsumerState<SyncStatusScreen> {
 
           // 5. Entries List
           if (entries.isEmpty)
-            _buildEmptyLogsState(theme, isArabic)
+            _buildEmptyLogsState(theme)
           else
             ListView.separated(
               shrinkWrap: true,
@@ -412,7 +461,7 @@ class _SyncStatusScreenState extends ConsumerState<SyncStatusScreen> {
               separatorBuilder: (context, index) => AppSpacing.gapSM,
               itemBuilder: (context, index) {
                 final entry = entries[index];
-                return _buildEntryCard(context, theme, homeId, entry, isArabic);
+                return _buildEntryCard(context, theme, homeId, entry);
               },
             ),
         ],
@@ -420,11 +469,7 @@ class _SyncStatusScreenState extends ConsumerState<SyncStatusScreen> {
     );
   }
 
-  Widget _buildConnectionCard(
-    ThemeData theme,
-    bool isOffline,
-    bool isArabic,
-  ) {
+  Widget _buildConnectionCard(ThemeData theme, bool isOffline) {
     final statusColor = isOffline ? AppColors.warning : AppColors.success;
     final bgGradient = LinearGradient(
       colors: isOffline
@@ -445,7 +490,10 @@ class _SyncStatusScreenState extends ConsumerState<SyncStatusScreen> {
       decoration: BoxDecoration(
         gradient: bgGradient,
         borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-        border: Border.all(color: statusColor.withValues(alpha: 0.25), width: 1.5),
+        border: Border.all(
+          color: statusColor.withValues(alpha: 0.25),
+          width: 1.5,
+        ),
       ),
       child: Row(
         children: [
@@ -468,8 +516,14 @@ class _SyncStatusScreenState extends ConsumerState<SyncStatusScreen> {
               children: [
                 Text(
                   isOffline
-                      ? (isArabic ? 'وضع غير متصل بالإنترنت' : 'Offline Mode')
-                      : (isArabic ? 'متصل بالإنترنت' : 'Online Status'),
+                      ? context.translate(
+                          'sync_offline_mode',
+                          fallback: 'Offline Mode',
+                        )
+                      : context.translate(
+                          'sync_online_status',
+                          fallback: 'Online Status',
+                        ),
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: isOffline
@@ -480,12 +534,16 @@ class _SyncStatusScreenState extends ConsumerState<SyncStatusScreen> {
                 const SizedBox(height: 2),
                 Text(
                   isOffline
-                      ? (isArabic
-                          ? 'سيتم الاحتفاظ بالتغييرات ومزامنتها تلقائياً عند عودة الاتصال'
-                          : 'Local changes will be preserved and synced when you reconnect')
-                      : (isArabic
-                          ? 'تطبيقك متصل بالخادم وجاهز لإجراء العمليات فوراً'
-                          : 'Your app is fully connected and ready for instant sync'),
+                      ? context.translate(
+                          'sync_offline_desc',
+                          fallback:
+                              'Local changes will be preserved and synced when you reconnect',
+                        )
+                      : context.translate(
+                          'sync_online_desc',
+                          fallback:
+                              'Your app is fully connected and ready for instant sync',
+                        ),
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                     height: 1.3,
@@ -535,7 +593,7 @@ class _SyncStatusScreenState extends ConsumerState<SyncStatusScreen> {
     );
   }
 
-  Widget _buildEmptyLogsState(ThemeData theme, bool isArabic) {
+  Widget _buildEmptyLogsState(ThemeData theme) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 16),
       decoration: BoxDecoration(
@@ -556,18 +614,20 @@ class _SyncStatusScreenState extends ConsumerState<SyncStatusScreen> {
             ),
             AppSpacing.gapMD,
             Text(
-              isArabic
-                  ? 'كل البيانات متزامنة تماماً!'
-                  : 'All data is fully synced!',
+              context.translate(
+                'sync_all_synced_title',
+                fallback: 'All data is fully synced!',
+              ),
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
             ),
             AppSpacing.gapXS,
             Text(
-              isArabic
-                  ? 'لا توجد إجراءات معلقة في قائمة الانتظار الحالية.'
-                  : 'There are no pending actions in your local queue.',
+              context.translate(
+                'sync_no_pending_actions',
+                fallback: 'There are no pending actions in your local queue.',
+              ),
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
@@ -584,24 +644,21 @@ class _SyncStatusScreenState extends ConsumerState<SyncStatusScreen> {
     ThemeData theme,
     String homeId,
     QueueEntry entry,
-    bool isArabic,
   ) {
     final isFailed = entry.isFailed;
     final isSyncing = entry.isSyncing;
     final typeColor = isFailed
         ? AppColors.error
         : isSyncing
-            ? AppColors.info
-            : theme.colorScheme.primary;
+        ? AppColors.info
+        : theme.colorScheme.primary;
 
-    final actionText = _getActionDisplayName(entry.actionType, isArabic);
-    final entityText = _getEntityDisplayName(entry.entityType, isArabic);
+    final actionText = _getActionDisplayName(context, entry.actionType);
+    final entityText = _getEntityDisplayName(context, entry.entityType);
     final summaryText = _getPayloadSummary(entry);
 
-    final timeFormatted = timeago.format(
-      entry.createdAt,
-      locale: isArabic ? 'ar' : 'en',
-    );
+    final localeCode = Localizations.localeOf(context).languageCode;
+    final timeFormatted = timeago.format(entry.createdAt, locale: localeCode);
 
     return Container(
       decoration: BoxDecoration(
@@ -631,8 +688,8 @@ class _SyncStatusScreenState extends ConsumerState<SyncStatusScreen> {
               isFailed
                   ? Icons.sms_failed_rounded
                   : isSyncing
-                      ? Icons.sync_rounded
-                      : Icons.cloud_queue_rounded,
+                  ? Icons.sync_rounded
+                  : Icons.cloud_queue_rounded,
               color: typeColor,
               size: 22,
             ),
@@ -679,12 +736,16 @@ class _SyncStatusScreenState extends ConsumerState<SyncStatusScreen> {
                       ),
                       decoration: BoxDecoration(
                         color: theme.colorScheme.surfaceContainerHighest,
-                        borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+                        borderRadius: BorderRadius.circular(
+                          AppSpacing.radiusPill,
+                        ),
                       ),
                       child: Text(
-                        isArabic
-                            ? 'محاولات: ${entry.retryCount}'
-                            : 'Retries: ${entry.retryCount}',
+                        context.translate(
+                          'sync_retries_count',
+                          arguments: {'count': entry.retryCount.toString()},
+                          fallback: 'Retries: ${entry.retryCount}',
+                        ),
                         style: theme.textTheme.labelSmall?.copyWith(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
@@ -719,7 +780,10 @@ class _SyncStatusScreenState extends ConsumerState<SyncStatusScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      isArabic ? 'رسالة الخطأ:' : 'Error Message:',
+                      context.translate(
+                        'sync_error_message_label',
+                        fallback: 'Error Message:',
+                      ),
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: AppColors.error,
                         fontWeight: FontWeight.bold,
@@ -741,22 +805,32 @@ class _SyncStatusScreenState extends ConsumerState<SyncStatusScreen> {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 TextButton.icon(
-                  onPressed: () => _deleteEntry(homeId, entry, isArabic),
+                  onPressed: () => _deleteEntry(homeId, entry),
                   style: TextButton.styleFrom(foregroundColor: AppColors.error),
                   icon: const Icon(Icons.delete_outline_rounded, size: 18),
-                  label: Text(isArabic ? 'إلغاء الإجراء' : 'Cancel Action'),
+                  label: Text(
+                    context.translate(
+                      'sync_cancel_action',
+                      fallback: 'Cancel Action',
+                    ),
+                  ),
                 ),
                 if (isFailed) ...[
                   const SizedBox(width: AppSpacing.sm),
                   ElevatedButton.icon(
-                    onPressed: () => _retryEntry(homeId, entry, isArabic),
+                    onPressed: () => _retryEntry(homeId, entry),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: theme.colorScheme.primaryContainer,
                       foregroundColor: theme.colorScheme.onPrimaryContainer,
                       elevation: 0,
                     ),
                     icon: const Icon(Icons.refresh_rounded, size: 18),
-                    label: Text(isArabic ? 'إعادة المحاولة' : 'Retry Now'),
+                    label: Text(
+                      context.translate(
+                        'sync_retry_now',
+                        fallback: 'Retry Now',
+                      ),
+                    ),
                   ),
                 ],
               ],

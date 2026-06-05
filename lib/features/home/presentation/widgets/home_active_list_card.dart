@@ -2,82 +2,35 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../app/theme/app_colors.dart';
+import '../../../../app/router/shopping_route_paths.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../core/localization/app_localizations.dart';
-import '../../../../shared/widgets/design_system/beity_card.dart';
-import '../../../../shared/widgets/design_system/beity_button.dart';
+import '../../../../core/utils/shopping_ui_utils.dart';
+import '../../../../shared/widgets/design_system/sawa_card.dart';
+import '../../../../shared/widgets/design_system/sawa_button.dart';
 import '../../../shopping_lists/data/models/shopping_list_model.dart';
-import '../../../shopping_lists/presentation/providers/shopping_items_provider.dart';
+import '../../../shopping_lists/presentation/providers/shopping_lists_provider.dart';
 
 class HomeActiveListCard extends ConsumerWidget {
   final ShoppingListModel activeList;
 
   const HomeActiveListCard({super.key, required this.activeList});
 
-  Color _getProgressColor(double progress) {
-    if (progress >= 0.8) return AppColors.success;
-    if (progress >= 0.5) return AppColors.info;
-    if (progress >= 0.3) return AppColors.warning;
-    return AppColors.error;
-  }
-
-  IconData _getIconData(String iconName) {
-    switch (iconName) {
-      case 'shopping_cart':
-        return Icons.shopping_cart_rounded;
-      case 'shopping_bag':
-        return Icons.shopping_bag_rounded;
-      case 'local_grocery_store':
-        return Icons.local_grocery_store_rounded;
-      case 'local_pharmacy':
-        return Icons.local_pharmacy_rounded;
-      case 'local_hospital':
-        return Icons.local_hospital_rounded;
-      case 'restaurant':
-        return Icons.restaurant_rounded;
-      case 'local_cafe':
-        return Icons.local_cafe_rounded;
-      case 'home':
-        return Icons.home_rounded;
-      case 'hardware':
-        return Icons.hardware_rounded;
-      case 'build':
-        return Icons.build_rounded;
-      case 'child_care':
-        return Icons.child_care_rounded;
-      case 'pets':
-        return Icons.pets_rounded;
-      case 'card_giftcard':
-        return Icons.card_giftcard_rounded;
-      case 'celebration':
-        return Icons.celebration_rounded;
-      case 'school':
-        return Icons.school_rounded;
-      case 'fitness_center':
-        return Icons.fitness_center_rounded;
-      case 'cleaning_services':
-        return Icons.cleaning_services_rounded;
-      case 'local_florist':
-        return Icons.local_florist_rounded;
-      default:
-        return Icons.shopping_cart_rounded;
-    }
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final itemsAsync = ref.watch(shoppingItemsProvider(activeList.id));
+    final summariesAsync = ref.watch(shoppingListSummariesProvider(activeList.homeId));
 
-    return itemsAsync.when(
-      data: (items) {
-        final total = items.length;
-        final purchased = items.where((i) => i.isPurchased).length;
-        final remaining = total - purchased;
-        final progress = total > 0 ? purchased / total : 0.0;
+    return summariesAsync.when(
+      skipLoadingOnReload: true,
+      skipLoadingOnRefresh: true,
+      data: (summaries) {
+        final summary = summaries[activeList.id] ?? ShoppingListSummary(total: 0, purchased: 0);
+        final total = summary.total;
+        final remaining = summary.remaining;
+        final progress = summary.progress;
 
-        return BeityCard(
-          onTap: () => context.push('/shopping-list/${activeList.id}'),
+        return SawaCard(
+          onTap: () => context.push(ShoppingRoutePaths.detail(activeList.id)),
           padding: EdgeInsets.zero,
           child: Padding(
             padding: const EdgeInsets.all(AppSpacing.lg),
@@ -90,16 +43,15 @@ class HomeActiveListCard extends ConsumerWidget {
                     Container(
                       padding: const EdgeInsets.all(AppSpacing.md),
                       decoration: BoxDecoration(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .primary
-                            .withValues(alpha: 0.1),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.primary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(
                           AppSpacing.radiusMd,
                         ),
                       ),
                       child: Icon(
-                        _getIconData(activeList.icon),
+                        ShoppingUiUtils.getIconData(activeList.icon),
                         color: Theme.of(context).colorScheme.primary,
                         size: 24,
                       ),
@@ -111,9 +63,7 @@ class HomeActiveListCard extends ConsumerWidget {
                         children: [
                           Text(
                             activeList.name,
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleLarge
+                            style: Theme.of(context).textTheme.titleLarge
                                 ?.copyWith(fontWeight: FontWeight.bold),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -121,18 +71,18 @@ class HomeActiveListCard extends ConsumerWidget {
                           Text(
                             total == 0
                                 ? context.translate('list_empty')
-                                : context.translate('items_remaining_count',
+                                : context.translate(
+                                    'items_remaining_count',
                                     arguments: {
-                                        'remaining': remaining.toString(),
-                                        'total': total.toString(),
-                                      }),
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodyMedium
+                                      'remaining': remaining.toString(),
+                                      'total': total.toString(),
+                                    },
+                                  ),
+                            style: Theme.of(context).textTheme.bodyMedium
                                 ?.copyWith(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurfaceVariant,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
                                 ),
                           ),
                         ],
@@ -146,7 +96,7 @@ class HomeActiveListCard extends ConsumerWidget {
                           vertical: AppSpacing.xs,
                         ),
                         decoration: BoxDecoration(
-                          color: _getProgressColor(
+                          color: ShoppingUiUtils.getProgressColor(
                             progress,
                           ).withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(
@@ -156,7 +106,7 @@ class HomeActiveListCard extends ConsumerWidget {
                         child: Text(
                           '${(progress * 100).round()}%',
                           style: TextStyle(
-                            color: _getProgressColor(progress),
+                            color: ShoppingUiUtils.getProgressColor(progress),
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
                           ),
@@ -172,11 +122,11 @@ class HomeActiveListCard extends ConsumerWidget {
                     child: LinearProgressIndicator(
                       value: progress,
                       minHeight: 8,
-                      backgroundColor: _getProgressColor(
+                      backgroundColor: ShoppingUiUtils.getProgressColor(
                         progress,
                       ).withValues(alpha: 0.15),
                       valueColor: AlwaysStoppedAnimation<Color>(
-                        _getProgressColor(progress),
+                        ShoppingUiUtils.getProgressColor(progress),
                       ),
                     ),
                   ),
@@ -186,20 +136,21 @@ class HomeActiveListCard extends ConsumerWidget {
                 Row(
                   children: [
                     Expanded(
-                      child: BeityButton(
-                        onPressed: () =>
-                            context.push('/shopping-list/${activeList.id}'),
+                      child: SawaButton(
+                        onPressed: () => context.push(
+                          ShoppingRoutePaths.detail(activeList.id),
+                        ),
                         text: context.translate('open_list'),
-                        type: BeityButtonType.secondary,
+                        type: SawaButtonType.secondary,
                         icon: Icons.list_alt_rounded,
                       ),
                     ),
                     AppSpacing.gapMD,
                     Expanded(
-                      child: BeityButton(
+                      child: SawaButton(
                         onPressed: () {
                           context.push(
-                            '/shopping-list/${activeList.id}/shopping-mode',
+                            ShoppingRoutePaths.shoppingMode(activeList.id),
                             extra: {
                               'homeId': activeList.homeId,
                               'listName': activeList.name,
@@ -207,7 +158,7 @@ class HomeActiveListCard extends ConsumerWidget {
                           );
                         },
                         text: context.translate('shopping_mode'),
-                        type: BeityButtonType.primary,
+                        type: SawaButtonType.primary,
                         icon: Icons.shopping_bag_rounded,
                       ),
                     ),
@@ -218,7 +169,7 @@ class HomeActiveListCard extends ConsumerWidget {
           ),
         );
       },
-      loading: () => const BeityCard(
+      loading: () => const SawaCard(
         child: Padding(
           padding: EdgeInsets.all(AppSpacing.xl),
           child: Center(child: CircularProgressIndicator()),

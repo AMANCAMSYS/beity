@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:beity/app/theme/app_spacing.dart';
-import 'package:beity/app/theme/app_colors.dart';
-import 'package:beity/shared/widgets/design_system/beity_text_field.dart';
-import 'package:beity/shared/widgets/design_system/beity_button.dart';
-import 'package:beity/core/utils/action_debouncer.dart';
+import 'package:sawa/app/theme/app_spacing.dart';
+import 'package:sawa/app/theme/app_colors.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_text_field.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_button.dart';
+import 'package:sawa/core/utils/action_debouncer.dart';
 import '../providers/inventory_provider.dart';
 import '../../domain/usecases/add_inventory_item_usecase.dart';
-import 'package:beity/core/errors/error_formatter.dart';
+import 'package:sawa/core/errors/error_formatter.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
 
 class InventoryQuickAddSheet extends ConsumerStatefulWidget {
   final String homeId;
@@ -41,7 +42,6 @@ class _InventoryQuickAddSheetState extends ConsumerState<InventoryQuickAddSheet>
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
 
     ActionDebouncer.execute(() async {
         setState(() {
@@ -71,7 +71,13 @@ class _InventoryQuickAddSheetState extends ConsumerState<InventoryQuickAddSheet>
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 behavior: SnackBarBehavior.floating,
-                content: Text(isArabic ? 'تمت إضافة "$name" إلى المخزون' : 'Added "$name" to inventory'),
+                content: Text(
+                  context.translate(
+                    'added_to_inventory_success_msg',
+                    arguments: {'name': name},
+                    fallback: 'Added "$name" to inventory',
+                  ),
+                ),
                 backgroundColor: AppColors.success,
               ),
             );
@@ -89,7 +95,6 @@ class _InventoryQuickAddSheetState extends ConsumerState<InventoryQuickAddSheet>
 
   @override
   Widget build(BuildContext context) {
-    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
     final theme = Theme.of(context);
 
     return Container(
@@ -124,7 +129,7 @@ class _InventoryQuickAddSheetState extends ConsumerState<InventoryQuickAddSheet>
             
             // Title
             Text(
-              isArabic ? 'إضافة سريعة للمخزون' : 'Quick Add to Inventory',
+              context.translate('quick_add_to_inventory', fallback: 'Quick Add to Inventory'),
               style: theme.textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,
                 color: theme.colorScheme.onSurface,
@@ -162,15 +167,18 @@ class _InventoryQuickAddSheetState extends ConsumerState<InventoryQuickAddSheet>
             ],
 
             // Name field
-            BeityTextField(
+            SawaTextField(
               controller: _nameController,
-              labelText: isArabic ? 'اسم المنتج' : 'Item Name',
-              hintText: isArabic ? 'ماذا تريد أن تضيف؟' : 'What do you want to add?',
+              labelText: context.translate('product_name', fallback: 'Product Name'),
+              hintText: context.translate('what_to_add_hint', fallback: 'What do you want to add?'),
               prefixIcon: Icons.inventory_2_rounded,
               autofocus: true,
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
-                  return isArabic ? 'الرجاء إدخال اسم المنتج' : 'Please enter item name';
+                  return context.translate(
+                    'please_enter_product_name',
+                    fallback: 'Please enter product name',
+                  );
                 }
                 return null;
               },
@@ -182,7 +190,7 @@ class _InventoryQuickAddSheetState extends ConsumerState<InventoryQuickAddSheet>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  isArabic ? 'الكمية المبدئية' : 'Initial Quantity',
+                  context.translate('initial_quantity', fallback: 'Initial Quantity'),
                   style: theme.textTheme.labelSmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                     fontWeight: FontWeight.bold,
@@ -193,18 +201,18 @@ class _InventoryQuickAddSheetState extends ConsumerState<InventoryQuickAddSheet>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(
-                      child: BeityTextField(
+                      child: SawaTextField(
                         controller: _quantityController,
                         hintText: '1',
                         prefixIcon: Icons.numbers_rounded,
                         keyboardType: const TextInputType.numberWithOptions(decimal: true),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return isArabic ? 'مطلوب' : 'Required';
+                            return context.translate('field_required', fallback: 'This field is required');
                           }
                           final q = double.tryParse(value);
                           if (q == null || q <= 0) {
-                            return isArabic ? 'غير صالح' : 'Invalid';
+                            return context.translate('invalid_value', fallback: 'Invalid value');
                           }
                           return null;
                         },
@@ -228,10 +236,10 @@ class _InventoryQuickAddSheetState extends ConsumerState<InventoryQuickAddSheet>
             AppSpacing.gapXXL,
 
             // Submit button
-            BeityButton(
+            SawaButton(
               onPressed: _submit,
               isLoading: _isSubmitting,
-              text: isArabic ? 'إضافة للمخزون' : 'Add to Inventory',
+              text: context.translate('add_to_inventory', fallback: 'Add to Inventory'),
               icon: Icons.check_circle_rounded,
               width: double.infinity,
             ),

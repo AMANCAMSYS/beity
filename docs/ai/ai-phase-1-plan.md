@@ -1,7 +1,7 @@
 # AI Phase 1: Smart Shopping Suggestions
 
 ## Overview
-Phase 1 introduces AI-powered shopping suggestions to Beity. Users can enter natural language prompts (e.g., "I'm making pizza tonight") and receive a list of suggested items with quantities and categories.
+Phase 1 introduces AI-powered shopping suggestions to SAWA. Users can enter natural language prompts (e.g., "I'm making pizza tonight") and receive a list of suggested items with quantities and categories.
 
 ## Architecture
 The feature follows a **Feature-First Clean Architecture** layout:

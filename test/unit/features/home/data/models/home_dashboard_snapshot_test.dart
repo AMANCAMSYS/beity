@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:beity/features/home/data/models/home_dashboard_snapshot.dart';
+import 'package:sawa/features/home/data/models/home_dashboard_snapshot.dart';
 
 void main() {
   group('HomeDashboardSnapshot Model', () {
@@ -34,7 +34,7 @@ void main() {
     test('fromJson parses correct structure', () {
       final json = {
         'homeId': 'home-789',
-        'homeName': 'Beity',
+        'homeName': 'SAWA',
         'activeListId': 'list-999',
         'activeListName': 'Monthly Stock',
         'remainingShoppingItemsCount': 12,
@@ -47,7 +47,7 @@ void main() {
       final snapshot = HomeDashboardSnapshot.fromJson(json);
 
       expect(snapshot.homeId, 'home-789');
-      expect(snapshot.homeName, 'Beity');
+      expect(snapshot.homeName, 'SAWA');
       expect(snapshot.activeListId, 'list-999');
       expect(snapshot.activeListName, 'Monthly Stock');
       expect(snapshot.remainingShoppingItemsCount, 12);

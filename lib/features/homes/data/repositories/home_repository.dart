@@ -1,10 +1,11 @@
 import 'dart:async';
-import 'package:beity/core/services/shared_prefs_provider.dart';
-import 'package:beity/core/services/local_cache_notifier.dart';
+import 'package:sawa/core/services/shared_prefs_provider.dart';
+import 'package:sawa/core/services/local_cache_notifier.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/home_model.dart';
 import '../models/home_member_model.dart';
+import '../models/home_selection.dart';
 import 'home_local_data_source.dart';
 
 abstract class HomeRepository {
@@ -33,14 +34,18 @@ abstract class HomeRepository {
 
   Future<void> deleteHome(String homeId);
   Future<void> removeMember({required String homeId, required String userId});
-  Future<void> updateHomeCurrency({required String homeId, required String currency});
+  Future<void> updateHomeCurrency({
+    required String homeId,
+    required String currency,
+  });
 }
 
 class HomeRepositoryImpl implements HomeRepository {
   final SupabaseClient _client;
   final HomeLocalDataSource _localDataSource;
 
-  HomeRepositoryImpl(this._client) : _localDataSource = HomeLocalDataSource(_client);
+  HomeRepositoryImpl(this._client, {HomeLocalDataSource? localDataSource})
+    : _localDataSource = localDataSource ?? HomeLocalDataSource(_client);
 
   @override
   Future<HomeModel> createHome({
@@ -51,7 +56,18 @@ class HomeRepositoryImpl implements HomeRepository {
     try {
       final user = _client.auth.currentUser;
       if (user == null) {
-        throw Exception('يجب تسجيل الدخول أولاً');
+        throw Exception('must_login_first');
+      }
+
+      final memberships = await _client
+          .from('home_members')
+          .select('home_id')
+          .eq('user_id', user.id)
+          .eq('status', 'active')
+          .isFilter('deleted_at', null);
+
+      if (memberships.length >= 20) {
+        throw Exception('max_homes_reached');
       }
 
       final response = await _client
@@ -73,19 +89,15 @@ class HomeRepositoryImpl implements HomeRepository {
       if (!homes.any((h) => h.id == home.id)) {
         await localDataSource.saveUserHomes(user.id, [...homes, home]);
       }
-      
-      // Auto-set as active home if it is the first home
-      final activeHome = await localDataSource.getActiveHomeIdForUser(user.id);
-      if (activeHome == null || activeHome.isEmpty) {
-        await localDataSource.setActiveHome(home.id, home.name);
-      }
+
+      await localDataSource.setActiveHome(home.id, home.name);
 
       LocalCacheNotifier.notify('global', 'homes');
       LocalCacheNotifier.notify('global', 'active_home');
 
       return home;
     } catch (e) {
-      throw Exception('فشل إنشاء المنزل: ${e.toString()}');
+      throw Exception('create_home_failed: ${e.toString()}');
     }
   }
 
@@ -124,7 +136,7 @@ class HomeRepositoryImpl implements HomeRepository {
   @override
   Future<void> syncHomesWithServer() async {
     final userId = await _getUserId();
-    if (userId == null) throw Exception('يجب تسجيل الدخول أولاً');
+    if (userId == null) throw Exception('must_login_first');
     final localDataSource = _localDataSource;
 
     // 1. Fetch from Supabase
@@ -135,15 +147,40 @@ class HomeRepositoryImpl implements HomeRepository {
         .eq('status', 'active')
         .isFilter('deleted_at', null);
 
-    final newHomes = <HomeModel>[];
+    final fetchedHomes = <HomeModel>[];
     for (final item in response) {
       if (item['homes'] != null) {
-        newHomes.add(HomeModel.fromJson(item['homes'] as Map<String, dynamic>));
+        fetchedHomes.add(
+          HomeModel.fromJson(item['homes'] as Map<String, dynamic>),
+        );
       }
     }
+    final newHomes = sortAvailableHomesByNewest(fetchedHomes);
 
-    // 2. Detect membership revocation (Requirement 3, 5, 7)
+    // 2. Safety check: Do not wipe cache if server returns 0 but we have cache
     final cachedHomes = await getCachedUserHomes();
+    if (newHomes.isEmpty && cachedHomes.isNotEmpty) {
+      // Verify again before wiping
+      try {
+        final verifyResponse = await _client
+            .from('home_members')
+            .select('home_id')
+            .eq('user_id', userId)
+            .eq('status', 'active')
+            .limit(1);
+
+        if (verifyResponse.isNotEmpty) {
+          // Server has data — sync failed temporarily, abort cache wipe
+          return;
+        }
+      } catch (e) {
+        // Network error — do not wipe cache
+        return;
+      }
+      // Server confirmed 0 memberships — safe to wipe
+    }
+
+    // 3. Detect membership revocation (Requirement 3, 5, 7)
     final activeHomeId = await localDataSource.getActiveHomeIdForUser(userId);
 
     for (final cachedHome in cachedHomes) {
@@ -152,7 +189,7 @@ class HomeRepositoryImpl implements HomeRepository {
         // Purge all data associated with this home from cache (Requirement 5)
         await localDataSource.clearAllHomeData(cachedHome.id);
 
-        // If it was the active home, clear it
+        // If it was the active home, clear it until the newest valid home is selected below.
         if (activeHomeId == cachedHome.id) {
           await localDataSource.clearActiveHome(userId);
           LocalCacheNotifier.notify('global', 'active_home');
@@ -160,13 +197,26 @@ class HomeRepositoryImpl implements HomeRepository {
       }
     }
 
-    // 3. Save new homes to local cache
+    // 4. Save new homes to local cache
     await localDataSource.saveUserHomes(userId, newHomes);
 
-    // 4. Mark initial sync completed (Requirement 1)
+    final selectedHome =
+        findAvailableHomeById(newHomes, activeHomeId) ??
+        newestAvailableHome(newHomes);
+    if (selectedHome != null && selectedHome.id != activeHomeId) {
+      await localDataSource.setActiveHome(selectedHome.id, selectedHome.name);
+      LocalCacheNotifier.notify('global', 'active_home');
+    } else if (selectedHome == null &&
+        activeHomeId != null &&
+        activeHomeId.isNotEmpty) {
+      await localDataSource.clearActiveHome(userId);
+      LocalCacheNotifier.notify('global', 'active_home');
+    }
+
+    // 5. Mark initial sync completed (Requirement 1)
     await localDataSource.setInitialSyncCompleted(userId, true);
 
-    // 5. Notify reactive streams
+    // 6. Notify reactive streams
     LocalCacheNotifier.notify('global', 'homes');
   }
 
@@ -249,7 +299,7 @@ class HomeRepositoryImpl implements HomeRepository {
     final userId = await _getUserId();
     if (userId == null) return false;
     final localDataSource = _localDataSource;
-    
+
     // Distinguish if initial sync has occurred (Requirement 1)
     final syncCompleted = await localDataSource.isInitialSyncCompleted(userId);
     if (!syncCompleted) {
@@ -266,10 +316,11 @@ class HomeRepositoryImpl implements HomeRepository {
   Future<void> deleteHome(String homeId) async {
     final userId = await _getUserId();
     List<HomeModel> originalHomes = [];
+    List<HomeModel> updatedHomes = [];
     if (userId != null) {
       originalHomes = await _localDataSource.getUserHomes(userId);
       // Optimistically remove home from user's local cached homes
-      final updatedHomes = originalHomes.where((h) => h.id != homeId).toList();
+      updatedHomes = originalHomes.where((h) => h.id != homeId).toList();
       await _localDataSource.saveUserHomes(userId, updatedHomes);
       LocalCacheNotifier.notify(userId, 'homes');
     }
@@ -279,14 +330,19 @@ class HomeRepositoryImpl implements HomeRepository {
           .from('homes')
           .update({'deleted_at': DateTime.now().toIso8601String()})
           .eq('id', homeId);
-      
+
       if (userId != null) {
         final localDataSource = _localDataSource;
         await localDataSource.clearAllHomeData(homeId);
-        
+
         final activeId = await localDataSource.getActiveHomeIdForUser(userId);
         if (activeId == homeId) {
-          await localDataSource.clearActiveHome(userId);
+          final nextHome = newestAvailableHome(updatedHomes);
+          if (nextHome == null) {
+            await localDataSource.clearActiveHome(userId);
+          } else {
+            await localDataSource.setActiveHome(nextHome.id, nextHome.name);
+          }
           LocalCacheNotifier.notify('global', 'active_home');
         }
       }
@@ -296,7 +352,7 @@ class HomeRepositoryImpl implements HomeRepository {
         await _localDataSource.saveUserHomes(userId, originalHomes);
         LocalCacheNotifier.notify(userId, 'homes');
       }
-      throw Exception('فشل حذف المنزل: ${e.toString()}');
+      throw Exception('delete_home_failed: ${e.toString()}');
     }
   }
 
@@ -308,7 +364,7 @@ class HomeRepositoryImpl implements HomeRepository {
     try {
       final user = _client.auth.currentUser;
       if (user == null) {
-        throw Exception('يجب تسجيل الدخول أولاً');
+        throw Exception('must_login_first');
       }
 
       await _client
@@ -316,12 +372,13 @@ class HomeRepositoryImpl implements HomeRepository {
           .update({
             'deleted_at': DateTime.now().toIso8601String(),
             'status': 'inactive',
+            'updated_by': user.id,
           })
           .eq('home_id', homeId)
           .eq('user_id', userId)
           .isFilter('deleted_at', null);
     } catch (e) {
-      throw Exception('فشل إزالة العضو: ${e.toString()}');
+      throw Exception('remove_member_failed: ${e.toString()}');
     }
   }
 
@@ -366,7 +423,7 @@ class HomeRepositoryImpl implements HomeRepository {
         await _localDataSource.saveUserHomes(userId, originalHomes);
         LocalCacheNotifier.notify(userId, 'homes');
       }
-      throw Exception('فشل تحديث العملة: ${e.toString()}');
+      throw Exception('currency_update_failed: ${e.toString()}');
     }
   }
 }

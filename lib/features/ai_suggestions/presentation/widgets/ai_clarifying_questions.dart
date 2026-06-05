@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
 import '../../../../app/theme/app_colors.dart';
 
 /// Clarifying questions UI with quick option buttons.
@@ -32,7 +33,7 @@ class AiClarifyingQuestions extends StatelessWidget {
                 const Icon(Icons.help_outline_rounded, color: AppColors.info, size: 22),
                 const SizedBox(width: 8),
                 Text(
-                  isArabic ? 'نحتاج بعض التفاصيل' : 'We need some details',
+                  context.translate('ai_clarifying_title'),
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: AppColors.info,
@@ -66,7 +67,7 @@ class AiClarifyingQuestions extends StatelessWidget {
             if (quickOptions.isNotEmpty) ...[
               const SizedBox(height: 20),
               Text(
-                isArabic ? 'أو اختر سريعًا:' : 'Or choose quickly:',
+                context.translate('ai_or_choose_quickly'),
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,

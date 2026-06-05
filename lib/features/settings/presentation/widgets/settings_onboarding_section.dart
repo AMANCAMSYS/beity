@@ -16,12 +16,7 @@ class SettingsOnboardingSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final languageCode = l10n.locale.languageCode;
-    final title = languageCode == 'ar'
-        ? 'التعريف والتوجيه'
-        : languageCode == 'tr'
-            ? 'Tanıtım ve Rehberlik'
-            : 'Onboarding & Guide';
+    final title = l10n.translate('onboarding_and_guide');
 
     return SettingsSection(
       title: title,
@@ -33,7 +28,7 @@ class SettingsOnboardingSection extends ConsumerWidget {
           onTap: () async {
             await OnboardingStorage.resetWelcomeOnboarding();
             if (context.mounted) {
-              context.push('/onboarding');
+              context.push('/welcome-onboarding');
             }
           },
         ),

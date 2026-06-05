@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:beity/app/theme/app_spacing.dart';
-import 'package:beity/shared/widgets/design_system/beity_button.dart';
-import 'package:beity/shared/widgets/design_system/beity_text_field.dart';
-import 'package:beity/shared/widgets/design_system/beity_card.dart';
-import 'package:beity/shared/widgets/design_system/beity_snack_bar.dart';
-import 'package:beity/core/utils/action_debouncer.dart';
+import 'package:go_router/go_router.dart';
+import 'package:sawa/app/theme/app_spacing.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_button.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_text_field.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_card.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_snack_bar.dart';
+import 'package:sawa/core/utils/action_debouncer.dart';
 import '../providers/inventory_provider.dart';
 import '../widgets/quantity_adjuster_widget.dart';
-import 'package:beity/core/localization/app_localizations.dart';
-import 'package:beity/core/errors/error_formatter.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
+import 'package:sawa/core/errors/error_formatter.dart';
 
 class EditInventoryItemScreen extends ConsumerStatefulWidget {
   final String itemId;
@@ -126,13 +127,13 @@ class _EditInventoryItemScreenState
           ref.invalidate(inventoryItemsProvider(widget.homeId));
 
           if (mounted) {
-            BeitySnackBar.success(context, context.translate('product_updated_success'));
-            Navigator.pop(context);
+            SawaSnackBar.success(context, context.translate('product_updated_success'));
+            context.pop();
           }
         });
     } catch (e) {
       if (mounted) {
-        BeitySnackBar.error(
+        SawaSnackBar.error(
           context,
           '${context.translate('error_occurred')}: ${ErrorFormatter.format(e, context)}',
         );
@@ -182,10 +183,10 @@ class _EditInventoryItemScreenState
                   textAlign: TextAlign.center,
                 ),
                 AppSpacing.gapXL,
-                BeityButton(
+                SawaButton(
                   text: context.translate('go_back'),
                   onPressed: () => Navigator.pop(context),
-                  type: BeityButtonType.secondary,
+                  type: SawaButtonType.secondary,
                   width: 160,
                 ),
               ],
@@ -208,7 +209,7 @@ class _EditInventoryItemScreenState
         child: ListView(
           padding: const EdgeInsets.all(AppSpacing.lg),
           children: [
-            BeityCard(
+            SawaCard(
               padding: const EdgeInsets.all(AppSpacing.xl),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -233,7 +234,7 @@ class _EditInventoryItemScreenState
                   AppSpacing.gapXL,
 
                   // Name field
-                  BeityTextField(
+                  SawaTextField(
                     controller: _nameController,
                     labelText: context.translate('product_name'),
                     prefixIcon: Icons.inventory_2_rounded,
@@ -284,7 +285,7 @@ class _EditInventoryItemScreenState
                   AppSpacing.gapXL,
 
                   // Min quantity threshold
-                  BeityTextField(
+                  SawaTextField(
                     controller: _minQuantityController,
                     labelText: context.translate('low_stock_alert'),
                     hintText: context.translate('min_quantity_alert'),
@@ -294,7 +295,7 @@ class _EditInventoryItemScreenState
                   AppSpacing.gapLG,
 
                   // Notes
-                  BeityTextField(
+                  SawaTextField(
                     controller: _notesController,
                     labelText: context.translate('additional_notes'),
                     prefixIcon: Icons.description_rounded,
@@ -306,9 +307,9 @@ class _EditInventoryItemScreenState
             AppSpacing.gapXXL,
 
             // Submit button
-            BeityButton(
+            SawaButton(
               text: context.translate('save_changes'),
-              onPressed: _submit,
+              onPressed: () => ActionDebouncer.execute(_submit),
               isLoading: _isSubmitting,
               icon: Icons.check_rounded,
             ),

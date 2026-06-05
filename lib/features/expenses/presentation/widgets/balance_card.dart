@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:beity/app/theme/app_spacing.dart';
-import 'package:beity/app/theme/app_colors.dart';
-import 'package:beity/shared/widgets/design_system/beity_card.dart';
-import 'package:beity/core/localization/app_localizations.dart';
+import 'package:sawa/app/theme/app_spacing.dart';
+import 'package:sawa/app/theme/app_colors.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_card.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
 import '../../domain/entities/balance.dart';
 
 class BalanceCard extends StatelessWidget {
@@ -28,7 +28,7 @@ class BalanceCard extends StatelessWidget {
         memberNames[balance.getCreditor()] ??
         context.translate('unknown_member');
 
-    return BeityCard(
+    return SawaCard(
       margin: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: Column(
         children: [

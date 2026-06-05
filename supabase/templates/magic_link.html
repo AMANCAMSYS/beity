@@ -1,0 +1,54 @@
+<!doctype html>
+<html
+  lang='{{ if eq .Data.language "en" }}en{{ else if eq .Data.language "tr" }}tr{{ else }}ar{{ end }}'
+  dir='{{ if eq .Data.language "en" }}ltr{{ else if eq .Data.language "tr" }}ltr{{ else }}rtl{{ end }}'
+>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>
+      {{ if eq .Data.language "en" }}Log in to SAWA{{ else if eq .Data.language "tr" }}SAWA'ya giris yapin{{ else }}تسجيل الدخول إلى سوا{{ end }}
+    </title>
+  </head>
+  <body style="margin:0;background:#f6f7f5;color:#1f2a24;font-family:Arial,Tahoma,sans-serif;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f6f7f5;margin:0;padding:28px 12px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #dde5dc;border-radius:20px;overflow:hidden;">
+            <tr>
+              <td style="background:#eef8ef;padding:28px 28px 22px;text-align:center;">
+                <img src="{{ .SiteURL }}/icons/Icon-192.png" width="72" height="72" alt="SAWA" style="display:inline-block;width:72px;height:72px;border-radius:18px;border:1px solid #d7e5d7;">
+                <div style="margin-top:14px;font-size:13px;font-weight:700;color:#2f6f3f;">SAWA</div>
+                <h1 style="margin:10px 0 0;font-size:24px;line-height:1.35;color:#18231d;font-weight:800;">
+                  {{ if eq .Data.language "en" }}Your secure login link{{ else if eq .Data.language "tr" }}Guvenli giris baglantiniz{{ else }}رابط الدخول الآمن{{ end }}
+                </h1>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:28px;text-align:{{ if eq .Data.language "en" }}left{{ else if eq .Data.language "tr" }}left{{ else }}right{{ end }};">
+                <p style="margin:0 0 18px;font-size:16px;line-height:1.8;color:#26352c;">
+                  {{ if eq .Data.language "en" }}Use this one-time link to log in to SAWA and continue managing your home.{{ else if eq .Data.language "tr" }}SAWA'ya giris yapmak ve evinizi yonetmeye devam etmek icin bu tek kullanimlik baglantiyi kullanin.{{ else }}استخدم هذا الرابط لمرة واحدة لتسجيل الدخول إلى سوا ومتابعة إدارة منزلك.{{ end }}
+                </p>
+                <table role="presentation" cellpadding="0" cellspacing="0" style="margin:22px 0;width:100%;">
+                  <tr>
+                    <td align="center">
+                      <a href="{{ .ConfirmationURL }}" style="display:inline-block;background:#2f6f3f;color:#ffffff;text-decoration:none;border-radius:12px;padding:14px 24px;font-size:16px;font-weight:700;">
+                        {{ if eq .Data.language "en" }}Log in{{ else if eq .Data.language "tr" }}Giris yap{{ else }}تسجيل الدخول{{ end }}
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+                <div style="margin:22px 0;padding:18px;border-radius:14px;background:#fff8ed;border:1px solid #f2d7aa;color:#5f421b;">
+                  <p style="margin:0;font-size:14px;line-height:1.8;">
+                    {{ if eq .Data.language "en" }}If you did not request this login link, ignore this email.{{ else if eq .Data.language "tr" }}Bu giris baglantisini siz istemediyseniz bu e-postayi yok sayin.{{ else }}إذا لم تطلب رابط الدخول هذا، يمكنك تجاهل الرسالة.{{ end }}
+                  </p>
+                </div>
+                <p style="margin:0;font-size:12px;line-height:1.7;color:#6c786f;direction:ltr;text-align:left;word-break:break-all;">{{ .ConfirmationURL }}</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

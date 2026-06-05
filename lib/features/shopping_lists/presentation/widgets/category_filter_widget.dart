@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
 import '../../../categories/data/models/category_model.dart';
 
 class CategoryFilterWidget extends StatelessWidget {
@@ -15,7 +16,6 @@ class CategoryFilterWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
     return SizedBox(
       height: 48,
       child: ListView(
@@ -24,7 +24,7 @@ class CategoryFilterWidget extends StatelessWidget {
         children: [
           _buildFilterChip(
             context,
-            label: isArabic ? 'الكل' : 'All',
+            label: context.translate('all', fallback: 'All'),
             isSelected: selectedCategoryId == null,
             onTap: () => onCategorySelected(null),
           ),

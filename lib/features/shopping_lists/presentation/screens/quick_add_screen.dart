@@ -1,7 +1,7 @@
-import 'package:beity/app/theme/app_spacing.dart';
-import 'package:beity/app/theme/app_colors.dart';
-import 'package:beity/shared/widgets/design_system/beity_empty_state.dart';
-import 'package:beity/shared/widgets/design_system/beity_text_field.dart';
+import 'package:sawa/app/theme/app_spacing.dart';
+import 'package:sawa/app/theme/app_colors.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_empty_state.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_text_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/utils/action_debouncer.dart';
@@ -10,17 +10,13 @@ import '../../domain/usecases/add_item_usecase.dart';
 import '../../domain/usecases/delete_item_usecase.dart';
 import '../../data/models/item_template_model.dart';
 import '../../../../core/localization/app_localizations.dart';
-import 'package:beity/core/errors/error_formatter.dart';
+import 'package:sawa/core/errors/error_formatter.dart';
 
 class QuickAddScreen extends ConsumerStatefulWidget {
   final String listId;
   final String homeId;
 
-  const QuickAddScreen({
-    super.key,
-    required this.listId,
-    required this.homeId,
-  });
+  const QuickAddScreen({super.key, required this.listId, required this.homeId});
 
   @override
   ConsumerState<QuickAddScreen> createState() => _QuickAddScreenState();
@@ -43,15 +39,25 @@ class _QuickAddScreenState extends ConsumerState<QuickAddScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(context.translate('quick_add'), style: const TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(
+          context.translate('quick_add'),
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(80),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.lg),
-            child: BeityTextField(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.lg,
+              0,
+              AppSpacing.lg,
+              AppSpacing.lg,
+            ),
+            child: SawaTextField(
               controller: _searchController,
               hintText: context.translate('search_items_placeholder'),
               prefixIcon: Icons.search_rounded,
+              textInputAction: TextInputAction.search,
+              onSubmitted: (_) => FocusManager.instance.primaryFocus?.unfocus(),
               onChanged: (value) {
                 setState(() {
                   _searchQuery = value;
@@ -66,14 +72,17 @@ class _QuickAddScreenState extends ConsumerState<QuickAddScreen> {
           final filtered = _searchQuery.isEmpty
               ? templates
               : templates
-                  .where((t) =>
-                      t.name.toLowerCase().contains(_searchQuery.toLowerCase()))
-                  .toList();
+                    .where(
+                      (t) => t.name.toLowerCase().contains(
+                        _searchQuery.toLowerCase(),
+                      ),
+                    )
+                    .toList();
 
           if (filtered.isEmpty) {
-            return BeityEmptyState(
+            return SawaEmptyState(
               title: context.translate('no_items'),
-              message: _searchQuery.isEmpty 
+              message: _searchQuery.isEmpty
                   ? context.translate('no_templates_desc')
                   : context.translate('no_results_search'),
               icon: Icons.bookmark_outline_rounded,
@@ -90,7 +99,7 @@ class _QuickAddScreenState extends ConsumerState<QuickAddScreen> {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => BeityEmptyState(
+        error: (error, _) => SawaEmptyState(
           title: context.translate('error_title'),
           message: error.toString(),
           icon: Icons.error_outline_rounded,
@@ -104,9 +113,12 @@ class _QuickAddScreenState extends ConsumerState<QuickAddScreen> {
 
   Widget _buildTemplateTile(BuildContext context, ItemTemplateModel template) {
     final theme = Theme.of(context);
-    
+
     return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.xs),
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.lg,
+        vertical: AppSpacing.xs,
+      ),
       leading: Container(
         width: 48,
         height: 48,
@@ -114,21 +126,23 @@ class _QuickAddScreenState extends ConsumerState<QuickAddScreen> {
           color: theme.colorScheme.primary.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
         ),
-        child: Icon(
-          Icons.replay_rounded,
-          color: theme.colorScheme.primary,
-        ),
+        child: Icon(Icons.replay_rounded, color: theme.colorScheme.primary),
       ),
       title: Text(
         template.name,
         style: const TextStyle(fontWeight: FontWeight.bold),
       ),
       subtitle: Text(
-        context.translate('qty_label', arguments: {
-          'qty': template.defaultQuantity == template.defaultQuantity.roundToDouble()
-              ? template.defaultQuantity.toInt().toString()
-              : template.defaultQuantity.toStringAsFixed(1),
-        }),
+        context.translate(
+          'qty_label',
+          arguments: {
+            'qty':
+                template.defaultQuantity ==
+                    template.defaultQuantity.roundToDouble()
+                ? template.defaultQuantity.toInt().toString()
+                : template.defaultQuantity.toStringAsFixed(1),
+          },
+        ),
         style: theme.textTheme.bodySmall?.copyWith(
           color: theme.colorScheme.onSurfaceVariant,
         ),
@@ -137,13 +151,21 @@ class _QuickAddScreenState extends ConsumerState<QuickAddScreen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.sm,
+              vertical: AppSpacing.xs,
+            ),
             decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+              color: theme.colorScheme.surfaceContainerHighest.withValues(
+                alpha: 0.5,
+              ),
               borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
             ),
             child: Text(
-              context.translate('usage_count_times', arguments: {'count': template.usageCount.toString()}),
+              context.translate(
+                'usage_count_times',
+                arguments: {'count': template.usageCount.toString()},
+              ),
               style: theme.textTheme.labelSmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
                 fontWeight: FontWeight.bold,
@@ -163,7 +185,9 @@ class _QuickAddScreenState extends ConsumerState<QuickAddScreen> {
 
   Future<void> _addFromTemplate(ItemTemplateModel template) async {
     try {
-      final repository = ref.read(shoppingItemRepositoryProvider);
+      final repository = ref.read(
+        shoppingItemRepositoryForHomeProvider(widget.homeId),
+      );
       final addItemUseCase = AddItemUseCase(repository);
 
       final item = await addItemUseCase(
@@ -184,7 +208,12 @@ class _QuickAddScreenState extends ConsumerState<QuickAddScreen> {
         ScaffoldMessenger.of(context).clearSnackBars();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(context.translate('added_item_success', arguments: {'name': template.name})),
+            content: Text(
+              context.translate(
+                'added_item_success',
+                arguments: {'name': template.name},
+              ),
+            ),
             action: SnackBarAction(
               label: context.translate('undo'),
               onPressed: () => ActionDebouncer.execute(_undoAdd),
@@ -196,7 +225,9 @@ class _QuickAddScreenState extends ConsumerState<QuickAddScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${context.translate('error')}: ${ErrorFormatter.format(e, context)}'),
+            content: Text(
+              '${context.translate('error')}: ${ErrorFormatter.format(e, context)}',
+            ),
             backgroundColor: AppColors.error,
           ),
         );
@@ -208,7 +239,9 @@ class _QuickAddScreenState extends ConsumerState<QuickAddScreen> {
     if (_lastAddedItemId == null) return;
 
     try {
-      final repository = ref.read(shoppingItemRepositoryProvider);
+      final repository = ref.read(
+        shoppingItemRepositoryForHomeProvider(widget.homeId),
+      );
       final deleteUseCase = DeleteItemUseCase(repository);
       await deleteUseCase(itemId: _lastAddedItemId!);
 
@@ -222,7 +255,12 @@ class _QuickAddScreenState extends ConsumerState<QuickAddScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(context.translate('undo_failed', arguments: {'error': ErrorFormatter.format(e, context)})),
+            content: Text(
+              context.translate(
+                'undo_failed',
+                arguments: {'error': ErrorFormatter.format(e, context)},
+              ),
+            ),
             backgroundColor: AppColors.error,
           ),
         );

@@ -1,5 +1,8 @@
+import 'dart:async';
 import 'dart:convert';
+import '../../../../core/services/notification_service.dart';
 import '../../../../core/services/shared_prefs_provider.dart';
+import '../../../../core/services/supabase_service.dart';
 import '../../domain/entities/expense.dart';
 import '../../domain/entities/expense_split.dart';
 import '../../domain/repositories/expense_repository.dart';
@@ -28,14 +31,28 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
     String? categoryId,
     String? memberId,
   }) async {
-    final allExpenses = await _localDataSource.getExpensesStreamCache(homeId: homeId);
+    final allExpenses = await _localDataSource.getExpensesStreamCache(
+      homeId: homeId,
+    );
     return allExpenses.where((e) {
       if (startDate != null) {
-        final startOfDay = DateTime(startDate.year, startDate.month, startDate.day);
+        final startOfDay = DateTime(
+          startDate.year,
+          startDate.month,
+          startDate.day,
+        );
         if (e.date.isBefore(startOfDay)) return false;
       }
       if (endDate != null) {
-        final endOfDay = DateTime(endDate.year, endDate.month, endDate.day, 23, 59, 59, 999);
+        final endOfDay = DateTime(
+          endDate.year,
+          endDate.month,
+          endDate.day,
+          23,
+          59,
+          59,
+          999,
+        );
         if (e.date.isAfter(endOfDay)) return false;
       }
       if (categoryId != null && e.categoryId != categoryId) return false;
@@ -45,16 +62,12 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
   }
 
   @override
-  Future<Expense?> getExpenseById({
-    required String expenseId,
-  }) async {
+  Future<Expense?> getExpenseById({required String expenseId}) async {
     return getCachedExpenseById(expenseId: expenseId);
   }
 
   @override
-  Future<Expense?> getCachedExpenseById({
-    required String expenseId,
-  }) async {
+  Future<Expense?> getCachedExpenseById({required String expenseId}) async {
     try {
       final prefs = AppPreferences.instance;
       final keys = prefs.getKeys();
@@ -87,7 +100,7 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
     String currencyCode = 'SAR',
     required int convertedAmount,
   }) async {
-    return _remoteDataSource.createExpense(
+    final expense = await _remoteDataSource.createExpense(
       homeId: homeId,
       amount: amount,
       description: description,
@@ -98,6 +111,10 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
       currencyCode: currencyCode,
       convertedAmount: convertedAmount,
     );
+    unawaited(
+      _sendExpenseNotification(eventType: 'expense_added', expense: expense),
+    );
+    return expense;
   }
 
   @override
@@ -113,7 +130,7 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
     required int convertedAmount,
     List<({String memberId, int amount})> splits = const [],
   }) async {
-    return _remoteDataSource.createExpenseWithSplits(
+    final expense = await _remoteDataSource.createExpenseWithSplits(
       homeId: homeId,
       amount: amount,
       description: description,
@@ -125,6 +142,14 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
       convertedAmount: convertedAmount,
       splits: splits,
     );
+    unawaited(
+      _sendExpenseNotification(
+        eventType: 'expense_added',
+        expense: expense,
+        targetUserIds: splits.map((split) => split.memberId).toSet().toList(),
+      ),
+    );
+    return expense;
   }
 
   @override
@@ -139,7 +164,7 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
     String? currencyCode,
     int? convertedAmount,
   }) async {
-    return _remoteDataSource.updateExpense(
+    final expense = await _remoteDataSource.updateExpense(
       expenseId: expenseId,
       amount: amount,
       description: description,
@@ -150,13 +175,31 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
       currencyCode: currencyCode,
       convertedAmount: convertedAmount,
     );
+    if (amount != null || convertedAmount != null || paidBy != null) {
+      unawaited(
+        _sendExpenseNotification(
+          eventType: 'expense_updated',
+          expense: expense,
+        ),
+      );
+    }
+    return expense;
   }
 
   @override
-  Future<void> deleteExpense({
-    required String expenseId,
-  }) async {
-    return _remoteDataSource.deleteExpense(expenseId: expenseId);
+  Future<void> deleteExpense({required String expenseId}) async {
+    final existing =
+        await getCachedExpenseById(expenseId: expenseId) ??
+        await _remoteDataSource.getExpenseById(expenseId: expenseId);
+    await _remoteDataSource.deleteExpense(expenseId: expenseId);
+    if (existing != null) {
+      unawaited(
+        _sendExpenseNotification(
+          eventType: 'expense_deleted',
+          expense: existing,
+        ),
+      );
+    }
   }
 
   @override
@@ -178,9 +221,7 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
   }
 
   @override
-  Future<void> deleteExpenseSplits({
-    required String expenseId,
-  }) async {
+  Future<void> deleteExpenseSplits({required String expenseId}) async {
     return _remoteDataSource.deleteExpenseSplits(expenseId: expenseId);
   }
 
@@ -199,13 +240,28 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
   }
 
   @override
-  Stream<List<Expense>> watchExpenses({
-    required String homeId,
-  }) async* {
+  Stream<List<Expense>> watchExpenses({required String homeId}) async* {
     // 1. Emit cached expenses instantly (0 network requests, instant perceived loading)
-    yield await _localDataSource.getExpensesStreamCache(homeId: homeId);
+    final cached = await _localDataSource.getExpensesStreamCache(
+      homeId: homeId,
+    );
+    yield cached;
 
-    // 2. React to local cache updates from background sync or local alterations
+    // 2. If cache is empty, fetch from server and populate cache
+    if (cached.isEmpty) {
+      try {
+        final expenses = await _remoteDataSource.getExpenses(homeId: homeId);
+        await _localDataSource.saveExpensesStreamCache(
+          homeId: homeId,
+          expenses: expenses,
+        );
+        yield expenses;
+      } catch (_) {
+        // Server fetch failed — stream will still update via LocalCacheNotifier
+      }
+    }
+
+    // 3. React to local cache updates from background sync or local alterations
     await for (final event in LocalCacheNotifier.stream) {
       if (event.homeId == homeId && event.entityType == 'expenses') {
         yield await _localDataSource.getExpensesStreamCache(homeId: homeId);
@@ -221,7 +277,9 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
 
       if (serverExpensesMaxUpdate != null) {
         final localSyncTime = _syncService.getLocalSyncTime(homeId, 'expenses');
-        final cachedExpenses = await _localDataSource.getExpensesStreamCache(homeId: homeId);
+        final cachedExpenses = await _localDataSource.getExpensesStreamCache(
+          homeId: homeId,
+        );
         final isCacheEmpty = cachedExpenses.isEmpty;
 
         // Delta Sync check: Only pull if the server has newer updates OR local cache is empty!
@@ -229,7 +287,10 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
           final expenses = await _remoteDataSource.getExpenses(homeId: homeId);
 
           // 1. Save pulled expenses into the local stream cache
-          await _localDataSource.saveExpensesStreamCache(homeId: homeId, expenses: expenses);
+          await _localDataSource.saveExpensesStreamCache(
+            homeId: homeId,
+            expenses: expenses,
+          );
 
           // 2. Save pulled expenses into standard filtered cache
           await _localDataSource.saveExpenses(
@@ -254,13 +315,20 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
           if (maxTs.year > 1970) {
             await _syncService.updateLocalSyncTime(homeId, 'expenses', maxTs);
           } else {
-            await _syncService.updateLocalSyncTime(homeId, 'expenses', DateTime.now());
+            await _syncService.updateLocalSyncTime(
+              homeId,
+              'expenses',
+              DateTime.now(),
+            );
           }
 
           // 4. Notify reactive streams that expenses cache changed
           LocalCacheNotifier.notify(homeId, 'expenses');
         }
-        await _localDataSource.setInitialSyncCompleted(homeId: homeId, completed: true);
+        await _localDataSource.setInitialSyncCompleted(
+          homeId: homeId,
+          completed: true,
+        );
       }
     } catch (_) {
       rethrow;
@@ -273,8 +341,14 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
   }
 
   @override
-  Future<void> setInitialSyncCompleted({required String homeId, required bool completed}) async {
-    await _localDataSource.setInitialSyncCompleted(homeId: homeId, completed: completed);
+  Future<void> setInitialSyncCompleted({
+    required String homeId,
+    required bool completed,
+  }) async {
+    await _localDataSource.setInitialSyncCompleted(
+      homeId: homeId,
+      completed: completed,
+    );
     LocalCacheNotifier.notify(homeId, 'expenses');
   }
 
@@ -283,10 +357,14 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
     final cached = await getCachedExpenseById(expenseId: expenseId);
     if (cached == null) {
       try {
-        final remote = await _remoteDataSource.getExpenseById(expenseId: expenseId);
+        final remote = await _remoteDataSource.getExpenseById(
+          expenseId: expenseId,
+        );
         if (remote != null) {
           final cachedExpenses = List<ExpenseModel>.from(
-            await _localDataSource.getExpensesStreamCache(homeId: remote.homeId),
+            await _localDataSource.getExpensesStreamCache(
+              homeId: remote.homeId,
+            ),
           );
           if (!cachedExpenses.any((e) => e.id == remote.id)) {
             cachedExpenses.add(remote);
@@ -299,5 +377,33 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
         }
       } catch (_) {}
     }
+  }
+
+  Future<void> _sendExpenseNotification({
+    required String eventType,
+    required Expense expense,
+    List<String>? targetUserIds,
+  }) async {
+    final user = SupabaseService.client.auth.currentUser;
+    if (user == null || expense.homeId.isEmpty) return;
+
+    await NotificationService.sendExpenseNotification(
+      homeId: expense.homeId,
+      actorId: user.id,
+      expenseId: expense.id,
+      eventType: eventType,
+      targetUserIds: targetUserIds
+          ?.where((id) => id.isNotEmpty && id != user.id)
+          .toSet()
+          .toList(),
+      context: {
+        'expense_description': expense.description,
+        'amount': _formatAmount(expense.convertedAmount, expense.currencyCode),
+      },
+    );
+  }
+
+  String _formatAmount(int cents, String currencyCode) {
+    return '${(cents / 100).toStringAsFixed(2)} $currencyCode';
   }
 }

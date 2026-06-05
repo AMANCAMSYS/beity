@@ -10,10 +10,26 @@ import '../../features/shopping_mode/presentation/screens/shopping_mode_screen.d
 import '../../features/activity_logs/presentation/screens/list_activity_screen.dart';
 import '../../features/homes/presentation/widgets/no_active_home_widget.dart';
 import '../../core/config/feature_flags.dart';
+import 'shopping_route_paths.dart';
 
-List<GoRoute> shoppingRoutes(String Function(GoRouterState) getEffectiveHomeId) => [
+String _explicitHomeId(GoRouterState state) {
+  final queryHomeId = state.uri.queryParameters['homeId'];
+  if (queryHomeId != null && queryHomeId.isNotEmpty) return queryHomeId;
+
+  final extra = state.extra;
+  if (extra is String && extra.isNotEmpty) return extra;
+  if (extra is Map<String, dynamic>) {
+    final extraHomeId = extra['homeId'];
+    if (extraHomeId is String && extraHomeId.isNotEmpty) return extraHomeId;
+  }
+  return '';
+}
+
+List<GoRoute> shoppingRoutes(
+  String Function(GoRouterState) getEffectiveHomeId,
+) => [
   GoRoute(
-    path: '/shopping-lists/create',
+    path: ShoppingRoutePaths.create,
     builder: (context, state) {
       final homeId = getEffectiveHomeId(state);
       if (homeId.isEmpty) return const NoActiveHomeWidget();
@@ -21,54 +37,65 @@ List<GoRoute> shoppingRoutes(String Function(GoRouterState) getEffectiveHomeId) 
     },
   ),
   GoRoute(
-    path: '/shopping-list/:id',
-    builder: (context, state) =>
-        ShoppingListDetailScreen(listId: state.pathParameters['id']!),
+    path: ShoppingRoutePaths.detailPattern,
+    builder: (context, state) {
+      final homeId = getEffectiveHomeId(state);
+      if (homeId.isEmpty) return const NoActiveHomeWidget();
+      return ShoppingListDetailScreen(
+        listId: state.pathParameters['id']!,
+        homeId: homeId,
+      );
+    },
   ),
   GoRoute(
-    path: '/shopping-list/:id/add-item',
-    builder: (context, state) =>
-        AddItemScreen(listId: state.pathParameters['id']!),
+    path: ShoppingRoutePaths.addItemPattern,
+    builder: (context, state) {
+      final homeId = _explicitHomeId(state);
+      if (homeId.isEmpty) return const NoActiveHomeWidget();
+      return AddItemScreen(listId: state.pathParameters['id']!, homeId: homeId);
+    },
   ),
   GoRoute(
-    path: '/shopping-list/:id/edit-item/:itemId',
-    builder: (context, state) => EditItemScreen(
-      listId: state.pathParameters['id']!,
-      itemId: state.pathParameters['itemId']!,
-    ),
+    path: ShoppingRoutePaths.editItemPattern,
+    builder: (context, state) {
+      final homeId = _explicitHomeId(state);
+      if (homeId.isEmpty) return const NoActiveHomeWidget();
+      return EditItemScreen(
+        listId: state.pathParameters['id']!,
+        itemId: state.pathParameters['itemId']!,
+        homeId: homeId,
+      );
+    },
   ),
   GoRoute(
-    path: '/shopping-list/:id/summary',
+    path: ShoppingRoutePaths.summaryPattern,
     builder: (context, state) =>
         ListSummaryScreen(listId: state.pathParameters['id']!),
   ),
   GoRoute(
-    path: '/shopping-list/:id/ai-suggestions',
+    path: ShoppingRoutePaths.aiSuggestionsPattern,
     builder: (context, state) {
       final extra = state.extra as Map<String, dynamic>? ?? {};
-      final String homeId = (extra['homeId'] as String?) ?? getEffectiveHomeId(state);
+      final String homeId =
+          (extra['homeId'] as String?) ?? getEffectiveHomeId(state);
       if (homeId.isEmpty) return const NoActiveHomeWidget();
-      
+
       return AiSuggestionsScreen(
         listId: state.pathParameters['id']!,
         listTitle: extra['listTitle'] ?? 'قائمة',
         homeId: homeId,
         homeType: extra['homeType'] ?? 'family',
-        existingItemNames:
-            (extra['existingItemNames'] as List<dynamic>?)
-                ?.cast<String>() ??
-            [],
       );
     },
     redirect: (context, state) {
       if (!FeatureFlags.enableAi) {
-        return '/shopping-list/${state.pathParameters['id']}';
+        return ShoppingRoutePaths.detail(state.pathParameters['id']!);
       }
       return null;
     },
   ),
   GoRoute(
-    path: '/shopping-list/:id/quick-add',
+    path: ShoppingRoutePaths.quickAddPattern,
     builder: (context, state) {
       final homeId = getEffectiveHomeId(state);
       if (homeId.isEmpty) return const NoActiveHomeWidget();
@@ -79,10 +106,11 @@ List<GoRoute> shoppingRoutes(String Function(GoRouterState) getEffectiveHomeId) 
     },
   ),
   GoRoute(
-    path: '/shopping-list/:id/shopping-mode',
+    path: ShoppingRoutePaths.shoppingModePattern,
     builder: (context, state) {
       final extra = state.extra as Map<String, dynamic>? ?? {};
-      final String homeId = (extra['homeId'] as String?) ?? getEffectiveHomeId(state);
+      final String homeId =
+          (extra['homeId'] as String?) ?? getEffectiveHomeId(state);
       if (homeId.isEmpty) return const NoActiveHomeWidget();
       return ShoppingModeScreen(
         listId: state.pathParameters['id']!,
@@ -92,10 +120,11 @@ List<GoRoute> shoppingRoutes(String Function(GoRouterState) getEffectiveHomeId) 
     },
   ),
   GoRoute(
-    path: '/shopping-list/:id/activity',
+    path: ShoppingRoutePaths.activityPattern,
     builder: (context, state) {
       final extra = state.extra as Map<String, dynamic>? ?? {};
-      final String homeId = (extra['homeId'] as String?) ?? getEffectiveHomeId(state);
+      final String homeId =
+          (extra['homeId'] as String?) ?? getEffectiveHomeId(state);
       if (homeId.isEmpty) return const NoActiveHomeWidget();
       return ListActivityScreen(
         homeId: homeId,

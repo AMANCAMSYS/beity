@@ -1,10 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:beity/core/services/supabase_service.dart';
+import 'package:flutter_riverpod/legacy.dart';
+import 'package:sawa/core/services/supabase_service.dart';
 
 import '../../data/models/role_permission_model.dart';
 import '../../data/repositories/role_repository.dart';
 import '../../data/repositories/supabase_role_repository.dart';
 import '../../../homes/data/models/home_member_model.dart';
+import '../../domain/entities/role.dart';
 
 final roleRepositoryProvider = Provider<RoleRepository>((ref) {
   return SupabaseRoleRepository(SupabaseService.client);
@@ -23,6 +25,22 @@ final homeMembersStreamProvider = StreamProvider.autoDispose.family<List<HomeMem
 final rolePermissionsProvider = FutureProvider<Map<String, List<RolePermissionModel>>>((ref) async {
   final repo = ref.read(roleRepositoryProvider);
   return repo.getAllRolePermissions();
+});
+
+final currentHomeRoleProvider = Provider.family<HomeRole, String>((ref, homeId) {
+  final membersAsync = ref.watch(homeMembersStreamProvider(homeId));
+  final currentUserId = SupabaseService.client.auth.currentUser?.id;
+  final roleString = membersAsync.value?.firstWhere(
+        (m) => m.userId == currentUserId,
+        orElse: () => HomeMemberModel(
+          id: '', homeId: homeId, userId: '', role: 'viewer', status: 'active', joinedAt: DateTime.now(),
+        ),
+      ).role ?? 'viewer';
+      
+  return HomeRole.values.firstWhere(
+    (r) => r.name == roleString,
+    orElse: () => HomeRole.viewer,
+  );
 });
 
 final userPermissionProvider = FutureProvider.family<bool, ({String homeId, String userId, String permission})>((ref, params) async {

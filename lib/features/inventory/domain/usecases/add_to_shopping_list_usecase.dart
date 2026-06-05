@@ -14,7 +14,7 @@ class AddToShoppingListUseCase {
   }) async {
     final item =
         await _inventoryRepository.getInventoryItemById(itemId: inventoryItemId);
-    if (item == null) throw Exception('المنتج غير موجود في المخزون');
+    if (item == null) throw Exception('error_item_not_found_in_inventory');
 
     // Calculate suggested restock quantity
     final suggestedQty = item.minQuantity != null

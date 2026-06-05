@@ -1,3 +1,5 @@
+const _sentinel = Object();
+
 class ShoppingItem {
   final String id;
   final String shoppingListId;
@@ -6,8 +8,9 @@ class ShoppingItem {
   final double purchasedQuantity;
   final String? unitId;
   final String? categoryId;
+  final String priority;
   final double? price;
-  final String currency;
+  final String? currency;
   final String? notes;
   final bool isPurchased;
   final String? purchasedBy;
@@ -25,8 +28,9 @@ class ShoppingItem {
     this.purchasedQuantity = 0,
     this.unitId,
     this.categoryId,
+    this.priority = 'medium',
     this.price,
-    this.currency = 'SAR',
+    this.currency,
     this.notes,
     this.isPurchased = false,
     this.purchasedBy,
@@ -38,10 +42,21 @@ class ShoppingItem {
   });
 
   bool get hasPrice => price != null && price! > 0;
-  
+
   String get formattedPrice {
     if (!hasPrice) return '';
-    return '${price!.toStringAsFixed(2)} $currency';
+    return '${price!.toStringAsFixed(2)} ${currency ?? ''}';
+  }
+
+  /// Priority order value for sorting (lower = higher priority).
+  static int priorityOrder(String priority) {
+    switch (priority) {
+      case 'urgent': return 0;
+      case 'high': return 1;
+      case 'medium': return 2;
+      case 'low': return 3;
+      default: return 2;
+    }
   }
 
   ShoppingItem copyWith({
@@ -50,17 +65,19 @@ class ShoppingItem {
     String? name,
     double? quantity,
     double? purchasedQuantity,
-    String? unitId,
-    String? categoryId,
-    double? price,
-    String? currency,
-    String? notes,
+    Object? unitId = _sentinel,
+    Object? categoryId = _sentinel,
+    String? priority,
+    Object? price = _sentinel,
+    Object? currency = _sentinel,
+    Object? notes = _sentinel,
     bool? isPurchased,
-    String? purchasedBy,
-    DateTime? purchasedAt,
+    Object? purchasedBy = _sentinel,
+    Object? purchasedAt = _sentinel,
     String? createdBy,
-    DateTime? createdAt,
-    DateTime? updatedAt,
+    Object? createdAt = _sentinel,
+    Object? updatedAt = _sentinel,
+    Object? deletedAt = _sentinel,
   }) {
     return ShoppingItem(
       id: id ?? this.id,
@@ -68,17 +85,19 @@ class ShoppingItem {
       name: name ?? this.name,
       quantity: quantity ?? this.quantity,
       purchasedQuantity: purchasedQuantity ?? this.purchasedQuantity,
-      unitId: unitId ?? this.unitId,
-      categoryId: categoryId ?? this.categoryId,
-      price: price ?? this.price,
-      currency: currency ?? this.currency,
-      notes: notes ?? this.notes,
+      unitId: identical(unitId, _sentinel) ? this.unitId : unitId as String?,
+      categoryId: identical(categoryId, _sentinel) ? this.categoryId : categoryId as String?,
+      priority: priority ?? this.priority,
+      price: identical(price, _sentinel) ? this.price : price as double?,
+      currency: identical(currency, _sentinel) ? this.currency : currency as String?,
+      notes: identical(notes, _sentinel) ? this.notes : notes as String?,
       isPurchased: isPurchased ?? this.isPurchased,
-      purchasedBy: purchasedBy ?? this.purchasedBy,
-      purchasedAt: purchasedAt ?? this.purchasedAt,
+      purchasedBy: identical(purchasedBy, _sentinel) ? this.purchasedBy : purchasedBy as String?,
+      purchasedAt: identical(purchasedAt, _sentinel) ? this.purchasedAt : purchasedAt as DateTime?,
       createdBy: createdBy ?? this.createdBy,
-      createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
+      createdAt: identical(createdAt, _sentinel) ? this.createdAt : createdAt as DateTime?,
+      updatedAt: identical(updatedAt, _sentinel) ? this.updatedAt : updatedAt as DateTime?,
+      deletedAt: identical(deletedAt, _sentinel) ? this.deletedAt : deletedAt as DateTime?,
     );
   }
 }

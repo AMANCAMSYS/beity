@@ -15,54 +15,47 @@ class DefaultFirebaseOptions {
       case TargetPlatform.macOS:
         return macos;
       case TargetPlatform.windows:
-        return windows;
-      default:
+      case TargetPlatform.linux:
+      case TargetPlatform.fuchsia:
         throw UnsupportedError(
-          'DefaultFirebaseOptions are not supported for this platform.',
+          'DefaultFirebaseOptions are not configured for this platform.',
         );
     }
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyBO_SST1Zs7Ae6Ww4Rfy5t8Sc8gh66FpCU',
-    appId: '1:629950526379:android:d0a6305baf31bbd1af58ee',
-    messagingSenderId: '629950526379',
-    projectId: 'beity-ad796',
-    storageBucket: 'beity-ad796.firebasestorage.app',
+    apiKey: 'AIzaSyD9nCJGcfIp3p1emZVvawnkC-lC3E5vzmk',
+    appId: '1:977923653056:android:49c9fe4b1fd307934d9c25',
+    messagingSenderId: '977923653056',
+    projectId: 'sawa-5c4e0',
+    storageBucket: 'sawa-5c4e0.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyAFcQd5rcAT8Ci4LtUOBrtC71MDVOmDam0',
-    appId: '1:629950526379:ios:71616fd2d0156ce6af58ee',
-    messagingSenderId: '629950526379',
-    projectId: 'beity-ad796',
-    storageBucket: 'beity-ad796.firebasestorage.app',
-    iosBundleId: 'com.beity.beity',
+    apiKey: 'AIzaSyBdaV70ymnLBOh4lcibFPJ_kWWFac4xXO4',
+    appId: '1:977923653056:ios:d893581bbf40f4514d9c25',
+    messagingSenderId: '977923653056',
+    projectId: 'sawa-5c4e0',
+    storageBucket: 'sawa-5c4e0.firebasestorage.app',
+    iosBundleId: 'com.sawa.sawa',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyAFcQd5rcAT8Ci4LtUOBrtC71MDVOmDam0',
-    appId: '1:629950526379:ios:71616fd2d0156ce6af58ee',
-    messagingSenderId: '629950526379',
-    projectId: 'beity-ad796',
-    storageBucket: 'beity-ad796.firebasestorage.app',
-    iosBundleId: 'com.beity.beity',
+    apiKey: 'AIzaSyBdaV70ymnLBOh4lcibFPJ_kWWFac4xXO4',
+    appId: '1:977923653056:ios:d893581bbf40f4514d9c25',
+    messagingSenderId: '977923653056',
+    projectId: 'sawa-5c4e0',
+    storageBucket: 'sawa-5c4e0.firebasestorage.app',
+    iosBundleId: 'com.sawa.sawa',
   );
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyBO_SST1Zs7Ae6Ww4Rfy5t8Sc8gh66FpCU',
-    appId: '1:629950526379:web:d0a6305baf31bbd1af58ee',
-    messagingSenderId: '629950526379',
-    projectId: 'beity-ad796',
-    storageBucket: 'beity-ad796.firebasestorage.app',
-    authDomain: 'beity-ad796.firebaseapp.com',
-  );
-
-  static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyBO_SST1Zs7Ae6Ww4Rfy5t8Sc8gh66FpCU',
-    appId: '1:629950526379:windows:d0a6305baf31bbd1af58ee',
-    messagingSenderId: '629950526379',
-    projectId: 'beity-ad796',
-    storageBucket: 'beity-ad796.firebasestorage.app',
+    apiKey: 'AIzaSyDjzY6gV7MQ30zNXyMKUECvqiiYwaYFv-8',
+    appId: '1:977923653056:web:ee82acc21f07eacd4d9c25',
+    messagingSenderId: '977923653056',
+    projectId: 'sawa-5c4e0',
+    authDomain: 'sawa-5c4e0.firebaseapp.com',
+    storageBucket: 'sawa-5c4e0.firebasestorage.app',
+    measurementId: 'G-WXVLKJLDMJ',
   );
 }

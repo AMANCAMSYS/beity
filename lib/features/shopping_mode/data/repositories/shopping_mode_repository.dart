@@ -17,14 +17,4 @@ abstract class ShoppingModeRepository {
     required String sessionId,
     required int itemsPurchasedCount,
   });
-
-  Future<void> updateSessionCounts({
-    required String sessionId,
-    required int itemsPurchasedCount,
-  });
-
-  Future<List<ShoppingModeSessionModel>> getShoppingHistory({
-    required String userId,
-    int limit = 20,
-  });
 }

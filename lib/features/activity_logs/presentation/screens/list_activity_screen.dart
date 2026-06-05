@@ -5,7 +5,7 @@ import '../../../../app/theme/app_colors.dart';
 import '../../data/models/activity_log_model.dart';
 import '../providers/activity_logs_provider.dart';
 import '../widgets/activity_log_tile_widget.dart';
-import 'package:beity/core/localization/app_localizations.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
 
 class ListActivityScreen extends ConsumerWidget {
   final String homeId;

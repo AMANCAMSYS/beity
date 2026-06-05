@@ -1,4 +1,4 @@
-# Beity Release Checklist
+# SAWA Release Checklist
 
 ## 1. App Icons & Splash Screens
 - [ ] Run `dart run flutter_launcher_icons` to generate launcher icons for all platforms.
@@ -7,12 +7,12 @@
 - [ ] Verify Splash Screen transition is smooth and handles Dark Mode correctly.
 
 ## 2. Global Error Boundaries
-- [ ] Artificially trigger an exception in the UI (e.g., inside a button `onPressed`) and verify that the `BeityErrorWidget` is displayed instead of the default Red Screen of Death.
+- [ ] Artificially trigger an exception in the UI (e.g., inside a button `onPressed`) and verify that the `SawaErrorWidget` is displayed instead of the default Red Screen of Death.
 - [ ] Verify the "Return to Home" button correctly navigates back, and respects the authentication state (via GoRouter).
 - [ ] Verify the error is successfully logged to Firebase Crashlytics via `MonitoringService`.
 
 ## 3. UI/UX & Caching Polish
-- [ ] Disconnect from the internet and verify that `BeityCachedImage` successfully shows placeholders/fallback error widgets without crashing or endless loading.
+- [ ] Disconnect from the internet and verify that `SawaCachedImage` successfully shows placeholders/fallback error widgets without crashing or endless loading.
 - [ ] Test the app on small screen devices (e.g., iPhone SE) to ensure there are no pixel overflow errors.
 - [ ] Switch between Light and Dark mode globally, ensuring all texts and containers maintain contrast.
 - [ ] Switch the device language to Arabic to ensure all RTL layouts, alignments, and padding behave as expected.

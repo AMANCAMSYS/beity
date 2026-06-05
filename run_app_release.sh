@@ -1,30 +1,39 @@
 #!/bin/bash
-# سكريبت لتشغيل تطبيق Beity في وضع الإنتاج (Release Mode) للحصول على سرعة تشغيل فورية (مثل واتساب)
+# سكريبت لبناء وتثبيت نسخة Release على الهاتف
+set -e
 
-# المسار الكامل لبرنامج adb
+PACKAGE_NAME="com.sawa.sawa"
 ADB_CMD="$HOME/Android/Sdk/platform-tools/adb"
-
-# البحث عن مسار flutter
 FLUTTER_CMD="flutter"
+INSTALL_EXISTING=false
+CLEAN_FIRST=false
 
-# قائمة بالمسارات الشائعة لـ flutter على لينكس
+for arg in "$@"; do
+    case "$arg" in
+        --existing|--run-existing) INSTALL_EXISTING=true ;;
+        --clean) CLEAN_FIRST=true ;;
+        -h|--help)
+            echo "Usage: ./run_app_release.sh [--existing] [--clean]"
+            exit 0
+            ;;
+        *) echo "خيار غير معروف: $arg"; exit 1 ;;
+    esac
+done
+
 POSSIBLE_FLUTTER_PATHS=(
     "$HOME/development/flutter/bin/flutter"
     "$HOME/developer/flutter/bin/flutter"
     "$HOME/flutter/bin/flutter"
     "$HOME/Android/flutter/bin/flutter"
     "$HOME/src/flutter/bin/flutter"
+    "/home/omar/flutter/bin/flutter"
     "/snap/bin/flutter"
     "/opt/flutter/bin/flutter"
     "/usr/bin/flutter"
     "/usr/local/bin/flutter"
 )
 
-# التحقق مما إذا كان flutter متاحاً في الـ PATH الافتراضي
-if command -v flutter &> /dev/null; then
-    FLUTTER_CMD="flutter"
-else
-    # البحث في المسارات الشائعة
+if ! command -v flutter &> /dev/null; then
     for path in "${POSSIBLE_FLUTTER_PATHS[@]}"; do
         if [ -f "$path" ]; then
             FLUTTER_CMD="$path"
@@ -34,16 +43,13 @@ else
     done
 fi
 
-# التحقق النهائي من وجود flutter
 if ! command -v "$FLUTTER_CMD" &> /dev/null && [ ! -f "$FLUTTER_CMD" ]; then
     echo "❌ لم يتم العثور على أمر 'flutter' في المسارات الشائعة."
-    echo "💡 يرجى التأكد من إضافة مسار Flutter إلى متغير PATH، أو تعديل هذا السكريبت وتعيين مسار flutter اليدوي."
     exit 1
 fi
 
 echo "🔍 جاري البحث عن الهاتف المتصل..."
 
-# استخراج الأجهزة المتصلة بدقة
 mapfile -t DEVICE_IDS < <(
     "$ADB_CMD" devices |
         tail -n +2 |
@@ -80,11 +86,40 @@ fi
 
 if [ -z "$DEVICE_ID" ]; then
     echo "⚠️ لم يتم العثور على أي هاتف أندرويد متصل عبر الوايرلس أو USB."
-    echo "🌐 جاري التبديل للتشغيل على متصفح Chrome كبديل..."
-    DEVICE_ID="chrome"
-else
-    echo "✅ تم العثور على الهاتف: $DEVICE_ID"
+    exit 1
 fi
 
-echo "🚀 جاري تشغيل التطبيق في وضع الإنتاج السريع (Release Mode)..."
-"$FLUTTER_CMD" run --release -d "$DEVICE_ID"
+echo "✅ تم العثور على الهاتف: $DEVICE_ID"
+
+if [ "$INSTALL_EXISTING" = false ]; then
+    [ "$CLEAN_FIRST" = true ] && "$FLUTTER_CMD" clean
+    echo "🏗️ جاري بناء نسخة Release خفيفة..."
+    "$FLUTTER_CMD" pub get
+    "$FLUTTER_CMD" build apk --release --split-per-abi
+fi
+
+DEVICE_ABI=$("$ADB_CMD" -s "$DEVICE_ID" shell getprop ro.product.cpu.abi | tr -d '\r')
+case "$DEVICE_ABI" in
+    arm64-v8a) APK_PATH="build/app/outputs/flutter-apk/app-arm64-v8a-release.apk" ;;
+    armeabi-v7a) APK_PATH="build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk" ;;
+    x86_64) APK_PATH="build/app/outputs/flutter-apk/app-x86_64-release.apk" ;;
+    *) APK_PATH="build/app/outputs/flutter-apk/app-release.apk" ;;
+esac
+
+[ -f "$APK_PATH" ] || APK_PATH="build/app/outputs/flutter-apk/app-release.apk"
+if [ ! -f "$APK_PATH" ]; then
+    echo "❌ لم يتم العثور على ملف APK. شغّل ./run_app_release.sh أولاً."
+    exit 1
+fi
+
+echo "📦 ملف APK: $APK_PATH"
+echo "📏 الحجم: $(du -h "$APK_PATH" | awk '{ print $1 }')"
+echo "📲 جاري تثبيت نسخة Release على الهاتف..."
+"$ADB_CMD" -s "$DEVICE_ID" install -r "$APK_PATH"
+
+echo "🚀 جاري تشغيل التطبيق..."
+"$ADB_CMD" -s "$DEVICE_ID" shell monkey \
+    -p "$PACKAGE_NAME" \
+    -c android.intent.category.LAUNCHER \
+    1 >/dev/null
+#./run_app_release.sh --existing

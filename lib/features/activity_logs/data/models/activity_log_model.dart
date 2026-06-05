@@ -38,7 +38,8 @@ class ActivityLogModel extends ActivityLog {
       id: json['id'] as String,
       homeId: json['home_id'] as String,
       userId: json['user_id'] as String,
-      actorName: json['actor_name'] as String? ?? userData?['full_name'] as String?,
+      actorName:
+          json['actor_name'] as String? ?? userData?['full_name'] as String?,
       action: ActionType.fromString(json['action'] as String),
       entityType: EntityType.fromString(json['entity_type'] as String),
       entityId: json['entity_id'] as String?,

@@ -31,22 +31,17 @@ class SettlementRemoteDataSource {
   }) async {
     final user = _client.auth.currentUser;
     if (user == null) {
-      throw Exception('يجب تسجيل الدخول أولاً');
+      throw Exception('must_login_first');
     }
 
-    final response = await _client
-        .from('settlements')
-        .insert({
-          'home_id': homeId,
-          'from_member': fromMember,
-          'to_member': toMember,
-          'amount': amount,
-          'payment_method': paymentMethod,
-          'date': date.toIso8601String().split('T')[0],
-          'created_by': user.id,
-        })
-        .select()
-        .single();
+    final response = await _client.rpc('record_settlement', params: {
+      'p_home_id': homeId,
+      'p_from_member': fromMember,
+      'p_to_member': toMember,
+      'p_amount': amount,
+      'p_payment_method': paymentMethod,
+      'p_date': date.toIso8601String().split('T')[0],
+    });
 
     return SettlementModel.fromJson(response);
   }

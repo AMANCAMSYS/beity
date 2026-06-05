@@ -7,6 +7,7 @@ class NotificationPreferences {
   final bool lowStock;
   final bool expiryAlert;
   final bool expenseAdded;
+  final bool taskAssigned;
   final bool taskDue;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -20,6 +21,7 @@ class NotificationPreferences {
     this.lowStock = true,
     this.expiryAlert = true,
     this.expenseAdded = true,
+    this.taskAssigned = true,
     this.taskDue = true,
     required this.createdAt,
     required this.updatedAt,
@@ -31,6 +33,7 @@ class NotificationPreferences {
     bool? lowStock,
     bool? expiryAlert,
     bool? expenseAdded,
+    bool? taskAssigned,
     bool? taskDue,
   }) {
     return NotificationPreferences(
@@ -42,6 +45,7 @@ class NotificationPreferences {
       lowStock: lowStock ?? this.lowStock,
       expiryAlert: expiryAlert ?? this.expiryAlert,
       expenseAdded: expenseAdded ?? this.expenseAdded,
+      taskAssigned: taskAssigned ?? this.taskAssigned,
       taskDue: taskDue ?? this.taskDue,
       createdAt: createdAt,
       updatedAt: updatedAt,

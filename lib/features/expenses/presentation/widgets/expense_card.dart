@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:beity/app/theme/app_spacing.dart';
-import 'package:beity/shared/widgets/design_system/beity_card.dart';
-import 'package:beity/core/localization/app_localizations.dart';
+import 'package:sawa/app/theme/app_spacing.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_card.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
 import '../../domain/entities/expense.dart';
 import 'package:intl/intl.dart' as intl;
 
@@ -18,7 +18,7 @@ class ExpenseCard extends StatelessWidget {
       Localizations.localeOf(context).toString(),
     );
 
-    return BeityCard(
+    return SawaCard(
       onTap: onTap,
       margin: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: Row(

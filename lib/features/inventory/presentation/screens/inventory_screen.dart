@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:beity/app/theme/app_spacing.dart';
-import 'package:beity/app/theme/app_colors.dart';
-import 'package:beity/shared/widgets/design_system/beity_empty_state.dart';
+import 'package:sawa/app/theme/app_spacing.dart';
+import 'package:sawa/app/theme/app_colors.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_empty_state.dart';
 import '../providers/inventory_provider.dart';
 import '../widgets/inventory_item_tile.dart';
 import '../widgets/category_group_header.dart';
@@ -13,10 +13,11 @@ import '../../domain/usecases/update_inventory_quantity_usecase.dart';
 import '../../data/models/inventory_item_model.dart';
 import '../../../categories/presentation/providers/categories_provider.dart';
 import '../../../categories/presentation/providers/units_provider.dart';
-import 'package:beity/core/localization/app_localizations.dart';
-import 'package:beity/core/errors/error_formatter.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
+import 'package:sawa/core/errors/error_formatter.dart';
 import '../../../onboarding/presentation/providers/app_tour_controller.dart';
 import '../../../onboarding/presentation/providers/app_tour_target_registry.dart';
+import '../../../../core/providers/permissions_provider.dart';
 
 class InventoryScreen extends ConsumerStatefulWidget {
   final String homeId;
@@ -33,14 +34,22 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
   @override
   Widget build(BuildContext context) {
     final inventoryAsync = ref.watch(inventoryItemsProvider(widget.homeId));
-    final groupedItems = ref.watch(groupedInventoryItemsProvider(widget.homeId));
+    final groupedItems = ref.watch(
+      groupedInventoryItemsProvider(widget.homeId),
+    );
     final categoriesAsync = ref.watch(categoriesProvider(widget.homeId));
     final unitsAsync = ref.watch(unitsProvider(null));
     final theme = Theme.of(context);
+    final permissions = ref.watch(
+      currentHomePermissionsProvider(widget.homeId),
+    );
+    final canManage = permissions.canEdit;
 
     // Trigger the tour after the build is complete.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(appTourControllerProvider.notifier).maybeStartInventoryTour(context);
+      ref
+          .read(appTourControllerProvider.notifier)
+          .maybeStartInventoryTour(context);
     });
 
     // Build category name map
@@ -61,11 +70,14 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(context.translate('inventory'), style: const TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(
+          context.translate('inventory'),
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
       ),
       body: inventoryAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => BeityEmptyState(
+        error: (error, _) => SawaEmptyState(
           title: context.translate('error_occurred'),
           message: error.toString(),
           icon: Icons.error_outline_rounded,
@@ -75,18 +87,25 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
         ),
         data: (items) {
           if (items.isEmpty) {
-            return BeityEmptyState(
+            return SawaEmptyState(
               title: context.translate('inventory_empty'),
               message: context.translate('inventory_empty_desc'),
               icon: Icons.inventory_2_rounded,
-              actionText: context.translate('add_first_product'),
-              onAction: () => context.push('/inventory/add', extra: widget.homeId),
+              actionText: canManage
+                  ? context.translate('add_first_product')
+                  : null,
+              onAction: canManage
+                  ? () => context.push('/inventory/add', extra: widget.homeId)
+                  : null,
             );
           }
           return Column(
             children: [
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.md),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.lg,
+                  vertical: AppSpacing.md,
+                ),
                 child: SegmentedButton<bool>(
                   key: AppTourTargetRegistry.inventoryFilterKey,
                   segments: [
@@ -112,41 +131,49 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
               ),
               Expanded(
                 child: _buildInventoryList(
-                    context, ref, groupedItems, categoryNames, unitNames),
+                  context,
+                  ref,
+                  groupedItems,
+                  categoryNames,
+                  unitNames,
+                ),
               ),
             ],
           );
         },
       ),
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: AppSpacing.md),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            // Quick add button
-            FloatingActionButton.small(
-              key: AppTourTargetRegistry.inventoryAddKey,
-              heroTag: 'quick_add',
-              onPressed: () => _showQuickAdd(context),
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              elevation: 4,
-              child: const Icon(Icons.bolt_rounded),
-            ),
-            AppSpacing.gapSM,
-            // Full add button
-            FloatingActionButton(
-              heroTag: 'full_add',
-              onPressed: () => context.push('/inventory/add', extra: widget.homeId),
-              backgroundColor: theme.colorScheme.primaryContainer,
-              foregroundColor: theme.colorScheme.onPrimaryContainer,
-              elevation: 4,
-              child: const Icon(Icons.add_rounded, size: 28),
-            ),
-          ],
-        ),
-      ),
+      floatingActionButton: canManage
+          ? Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.md),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  // Quick add button
+                  FloatingActionButton.small(
+                    key: AppTourTargetRegistry.inventoryAddKey,
+                    heroTag: 'quick_add',
+                    onPressed: () => _showQuickAdd(context),
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    elevation: 4,
+                    child: const Icon(Icons.bolt_rounded),
+                  ),
+                  AppSpacing.gapSM,
+                  // Full add button
+                  FloatingActionButton(
+                    heroTag: 'full_add',
+                    onPressed: () =>
+                        context.push('/inventory/add', extra: widget.homeId),
+                    backgroundColor: theme.colorScheme.primaryContainer,
+                    foregroundColor: theme.colorScheme.onPrimaryContainer,
+                    elevation: 4,
+                    child: const Icon(Icons.add_rounded, size: 28),
+                  ),
+                ],
+              ),
+            )
+          : null,
     );
   }
 
@@ -157,6 +184,11 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
     Map<String, String> categoryNames,
     Map<String, String> unitNames,
   ) {
+    final permissions = ref.watch(
+      currentHomePermissionsProvider(widget.homeId),
+    );
+    final canManage = permissions.canEdit;
+
     // Apply low stock filter if _showOnlyLowStock is true
     final filteredGroupedItems = <String?, List<InventoryItemModel>>{};
     groupedItems.forEach((catId, list) {
@@ -169,7 +201,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
     });
 
     if (filteredGroupedItems.isEmpty) {
-      return BeityEmptyState(
+      return SawaEmptyState(
         title: context.translate('no_matching_items'),
         message: _showOnlyLowStock
             ? context.translate('no_low_stock_desc')
@@ -188,15 +220,18 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
     return ListView.builder(
       padding: const EdgeInsets.only(bottom: 100), // Space for FAB
       itemCount: categoryKeys.fold<int>(
-          0, (sum, key) => sum + 1 + (filteredGroupedItems[key]?.length ?? 0)),
+        0,
+        (sum, key) => sum + 1 + (filteredGroupedItems[key]?.length ?? 0),
+      ),
       itemBuilder: (context, index) {
         var currentIndex = 0;
         for (final categoryId in categoryKeys) {
           final items = filteredGroupedItems[categoryId] ?? [];
           if (currentIndex == index) {
             return CategoryGroupHeader(
-              categoryName:
-                  categoryId != null ? categoryNames[categoryId] : null,
+              categoryName: categoryId != null
+                  ? categoryNames[categoryId]
+                  : null,
               itemCount: items.length,
             );
           }
@@ -211,11 +246,27 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                   '/inventory/${item.id}',
                   extra: {'homeId': widget.homeId},
                 ),
-                onDelete: () => _deleteItem(context, ref, item),
-                onQuantityIncrement: () =>
-                    _adjustQuantity(context, ref, item, 1, item.unitId != null ? unitNames[item.unitId] : null),
-                onQuantityDecrement: () =>
-                    _adjustQuantity(context, ref, item, -1, item.unitId != null ? unitNames[item.unitId] : null),
+                onDelete: canManage
+                    ? () => _deleteItem(context, ref, item)
+                    : null,
+                onQuantityIncrement: canManage
+                    ? () => _adjustQuantity(
+                        context,
+                        ref,
+                        item,
+                        1,
+                        item.unitId != null ? unitNames[item.unitId] : null,
+                      )
+                    : null,
+                onQuantityDecrement: canManage
+                    ? () => _adjustQuantity(
+                        context,
+                        ref,
+                        item,
+                        -1,
+                        item.unitId != null ? unitNames[item.unitId] : null,
+                      )
+                    : null,
               );
             }
             currentIndex++;
@@ -241,7 +292,12 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(context.translate('error_delete_item', arguments: {'error': ErrorFormatter.format(e, context)})),
+            content: Text(
+              context.translate(
+                'error_delete_item',
+                arguments: {'error': ErrorFormatter.format(e, context)},
+              ),
+            ),
             backgroundColor: AppColors.error,
             behavior: SnackBarBehavior.floating,
           ),
@@ -275,7 +331,12 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(context.translate('error_update_quantity', arguments: {'error': ErrorFormatter.format(e, context)})),
+            content: Text(
+              context.translate(
+                'error_update_quantity',
+                arguments: {'error': ErrorFormatter.format(e, context)},
+              ),
+            ),
             backgroundColor: AppColors.error,
             behavior: SnackBarBehavior.floating,
           ),
@@ -287,15 +348,15 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
   double _getStep(String? unitName) {
     if (unitName == null) return 1.0;
     final lowerUnit = unitName.toLowerCase();
-    if (lowerUnit.contains('kg') || 
-        lowerUnit.contains('كجم') || 
+    if (lowerUnit.contains('kg') ||
+        lowerUnit.contains('كجم') ||
         lowerUnit.contains('كيلو') ||
         lowerUnit.contains('kilo') ||
-        lowerUnit.contains('g') || 
-        lowerUnit.contains('جرام') || 
+        lowerUnit.contains('g') ||
+        lowerUnit.contains('جرام') ||
         lowerUnit.contains('gram') ||
-        lowerUnit.contains('liter') || 
-        lowerUnit.contains('litre') || 
+        lowerUnit.contains('liter') ||
+        lowerUnit.contains('litre') ||
         lowerUnit.contains('لتر') ||
         lowerUnit.contains('ltr')) {
       return 0.25;

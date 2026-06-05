@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:beity/app/theme/app_spacing.dart';
+import 'package:sawa/app/theme/app_spacing.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
 
 class QuantityAdjusterWidget extends StatelessWidget {
   final double quantity;
@@ -35,7 +36,6 @@ class QuantityAdjusterWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
     final theme = Theme.of(context);
 
     return Container(
@@ -63,7 +63,7 @@ class QuantityAdjusterWidget extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  _formatQuantity(quantity, isArabic),
+                  _formatQuantity(quantity),
                   textAlign: TextAlign.center,
                   style: theme.textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.bold,
@@ -72,7 +72,7 @@ class QuantityAdjusterWidget extends StatelessWidget {
                 ),
                 if (unitId != null)
                   Text(
-                    isArabic ? 'الكمية' : 'Quantity',
+                    context.translate('quantity', fallback: 'Quantity'),
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
                     ),
@@ -92,7 +92,7 @@ class QuantityAdjusterWidget extends StatelessWidget {
     );
   }
 
-  String _formatQuantity(double q, bool isArabic) {
+  String _formatQuantity(double q) {
     if (q == q.roundToDouble() && q < 1000) {
       return q.toInt().toString();
     }

@@ -3,7 +3,7 @@ import 'package:timeago/timeago.dart' as timeago;
 import '../../../../app/theme/app_colors.dart';
 import '../../data/models/activity_log_model.dart';
 import '../../domain/entities/activity_log.dart';
-import 'package:beity/core/localization/app_localizations.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
 import '../utils/activity_localizer.dart';
 
 class ActivityLogTileWidget extends StatelessWidget {

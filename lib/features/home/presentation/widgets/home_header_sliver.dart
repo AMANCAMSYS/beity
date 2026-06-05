@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -7,6 +9,7 @@ import '../../../../app/theme/app_spacing.dart';
 import '../../../../core/config/feature_flags.dart';
 import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/services/sync_coordinator.dart';
+import '../../../../core/monitoring/monitoring_service.dart';
 import '../../../homes/presentation/providers/homes_provider.dart';
 import '../../../onboarding/presentation/providers/app_tour_target_registry.dart';
 import 'drawer_toggle_button.dart';
@@ -20,7 +23,6 @@ import '../../../activity_logs/presentation/providers/activity_logs_provider.dar
 import '../../../categories/presentation/providers/categories_provider.dart';
 import '../../../categories/presentation/providers/units_provider.dart';
 import '../../../ai_suggestions/presentation/widgets/ai_list_selector_sheet.dart';
-import '../../../auth/presentation/providers/auth_provider.dart';
 
 class HomeHeaderSliver extends ConsumerWidget {
   final String homeId;
@@ -31,19 +33,6 @@ class HomeHeaderSliver extends ConsumerWidget {
     required this.homeId,
     required this.homeName,
   });
-
-  String _getGreeting(BuildContext context) {
-    final hour = DateTime.now().hour;
-    if (hour < 12) return context.translate('good_morning');
-    if (hour < 17) return context.translate('good_afternoon');
-    return context.translate('good_evening');
-  }
-
-  String _getUserName(BuildContext context, WidgetRef ref) {
-    final user = ref.watch(cachedCurrentUserProvider);
-    if (user != null && user.fullName.isNotEmpty) return user.fullName;
-    return user?.email ?? context.translate('user_label');
-  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -58,20 +47,15 @@ class HomeHeaderSliver extends ConsumerWidget {
       backgroundColor: theme.scaffoldBackgroundColor,
       surfaceTintColor: Colors.transparent,
       leadingWidth: 62,
-      leading: Builder(builder: (context) => const DrawerToggleButton()),
+      leading: Container(
+        key: AppTourTargetRegistry.drawerMenuKey,
+        child: const DrawerToggleButton(),
+      ),
       title: Column(
         key: AppTourTargetRegistry.homeHeaderKey,
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            '${_getGreeting(context)}، ${_getUserName(context, ref)}',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 2),
           userHomes.isNotEmpty
               ? HomeSelectorDropdown(
                   currentHomeName: homeName,
@@ -85,14 +69,15 @@ class HomeHeaderSliver extends ConsumerWidget {
                         ),
                       )
                       .toList(),
-                  onHomeSelected: (selectedHomeId) {
+                  onHomeSelected: (selectedHomeId) async {
                     final selectedHome = userHomes.firstWhere(
                       (h) => h.id == selectedHomeId,
+                      orElse: () => userHomes.first,
                     );
-                    ref
-                        .read(homeLocalDataSourceProvider)
-                        .setActiveHome(selectedHomeId, selectedHome.name);
-                    ref.invalidate(activeHomeIdProvider);
+                    await ref
+                        .read(homesNotifierProvider.notifier)
+                        .switchHome(selectedHomeId, selectedHome.name);
+                    unawaited(_syncSelectedHome(ref, selectedHomeId));
                     // Invalidate home-scoped providers to refresh for new home
                     ref.invalidate(notificationsProvider);
                     ref.invalidate(unreadCountProvider);
@@ -138,9 +123,29 @@ class HomeHeaderSliver extends ConsumerWidget {
     );
   }
 
-  Widget _buildSyncIndicator(BuildContext context, WidgetRef ref, ThemeData theme) {
+  Future<void> _syncSelectedHome(WidgetRef ref, String homeId) async {
+    try {
+      await ref.read(syncCoordinatorProvider.notifier).initialFullSync(homeId);
+      await ref
+          .read(homeLocalDataSourceProvider)
+          .setHomeInitialSyncCompleted(homeId, true);
+    } catch (e, s) {
+      await MonitoringService().logError(
+        e,
+        s,
+        reason: 'Failed to sync home $homeId on switch',
+      );
+    }
+  }
+
+  Widget _buildSyncIndicator(
+    BuildContext context,
+    WidgetRef ref,
+    ThemeData theme,
+  ) {
     final syncState = ref.watch(syncCoordinatorProvider);
-    if (syncState.status == SyncStatus.idle || syncState.status == SyncStatus.success) {
+    if (syncState.status == SyncStatus.idle ||
+        syncState.status == SyncStatus.success) {
       return const SizedBox.shrink();
     }
 

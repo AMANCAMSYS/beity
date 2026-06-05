@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/activity_log.dart';
 import '../providers/activity_logs_provider.dart';
-import 'package:beity/core/localization/app_localizations.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
 
 class ActivityFilterWidget extends ConsumerWidget {
   final String homeId;

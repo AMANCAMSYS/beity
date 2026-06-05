@@ -1,6 +1,6 @@
 # WhatsApp-like Startup Strategy & Smart Resume Sync
 
-This document describes the high-performance caching and background synchronization strategy implemented in Beity to achieve sub-second perceived load times (similar to WhatsApp) while maintaining a clean, reactive, local-first architecture.
+This document describes the high-performance caching and background synchronization strategy implemented in SAWA to achieve sub-second perceived load times (similar to WhatsApp) while maintaining a clean, reactive, local-first architecture.
 
 ---
 
@@ -18,7 +18,7 @@ sequenceDiagram
     participant Sync as SyncCoordinator
     participant Server as Supabase API
 
-    User->>UI: Launches Beity
+    User->>UI: Launches SAWA
     Note over UI: First Frame Paint
     UI->>Cache: Synchronously queries cached homes & active home ID
     Cache-->>UI: Returns data immediately

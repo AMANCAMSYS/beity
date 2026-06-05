@@ -21,7 +21,9 @@ final connectivityStatusProvider = StreamProvider<DeviceSyncStatus>((ref) {
   return repository.statusStream;
 });
 
-final currentConnectivityProvider = FutureProvider<DeviceSyncStatus>((ref) async {
+final currentConnectivityProvider = FutureProvider<DeviceSyncStatus>((
+  ref,
+) async {
   final repository = ref.watch(connectivityRepositoryProvider);
   return repository.getCurrentStatus();
 });
@@ -31,13 +33,15 @@ final rawConnectivityProvider = StreamProvider<List<ConnectivityResult>>((ref) {
 });
 
 final canSyncNowProvider = Provider<bool>((ref) {
-  final isOnline = ref.watch(connectivityStatusProvider).valueOrNull?.isOnline ?? true;
+  final isOnline =
+      ref.watch(connectivityStatusProvider).value?.isOnline ?? true;
   if (!isOnline) return false;
 
   final settings = ref.watch(appSettingsProvider);
   if (settings.syncOverWifiOnly) {
-    final results = ref.watch(rawConnectivityProvider).valueOrNull ?? [];
-    return results.contains(ConnectivityResult.wifi) || results.contains(ConnectivityResult.ethernet);
+    final results = ref.watch(rawConnectivityProvider).value ?? [];
+    return results.contains(ConnectivityResult.wifi) ||
+        results.contains(ConnectivityResult.ethernet);
   }
 
   return true;

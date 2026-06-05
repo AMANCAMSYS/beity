@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
 
 import '../../../../app/theme/app_colors.dart';
 
 class OfflineModeIndicator extends StatelessWidget {
   final int? pendingCount;
 
-  const OfflineModeIndicator({
-    super.key,
-    this.pendingCount,
-  });
+  const OfflineModeIndicator({super.key, this.pendingCount});
 
   @override
   Widget build(BuildContext context) {
@@ -21,15 +19,11 @@ class OfflineModeIndicator extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(
-            Icons.cloud_off,
-            size: 16,
-            color: AppColors.warning,
-          ),
+          const Icon(Icons.cloud_off, size: 16, color: AppColors.warning),
           const SizedBox(width: 8),
-          const Text(
-            'أنت غير متصل',
-            style: TextStyle(
+          Text(
+            context.translate('offline'),
+            style: const TextStyle(
               color: AppColors.warning,
               fontWeight: FontWeight.w500,
               fontSize: 14,

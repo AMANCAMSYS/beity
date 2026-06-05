@@ -11,6 +11,8 @@ enum HomeType {
 
   const HomeType(this.value, this.arabicName);
 
+  String get translationKey => 'home_type_$value';
+
   static HomeType fromValue(String value) {
     return HomeType.values.firstWhere(
       (type) => type.value == value,

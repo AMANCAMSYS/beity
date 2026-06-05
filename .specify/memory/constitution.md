@@ -17,7 +17,7 @@ Templates requiring updates:
 Follow-up TODOs: None
 -->
 
-# Beity Constitution
+# SAWA Constitution
 
 ## Core Principles
 
@@ -73,7 +73,7 @@ Shared data (shopping lists, items) MUST synchronize in real-time between home m
 
 ## Governance
 
-This constitution supersedes all other development practices for the Beity project. Amendments require:
+This constitution supersedes all other development practices for the SAWA project. Amendments require:
 1. Documentation of the proposed change
 2. Impact analysis on existing specs and implementations
 3. Version increment following semantic versioning (MAJOR for breaking changes, MINOR for new principles, PATCH for clarifications)

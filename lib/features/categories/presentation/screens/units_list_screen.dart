@@ -3,10 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/units_provider.dart';
 import '../widgets/unit_card_widget.dart';
-import 'package:beity/shared/widgets/design_system/beity_empty_state.dart';
-import 'package:beity/core/localization/app_localizations.dart';
-import 'package:beity/features/onboarding/presentation/providers/app_tour_controller.dart';
-import 'package:beity/features/onboarding/presentation/providers/app_tour_target_registry.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_empty_state.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
+import 'package:sawa/features/onboarding/presentation/providers/app_tour_controller.dart';
+import 'package:sawa/features/onboarding/presentation/providers/app_tour_target_registry.dart';
 
 class UnitsListScreen extends ConsumerStatefulWidget {
   const UnitsListScreen({super.key});
@@ -69,7 +69,7 @@ class _UnitsListScreenState extends ConsumerState<UnitsListScreen> {
             child: unitsAsync.when(
               data: (units) {
                 if (units.isEmpty) {
-                  return BeityEmptyState(
+                  return SawaEmptyState(
                     title: context.translate('no_units'),
                     message: context.translate('default_units_desc'),
                     icon: Icons.straighten,
@@ -87,7 +87,7 @@ class _UnitsListScreenState extends ConsumerState<UnitsListScreen> {
               },
               loading: () =>
                   const Center(child: CircularProgressIndicator()),
-              error: (error, stack) => BeityEmptyState(
+              error: (error, stack) => SawaEmptyState(
                 title: context.translate('error_occurred'),
                 message: error.toString(),
                 icon: Icons.error_outline_rounded,

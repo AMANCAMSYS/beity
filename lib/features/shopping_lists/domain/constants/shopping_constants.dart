@@ -1,0 +1,1 @@
+const shoppingFieldUnchanged = Object();

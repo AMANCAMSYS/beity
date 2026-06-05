@@ -1,5 +1,8 @@
+import 'dart:async';
 import 'dart:convert';
-import 'package:beity/core/services/shared_prefs_provider.dart';
+import 'package:sawa/core/services/notification_service.dart';
+import 'package:sawa/core/services/supabase_service.dart';
+import 'package:sawa/core/services/shared_prefs_provider.dart';
 import '../../domain/entities/settlement.dart';
 import '../../domain/entities/balance.dart';
 import '../../domain/repositories/settlement_repository.dart';
@@ -12,9 +15,7 @@ class SettlementRepositoryImpl implements SettlementRepository {
   SettlementRepositoryImpl(this._dataSource);
 
   @override
-  Future<List<Settlement>> getSettlements({
-    required String homeId,
-  }) async {
+  Future<List<Settlement>> getSettlements({required String homeId}) async {
     final cacheKey = 'cached_settlements_$homeId';
     try {
       final remoteData = await _dataSource.getSettlements(homeId: homeId);
@@ -46,7 +47,7 @@ class SettlementRepositoryImpl implements SettlementRepository {
     String paymentMethod = 'cash',
     required DateTime date,
   }) async {
-    return _dataSource.createSettlement(
+    final settlement = await _dataSource.createSettlement(
       homeId: homeId,
       fromMember: fromMember,
       toMember: toMember,
@@ -54,22 +55,28 @@ class SettlementRepositoryImpl implements SettlementRepository {
       paymentMethod: paymentMethod,
       date: date,
     );
+    unawaited(_sendSettlementNotification(settlement));
+    return settlement;
   }
 
   @override
-  Future<List<Balance>> calculateBalances({
-    required String homeId,
-  }) async {
+  Future<List<Balance>> calculateBalances({required String homeId}) async {
     final cacheKey = 'cached_balances_$homeId';
     try {
       final remoteData = await _dataSource.calculateBalances(homeId: homeId);
       try {
         final prefs = AppPreferences.instance;
-        final rawJson = jsonEncode(remoteData.map((b) => {
-          'memberA': b.memberA,
-          'memberB': b.memberB,
-          'netAmount': b.netAmount,
-        }).toList());
+        final rawJson = jsonEncode(
+          remoteData
+              .map(
+                (b) => {
+                  'memberA': b.memberA,
+                  'memberB': b.memberB,
+                  'netAmount': b.netAmount,
+                },
+              )
+              .toList(),
+        );
         await prefs.setString(cacheKey, rawJson);
       } catch (_) {}
       return remoteData;
@@ -121,9 +128,7 @@ class SettlementRepositoryImpl implements SettlementRepository {
   }
 
   @override
-  Stream<List<Settlement>> watchSettlements({
-    required String homeId,
-  }) async* {
+  Stream<List<Settlement>> watchSettlements({required String homeId}) async* {
     final cacheKey = 'cached_settlements_$homeId';
 
     // 1. Emit cached settlements immediately
@@ -138,10 +143,14 @@ class SettlementRepositoryImpl implements SettlementRepository {
 
     // 2. Subscribe to remote stream
     try {
-      await for (final settlements in _dataSource.watchSettlements(homeId: homeId)) {
+      await for (final settlements in _dataSource.watchSettlements(
+        homeId: homeId,
+      )) {
         try {
           final prefs = AppPreferences.instance;
-          final rawJson = jsonEncode(settlements.map((s) => s.toJson()).toList());
+          final rawJson = jsonEncode(
+            settlements.map((s) => s.toJson()).toList(),
+          );
           await prefs.setString(cacheKey, rawJson);
         } catch (_) {}
         yield settlements;
@@ -149,5 +158,22 @@ class SettlementRepositoryImpl implements SettlementRepository {
     } catch (_) {
       // Absorb stream errors when offline
     }
+  }
+
+  Future<void> _sendSettlementNotification(Settlement settlement) async {
+    final user = SupabaseService.client.auth.currentUser;
+    if (user == null || settlement.homeId.isEmpty) return;
+
+    await NotificationService.sendExpenseNotification(
+      homeId: settlement.homeId,
+      actorId: user.id,
+      expenseId: settlement.id,
+      eventType: 'expense_settled',
+      targetUserIds: {
+        settlement.fromMember,
+        settlement.toMember,
+      }.where((id) => id.isNotEmpty && id != user.id).toList(),
+      context: {'amount': (settlement.amount / 100).toStringAsFixed(2)},
+    );
   }
 }

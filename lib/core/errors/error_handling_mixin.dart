@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import '../../app/theme/app_colors.dart';
 import '../monitoring/monitoring_service.dart';
 import 'error_handler.dart';
-import 'package:beity/core/localization/app_localizations.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
 
 mixin ErrorHandlingMixin<T extends StatefulWidget> on State<T> {
   Future<void> handleError(
@@ -22,7 +22,7 @@ mixin ErrorHandlingMixin<T extends StatefulWidget> on State<T> {
     );
 
     // Map to user-friendly message
-    final errorInfo = ErrorHandler.mapExceptionToMessage(error);
+    final errorInfo = ErrorHandler.mapExceptionToMessage(error, context);
 
     if (!mounted) return;
 

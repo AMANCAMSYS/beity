@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:beity/app/theme/app_spacing.dart';
-import 'package:beity/app/theme/app_colors.dart';
-import 'package:beity/shared/widgets/design_system/beity_card.dart';
+import 'package:flutter/services.dart';
+import 'package:sawa/app/theme/app_spacing.dart';
+import 'package:sawa/app/theme/app_colors.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_card.dart';
 import '../../domain/entities/task.dart';
-import 'package:beity/core/localization/app_localizations.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
 
-class TaskCard extends StatelessWidget {
+class TaskCard extends StatefulWidget {
   final Task task;
   final VoidCallback? onTap;
-  final VoidCallback? onComplete;
+  final Future<void> Function()? onComplete;
   final String? assigneeName;
+  final String? completedByName;
+  final bool hapticsEnabled;
+  final bool soundsEnabled;
 
   const TaskCard({
     super.key,
@@ -17,28 +21,54 @@ class TaskCard extends StatelessWidget {
     this.onTap,
     this.onComplete,
     this.assigneeName,
+    this.completedByName,
+    this.hapticsEnabled = true,
+    this.soundsEnabled = true,
   });
 
+  @override
+  State<TaskCard> createState() => _TaskCardState();
+}
+
+class _TaskCardState extends State<TaskCard> {
+  bool? _optimisticCompleted;
+  bool _isProcessing = false;
+
+  bool get _isCompleted => _optimisticCompleted ?? widget.task.isCompleted;
+
+  @override
+  void didUpdateWidget(TaskCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final taskIdentityChanged = oldWidget.task.id != widget.task.id;
+    final completionStateChanged =
+        oldWidget.task.isCompleted != widget.task.isCompleted;
+
+    if (taskIdentityChanged || completionStateChanged) {
+      _optimisticCompleted = null;
+      _isProcessing = false;
+    }
+  }
+
   Color _getDueDateColor() {
-    if (task.isOverdue) return AppColors.error;
-    if (task.isDueToday) return AppColors.warning;
+    if (widget.task.isOverdue) return AppColors.error;
+    if (widget.task.isDueToday) return AppColors.warning;
     return AppColors.textHintLight;
   }
 
   String _getDueDateText(BuildContext context) {
-    if (task.dueDate == null) return '';
+    if (widget.task.dueDate == null) return '';
     final now = DateTime.now();
-    final due = task.dueDate!;
+    final due = widget.task.dueDate!;
     final difference = due.difference(now).inDays;
 
-    if (task.isOverdue) return context.translate('overdue');
-    if (task.isDueToday) return context.translate('today');
+    if (widget.task.isOverdue) return context.translate('overdue');
+    if (widget.task.isDueToday) return context.translate('today');
     if (difference == 1) return context.translate('tomorrow');
     return '${due.day}/${due.month}/${due.year}';
   }
 
   String _getRecurrenceText(BuildContext context) {
-    switch (task.recurrenceType) {
+    switch (widget.task.recurrenceType) {
       case 'daily':
         return context.translate('daily');
       case 'weekly':
@@ -50,13 +80,49 @@ class TaskCard extends StatelessWidget {
     }
   }
 
+  Future<void> _handleCompleteTap() async {
+    if (_isProcessing || widget.onComplete == null) return;
+
+    final willBeCompleted = !_isCompleted;
+    if (widget.hapticsEnabled) {
+      if (willBeCompleted) {
+        HapticFeedback.mediumImpact();
+      } else {
+        HapticFeedback.selectionClick();
+      }
+    }
+    if (widget.soundsEnabled) {
+      SystemSound.play(SystemSoundType.click);
+    }
+
+    setState(() {
+      _optimisticCompleted = willBeCompleted;
+      _isProcessing = true;
+    });
+
+    final tappedTaskId = widget.task.id;
+    await Future.delayed(const Duration(milliseconds: 500));
+    if (!mounted || widget.task.id != tappedTaskId) return;
+
+    try {
+      await widget.onComplete!();
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _optimisticCompleted = null;
+          _isProcessing = false;
+        });
+      }
+      rethrow;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
 
-    return BeityCard(
-      onTap: onTap,
+    return SawaCard(
+      onTap: widget.onTap,
       padding: EdgeInsets.zero,
       margin: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: IntrinsicHeight(
@@ -67,18 +133,15 @@ class TaskCard extends StatelessWidget {
             Container(
               width: 6,
               decoration: BoxDecoration(
-                color: task.isCompleted
+                color: _isCompleted
                     ? AppColors.success.withValues(alpha: 0.5)
-                    : (task.isOverdue ? AppColors.error : AppColors.primary),
-                borderRadius: isArabic
-                    ? const BorderRadius.only(
-                        topRight: Radius.circular(AppSpacing.radiusLg),
-                        bottomRight: Radius.circular(AppSpacing.radiusLg),
-                      )
-                    : const BorderRadius.only(
-                        topLeft: Radius.circular(AppSpacing.radiusLg),
-                        bottomLeft: Radius.circular(AppSpacing.radiusLg),
-                      ),
+                    : (widget.task.isOverdue
+                          ? AppColors.error
+                          : AppColors.primary),
+                borderRadius: const BorderRadiusDirectional.only(
+                  topStart: Radius.circular(AppSpacing.radiusLg),
+                  bottomStart: Radius.circular(AppSpacing.radiusLg),
+                ),
               ),
             ),
             Expanded(
@@ -90,10 +153,14 @@ class TaskCard extends StatelessWidget {
                     Transform.scale(
                       scale: 1.1,
                       child: Checkbox(
-                        value: task.isCompleted,
-                        onChanged: onComplete != null ? (_) => onComplete!() : null,
+                        value: _isCompleted,
+                        onChanged: widget.onComplete != null
+                            ? (_) => _handleCompleteTap()
+                            : null,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                          borderRadius: BorderRadius.circular(
+                            AppSpacing.radiusSm,
+                          ),
                         ),
                         activeColor: AppColors.success,
                       ),
@@ -105,19 +172,24 @@ class TaskCard extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            task.title,
+                            widget.task.title,
                             style: theme.textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.bold,
-                              decoration: task.isCompleted ? TextDecoration.lineThrough : null,
-                              color: task.isCompleted ? theme.colorScheme.outline : null,
+                              decoration: _isCompleted
+                                  ? TextDecoration.lineThrough
+                                  : null,
+                              color: _isCompleted
+                                  ? theme.colorScheme.outline
+                                  : null,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          if (task.description != null && task.description!.isNotEmpty) ...[
+                          if (widget.task.description != null &&
+                              widget.task.description!.isNotEmpty) ...[
                             AppSpacing.gapXXS,
                             Text(
-                              task.description!,
+                              widget.task.description!,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: theme.textTheme.bodySmall?.copyWith(
@@ -130,22 +202,40 @@ class TaskCard extends StatelessWidget {
                             spacing: AppSpacing.md,
                             runSpacing: AppSpacing.xxs,
                             children: [
-                              if (task.assignedTo != null && assigneeName != null)
+                              if (widget.task.assignedTo != null &&
+                                  widget.assigneeName != null)
                                 _buildInfoTag(
                                   context,
                                   Icons.person_rounded,
-                                  assigneeName!,
+                                  widget.assigneeName!,
                                   theme.colorScheme.onSurfaceVariant,
                                 ),
-                              if (task.dueDate != null)
+                              if (widget.task.assignedTo == null &&
+                                  widget.task.isCompleted &&
+                                  widget.completedByName != null)
+                                _buildInfoTag(
+                                  context,
+                                  Icons.verified_rounded,
+                                  context.translate(
+                                    'completed_by_name',
+                                    arguments: {
+                                      'name': widget.completedByName!,
+                                    },
+                                  ),
+                                  AppColors.success,
+                                  isBold: true,
+                                ),
+                              if (widget.task.dueDate != null)
                                 _buildInfoTag(
                                   context,
                                   Icons.calendar_today_rounded,
                                   _getDueDateText(context),
                                   _getDueDateColor(),
-                                  isBold: task.isOverdue || task.isDueToday,
+                                  isBold:
+                                      widget.task.isOverdue ||
+                                      widget.task.isDueToday,
                                 ),
-                              if (task.isRecurring)
+                              if (widget.task.isRecurring)
                                 _buildInfoTag(
                                   context,
                                   Icons.repeat_rounded,
@@ -157,7 +247,7 @@ class TaskCard extends StatelessWidget {
                         ],
                       ),
                     ),
-                    if (task.isCompleted)
+                    if (_isCompleted)
                       Icon(
                         Icons.check_circle_rounded,
                         color: AppColors.success.withValues(alpha: 0.7),

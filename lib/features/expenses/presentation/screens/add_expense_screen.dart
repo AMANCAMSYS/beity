@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:beity/core/services/supabase_service.dart';
+import 'package:sawa/core/services/supabase_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:beity/app/theme/app_spacing.dart';
-import 'package:beity/app/theme/app_colors.dart';
-import 'package:beity/shared/widgets/design_system/beity_button.dart';
-import 'package:beity/shared/widgets/design_system/beity_text_field.dart';
-import 'package:beity/shared/widgets/design_system/beity_card.dart';
+import 'package:sawa/app/theme/app_spacing.dart';
+import 'package:sawa/app/theme/app_colors.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_button.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_text_field.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_card.dart';
 import '../../../homes/data/models/home_member_model.dart';
 import '../../../homes/presentation/providers/homes_provider.dart';
 import '../../domain/usecases/split_expense.dart';
@@ -16,8 +16,8 @@ import '../widgets/split_selector.dart';
 import '../../../../core/utils/action_debouncer.dart';
 import '../../../../core/localization/app_localizations.dart';
 import '../../../settings/presentation/providers/app_settings_provider.dart';
-import 'package:beity/core/errors/error_formatter.dart';
-import 'package:beity/core/utils/arabic_number_parser.dart';
+import 'package:sawa/core/errors/error_formatter.dart';
+import 'package:sawa/core/utils/arabic_number_parser.dart';
 
 class AddExpenseScreen extends ConsumerStatefulWidget {
   final String homeId;
@@ -140,7 +140,7 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
       final amount = _amountCents;
       final description = _descriptionController.text.trim();
       final activeMembers = _activeMembers(
-        ref.read(homeMembersProvider(widget.homeId)).valueOrNull ?? [],
+        ref.read(homeMembersProvider(widget.homeId)).value ?? [],
       );
       final paidBy = _paidBy ?? user.id;
       final shouldCreateSplits =
@@ -290,7 +290,7 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
   }
 
   Widget _buildStep0(BuildContext context, ThemeData theme, String defaultCurrency) {
-    return BeityCard(
+    return SawaCard(
       padding: const EdgeInsets.all(AppSpacing.xl),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -315,7 +315,7 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
             ],
           ),
           AppSpacing.gapLG,
-          BeityTextField(
+          SawaTextField(
             controller: _amountController,
             focusNode: _amountFocusNode,
             textInputAction: TextInputAction.next,
@@ -344,7 +344,7 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
             },
           ),
           AppSpacing.gapLG,
-          BeityTextField(
+          SawaTextField(
             controller: _descriptionController,
             focusNode: _descriptionFocusNode,
             textInputAction: TextInputAction.done,
@@ -427,7 +427,7 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
       data: (members) {
         final activeMembers = _activeMembers(members);
         if (activeMembers.isEmpty) {
-          return BeityCard(
+          return SawaCard(
             padding: const EdgeInsets.all(AppSpacing.lg),
             child: Text(
               context.translate('no_active_members_home'),
@@ -454,7 +454,7 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
           });
         }
 
-        return BeityCard(
+        return SawaCard(
           padding: const EdgeInsets.all(AppSpacing.xl),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -514,11 +514,11 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
           ),
         );
       },
-      loading: () => const BeityCard(
+      loading: () => const SawaCard(
         padding: EdgeInsets.all(AppSpacing.xl),
         child: Center(child: CircularProgressIndicator()),
       ),
-      error: (error, _) => BeityCard(
+      error: (error, _) => SawaCard(
         padding: const EdgeInsets.all(AppSpacing.lg),
         child: Text(
           error.toString(),
@@ -552,7 +552,7 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
             .toList();
         final canSplit = activeMembers.length > 1 && amount > 0;
 
-        return BeityCard(
+        return SawaCard(
           padding: const EdgeInsets.all(AppSpacing.xl),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -647,9 +647,9 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
       children: [
         if (_currentStep > 0) ...[
           Expanded(
-            child: BeityButton(
+            child: SawaButton(
               text: context.translate('back'),
-              type: BeityButtonType.secondary,
+              type: SawaButtonType.secondary,
               onPressed: () {
                 setState(() {
                   _currentStep--;
@@ -661,7 +661,7 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
           AppSpacing.gapMD,
         ],
         Expanded(
-          child: BeityButton(
+          child: SawaButton(
             text: _currentStep < 2
                 ? context.translate('next')
                 : context.translate('add_expense'),

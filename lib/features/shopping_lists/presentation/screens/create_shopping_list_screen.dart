@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:beity/app/theme/app_spacing.dart';
-import 'package:beity/shared/widgets/design_system/beity_button.dart';
-import 'package:beity/shared/widgets/design_system/beity_text_field.dart';
-import 'package:beity/shared/widgets/design_system/beity_card.dart';
+import 'package:sawa/app/theme/app_spacing.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_button.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_text_field.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_card.dart';
+import 'package:sawa/app/router/shopping_route_paths.dart';
 import '../../../../core/utils/action_debouncer.dart';
 import 'package:go_router/go_router.dart';
-import 'package:beity/core/errors/error_formatter.dart';
+import 'package:sawa/core/errors/error_formatter.dart';
 
-import 'package:beity/shared/widgets/design_system/beity_snack_bar.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_snack_bar.dart';
 import '../../domain/usecases/create_shopping_list_usecase.dart';
 import '../providers/shopping_lists_provider.dart';
 import '../../../../core/localization/app_localizations.dart';
@@ -19,21 +20,40 @@ class CreateShoppingListScreen extends ConsumerStatefulWidget {
   const CreateShoppingListScreen({super.key, required this.homeId});
 
   @override
-  ConsumerState<CreateShoppingListScreen> createState() => _CreateShoppingListScreenState();
+  ConsumerState<CreateShoppingListScreen> createState() =>
+      _CreateShoppingListScreenState();
 }
 
-class _CreateShoppingListScreenState extends ConsumerState<CreateShoppingListScreen> {
+class _CreateShoppingListScreenState
+    extends ConsumerState<CreateShoppingListScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
+  final _nameFocusNode = FocusNode();
   String _selectedIcon = 'shopping_cart';
   bool _isLoading = false;
 
   static const _iconOptions = [
-    {'icon': 'shopping_cart', 'key': 'cat_groceries', 'data': Icons.shopping_cart},
+    {
+      'icon': 'shopping_cart',
+      'key': 'cat_groceries',
+      'data': Icons.shopping_cart,
+    },
     {'icon': 'shopping_bag', 'key': 'cat_shopping', 'data': Icons.shopping_bag},
-    {'icon': 'local_grocery_store', 'key': 'cat_store', 'data': Icons.local_grocery_store},
-    {'icon': 'local_pharmacy', 'key': 'cat_pharmacy', 'data': Icons.local_pharmacy},
-    {'icon': 'local_hospital', 'key': 'cat_health', 'data': Icons.local_hospital},
+    {
+      'icon': 'local_grocery_store',
+      'key': 'cat_store',
+      'data': Icons.local_grocery_store,
+    },
+    {
+      'icon': 'local_pharmacy',
+      'key': 'cat_pharmacy',
+      'data': Icons.local_pharmacy,
+    },
+    {
+      'icon': 'local_hospital',
+      'key': 'cat_health',
+      'data': Icons.local_hospital,
+    },
     {'icon': 'restaurant', 'key': 'cat_restaurant', 'data': Icons.restaurant},
     {'icon': 'local_cafe', 'key': 'cat_cafe', 'data': Icons.local_cafe},
     {'icon': 'home', 'key': 'cat_home', 'data': Icons.home},
@@ -42,16 +62,33 @@ class _CreateShoppingListScreenState extends ConsumerState<CreateShoppingListScr
     {'icon': 'child_care', 'key': 'cat_baby', 'data': Icons.child_care},
     {'icon': 'pets', 'key': 'cat_pets', 'data': Icons.pets},
     {'icon': 'card_giftcard', 'key': 'cat_gifts', 'data': Icons.card_giftcard},
-    {'icon': 'celebration', 'key': 'cat_celebration', 'data': Icons.celebration},
+    {
+      'icon': 'celebration',
+      'key': 'cat_celebration',
+      'data': Icons.celebration,
+    },
     {'icon': 'school', 'key': 'cat_school', 'data': Icons.school},
-    {'icon': 'fitness_center', 'key': 'cat_fitness', 'data': Icons.fitness_center},
-    {'icon': 'cleaning_services', 'key': 'cat_cleaning', 'data': Icons.cleaning_services},
-    {'icon': 'local_florist', 'key': 'cat_flowers', 'data': Icons.local_florist},
+    {
+      'icon': 'fitness_center',
+      'key': 'cat_fitness',
+      'data': Icons.fitness_center,
+    },
+    {
+      'icon': 'cleaning_services',
+      'key': 'cat_cleaning',
+      'data': Icons.cleaning_services,
+    },
+    {
+      'icon': 'local_florist',
+      'key': 'cat_flowers',
+      'data': Icons.local_florist,
+    },
   ];
 
   @override
   void dispose() {
     _nameController.dispose();
+    _nameFocusNode.dispose();
     super.dispose();
   }
 
@@ -64,11 +101,14 @@ class _CreateShoppingListScreenState extends ConsumerState<CreateShoppingListScr
 
   Future<void> _createList() async {
     if (!_formKey.currentState!.validate()) return;
+    FocusManager.instance.primaryFocus?.unfocus();
 
     setState(() => _isLoading = true);
 
     try {
-      final repository = ref.read(shoppingListRepositoryProvider);
+      final repository = ref.read(
+        shoppingListRepositoryForHomeProvider(widget.homeId),
+      );
       final useCase = CreateShoppingListUseCase(repository);
       final list = await useCase(
         homeId: widget.homeId,
@@ -77,13 +117,16 @@ class _CreateShoppingListScreenState extends ConsumerState<CreateShoppingListScr
       );
 
       if (mounted) {
-        BeitySnackBar.success(context, context.translate('list_created_success'));
+        SawaSnackBar.success(
+          context,
+          context.translate('list_created_success'),
+        );
         context.pop();
-        context.push('/shopping-list/${list.id}');
+        context.push(ShoppingRoutePaths.detail(list.id));
       }
     } catch (e) {
       if (mounted) {
-        BeitySnackBar.error(
+        SawaSnackBar.error(
           context,
           '${context.translate('create_list_failed')}: ${ErrorFormatter.format(e, context)}',
         );
@@ -99,9 +142,13 @@ class _CreateShoppingListScreenState extends ConsumerState<CreateShoppingListScr
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(context.translate('create_shopping_list'), style: const TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(
+          context.translate('create_shopping_list'),
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
       ),
       body: SingleChildScrollView(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         padding: const EdgeInsets.all(AppSpacing.lg),
         child: Form(
           key: _formKey,
@@ -126,7 +173,7 @@ class _CreateShoppingListScreenState extends ConsumerState<CreateShoppingListScr
               AppSpacing.gapXL,
 
               // Icon picker
-              BeityCard(
+              SawaCard(
                 padding: const EdgeInsets.all(AppSpacing.lg),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -144,18 +191,28 @@ class _CreateShoppingListScreenState extends ConsumerState<CreateShoppingListScr
                       children: _iconOptions.map((option) {
                         final isSelected = _selectedIcon == option['icon'];
                         return InkWell(
-                          onTap: () => setState(() => _selectedIcon = option['icon'] as String),
-                          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                          onTap: () => setState(
+                            () => _selectedIcon = option['icon'] as String,
+                          ),
+                          borderRadius: BorderRadius.circular(
+                            AppSpacing.radiusMd,
+                          ),
                           child: Ink(
                             width: 60,
                             height: 60,
                             decoration: BoxDecoration(
                               color: isSelected
                                   ? theme.primaryColor.withValues(alpha: 0.15)
-                                  : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-                              borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                                  : theme.colorScheme.surfaceContainerHighest
+                                        .withValues(alpha: 0.3),
+                              borderRadius: BorderRadius.circular(
+                                AppSpacing.radiusMd,
+                              ),
                               border: isSelected
-                                  ? Border.all(color: theme.primaryColor, width: 2)
+                                  ? Border.all(
+                                      color: theme.primaryColor,
+                                      width: 2,
+                                    )
                                   : null,
                             ),
                             child: Column(
@@ -176,7 +233,9 @@ class _CreateShoppingListScreenState extends ConsumerState<CreateShoppingListScr
                                     color: isSelected
                                         ? theme.primaryColor
                                         : theme.colorScheme.onSurfaceVariant,
-                                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                    fontWeight: isSelected
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
                                   ),
                                 ),
                               ],
@@ -191,14 +250,17 @@ class _CreateShoppingListScreenState extends ConsumerState<CreateShoppingListScr
               AppSpacing.gapLG,
 
               // Name field
-              BeityCard(
+              SawaCard(
                 padding: const EdgeInsets.all(AppSpacing.lg),
-                child: BeityTextField(
+                child: SawaTextField(
                   controller: _nameController,
+                  focusNode: _nameFocusNode,
                   labelText: context.translate('list_name'),
                   hintText: context.translate('list_name_hint'),
                   prefixIcon: Icons.list_alt_rounded,
                   autofocus: true,
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) => ActionDebouncer.execute(_createList),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
                       return context.translate('list_name_required');
@@ -210,9 +272,9 @@ class _CreateShoppingListScreenState extends ConsumerState<CreateShoppingListScr
               AppSpacing.gapXXL,
 
               // Create button
-              BeityButton(
-                text: _isLoading 
-                    ? context.translate('creating') 
+              SawaButton(
+                text: _isLoading
+                    ? context.translate('creating')
                     : context.translate('create_list'),
                 icon: Icons.add_task_rounded,
                 isLoading: _isLoading,

@@ -5,14 +5,14 @@ import '../../features/homes/presentation/screens/home_members_screen.dart';
 import '../../features/invitations/presentation/screens/invitations_list_screen.dart';
 import '../../features/invitations/presentation/screens/send_invitation_screen.dart';
 import '../../features/invitations/presentation/screens/manage_roles_screen.dart';
+import 'home_route_paths.dart';
 
-List<GoRoute> homeRoutes() => [
+typedef HomeNameResolver = String Function(GoRouterState state);
+
+List<GoRoute> homeRoutes({required HomeNameResolver resolveHomeName}) => [
+  GoRoute(path: HomeRoutePaths.homes, builder: (context, state) => const HomesListScreen()),
   GoRoute(
-    path: '/homes',
-    builder: (context, state) => const HomesListScreen(),
-  ),
-  GoRoute(
-    path: '/homes/create',
+    path: HomeRoutePaths.createHome,
     builder: (context, state) => const CreateHomeScreen(),
   ),
   GoRoute(
@@ -21,7 +21,7 @@ List<GoRoute> homeRoutes() => [
         HomeMembersScreen(homeId: state.pathParameters['id']!),
   ),
   GoRoute(
-    path: '/invitations',
+    path: HomeRoutePaths.invitations,
     builder: (context, state) => const InvitationsListScreen(),
   ),
   GoRoute(
@@ -33,14 +33,14 @@ List<GoRoute> homeRoutes() => [
     path: '/homes/:id/invitations/send',
     builder: (context, state) => SendInvitationScreen(
       homeId: state.pathParameters['id']!,
-      homeName: state.extra as String? ?? 'المنزل',
+      homeName: resolveHomeName(state),
     ),
   ),
   GoRoute(
     path: '/homes/:id/roles',
     builder: (context, state) => ManageRolesScreen(
       homeId: state.pathParameters['id']!,
-      homeName: state.extra as String? ?? 'المنزل',
+      homeName: resolveHomeName(state),
     ),
   ),
 ];

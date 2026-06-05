@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:beity/app/theme/app_spacing.dart';
-import 'package:beity/shared/widgets/design_system/beity_card.dart';
-import 'package:beity/shared/widgets/design_system/beity_button.dart';
+import 'package:sawa/app/theme/app_spacing.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_card.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_button.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
 import '../../domain/entities/inventory_item.dart';
 import 'low_stock_badge.dart';
 
@@ -26,7 +27,6 @@ class InventoryItemTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
     final isRtl = Directionality.of(context) == TextDirection.rtl;
     final theme = Theme.of(context);
 
@@ -54,17 +54,17 @@ class InventoryItemTile extends StatelessWidget {
             const Icon(Icons.delete_outline_rounded, color: Colors.white, size: 28),
             AppSpacing.gapXXS,
             Text(
-              isArabic ? 'حذف' : 'Delete',
+              context.translate('delete', fallback: 'Delete'),
               style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10),
             ),
           ],
         ),
       ),
-      confirmDismiss: (_) => _showDeleteConfirmation(context, isArabic),
+      confirmDismiss: (_) => _showDeleteConfirmation(context),
       onDismissed: (_) => onDelete?.call(),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.xs),
-        child: BeityCard(
+        child: SawaCard(
           padding: EdgeInsets.zero,
           onTap: onTap,
           child: Container(
@@ -113,7 +113,7 @@ class InventoryItemTile extends StatelessWidget {
                   ),
                 ),
                 AppSpacing.gapMD,
-                _buildQuantityControls(context, theme, isArabic),
+                _buildQuantityControls(context, theme),
               ],
             ),
           ),
@@ -147,7 +147,7 @@ class InventoryItemTile extends StatelessWidget {
     );
   }
 
-  Widget _buildQuantityControls(BuildContext context, ThemeData theme, bool isArabic) {
+  Widget _buildQuantityControls(BuildContext context, ThemeData theme) {
     return Container(
       padding: const EdgeInsets.all(2),
       decoration: BoxDecoration(
@@ -169,7 +169,7 @@ class InventoryItemTile extends StatelessWidget {
             constraints: const BoxConstraints(minWidth: 48),
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
             child: Text(
-              _formatQuantity(item.quantity, isArabic),
+              _formatQuantity(item.quantity),
               textAlign: TextAlign.center,
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
@@ -190,14 +190,14 @@ class InventoryItemTile extends StatelessWidget {
     );
   }
 
-  String _formatQuantity(double q, bool isArabic) {
+  String _formatQuantity(double q) {
     if (q == q.roundToDouble() && q < 1000) {
       return q.toInt().toString();
     }
     return q.toStringAsFixed(1);
   }
 
-  Future<bool?> _showDeleteConfirmation(BuildContext context, bool isArabic) {
+  Future<bool?> _showDeleteConfirmation(BuildContext context) {
     final theme = Theme.of(context);
     return showDialog<bool>(
       context: context,
@@ -210,27 +210,31 @@ class InventoryItemTile extends StatelessWidget {
             Icon(Icons.warning_amber_rounded, color: theme.colorScheme.error),
             AppSpacing.gapMD,
             Text(
-              isArabic ? 'حذف المنتج' : 'Delete Item',
+              context.translate('delete_product', fallback: 'Delete Product'),
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
           ],
         ),
         content: Text(
-          isArabic ? 'هل أنت متأكد من حذف "${item.name}"؟' : 'Are you sure you want to delete "${item.name}"?',
+          context.translate(
+            'delete_item_confirm',
+            arguments: {'name': item.name},
+            fallback: 'Are you sure you want to delete "${item.name}"?',
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
             child: Text(
-              isArabic ? 'إلغاء' : 'Cancel',
+              context.translate('cancel', fallback: 'Cancel'),
               style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontWeight: FontWeight.bold),
             ),
           ),
-          BeityButton(
+          SawaButton(
             width: 100,
-            text: isArabic ? 'حذف' : 'Delete',
+            text: context.translate('delete', fallback: 'Delete'),
             onPressed: () => Navigator.pop(context, true),
-            type: BeityButtonType.primary,
+            type: SawaButtonType.primary,
             icon: Icons.delete_outline_rounded,
           ),
         ],

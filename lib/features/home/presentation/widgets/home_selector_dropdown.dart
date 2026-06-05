@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
 
 class HomeSelectorDropdown extends StatelessWidget {
   final String currentHomeName;
@@ -51,7 +52,7 @@ class HomeSelectorDropdown extends StatelessWidget {
                         ),
                         if (home.memberCount > 0)
                           Text(
-                            '${home.memberCount} أعضاء',
+                            context.translate('members_count', arguments: {'count': home.memberCount.toString()}),
                             style: TextStyle(
                               fontSize: 12,
                               color: theme.colorScheme.onSurfaceVariant,
@@ -64,13 +65,13 @@ class HomeSelectorDropdown extends StatelessWidget {
               ),
             )),
         const PopupMenuDivider(),
-        const PopupMenuItem(
+        PopupMenuItem(
           value: 'manage',
           child: Row(
             children: [
-              Icon(Icons.settings_outlined, size: 20),
-              SizedBox(width: 12),
-              Text('إدارة المنازل'),
+              const Icon(Icons.settings_outlined, size: 20),
+              const SizedBox(width: 12),
+              Text(context.translate('manage_homes')),
             ],
           ),
         ),

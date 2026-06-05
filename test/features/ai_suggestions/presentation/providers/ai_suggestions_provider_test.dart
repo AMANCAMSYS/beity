@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:beity/features/ai_suggestions/domain/entities/ai_suggestion.dart';
-import 'package:beity/features/ai_suggestions/domain/entities/ai_suggestion_request.dart';
-import 'package:beity/features/ai_suggestions/domain/usecases/get_ai_suggestions.dart';
-import 'package:beity/features/ai_suggestions/presentation/providers/ai_suggestions_provider.dart';
+import 'package:sawa/features/ai_suggestions/domain/entities/ai_suggestion.dart';
+import 'package:sawa/features/ai_suggestions/domain/entities/ai_suggestion_request.dart';
+import 'package:sawa/features/ai_suggestions/domain/usecases/get_ai_suggestions.dart';
+import 'package:sawa/features/ai_suggestions/presentation/providers/ai_suggestions_provider.dart';
 
 class MockGetAiSuggestions extends Mock implements GetAiSuggestions {}
 

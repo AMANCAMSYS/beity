@@ -1,13 +1,17 @@
 import 'dart:convert';
-import 'package:beity/core/services/shared_prefs_provider.dart';
+import 'package:sawa/core/local_database/daos/users_dao.dart';
+import 'package:sawa/core/local_database/local_database_service.dart';
+import 'package:sawa/core/services/shared_prefs_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/invitation_model.dart';
 import 'invitation_repository.dart';
 
 class SupabaseInvitationRepository implements InvitationRepository {
   final SupabaseClient _client;
+  final UsersDao _usersDao;
 
-  SupabaseInvitationRepository(this._client);
+  SupabaseInvitationRepository(this._client, {UsersDao? usersDao})
+    : _usersDao = usersDao ?? UsersDao(LocalDatabaseService.instance);
 
   @override
   Future<InvitationModel> sendInvitation({
@@ -17,36 +21,32 @@ class SupabaseInvitationRepository implements InvitationRepository {
   }) async {
     final user = _client.auth.currentUser;
     if (user == null) {
-      throw Exception('يجب تسجيل الدخول أولاً');
+      throw Exception('must_login_first');
     }
 
     try {
       // Use server-side RPC for secure token generation and validation
       final response = await _client.rpc(
         'create_invitation',
-        params: {
-          'p_home_id': homeId,
-          'p_email': email,
-          'p_role': role,
-        },
+        params: {'p_home_id': homeId, 'p_email': email, 'p_role': role},
       );
 
       return InvitationModel.fromJson(response as Map<String, dynamic>);
     } on PostgrestException catch (e) {
       // Map server errors to user-friendly messages
       if (e.message.contains('already an active member')) {
-        throw Exception('هذا المستخدم عضو بالفعل في المنزل');
+        throw Exception('already_a_member');
       }
       if (e.message.contains('pending invitation already exists')) {
-        throw Exception('يوجد دعوة معلقة بالفعل لهذا البريد الإلكتروني');
+        throw Exception('pending_invitation_exists');
       }
       if (e.message.contains('Only owners and admins')) {
-        throw Exception('ليس لديك صلاحية لإرسال دعوات');
+        throw Exception('no_permission_to_invite');
       }
       if (e.message.contains('gen_random_bytes')) {
-        throw Exception('تعذر إنشاء رمز الدعوة. يرجى تحديث قاعدة البيانات ثم المحاولة مرة أخرى');
+        throw Exception('invitation_code_generation_failed');
       }
-      throw Exception('فشل إرسال الدعوة: ${e.message}');
+      throw Exception('send_invitation_failed: ${e.message}');
     }
   }
 
@@ -54,7 +54,7 @@ class SupabaseInvitationRepository implements InvitationRepository {
   Future<InvitationModel> acceptInvitation({required String token}) async {
     final user = _client.auth.currentUser;
     if (user == null) {
-      throw Exception('يجب تسجيل الدخول أولاً');
+      throw Exception('must_login_first');
     }
 
     try {
@@ -65,15 +65,15 @@ class SupabaseInvitationRepository implements InvitationRepository {
       return InvitationModel.fromJson(response as Map<String, dynamic>);
     } catch (e) {
       if (e.toString().contains('Not authenticated')) {
-        throw Exception('يجب تسجيل الدخول أولاً');
+        throw Exception('must_login_first');
       } else if (e.toString().contains('Invitation not found')) {
-        throw Exception('الدعوة غير موجودة أو تم التعامل معها مسبقاً');
+        throw Exception('invitation_not_found_or_handled');
       } else if (e.toString().contains('Invitation expired')) {
-        throw Exception('الدعوة منتهية الصلاحية');
+        throw Exception('invitation_expired');
       } else if (e.toString().contains('Unauthorized')) {
-        throw Exception('غير مصرح لك بقبول هذه الدعوة');
+        throw Exception('not_authorized_accept_invitation');
       }
-      throw Exception('فشل في قبول الدعوة: $e');
+      throw Exception('accept_invitation_failed: $e');
     }
   }
 
@@ -81,7 +81,7 @@ class SupabaseInvitationRepository implements InvitationRepository {
   Future<InvitationModel> declineInvitation({required String token}) async {
     final user = _client.auth.currentUser;
     if (user == null) {
-      throw Exception('يجب تسجيل الدخول أولاً');
+      throw Exception('must_login_first');
     }
 
     final invitation = await _client
@@ -92,7 +92,7 @@ class SupabaseInvitationRepository implements InvitationRepository {
         .maybeSingle();
 
     if (invitation == null) {
-      throw Exception('الدعوة غير موجودة');
+      throw Exception('invitation_not_found');
     }
 
     final response = await _client
@@ -103,18 +103,19 @@ class SupabaseInvitationRepository implements InvitationRepository {
         .maybeSingle();
 
     if (response == null) {
-      throw Exception('ليس لديك صلاحية لرفض هذه الدعوة');
+      throw Exception('no_permission_to_decline');
     }
 
     return InvitationModel.fromJson(response);
   }
 
   @override
-  Future<InvitationModel> cancelInvitation(
-      {required String invitationId}) async {
+  Future<InvitationModel> cancelInvitation({
+    required String invitationId,
+  }) async {
     final user = _client.auth.currentUser;
     if (user == null) {
-      throw Exception('يجب تسجيل الدخول أولاً');
+      throw Exception('must_login_first');
     }
 
     final invitation = await _client
@@ -124,7 +125,7 @@ class SupabaseInvitationRepository implements InvitationRepository {
         .maybeSingle();
 
     if (invitation == null) {
-      throw Exception('الدعوة غير موجودة');
+      throw Exception('invitation_not_found');
     }
 
     final response = await _client
@@ -135,15 +136,16 @@ class SupabaseInvitationRepository implements InvitationRepository {
         .maybeSingle();
 
     if (response == null) {
-      throw Exception('ليس لديك صلاحية لإلغاء هذه الدعوة');
+      throw Exception('no_permission_to_cancel');
     }
 
     return InvitationModel.fromJson(response);
   }
 
   @override
-  Future<List<InvitationModel>> getHomeInvitations(
-      {required String homeId}) async {
+  Future<List<InvitationModel>> getHomeInvitations({
+    required String homeId,
+  }) async {
     final cacheKey = 'cached_home_invitations_$homeId';
     try {
       final response = await _client
@@ -171,7 +173,12 @@ class SupabaseInvitationRepository implements InvitationRepository {
         final cached = prefs.getString(cacheKey);
         if (cached != null) {
           final List<dynamic> list = jsonDecode(cached);
-          return list.map((item) => InvitationModel.fromJson(item as Map<String, dynamic>)).toList();
+          return list
+              .map(
+                (item) =>
+                    InvitationModel.fromJson(item as Map<String, dynamic>),
+              )
+              .toList();
         }
       } catch (_) {}
       rethrow;
@@ -197,12 +204,8 @@ class SupabaseInvitationRepository implements InvitationRepository {
     try {
       final userId = await _getUserId();
       if (userId != null) {
-        final prefs = AppPreferences.instance;
-        final cachedProfile = prefs.getString('${userId}_cached_profile');
-        if (cachedProfile != null) {
-          final profile = jsonDecode(cachedProfile) as Map<String, dynamic>;
-          return profile['email'] as String?;
-        }
+        final localUser = await _usersDao.getUser(userId);
+        if (localUser?.email.isNotEmpty == true) return localUser!.email;
       }
     } catch (_) {}
     return null;
@@ -242,7 +245,12 @@ class SupabaseInvitationRepository implements InvitationRepository {
         final cached = prefs.getString(cacheKey);
         if (cached != null) {
           final List<dynamic> list = jsonDecode(cached);
-          return list.map((item) => InvitationModel.fromJson(item as Map<String, dynamic>)).toList();
+          return list
+              .map(
+                (item) =>
+                    InvitationModel.fromJson(item as Map<String, dynamic>),
+              )
+              .toList();
         }
       } catch (_) {}
       rethrow;
@@ -250,8 +258,7 @@ class SupabaseInvitationRepository implements InvitationRepository {
   }
 
   @override
-  Future<InvitationModel?> getInvitationByToken(
-      {required String token}) async {
+  Future<InvitationModel?> getInvitationByToken({required String token}) async {
     final response = await _client
         .from('invitations')
         .select()
@@ -263,8 +270,9 @@ class SupabaseInvitationRepository implements InvitationRepository {
   }
 
   @override
-  Stream<List<InvitationModel>> watchHomeInvitations(
-      {required String homeId}) async* {
+  Stream<List<InvitationModel>> watchHomeInvitations({
+    required String homeId,
+  }) async* {
     final cacheKey = 'cached_home_invitations_$homeId';
 
     // 1. Emit cached invitations immediately
@@ -273,28 +281,33 @@ class SupabaseInvitationRepository implements InvitationRepository {
       final cached = prefs.getString(cacheKey);
       if (cached != null) {
         final List<dynamic> list = jsonDecode(cached);
-        yield list.map((item) => InvitationModel.fromJson(item as Map<String, dynamic>)).toList();
+        yield list
+            .map(
+              (item) => InvitationModel.fromJson(item as Map<String, dynamic>),
+            )
+            .toList();
       }
     } catch (_) {}
 
     // 2. Subscribe to remote stream
     try {
-      await for (final response in _client
-          .from('invitations')
-          .stream(primaryKey: ['id'])
-          .eq('home_id', homeId)
-          .order('created_at', ascending: false)) {
+      await for (final response
+          in _client
+              .from('invitations')
+              .stream(primaryKey: ['id'])
+              .eq('home_id', homeId)
+              .order('created_at', ascending: false)) {
         final list = response
             .map((json) => InvitationModel.fromJson(json))
             .where((inv) => inv.isPending)
             .toList();
-        
+
         try {
           final prefs = AppPreferences.instance;
           final rawJson = jsonEncode(list.map((i) => i.toJson()).toList());
           await prefs.setString(cacheKey, rawJson);
         } catch (_) {}
-        
+
         yield list;
       }
     } catch (_) {
@@ -318,28 +331,33 @@ class SupabaseInvitationRepository implements InvitationRepository {
       final cached = prefs.getString(cacheKey);
       if (cached != null) {
         final List<dynamic> list = jsonDecode(cached);
-        yield list.map((item) => InvitationModel.fromJson(item as Map<String, dynamic>)).toList();
+        yield list
+            .map(
+              (item) => InvitationModel.fromJson(item as Map<String, dynamic>),
+            )
+            .toList();
       }
     } catch (_) {}
 
     // 2. Subscribe to remote stream
     try {
-      await for (final response in _client
-          .from('invitations')
-          .stream(primaryKey: ['id'])
-          .eq('email', userEmail)
-          .order('created_at', ascending: false)) {
+      await for (final response
+          in _client
+              .from('invitations')
+              .stream(primaryKey: ['id'])
+              .eq('email', userEmail)
+              .order('created_at', ascending: false)) {
         final list = response
             .map((json) => InvitationModel.fromJson(json))
             .where((inv) => inv.isPending)
             .toList();
-        
+
         try {
           final prefs = AppPreferences.instance;
           final rawJson = jsonEncode(list.map((i) => i.toJson()).toList());
           await prefs.setString(cacheKey, rawJson);
         } catch (_) {}
-        
+
         yield list;
       }
     } catch (_) {

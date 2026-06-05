@@ -1,12 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:beity/core/localization/app_localizations.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
+import '../../../../core/services/initial_data_hydration_service.dart';
 
-class NoActiveHomeWidget extends StatelessWidget {
+class NoActiveHomeWidget extends ConsumerWidget {
   const NoActiveHomeWidget({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final hydration = ref.watch(initialDataHydrationServiceProvider);
+
+    if (hydration.status == HydrationStatus.hydratingData ||
+        hydration.status == HydrationStatus.hydratingHomes) {
+      return Scaffold(
+        appBar: AppBar(title: Text(context.translate('app_name'))),
+        body: const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(title: Text(context.translate('app_name'))),
       body: Center(

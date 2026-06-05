@@ -4,9 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/utils/action_debouncer.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:beity/shared/widgets/design_system/beity_snack_bar.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_snack_bar.dart';
 import '../providers/categories_provider.dart';
-import 'package:beity/core/localization/app_localizations.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
+import '../../../../core/errors/error_formatter.dart';
 import '../../../settings/presentation/providers/app_settings_provider.dart';
 
 class CreateCategoryScreen extends ConsumerStatefulWidget {
@@ -56,14 +57,14 @@ class _CreateCategoryScreenState extends ConsumerState<CreateCategoryScreen> {
       }
 
       if (mounted) {
-        BeitySnackBar.success(context, context.translate('category_created_success'));
+        SawaSnackBar.success(context, context.translate('category_created_success'));
         context.pop();
       }
     } catch (e) {
       if (mounted) {
-        BeitySnackBar.error(
+        SawaSnackBar.error(
           context,
-          e.toString().replaceAll('Exception: ', ''),
+          ErrorFormatter.format(e, context),
         );
       }
     } finally {

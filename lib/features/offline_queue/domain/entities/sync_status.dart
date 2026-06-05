@@ -13,4 +13,6 @@ enum SyncStatus {
         return 'Failed';
     }
   }
+
+  String get translationKey => 'sync_status_$name';
 }

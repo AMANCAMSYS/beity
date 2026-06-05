@@ -1,4 +1,4 @@
-# OpenRouter API Setup for Beity
+# OpenRouter API Setup for SAWA
 
 This guide explains how to set up the OpenRouter API key and configure the Supabase Edge Function for Smart Shopping Suggestions.
 

@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:beity/app/theme/app_spacing.dart';
-import 'package:beity/app/theme/app_colors.dart';
-import 'package:beity/shared/widgets/design_system/beity_button.dart';
-import 'package:beity/shared/widgets/design_system/beity_card.dart';
-import 'package:beity/shared/widgets/design_system/beity_empty_state.dart';
+import 'package:sawa/app/theme/app_spacing.dart';
+import 'package:sawa/app/theme/app_colors.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_button.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_card.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_empty_state.dart';
 import '../providers/expense_providers.dart';
 import '../../domain/entities/expense.dart';
 import '../../domain/entities/expense_split.dart';
@@ -15,12 +15,13 @@ import '../../../homes/presentation/providers/homes_provider.dart';
 import '../../../../core/utils/action_debouncer.dart';
 import '../../../../core/localization/app_localizations.dart';
 import '../../../settings/presentation/providers/app_settings_provider.dart';
-import 'package:beity/core/errors/error_formatter.dart';
+import 'package:sawa/core/errors/error_formatter.dart';
 
 class ExpenseDetailScreen extends ConsumerStatefulWidget {
   final String expenseId;
+  final String homeId;
 
-  const ExpenseDetailScreen({super.key, required this.expenseId});
+  const ExpenseDetailScreen({super.key, required this.expenseId, required this.homeId});
 
   @override
   ConsumerState<ExpenseDetailScreen> createState() =>
@@ -78,7 +79,7 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen> {
       body: expenseAsync.when(
         data: (expense) {
           if (expense == null) {
-            return BeityEmptyState(
+            return SawaEmptyState(
               title: context.translate('expense_not_found'),
               message: context.translate('expense_not_found_desc'),
               icon: Icons.receipt_long_rounded,
@@ -93,7 +94,7 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen> {
               Consumer(
                 builder: (context, ref, _) {
                   final membersAsync = ref.watch(
-                    homeMembersProvider(expense.homeId),
+                    homeMembersProvider(widget.homeId),
                   );
                   return _buildExpenseHeader(
                     context,
@@ -107,7 +108,7 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen> {
               Consumer(
                 builder: (context, ref, _) {
                   final membersAsync = ref.watch(
-                    homeMembersProvider(expense.homeId),
+                    homeMembersProvider(widget.homeId),
                   );
                   return _buildSplitsSection(
                     context,
@@ -121,7 +122,7 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen> {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => BeityEmptyState(
+        error: (error, stack) => SawaEmptyState(
           title: context.translate('error_title'),
           message: error.toString(),
           icon: Icons.error_outline_rounded,
@@ -152,14 +153,14 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen> {
     AsyncValue<List<HomeMemberModel>> membersAsync,
     ThemeData theme,
   ) {
-    final memberNames = membersAsync.valueOrNull != null
-        ? _memberNames(membersAsync.valueOrNull!)
+    final memberNames = membersAsync.value != null
+        ? _memberNames(membersAsync.value!)
         : const <String, String>{};
     final payerName =
         memberNames[expense.paidBy] ??
         context.translate('member');
 
-    return BeityCard(
+    return SawaCard(
       padding: const EdgeInsets.all(AppSpacing.xl),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -321,14 +322,14 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen> {
     AsyncValue<List<HomeMemberModel>> membersAsync,
     ThemeData theme,
   ) {
-    final memberNames = membersAsync.valueOrNull != null
-        ? _memberNames(membersAsync.valueOrNull!)
+    final memberNames = membersAsync.value != null
+        ? _memberNames(membersAsync.value!)
         : const <String, String>{};
 
     return splitsAsync.when(
       data: (splits) {
         if (splits.isEmpty) {
-          return BeityCard(
+          return SawaCard(
             padding: const EdgeInsets.all(AppSpacing.lg),
             child: Row(
               children: [
@@ -357,7 +358,7 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen> {
           );
         }
 
-        return BeityCard(
+        return SawaCard(
           padding: const EdgeInsets.all(AppSpacing.lg),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -423,7 +424,7 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen> {
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, stack) => BeityCard(
+      error: (error, stack) => SawaCard(
         padding: const EdgeInsets.all(AppSpacing.lg),
         child: Row(
           children: [
@@ -477,10 +478,10 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen> {
               ),
             ),
           ),
-          BeityButton(
+          SawaButton(
             text: context.translate('delete'),
             width: 100,
-            type: BeityButtonType.secondary,
+            type: SawaButtonType.secondary,
             onPressed: () => Navigator.pop(context, true),
           ),
         ],

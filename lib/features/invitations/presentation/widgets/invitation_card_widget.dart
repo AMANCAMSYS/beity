@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
 import 'package:timeago/timeago.dart' as timeago;
-import 'package:beity/app/theme/app_spacing.dart';
-import 'package:beity/app/theme/app_colors.dart';
-import 'package:beity/shared/widgets/design_system/beity_card.dart';
-import 'package:beity/shared/widgets/design_system/beity_button.dart';
-import 'package:beity/core/utils/action_debouncer.dart';
+import 'package:sawa/app/theme/app_spacing.dart';
+import 'package:sawa/app/theme/app_colors.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_card.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_button.dart';
+import 'package:sawa/core/services/app_logger.dart';
+import 'package:sawa/core/utils/action_debouncer.dart';
 import '../../data/models/invitation_model.dart';
 import '../../domain/entities/invitation.dart';
 import '../../../homes/presentation/providers/homes_provider.dart';
@@ -26,7 +28,7 @@ class InvitationCardWidget extends ConsumerWidget {
     final theme = Theme.of(context);
     final isPending = invitation.isPending;
 
-    return BeityCard(
+    return SawaCard(
       margin: const EdgeInsets.only(bottom: AppSpacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -48,7 +50,7 @@ class InvitationCardWidget extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      invitation.email ?? 'دعوة',
+                      invitation.email ?? context.translate('invitation'),
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
@@ -56,7 +58,7 @@ class InvitationCardWidget extends ConsumerWidget {
                     ),
                     AppSpacing.gapXXS,
                     Text(
-                      'الدور: ${_getRoleName()}',
+                      '${context.translate('role_label')}: ${_getRoleName(context)}',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
@@ -78,7 +80,10 @@ class InvitationCardWidget extends ConsumerWidget {
                 ),
                 const SizedBox(width: 4),
                 Text(
-                  timeago.format(invitation.createdAt!, locale: 'ar'),
+                  timeago.format(
+                    invitation.createdAt!,
+                    locale: Localizations.localeOf(context).languageCode,
+                  ),
                   style: theme.textTheme.labelSmall?.copyWith(
                     color: theme.colorScheme.outline,
                   ),
@@ -92,18 +97,21 @@ class InvitationCardWidget extends ConsumerWidget {
               Row(
                 children: [
                   Expanded(
-                    child: BeityButton(
-                      onPressed: () => ActionDebouncer.execute(() => _declineInvitation(ref)),
-                      text: 'رفض',
-                      type: BeityButtonType.secondary,
+                    child: SawaButton(
+                      onPressed: () => ActionDebouncer.execute(
+                        () => _declineInvitation(ref),
+                      ),
+                      text: context.translate('reject'),
+                      type: SawaButtonType.secondary,
                     ),
                   ),
                   AppSpacing.gapMD,
                   Expanded(
-                    child: BeityButton(
-                      onPressed: () => ActionDebouncer.execute(() => _acceptInvitation(ref)),
-                      text: 'قبول',
-                      type: BeityButtonType.primary,
+                    child: SawaButton(
+                      onPressed: () =>
+                          ActionDebouncer.execute(() => _acceptInvitation(ref)),
+                      text: context.translate('accept'),
+                      type: SawaButtonType.primary,
                     ),
                   ),
                 ],
@@ -112,11 +120,17 @@ class InvitationCardWidget extends ConsumerWidget {
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(
-                  onPressed: () => ActionDebouncer.execute(() => _cancelInvitation(ref, context)),
-                  icon: const Icon(Icons.cancel_outlined, color: Color(0xFFEF5350), size: 18),
-                  label: const Text(
-                    'إلغاء الدعوة',
-                    style: TextStyle(
+                  onPressed: () => ActionDebouncer.execute(
+                    () => _cancelInvitation(ref, context),
+                  ),
+                  icon: const Icon(
+                    Icons.cancel_outlined,
+                    color: Color(0xFFEF5350),
+                    size: 18,
+                  ),
+                  label: Text(
+                    context.translate('cancel_invitation'),
+                    style: const TextStyle(
                       color: Color(0xFFEF5350),
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
@@ -124,7 +138,10 @@ class InvitationCardWidget extends ConsumerWidget {
                     ),
                   ),
                   style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Color(0x7FEF5350), width: 1.2),
+                    side: const BorderSide(
+                      color: Color(0x7FEF5350),
+                      width: 1.2,
+                    ),
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -174,7 +191,7 @@ class InvitationCardWidget extends ConsumerWidget {
         borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
       ),
       child: Text(
-        _getStatusName(),
+        _getStatusName(context),
         style: theme.textTheme.labelSmall?.copyWith(
           color: _getStatusColor(),
           fontWeight: FontWeight.bold,
@@ -183,27 +200,27 @@ class InvitationCardWidget extends ConsumerWidget {
     );
   }
 
-  String _getStatusName() {
+  String _getStatusName(BuildContext context) {
     switch (invitation.status) {
       case InvitationStatus.pending:
-        return 'معلقة';
+        return context.translate('invitation_status_pending');
       case InvitationStatus.accepted:
-        return 'مقبولة';
+        return context.translate('invitation_status_accepted');
       case InvitationStatus.expired:
-        return 'منتهية';
+        return context.translate('invitation_status_expired');
       case InvitationStatus.cancelled:
-        return 'ملغاة';
+        return context.translate('invitation_status_cancelled');
     }
   }
 
-  String _getRoleName() {
+  String _getRoleName(BuildContext context) {
     switch (invitation.role) {
       case 'admin':
-        return 'مدير';
+        return context.translate('admin');
       case 'member':
-        return 'عضو';
+        return context.translate('member');
       case 'viewer':
-        return 'مشاهد';
+        return context.translate('viewer');
       default:
         return invitation.role;
     }
@@ -211,9 +228,9 @@ class InvitationCardWidget extends ConsumerWidget {
 
   Future<void> _acceptInvitation(WidgetRef ref) async {
     try {
-      await ref.read(invitationNotifierProvider.notifier).acceptInvitation(
-            token: invitation.token,
-          );
+      await ref
+          .read(invitationNotifierProvider.notifier)
+          .acceptInvitation(token: invitation.token);
       // Invalidate homes list so the new home appears
       ref.invalidate(userHomesProvider);
     } catch (e) {
@@ -223,33 +240,41 @@ class InvitationCardWidget extends ConsumerWidget {
 
   Future<void> _declineInvitation(WidgetRef ref) async {
     try {
-      await ref.read(invitationNotifierProvider.notifier).declineInvitation(
-            token: invitation.token,
-          );
+      await ref
+          .read(invitationNotifierProvider.notifier)
+          .declineInvitation(token: invitation.token);
     } catch (e) {
       // Error is handled by the provider
     }
   }
 
   Future<void> _cancelInvitation(WidgetRef ref, BuildContext context) async {
-    debugPrint('Cancelling invitation: ${invitation.id} for ${invitation.email}');
+    AppLogger.i(
+      'Cancelling invitation: ${invitation.id} for ${invitation.email}',
+    );
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('إلغاء الدعوة؟', textDirection: TextDirection.rtl),
+        title: Text(
+          context.translate('cancel_invitation_question'),
+          textDirection: TextDirection.rtl,
+        ),
         content: Text(
-          'هل أنت متأكد من إلغاء دعوة ${invitation.email}؟',
+          context.translate(
+            'cancel_invitation_confirm',
+            arguments: {'email': invitation.email ?? ''},
+          ),
           textDirection: TextDirection.rtl,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('تراجع'),
+            child: Text(context.translate('undo')),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
             style: FilledButton.styleFrom(backgroundColor: AppColors.error),
-            child: const Text('إلغاء الدعوة'),
+            child: Text(context.translate('cancel_invitation')),
           ),
         ],
       ),
@@ -257,23 +282,32 @@ class InvitationCardWidget extends ConsumerWidget {
 
     if (confirmed == true) {
       try {
-        await ref.read(invitationNotifierProvider.notifier).cancelInvitation(
-              invitationId: invitation.id,
-            );
+        await ref
+            .read(invitationNotifierProvider.notifier)
+            .cancelInvitation(invitationId: invitation.id);
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('تم إلغاء الدعوة بنجاح', textDirection: TextDirection.rtl),
+            SnackBar(
+              content: Text(
+                context.translate('invitation_cancelled_success'),
+                textDirection: TextDirection.rtl,
+              ),
               backgroundColor: AppColors.success,
             ),
           );
         }
       } catch (e) {
-        debugPrint('Error cancelling invitation: $e');
+        AppLogger.i('Error cancelling invitation: $e');
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('فشل إلغاء الدعوة: ${e.toString()}', textDirection: TextDirection.rtl),
+              content: Text(
+                context.translate(
+                  'invitation_cancel_failed',
+                  arguments: {'error': e.toString()},
+                ),
+                textDirection: TextDirection.rtl,
+              ),
               backgroundColor: AppColors.error,
             ),
           );

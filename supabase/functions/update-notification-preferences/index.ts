@@ -1,17 +1,61 @@
+// @ts-ignore: VS Code's TypeScript service does not resolve Deno JSR imports; Deno/Supabase resolves this at runtime.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+// @ts-ignore: VS Code's TypeScript service does not resolve Deno JSR imports; Deno/Supabase resolves this at runtime.
 import { createClient, type SupabaseClient } from "jsr:@supabase/supabase-js@2";
+
+declare const Deno: any;
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-const VALID_COLUMNS = [
+type PreferenceColumn =
+  | "item_added"
+  | "item_completed"
+  | "low_stock"
+  | "expiry_alert"
+  | "expense_added"
+  | "task_assigned"
+  | "task_due";
+
+const VALID_COLUMNS: PreferenceColumn[] = [
   "item_added",
   "item_completed",
   "low_stock",
   "expiry_alert",
   "expense_added",
+  "task_assigned",
   "task_due",
 ];
+
+function assignPreferenceValue(
+  updateData: Partial<Record<PreferenceColumn, boolean>>,
+  column: PreferenceColumn,
+  value: boolean,
+) {
+  switch (column) {
+    case "item_added":
+      updateData.item_added = value;
+      break;
+    case "item_completed":
+      updateData.item_completed = value;
+      break;
+    case "low_stock":
+      updateData.low_stock = value;
+      break;
+    case "expiry_alert":
+      updateData.expiry_alert = value;
+      break;
+    case "expense_added":
+      updateData.expense_added = value;
+      break;
+    case "task_assigned":
+      updateData.task_assigned = value;
+      break;
+    case "task_due":
+      updateData.task_due = value;
+      break;
+  }
+}
 
 async function requireUser(req: Request, supabaseAdmin: SupabaseClient) {
   const authHeader = req.headers.get("Authorization") ?? "";
@@ -67,10 +111,11 @@ Deno.serve(async (req: Request) => {
     }
 
     // Build update object with only valid columns
-    const updateData: Record<string, boolean> = {};
+    const updateData: Partial<Record<PreferenceColumn, boolean>> = {};
     for (const col of VALID_COLUMNS) {
-      if (col in preferences && typeof preferences[col] === "boolean") {
-        updateData[col] = preferences[col];
+      const descriptor = Object.getOwnPropertyDescriptor(preferences, col);
+      if (descriptor && typeof descriptor.value === "boolean") {
+        assignPreferenceValue(updateData, col, descriptor.value);
       }
     }
 
@@ -107,7 +152,7 @@ Deno.serve(async (req: Request) => {
           home_id: home_id,
           ...updateData,
         },
-        { onConflict: "user_id, home_id" },
+        { onConflict: "user_id,home_id" },
       )
       .select()
       .single();

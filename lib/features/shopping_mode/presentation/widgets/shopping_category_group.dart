@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:beity/core/localization/app_localizations.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
 import '../providers/shopping_mode_items_provider.dart';
 import 'shopping_item_card.dart';
 
@@ -8,7 +8,7 @@ class ShoppingCategoryGroup extends StatelessWidget {
   final Map<String, String> unitNames;
   final bool isCollapsed;
   final VoidCallback onToggle;
-  final Function(String itemId) onItemTap;
+  final Function(String itemId, bool isPurchased) onItemTap;
   final Function(String itemId)? onQuantityTap;
   final bool hapticsEnabled;
 
@@ -78,9 +78,10 @@ class ShoppingCategoryGroup extends StatelessWidget {
         // Items
         if (!isCollapsed)
           ...group.items.map((item) => ShoppingItemCard(
+                key: ValueKey(item.id),
                 item: item,
                 unitName: item.unitId != null ? unitNames[item.unitId] : null,
-                onTap: () => onItemTap(item.id),
+                onTap: () => onItemTap(item.id, !item.isPurchased),
                 onQuantityTap: onQuantityTap != null
                     ? () => onQuantityTap!(item.id)
                     : null,

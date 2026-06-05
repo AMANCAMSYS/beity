@@ -2,17 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:beity/app/theme/app_spacing.dart';
-import 'package:beity/app/theme/app_colors.dart';
-import 'package:beity/shared/widgets/design_system/beity_card.dart';
-import 'package:beity/shared/widgets/design_system/beity_button.dart';
-import 'package:beity/shared/widgets/design_system/beity_snack_bar.dart';
+import 'package:sawa/app/theme/app_spacing.dart';
+import 'package:sawa/app/theme/app_colors.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_card.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_button.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_snack_bar.dart';
 import '../providers/inventory_provider.dart';
 import '../../domain/usecases/delete_inventory_item_usecase.dart';
 import '../../domain/entities/inventory_item.dart';
 import '../../data/models/inventory_transaction_model.dart';
-import 'package:beity/core/localization/app_localizations.dart';
-import 'package:beity/core/errors/error_formatter.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
+import 'package:sawa/core/errors/error_formatter.dart';
 
 class InventoryItemDetailScreen extends ConsumerStatefulWidget {
   final String itemId;
@@ -98,7 +98,7 @@ class _InventoryItemDetailScreenState
               AppSpacing.gapSM,
               Text(ErrorFormatter.format(e, context), textAlign: TextAlign.center, style: TextStyle(color: theme.colorScheme.onSurfaceVariant)),
               AppSpacing.gapXL,
-              BeityButton(
+              SawaButton(
                 text: context.translate('retry'),
                 width: 160,
                 onPressed: () => ref.invalidate(inventoryItemByIdProvider(widget.itemId)),
@@ -121,9 +121,9 @@ class _InventoryItemDetailScreenState
                       style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                     ),
                     AppSpacing.gapLG,
-                    BeityButton(
+                    SawaButton(
                       text: context.translate('go_back'),
-                      type: BeityButtonType.secondary,
+                      type: SawaButtonType.secondary,
                       onPressed: () => Navigator.of(context).pop(),
                     ),
                   ],
@@ -167,7 +167,7 @@ class _InventoryItemDetailScreenState
   }
 
   Widget _buildItemCard(InventoryItem item, BuildContext context, ThemeData theme) {
-    return BeityCard(
+    return SawaCard(
       padding: const EdgeInsets.all(AppSpacing.xl),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -292,7 +292,7 @@ class _InventoryItemDetailScreenState
     }
 
     if (_transactions.isEmpty) {
-      return BeityCard(
+      return SawaCard(
         padding: const EdgeInsets.all(AppSpacing.xxl),
         child: Column(
           children: [
@@ -322,7 +322,7 @@ class _InventoryItemDetailScreenState
       itemBuilder: (context, i) {
         final txn = _transactions[i];
         final color = _getTransactionColor(txn.changeReason);
-        return BeityCard(
+        return SawaCard(
           padding: const EdgeInsets.all(AppSpacing.md),
           child: Row(
             children: [
@@ -471,10 +471,10 @@ class _InventoryItemDetailScreenState
               style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontWeight: FontWeight.bold),
             ),
           ),
-          BeityButton(
+          SawaButton(
             width: 100,
             text: context.translate('delete'),
-            type: BeityButtonType.secondary,
+            type: SawaButtonType.secondary,
             onPressed: () async {
               Navigator.pop(ctx);
               try {
@@ -487,12 +487,12 @@ class _InventoryItemDetailScreenState
                 );
                 ref.invalidate(inventoryItemsProvider(widget.homeId));
                 if (context.mounted) {
-                  BeitySnackBar.success(context, context.translate('inventory_item_deleted_success'));
+                  SawaSnackBar.success(context, context.translate('inventory_item_deleted_success'));
                   Navigator.pop(context);
                 }
               } catch (e) {
                 if (context.mounted) {
-                  BeitySnackBar.error(
+                  SawaSnackBar.error(
                     context,
                     context.translate('error_delete_item', arguments: {'error': ErrorFormatter.format(e, context)}),
                   );

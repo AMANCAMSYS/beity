@@ -1,14 +1,18 @@
-import 'dart:convert';
-import 'package:beity/core/services/supabase_service.dart';
-import 'package:beity/core/services/shared_prefs_provider.dart';
+import 'package:sawa/core/local_database/daos/homes_dao.dart';
+import 'package:sawa/core/local_database/local_database_service.dart';
+import 'package:sawa/core/services/shared_prefs_provider.dart';
+import 'package:sawa/core/services/supabase_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../models/home_model.dart';
+
 import '../models/home_member_model.dart';
+import '../models/home_model.dart';
 
 class HomeLocalDataSource {
   final SupabaseClient? _client;
+  final HomesDao _dao;
 
-  HomeLocalDataSource([this._client]);
+  HomeLocalDataSource([this._client, HomesDao? dao])
+    : _dao = dao ?? HomesDao(LocalDatabaseService.instance);
 
   String _getUserId() {
     final client = _client ?? SupabaseService.client;
@@ -16,179 +20,95 @@ class HomeLocalDataSource {
     return user?.id ?? 'anonymous';
   }
 
-  // User-isolated cache keys (Requirement 5)
-  String _homesCacheKey(String userId) => 'homes_cache_user:$userId';
-  String _activeHomeKey(String userId) => 'active_home_user:$userId';
-  String _activeHomeNameKey(String userId) => 'active_home_name_user:$userId';
-  String _membersCacheKey(String homeId) => 'home_members_cache_home:$homeId';
-  String _initialSyncCompletedKey(String userId) => 'initial_sync_completed_user:$userId';
-  String _homeInitialSyncCompletedKey(String homeId) => 'initial_sync_completed_home:$homeId';
-
-  // Save/Load user homes list (Requirement 5)
-  Future<void> saveUserHomes(String userId, List<HomeModel> homes) async {
-    final prefs = AppPreferences.instance;
-    final rawJson = jsonEncode(homes.map((h) => h.toJson()).toList());
-    await prefs.setString(_homesCacheKey(userId), rawJson);
+  Future<void> saveUserHomes(String userId, List<HomeModel> homes) {
+    return _dao.saveUserHomes(userId, homes);
   }
 
-  Future<List<HomeModel>> getUserHomes(String userId) async {
-    try {
-      final prefs = AppPreferences.instance;
-      final cached = prefs.getString(_homesCacheKey(userId));
-      if (cached == null) return [];
-      final List<dynamic> list = jsonDecode(cached);
-      return list.map((item) => HomeModel.fromJson(item as Map<String, dynamic>)).toList();
-    } catch (_) {
-      return [];
-    }
+  Future<List<HomeModel>> getUserHomes(String userId) {
+    return _dao.getUserHomes(userId);
   }
 
-  // Save/Load home members (Requirement 5)
-  Future<void> saveHomeMembers(String homeId, List<HomeMemberModel> members) async {
-    final prefs = AppPreferences.instance;
-    final rawJson = jsonEncode(members.map((m) => m.toJson()).toList());
-    await prefs.setString(_membersCacheKey(homeId), rawJson);
+  Stream<List<HomeModel>> watchUserHomes(String userId) {
+    return _dao.watchUserHomes(userId);
   }
 
-  Future<List<HomeMemberModel>> getHomeMembers(String homeId) async {
-    try {
-      final prefs = AppPreferences.instance;
-      final cached = prefs.getString(_membersCacheKey(homeId));
-      if (cached == null) return [];
-      final List<dynamic> list = jsonDecode(cached);
-      return list.map((item) => HomeMemberModel.fromJson(item as Map<String, dynamic>)).toList();
-    } catch (_) {
-      return [];
-    }
+  Future<void> saveHomeMembers(String homeId, List<HomeMemberModel> members) {
+    return _dao.saveHomeMembers(homeId, members);
   }
 
-  Future<void> clearHomeMembers(String homeId) async {
-    final prefs = AppPreferences.instance;
-    await prefs.remove(_membersCacheKey(homeId));
+  Future<List<HomeMemberModel>> getHomeMembers(String homeId) {
+    return _dao.getHomeMembers(homeId);
   }
 
-  Future<void> clearAllHomeData(String homeId) async {
-    final prefs = AppPreferences.instance;
-    final keys = prefs.getKeys().toList();
-    for (final key in keys) {
-      if (key.contains(homeId)) {
-        await prefs.remove(key);
-      }
-    }
+  Stream<List<HomeMemberModel>> watchHomeMembers(String homeId) {
+    return _dao.watchHomeMembers(homeId);
   }
 
-  // Save/Load active home ID & name (Requirement 5)
-  Future<void> setActiveHome(String homeId, String homeName) async {
-    final prefs = AppPreferences.instance;
-    final userId = _getUserId();
-    await prefs.setString(_activeHomeKey(userId), homeId);
-    await prefs.setString(_activeHomeNameKey(userId), homeName);
+  Future<void> clearHomeMembers(String homeId) {
+    return _dao.clearHomeMembers(homeId);
   }
 
-  Future<String?> getActiveHomeId() async {
-    final prefs = AppPreferences.instance;
-    final userId = _getUserId();
-    return prefs.getString(_activeHomeKey(userId));
+  Future<void> clearAllHomeData(String homeId) {
+    return _dao.clearAllHomeData(homeId);
   }
 
-  Future<String?> getActiveHomeIdForUser(String userId) async {
-    final prefs = AppPreferences.instance;
-    return prefs.getString(_activeHomeKey(userId));
+  Future<void> setActiveHome(String homeId, String homeName) {
+    return _dao.setActiveHome(_getUserId(), homeId, homeName);
   }
 
-  Future<String?> getActiveHomeName() async {
-    final prefs = AppPreferences.instance;
-    final userId = _getUserId();
-    return prefs.getString(_activeHomeNameKey(userId));
+  Future<String?> getActiveHomeId() {
+    return _dao.getActiveHomeIdForUser(_getUserId());
   }
 
-  Future<void> clearActiveHome(String userId) async {
-    final prefs = AppPreferences.instance;
-    await prefs.remove(_activeHomeKey(userId));
-    await prefs.remove(_activeHomeNameKey(userId));
+  Future<String?> getActiveHomeIdForUser(String userId) {
+    return _dao.getActiveHomeIdForUser(userId);
   }
 
-  // Initial Sync completed status tracker (Requirement 1 & 5)
-  Future<void> setInitialSyncCompleted(String userId, bool completed) async {
-    final prefs = AppPreferences.instance;
-    await prefs.setBool(_initialSyncCompletedKey(userId), completed);
+  Future<String?> getActiveHomeName() {
+    return _dao.getActiveHomeNameForUser(_getUserId());
   }
 
-  Future<bool> isInitialSyncCompleted(String userId) async {
-    try {
-      final prefs = AppPreferences.instance;
-      return prefs.getBool(_initialSyncCompletedKey(userId)) ?? false;
-    } catch (_) {
-      return false;
-    }
+  Future<void> clearActiveHome(String userId) {
+    return _dao.clearActiveHome(userId);
   }
 
-  Future<void> setHomeInitialSyncCompleted(String homeId, bool completed) async {
-    final prefs = AppPreferences.instance;
-    await prefs.setBool(_homeInitialSyncCompletedKey(homeId), completed);
+  Future<void> setInitialSyncCompleted(String userId, bool completed) {
+    return _dao.setInitialSyncCompleted(userId, completed);
   }
 
-  Future<bool> isHomeInitialSyncCompleted(String homeId) async {
-    try {
-      final prefs = AppPreferences.instance;
-      return prefs.getBool(_homeInitialSyncCompletedKey(homeId)) ?? false;
-    } catch (_) {
-      return false;
-    }
+  Future<bool> isInitialSyncCompleted(String userId) {
+    return _dao.isInitialSyncCompleted(userId);
   }
 
-  // Comprehensive logout cleanup (Requirement 4 & 6)
-  Future<void> clearAllUserData() async {
-    final userId = _getUserId();
-    await clearAllUserDataForUser(userId);
+  Future<void> setHomeInitialSyncCompleted(String homeId, bool completed) {
+    return _dao.setHomeInitialSyncCompleted(homeId, completed);
+  }
+
+  Future<bool> isHomeInitialSyncCompleted(String homeId) {
+    return _dao.isHomeInitialSyncCompleted(homeId);
+  }
+
+  Future<void> clearAllUserData() {
+    return clearAllUserDataForUser(_getUserId());
   }
 
   Future<void> clearAllUserDataForUser(String userId) async {
+    // 1. Clear Drift data
+    await _dao.clearAllUserDataForUser(userId);
+
+    // 2. Clear legacy SharedPreferences keys owned by this user
     final prefs = AppPreferences.instance;
     final keys = prefs.getKeys().toList();
-
-    // 1. Resolve user's cached homes first to purge all their sub-feature caches
-    List<String> homeIds = [];
-    try {
-      final homesKey = _homesCacheKey(userId);
-      final cachedHomes = prefs.getString(homesKey);
-      if (cachedHomes != null) {
-        final List<dynamic> decoded = jsonDecode(cachedHomes);
-        homeIds = decoded.map((h) => (h as Map<String, dynamic>)['id'] as String).toList();
-      }
-    } catch (_) {}
-
-    // 2. Loop over and delete all user-owned and home-owned keys
     for (final key in keys) {
-      // Clear user-specific structural keys
-      if (key == _homesCacheKey(userId) ||
-          key == _activeHomeKey(userId) ||
-          key == _activeHomeNameKey(userId) ||
-          key == _initialSyncCompletedKey(userId)) {
+      if (key.startsWith('${userId}_') ||
+          key.startsWith('homes_cache_user:$userId') ||
+          key.startsWith('active_home_user:$userId') ||
+          key.startsWith('active_home_name_user:$userId') ||
+          key.startsWith('initial_sync_completed_user:$userId') ||
+          key.startsWith('sync_queue_$userId') ||
+          key.endsWith('_cached_profile') && key.startsWith(userId)) {
         await prefs.remove(key);
-        continue;
       }
-
-      // Clear legacy active home keys or keys starting with userId_
-      if (key.startsWith('${userId}_') || key.startsWith('sync_queue_$userId')) {
-        await prefs.remove(key);
-        continue;
-      }
-
-      // Clear all caching keys belonging to any home this user had membership in
-      // Purges shopping, tasks, expenses, inventory, categories, lastSyncAt timestamps, outbox
-      for (final homeId in homeIds) {
-        if (key.contains(homeId)) {
-          await prefs.remove(key);
-          break;
-        }
-      }
-    }
-
-    // 3. Clear home member lists and flags
-    for (final homeId in homeIds) {
-      await prefs.remove(_membersCacheKey(homeId));
-      await prefs.remove(_homeInitialSyncCompletedKey(homeId));
     }
   }
 }

@@ -1,20 +1,25 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:beity/core/services/initial_data_hydration_service.dart';
-import 'package:beity/core/services/sync_coordinator.dart';
-import 'package:beity/core/services/shared_prefs_provider.dart';
-import 'package:beity/core/services/supabase_service.dart';
-import 'package:beity/features/homes/data/repositories/home_repository.dart';
-import 'package:beity/features/homes/data/repositories/home_local_data_source.dart';
-import 'package:beity/features/homes/data/models/home_model.dart';
+import 'package:sawa/core/services/initial_data_hydration_service.dart';
+import 'package:sawa/core/services/sync_coordinator.dart';
+import 'package:sawa/core/services/shared_prefs_provider.dart';
+import 'package:sawa/core/services/supabase_service.dart';
+import 'package:sawa/features/homes/data/repositories/home_repository.dart';
+import 'package:sawa/features/homes/data/repositories/home_local_data_source.dart';
+import 'package:sawa/features/homes/data/models/home_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class MockHomeRepository extends Mock implements HomeRepository {}
+
 class MockSyncCoordinator extends Mock implements SyncCoordinator {}
+
 class MockHomeLocalDataSource extends Mock implements HomeLocalDataSource {}
+
 class MockSupabaseClient extends Mock implements SupabaseClient {}
+
 class MockGoTrueClient extends Mock implements GoTrueClient {}
+
 class MockUser extends Mock implements User {}
 
 void main() {
@@ -73,45 +78,79 @@ void main() {
     when(() => mockUser.id).thenReturn(userId);
 
     // Default mock behavior
-    when(() => mockHomeLocalDataSource.isInitialSyncCompleted(userId)).thenAnswer((_) async => false);
-    when(() => mockHomeLocalDataSource.setInitialSyncCompleted(userId, any())).thenAnswer((_) async {});
-    when(() => mockHomeLocalDataSource.setHomeInitialSyncCompleted(any(), any())).thenAnswer((_) async {});
-    when(() => mockHomeLocalDataSource.isHomeInitialSyncCompleted(any())).thenAnswer((_) async => false);
-    when(() => mockHomeLocalDataSource.getActiveHomeIdForUser(userId)).thenAnswer((_) async => null);
-    when(() => mockHomeLocalDataSource.setActiveHome(any(), any())).thenAnswer((_) async {});
+    when(
+      () => mockHomeLocalDataSource.isInitialSyncCompleted(userId),
+    ).thenAnswer((_) async => false);
+    when(
+      () => mockHomeLocalDataSource.setInitialSyncCompleted(userId, any()),
+    ).thenAnswer((_) async {});
+    when(
+      () => mockHomeLocalDataSource.setHomeInitialSyncCompleted(any(), any()),
+    ).thenAnswer((_) async {});
+    when(
+      () => mockHomeLocalDataSource.isHomeInitialSyncCompleted(any()),
+    ).thenAnswer((_) async => false);
+    when(
+      () => mockHomeLocalDataSource.getActiveHomeIdForUser(userId),
+    ).thenAnswer((_) async => null);
+    when(
+      () => mockHomeLocalDataSource.setActiveHome(any(), any()),
+    ).thenAnswer((_) async {});
 
-    when(() => mockHomeRepository.syncHomesWithServer()).thenAnswer((_) async {});
-    when(() => mockHomeRepository.getCachedUserHomes()).thenAnswer((_) async => []);
+    when(
+      () => mockHomeRepository.syncHomesWithServer(),
+    ).thenAnswer((_) async {});
+    when(
+      () => mockHomeRepository.getCachedUserHomes(),
+    ).thenAnswer((_) async => []);
 
-    when(() => mockSyncCoordinator.initialFullSync(any())).thenAnswer((_) async {});
+    when(
+      () => mockSyncCoordinator.initialFullSync(any()),
+    ).thenAnswer((_) async {});
   });
 
   group('InitialDataHydrationService Tests', () {
-    test('1. First login with no activeHomeId selects the single home automatically', () async {
-      // Setup: 1 home returned
-      when(() => mockHomeRepository.getCachedUserHomes()).thenAnswer((_) async => [singleHome]);
+    test(
+      '1. First login with no activeHomeId selects the single home automatically',
+      () async {
+        // Setup: 1 home returned
+        when(
+          () => mockHomeRepository.getCachedUserHomes(),
+        ).thenAnswer((_) async => [singleHome]);
 
-      hydrationService = InitialDataHydrationService(
-        homeRepository: mockHomeRepository,
-        syncCoordinator: mockSyncCoordinator,
-        localDataSource: mockHomeLocalDataSource,
-        autoHydrate: false,
-      );
+        hydrationService = InitialDataHydrationService(
+          homeRepository: mockHomeRepository,
+          syncCoordinator: mockSyncCoordinator,
+          localDataSource: mockHomeLocalDataSource,
+          autoHydrate: false,
+        );
 
-      await hydrationService.hydrate();
+        await hydrationService.hydrate();
 
-      // Verify that it selected the single home and set active home
-      verify(() => mockHomeLocalDataSource.setActiveHome('home-1', 'Single Home')).called(1);
-      verify(() => mockSyncCoordinator.initialFullSync('home-1')).called(1);
-      verify(() => mockHomeLocalDataSource.setInitialSyncCompleted(userId, true)).called(1);
-      verify(() => mockHomeLocalDataSource.setHomeInitialSyncCompleted('home-1', true)).called(1);
-      expect(hydrationService.state.status, HydrationStatus.success);
-      expect(hydrationService.state.activeHomeId, 'home-1');
-    });
+        // Verify that it selected the single home and set active home
+        verify(
+          () => mockHomeLocalDataSource.setActiveHome('home-1', 'Single Home'),
+        ).called(1);
+        verify(() => mockSyncCoordinator.initialFullSync('home-1')).called(1);
+        verify(
+          () => mockHomeLocalDataSource.setInitialSyncCompleted(userId, true),
+        ).called(1);
+        verify(
+          () => mockHomeLocalDataSource.setHomeInitialSyncCompleted(
+            'home-1',
+            true,
+          ),
+        ).called(1);
+        expect(hydrationService.state.status, HydrationStatus.success);
+        expect(hydrationService.state.activeHomeId, 'home-1');
+      },
+    );
 
-    test('2. Multiple homes: selects the first/newest home as fallback', () async {
+    test('2. Multiple homes: selects the newest home as fallback', () async {
       // Setup: 2 homes returned
-      when(() => mockHomeRepository.getCachedUserHomes()).thenAnswer((_) async => [firstHome, secondHome]);
+      when(
+        () => mockHomeRepository.getCachedUserHomes(),
+      ).thenAnswer((_) async => [firstHome, secondHome]);
 
       hydrationService = InitialDataHydrationService(
         homeRepository: mockHomeRepository,
@@ -122,19 +161,35 @@ void main() {
 
       await hydrationService.hydrate();
 
-      // Verify fallback choice: should be first home
-      verify(() => mockHomeLocalDataSource.setActiveHome('home-first', 'First Home')).called(1);
-      verify(() => mockSyncCoordinator.initialFullSync('home-first')).called(1);
-      verify(() => mockHomeLocalDataSource.setInitialSyncCompleted(userId, true)).called(1);
-      verify(() => mockHomeLocalDataSource.setHomeInitialSyncCompleted('home-first', true)).called(1);
+      // Verify fallback choice: should be newest non-deleted home
+      verify(
+        () =>
+            mockHomeLocalDataSource.setActiveHome('home-second', 'Second Home'),
+      ).called(1);
+      verify(
+        () => mockSyncCoordinator.initialFullSync('home-second'),
+      ).called(1);
+      verify(
+        () => mockHomeLocalDataSource.setInitialSyncCompleted(userId, true),
+      ).called(1);
+      verify(
+        () => mockHomeLocalDataSource.setHomeInitialSyncCompleted(
+          'home-second',
+          true,
+        ),
+      ).called(1);
       expect(hydrationService.state.status, HydrationStatus.success);
-      expect(hydrationService.state.activeHomeId, 'home-first');
+      expect(hydrationService.state.activeHomeId, 'home-second');
     });
 
     test('3. Obsolete activeHomeId is replaced with a valid fallback', () async {
       // Setup: activeHomeId is obsolete ('old-deleted-home') and no longer in fetched list
-      when(() => mockHomeLocalDataSource.getActiveHomeIdForUser(userId)).thenAnswer((_) async => 'old-deleted-home');
-      when(() => mockHomeRepository.getCachedUserHomes()).thenAnswer((_) async => [secondHome]);
+      when(
+        () => mockHomeLocalDataSource.getActiveHomeIdForUser(userId),
+      ).thenAnswer((_) async => 'old-deleted-home');
+      when(
+        () => mockHomeRepository.getCachedUserHomes(),
+      ).thenAnswer((_) async => [secondHome]);
 
       hydrationService = InitialDataHydrationService(
         homeRepository: mockHomeRepository,
@@ -146,16 +201,25 @@ void main() {
       await hydrationService.hydrate();
 
       // Verify obsolete home replaced with secondHome
-      verify(() => mockHomeLocalDataSource.setActiveHome('home-second', 'Second Home')).called(1);
-      verify(() => mockSyncCoordinator.initialFullSync('home-second')).called(1);
+      verify(
+        () =>
+            mockHomeLocalDataSource.setActiveHome('home-second', 'Second Home'),
+      ).called(1);
+      verify(
+        () => mockSyncCoordinator.initialFullSync('home-second'),
+      ).called(1);
       expect(hydrationService.state.status, HydrationStatus.success);
       expect(hydrationService.state.activeHomeId, 'home-second');
     });
 
     test('4. Success flags are NOT saved when initial sync fails', () async {
       // Setup: single home but full sync throws exception
-      when(() => mockHomeRepository.getCachedUserHomes()).thenAnswer((_) async => [singleHome]);
-      when(() => mockSyncCoordinator.initialFullSync('home-1')).thenThrow(Exception('مزامنة البيانات فشلت'));
+      when(
+        () => mockHomeRepository.getCachedUserHomes(),
+      ).thenAnswer((_) async => [singleHome]);
+      when(
+        () => mockSyncCoordinator.initialFullSync('home-1'),
+      ).thenThrow(Exception('مزامنة البيانات فشلت'));
 
       hydrationService = InitialDataHydrationService(
         homeRepository: mockHomeRepository,
@@ -167,30 +231,41 @@ void main() {
       await hydrationService.hydrate();
 
       // Verify sync completion flags were NOT written
-      verifyNever(() => mockHomeLocalDataSource.setInitialSyncCompleted(userId, true));
-      verifyNever(() => mockHomeLocalDataSource.setHomeInitialSyncCompleted('home-1', true));
-      
+      verifyNever(
+        () => mockHomeLocalDataSource.setInitialSyncCompleted(userId, true),
+      );
+      verifyNever(
+        () =>
+            mockHomeLocalDataSource.setHomeInitialSyncCompleted('home-1', true),
+      );
+
       expect(hydrationService.state.status, HydrationStatus.error);
       expect(hydrationService.state.error, contains('مزامنة البيانات فشلت'));
     });
 
-    test('5. Full initial sync runs only once and does not repeat after success', () async {
-      // Setup: isInitialSyncCompleted is true
-      when(() => mockHomeLocalDataSource.isInitialSyncCompleted(userId)).thenAnswer((_) async => true);
+    test(
+      '5. Full initial sync runs only once and does not repeat after success',
+      () async {
+        // Setup: isInitialSyncCompleted is true
+        when(
+          () => mockHomeLocalDataSource.isInitialSyncCompleted(userId),
+        ).thenAnswer((_) async => true);
 
-      hydrationService = InitialDataHydrationService(
-        homeRepository: mockHomeRepository,
-        syncCoordinator: mockSyncCoordinator,
-        localDataSource: mockHomeLocalDataSource,
-        autoHydrate: false,
-      );
+        hydrationService = InitialDataHydrationService(
+          homeRepository: mockHomeRepository,
+          syncCoordinator: mockSyncCoordinator,
+          localDataSource: mockHomeLocalDataSource,
+          autoHydrate: false,
+        );
 
-      await hydrationService.hydrate();
+        await hydrationService.hydrate();
 
-      // Verify it bypasses everything and transitions straight to success
-      verifyNever(() => mockHomeRepository.syncHomesWithServer());
-      verifyNever(() => mockSyncCoordinator.initialFullSync(any()));
-      expect(hydrationService.state.status, HydrationStatus.success);
-    });
+        // It may refresh homes for membership safety, but it must not rerun the
+        // expensive full home data sync after the initial success flag is set.
+        verify(() => mockHomeRepository.syncHomesWithServer()).called(1);
+        verifyNever(() => mockSyncCoordinator.initialFullSync(any()));
+        expect(hydrationService.state.status, HydrationStatus.success);
+      },
+    );
   });
 }

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:beity/core/localization/app_localizations.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
 import '../../domain/entities/ai_meal.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_spacing.dart';
-import '../../../../core/widgets/beity_cached_image.dart';
+import '../../../../core/widgets/sawa_cached_image.dart';
 
 /// Card widget displaying a single meal suggestion.
 class AiMealCard extends StatelessWidget {
@@ -50,7 +50,7 @@ class AiMealCard extends StatelessWidget {
               borderRadius: const BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusLg)),
               child: AspectRatio(
                 aspectRatio: 16 / 9,
-                child: BeityCachedImage(
+                child: SawaCachedImage(
                   imageUrl: 'https://tse2.mm.bing.net/th?q=${Uri.encodeComponent('${meal.name} food recipe')}&w=600&h=400&c=7&rs=1&p=0',
                   fit: BoxFit.cover,
                   backgroundColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade100,
@@ -131,7 +131,7 @@ class AiMealCard extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
                 child: Text(
-                  meal.mainIngredients.join('، '),
+                  meal.mainIngredients.join(isArabic ? '، ' : ', '),
                   style: TextStyle(fontSize: 12, color: isDark ? Colors.white38 : Colors.grey.shade500),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -168,10 +168,10 @@ class AiMealCard extends StatelessWidget {
                   children: [
                     if (availableIngredients.isNotEmpty)
                       _pantryRow(Icons.check_circle_outline, AppColors.success, 
-                        '${context.translate('available')}: ${availableIngredients.join('، ')}', isDark),
+                        '${context.translate('available')}: ${availableIngredients.join(isArabic ? '، ' : ', ')}', isDark),
                     if (missingIngredients.isNotEmpty)
                       _pantryRow(Icons.add_circle_outline, AppColors.warning, 
-                        '${context.translate('missing')}: ${missingIngredients.join('، ')}', isDark),
+                        '${context.translate('missing')}: ${missingIngredients.join(isArabic ? '، ' : ', ')}', isDark),
                   ],
                 ),
               ),

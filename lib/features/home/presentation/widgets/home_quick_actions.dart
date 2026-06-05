@@ -1,87 +1,66 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../app/theme/app_colors.dart';
+import '../../../../app/router/feature_route_paths.dart';
+import '../../../../app/router/shopping_route_paths.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../core/config/feature_flags.dart';
 import '../../../../core/localization/app_localizations.dart';
-import '../../../../shared/widgets/design_system/beity_card.dart';
-import '../../../../shared/widgets/design_system/beity_snack_bar.dart';
-import '../../../ai_suggestions/presentation/widgets/ai_list_selector_sheet.dart';
-import '../../../onboarding/presentation/providers/app_tour_target_registry.dart';
-import '../../../shopping_lists/presentation/providers/shopping_lists_provider.dart';
+import '../../../../shared/widgets/design_system/sawa_card.dart';
 
-class HomeQuickActions extends ConsumerWidget {
+class HomeQuickActions extends StatelessWidget {
   final String homeId;
 
   const HomeQuickActions({super.key, required this.homeId});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
+    final actions = <_HomeShortcutAction>[
+      if (FeatureFlags.enableInventory)
+        _HomeShortcutAction(
+          icon: Icons.inventory_2_rounded,
+          label: context.translate('inventory'),
+          color: Theme.of(context).colorScheme.primary,
+          onTap: () => context.push(FeatureRoutePaths.inventory, extra: homeId),
+        ),
+      if (FeatureFlags.enableExpenses)
+        _HomeShortcutAction(
+          icon: Icons.receipt_long_rounded,
+          label: context.translate('expenses'),
+          color: Theme.of(context).colorScheme.tertiary,
+          onTap: () => context.push(FeatureRoutePaths.expenses, extra: homeId),
+        ),
+      if (FeatureFlags.enableTasks)
+        _HomeShortcutAction(
+          icon: Icons.task_alt_rounded,
+          label: context.translate('tasks'),
+          color: Theme.of(context).colorScheme.secondary,
+          onTap: () => context.push(FeatureRoutePaths.tasks(homeId)),
+        ),
+    ];
+
+    if (actions.isEmpty) {
+      actions.add(
+        _HomeShortcutAction(
+          icon: Icons.list_alt_rounded,
+          label: context.translate('shopping_lists'),
+          color: Theme.of(context).colorScheme.primary,
+          onTap: () => context.go(ShoppingRoutePaths.lists, extra: homeId),
+        ),
+      );
+    }
+
     return Row(
       children: [
-        Expanded(
-          child: _buildActionCard(
-            context,
-            key: AppTourTargetRegistry.quickAddKey,
-            icon: Icons.add_shopping_cart_rounded,
-            label: context.translate('add_item'),
-            color: Theme.of(context).colorScheme.primary,
-            onTap: () {
-              final listsAsync = ref.read(shoppingListsProvider(homeId));
-              listsAsync.whenData((lists) {
-                if (lists.isNotEmpty) {
-                  context.push('/shopping-list/${lists.first.id}/add-item');
-                } else {
-                  BeitySnackBar.warning(
-                    context,
-                    context.translate('must_create_list_first'),
-                  );
-                }
-              });
-            },
-          ),
-        ),
-        AppSpacing.gapMD,
-        Expanded(
-          child: _buildActionCard(
-            context,
-            key: AppTourTargetRegistry.shoppingModeActionKey,
-            icon: Icons.shopping_bag_rounded,
-            label: context.translate('shopping_mode'),
-            color: Theme.of(context).colorScheme.tertiary,
-            onTap: () {
-              final listsAsync = ref.read(shoppingListsProvider(homeId));
-              listsAsync.whenData((lists) {
-                if (lists.isNotEmpty) {
-                  context.push(
-                    '/shopping-list/${lists.first.id}/shopping-mode',
-                    extra: {
-                      'homeId': lists.first.homeId,
-                      'listName': lists.first.name,
-                    },
-                  );
-                } else {
-                  BeitySnackBar.warning(
-                    context,
-                    context.translate('no_lists_for_shopping_mode'),
-                  );
-                }
-              });
-            },
-          ),
-        ),
-        if (FeatureFlags.enableAi) ...[
-          AppSpacing.gapMD,
+        for (var index = 0; index < actions.length; index++) ...[
+          if (index > 0) AppSpacing.gapMD,
           Expanded(
             child: _buildActionCard(
               context,
-              key: AppTourTargetRegistry.aiSuggestionsKey,
-              icon: Icons.auto_awesome_rounded,
-              label: context.translate('smart_suggestions'),
-              color: AppColors.accent,
-              onTap: () => AiListSelectorSheet.show(context, homeId),
+              icon: actions[index].icon,
+              label: actions[index].label,
+              color: actions[index].color,
+              onTap: actions[index].onTap,
             ),
           ),
         ],
@@ -98,7 +77,7 @@ class HomeQuickActions extends ConsumerWidget {
     required VoidCallback onTap,
   }) {
     final theme = Theme.of(context);
-    return BeityCard(
+    return SawaCard(
       key: key,
       onTap: onTap,
       padding: EdgeInsets.zero,
@@ -126,10 +105,26 @@ class HomeQuickActions extends ConsumerWidget {
                 color: theme.colorScheme.onSurface,
               ),
               textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
       ),
     );
   }
+}
+
+class _HomeShortcutAction {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _HomeShortcutAction({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
 }

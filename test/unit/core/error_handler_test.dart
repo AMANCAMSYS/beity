@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:beity/core/errors/app_exception.dart';
-import 'package:beity/core/errors/error_handler.dart';
+import 'package:sawa/core/errors/app_exception.dart';
+import 'package:sawa/core/errors/error_handler.dart';
 
 void main() {
   group('ErrorHandler', () {

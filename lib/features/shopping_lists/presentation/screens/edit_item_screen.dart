@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:beity/app/theme/app_spacing.dart';
-import 'package:beity/shared/widgets/design_system/beity_button.dart';
-import 'package:beity/shared/widgets/design_system/beity_text_field.dart';
-import 'package:beity/shared/widgets/design_system/beity_card.dart';
-import 'package:beity/shared/widgets/design_system/beity_empty_state.dart';
-import 'package:beity/shared/widgets/design_system/beity_snack_bar.dart';
+import 'package:go_router/go_router.dart';
+import 'package:sawa/app/theme/app_spacing.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_button.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_text_field.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_card.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_empty_state.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_snack_bar.dart';
 import '../../../../core/utils/action_debouncer.dart';
 import '../providers/shopping_items_provider.dart';
 import '../providers/shopping_lists_provider.dart';
@@ -13,19 +14,21 @@ import '../../domain/usecases/update_item_usecase.dart';
 import '../../../categories/presentation/providers/units_provider.dart';
 import '../../../categories/presentation/providers/categories_provider.dart';
 import '../../../../core/localization/app_localizations.dart';
-import 'package:beity/core/errors/error_formatter.dart';
+import 'package:sawa/core/errors/error_formatter.dart';
 import '../../../categories/data/models/category_model.dart';
 import '../../../categories/data/models/unit_model.dart';
-import 'package:beity/core/utils/arabic_number_parser.dart';
+import 'package:sawa/core/utils/arabic_number_parser.dart';
 
 class EditItemScreen extends ConsumerStatefulWidget {
   final String listId;
   final String itemId;
+  final String homeId;
 
   const EditItemScreen({
     super.key,
     required this.listId,
     required this.itemId,
+    required this.homeId,
   });
 
   @override
@@ -38,7 +41,12 @@ class _EditItemScreenState extends ConsumerState<EditItemScreen> {
   final _quantityController = TextEditingController();
   final _priceController = TextEditingController();
   final _notesController = TextEditingController();
-  
+
+  final _nameFocus = FocusNode();
+  final _quantityFocus = FocusNode();
+  final _priceFocus = FocusNode();
+  final _notesFocus = FocusNode();
+
   String? _selectedUnitId;
   String? _selectedCategoryId;
   bool _isLoading = false;
@@ -47,25 +55,37 @@ class _EditItemScreenState extends ConsumerState<EditItemScreen> {
   @override
   void initState() {
     super.initState();
-    _loadItem();
+    _loadItem(widget.homeId);
   }
 
-  Future<void> _loadItem() async {
-    final repository = ref.read(shoppingItemRepositoryProvider);
-    final item = await repository.getShoppingItemById(itemId: widget.itemId);
-    
-    if (item != null && mounted) {
-      setState(() {
-        _nameController.text = item.name;
-        _quantityController.text = item.quantity == item.quantity.roundToDouble()
-            ? item.quantity.toInt().toString()
-            : item.quantity.toStringAsFixed(1);
-        _priceController.text = item.price?.toString() ?? '';
-        _notesController.text = item.notes ?? '';
-        _selectedUnitId = item.unitId;
-        _selectedCategoryId = item.categoryId;
-        _isInitialized = true;
-      });
+  Future<void> _loadItem(String homeId) async {
+    try {
+      final repository = ref.read(
+        shoppingItemRepositoryForHomeProvider(homeId),
+      );
+      final item = await repository.getShoppingItemById(itemId: widget.itemId);
+
+      if (item != null && mounted) {
+        setState(() {
+          _nameController.text = item.name;
+          _quantityController.text =
+              item.quantity == item.quantity.roundToDouble()
+              ? item.quantity.toInt().toString()
+              : item.quantity.toStringAsFixed(1);
+          _priceController.text = item.price?.toString() ?? '';
+          _notesController.text = item.notes ?? '';
+          _selectedUnitId = item.unitId;
+          _selectedCategoryId = item.categoryId;
+          _isInitialized = true;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        SawaSnackBar.error(
+          context,
+          '${context.translate('error')}: ${ErrorFormatter.format(e, context)}',
+        );
+      }
     }
   }
 
@@ -75,6 +95,10 @@ class _EditItemScreenState extends ConsumerState<EditItemScreen> {
     _quantityController.dispose();
     _priceController.dispose();
     _notesController.dispose();
+    _nameFocus.dispose();
+    _quantityFocus.dispose();
+    _priceFocus.dispose();
+    _notesFocus.dispose();
     super.dispose();
   }
 
@@ -88,8 +112,13 @@ class _EditItemScreenState extends ConsumerState<EditItemScreen> {
     }
 
     // Get shopping list to obtain homeId
-    final listAsync = ref.watch(shoppingListByIdProvider(widget.listId));
-    
+    final listAsync = ref.watch(
+      shoppingListByIdForHomeProvider((
+        listId: widget.listId,
+        homeId: widget.homeId,
+      )),
+    );
+
     return listAsync.when(
       data: (list) {
         if (list == null) {
@@ -98,11 +127,10 @@ class _EditItemScreenState extends ConsumerState<EditItemScreen> {
             body: Center(child: Text(context.translate('list_not_found'))),
           );
         }
-        
-        final homeId = list.homeId;
+
         final unitsAsync = ref.watch(unitsProvider(null));
-        final categoriesAsync = ref.watch(categoriesProvider(homeId));
-        
+        final categoriesAsync = ref.watch(categoriesProvider(widget.homeId));
+
         return _buildScreen(context, unitsAsync, categoriesAsync);
       },
       loading: () {
@@ -114,13 +142,18 @@ class _EditItemScreenState extends ConsumerState<EditItemScreen> {
       error: (error, _) {
         return Scaffold(
           appBar: AppBar(title: Text(context.translate('edit_item'))),
-          body: BeityEmptyState(
+          body: SawaEmptyState(
             title: context.translate('error_title'),
             message: error.toString(),
             icon: Icons.error_outline_rounded,
             isError: true,
             actionText: context.translate('retry'),
-            onAction: () => ref.invalidate(shoppingListByIdProvider(widget.listId)),
+            onAction: () => ref.invalidate(
+              shoppingListByIdForHomeProvider((
+                listId: widget.listId,
+                homeId: widget.homeId,
+              )),
+            ),
           ),
         );
       },
@@ -134,20 +167,26 @@ class _EditItemScreenState extends ConsumerState<EditItemScreen> {
   ) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(context.translate('edit_item'), style: const TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(
+          context.translate('edit_item'),
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
       ),
       body: Form(
         key: _formKey,
         child: ListView(
           padding: const EdgeInsets.all(AppSpacing.lg),
           children: [
-            BeityCard(
+            SawaCard(
               padding: const EdgeInsets.all(AppSpacing.lg),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  BeityTextField(
+                  SawaTextField(
                     controller: _nameController,
+                    focusNode: _nameFocus,
+                    textInputAction: TextInputAction.next,
+                    onSubmitted: (_) => _quantityFocus.requestFocus(),
                     labelText: context.translate('item_name_required_label'),
                     prefixIcon: Icons.shopping_basket_outlined,
                     autofocus: true,
@@ -162,8 +201,11 @@ class _EditItemScreenState extends ConsumerState<EditItemScreen> {
                   Row(
                     children: [
                       Expanded(
-                        child: BeityTextField(
+                        child: SawaTextField(
                           controller: _quantityController,
+                          focusNode: _quantityFocus,
+                          textInputAction: TextInputAction.next,
+                          onSubmitted: (_) => _priceFocus.requestFocus(),
                           labelText: context.translate('quantity'),
                           prefixIcon: Icons.numbers,
                           keyboardType: TextInputType.number,
@@ -188,18 +230,28 @@ class _EditItemScreenState extends ConsumerState<EditItemScreen> {
                               labelText: context.translate('unit'),
                               prefixIcon: const Icon(Icons.straighten),
                               filled: true,
-                              fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                              fillColor: Theme.of(context)
+                                  .colorScheme
+                                  .surfaceContainerHighest
+                                  .withValues(alpha: 0.3),
                               border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                                borderRadius: BorderRadius.circular(
+                                  AppSpacing.radiusMd,
+                                ),
                                 borderSide: BorderSide.none,
                               ),
                             ),
                             items: [
-                              DropdownMenuItem(value: null, child: Text(context.translate('no_unit'))),
-                              ...units.map((unit) => DropdownMenuItem(
-                                    value: unit.id,
-                                    child: Text('${unit.name} (${unit.symbol})'),
-                                  )),
+                              DropdownMenuItem(
+                                value: null,
+                                child: Text(context.translate('no_unit')),
+                              ),
+                              ...units.map(
+                                (unit) => DropdownMenuItem(
+                                  value: unit.id,
+                                  child: Text('${unit.name} (${unit.symbol})'),
+                                ),
+                              ),
                             ],
                             onChanged: (value) {
                               setState(() {
@@ -207,21 +259,34 @@ class _EditItemScreenState extends ConsumerState<EditItemScreen> {
                               });
                             },
                           ),
-                          loading: () => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
-                          error: (e, s) => Text(context.translate('load_units_failed')),
+                          loading: () => const Center(
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                          error: (e, s) =>
+                              Text(context.translate('load_units_failed')),
                         ),
                       ),
                     ],
                   ),
                   AppSpacing.gapLG,
-                  BeityTextField(
+                  SawaTextField(
                     controller: _priceController,
+                    focusNode: _priceFocus,
+                    textInputAction: TextInputAction.next,
+                    onSubmitted: (_) => _notesFocus.requestFocus(),
                     labelText: context.translate('price_optional'),
                     hintText: '0.00',
                     prefixIcon: Icons.attach_money,
                     suffixIcon: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                      child: Text(context.translate('currency_symbol'), style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.md,
+                      ),
+                      child: Text(
+                        context.translate('currency_symbol'),
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
                     ),
                     keyboardType: TextInputType.number,
                     validator: (value) {
@@ -238,7 +303,7 @@ class _EditItemScreenState extends ConsumerState<EditItemScreen> {
               ),
             ),
             AppSpacing.gapLG,
-            BeityCard(
+            SawaCard(
               padding: const EdgeInsets.all(AppSpacing.lg),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -250,18 +315,32 @@ class _EditItemScreenState extends ConsumerState<EditItemScreen> {
                         labelText: context.translate('category'),
                         prefixIcon: const Icon(Icons.category_outlined),
                         filled: true,
-                        fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                        fillColor: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest
+                            .withValues(alpha: 0.3),
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                          borderRadius: BorderRadius.circular(
+                            AppSpacing.radiusMd,
+                          ),
                           borderSide: BorderSide.none,
                         ),
                       ),
                       items: [
-                        DropdownMenuItem(value: null, child: Text(context.translate('no_category'))),
-                        ...categories.map((category) => DropdownMenuItem(
-                              value: category.id,
-                              child: Text(category.name == 'Other' ? context.translate('other') : category.name),
-                            )),
+                        DropdownMenuItem(
+                          value: null,
+                          child: Text(context.translate('no_category')),
+                        ),
+                        ...categories.map(
+                          (category) => DropdownMenuItem(
+                            value: category.id,
+                            child: Text(
+                              category.name == 'Other'
+                                  ? context.translate('other')
+                                  : category.name,
+                            ),
+                          ),
+                        ),
                       ],
                       onChanged: (value) {
                         setState(() {
@@ -269,12 +348,18 @@ class _EditItemScreenState extends ConsumerState<EditItemScreen> {
                         });
                       },
                     ),
-                    loading: () => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
-                    error: (e, s) => Text(context.translate('load_categories_failed')),
+                    loading: () => const Center(
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    error: (e, s) =>
+                        Text(context.translate('load_categories_failed')),
                   ),
                   AppSpacing.gapLG,
-                  BeityTextField(
+                  SawaTextField(
                     controller: _notesController,
+                    focusNode: _notesFocus,
+                    textInputAction: TextInputAction.done,
+                    onSubmitted: (_) => ActionDebouncer.execute(_saveItem),
                     labelText: context.translate('notes_optional'),
                     prefixIcon: Icons.notes_outlined,
                     maxLines: 2,
@@ -283,9 +368,9 @@ class _EditItemScreenState extends ConsumerState<EditItemScreen> {
               ),
             ),
             AppSpacing.gapXXL,
-            BeityButton(
-              text: _isLoading 
-                  ? context.translate('saving') 
+            SawaButton(
+              text: _isLoading
+                  ? context.translate('saving')
                   : context.translate('save_changes'),
               icon: Icons.save_rounded,
               isLoading: _isLoading,
@@ -305,9 +390,11 @@ class _EditItemScreenState extends ConsumerState<EditItemScreen> {
     });
 
     try {
-      final repository = ref.read(shoppingItemRepositoryProvider);
+      final repository = ref.read(
+        shoppingItemRepositoryForHomeProvider(widget.homeId),
+      );
       final useCase = UpdateItemUseCase(repository);
-      
+
       await useCase(
         itemId: widget.itemId,
         name: _nameController.text,
@@ -321,12 +408,15 @@ class _EditItemScreenState extends ConsumerState<EditItemScreen> {
       );
 
       if (mounted) {
-        BeitySnackBar.success(context, context.translate('item_updated_success'));
-        Navigator.pop(context);
+        SawaSnackBar.success(
+          context,
+          context.translate('item_updated_success'),
+        );
+        context.pop();
       }
     } catch (e) {
       if (mounted) {
-        BeitySnackBar.error(
+        SawaSnackBar.error(
           context,
           '${context.translate('error')}: ${ErrorFormatter.format(e, context)}',
         );

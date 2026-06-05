@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:beity/core/services/supabase_service.dart';
+import 'package:flutter_riverpod/legacy.dart';
+import 'package:sawa/core/services/supabase_service.dart';
 import '../../domain/entities/ai_suggestion.dart';
 import '../../domain/entities/ai_suggestion_request.dart';
 import '../../domain/usecases/get_ai_suggestions.dart';

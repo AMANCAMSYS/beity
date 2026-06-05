@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:beity/features/homes/data/models/home_member_model.dart';
-import 'package:beity/features/homes/data/repositories/home_repository.dart';
-import 'package:beity/features/homes/domain/usecases/get_home_members_usecase.dart';
+import 'package:sawa/features/homes/data/models/home_member_model.dart';
+import 'package:sawa/features/homes/data/repositories/home_repository.dart';
+import 'package:sawa/features/homes/domain/usecases/get_home_members_usecase.dart';
 
 class MockHomeRepository extends Mock implements HomeRepository {}
 
@@ -24,7 +24,7 @@ void main() {
         homeId: tHomeId,
         userId: 'user-1',
         userName: 'Omar',
-        userEmail: 'omar@beity.com',
+        userEmail: 'omar@sawa.com',
         role: 'owner',
         joinedAt: DateTime.parse('2026-05-28T00:00:00Z'),
       ),
@@ -33,7 +33,7 @@ void main() {
         homeId: tHomeId,
         userId: 'user-2',
         userName: 'Ahmad',
-        userEmail: 'ahmad@beity.com',
+        userEmail: 'ahmad@sawa.com',
         role: 'member',
         joinedAt: DateTime.parse('2026-05-28T00:00:00Z'),
       ),

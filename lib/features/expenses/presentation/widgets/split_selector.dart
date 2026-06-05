@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:beity/app/theme/app_spacing.dart';
-import 'package:beity/app/theme/app_colors.dart';
-import 'package:beity/core/localization/app_localizations.dart';
-import 'package:beity/features/settings/presentation/providers/app_settings_provider.dart';
-import 'package:beity/shared/widgets/design_system/beity_text_field.dart';
-import 'package:beity/shared/widgets/design_system/beity_card.dart';
+import 'package:sawa/app/theme/app_spacing.dart';
+import 'package:sawa/app/theme/app_colors.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
+import 'package:sawa/features/settings/presentation/providers/app_settings_provider.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_text_field.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_card.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 enum SplitType { equally, percentage, shares, custom }
@@ -228,12 +228,7 @@ class _SplitSelectorState extends State<SplitSelector> {
 
   @override
   Widget build(BuildContext context) {
-    final container = ProviderScope.containerOf(context, listen: false);
-    final settingsLocale = container.read(appSettingsProvider).locale;
-    final isArabic = settingsLocale.languageCode == 'ar';
-    final currencySymbol = isArabic
-        ? 'ر.س'
-        : (settingsLocale.languageCode == 'tr' ? 'TL' : 'SAR');
+    final currencySymbol = context.translate('currency_symbol', fallback: 'SAR');
     final theme = Theme.of(context);
 
     return Column(
@@ -316,7 +311,7 @@ class _SplitSelectorState extends State<SplitSelector> {
       for (final split in _calculateEqualSplits()) split.memberId: split.amount,
     };
 
-    return BeityCard(
+    return SawaCard(
       padding: EdgeInsets.zero,
       child: Column(
         children: [
@@ -375,7 +370,7 @@ class _SplitSelectorState extends State<SplitSelector> {
         for (int i = 0; i < widget.memberIds.length; i++)
           Padding(
             padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-            child: BeityCard(
+            child: SawaCard(
               padding: const EdgeInsets.symmetric(
                 horizontal: AppSpacing.md,
                 vertical: AppSpacing.xs,
@@ -393,7 +388,7 @@ class _SplitSelectorState extends State<SplitSelector> {
                   AppSpacing.gapMD,
                   SizedBox(
                     width: 140,
-                    child: BeityTextField(
+                    child: SawaTextField(
                       controller: _amountControllers[widget.memberIds[i]],
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
@@ -423,7 +418,7 @@ class _SplitSelectorState extends State<SplitSelector> {
         for (int i = 0; i < widget.memberIds.length; i++)
           Padding(
             padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-            child: BeityCard(
+            child: SawaCard(
               padding: const EdgeInsets.symmetric(
                 horizontal: AppSpacing.md,
                 vertical: AppSpacing.xs,
@@ -455,7 +450,7 @@ class _SplitSelectorState extends State<SplitSelector> {
                   AppSpacing.gapMD,
                   SizedBox(
                     width: 120,
-                    child: BeityTextField(
+                    child: SawaTextField(
                       controller: _percentageControllers[widget.memberIds[i]],
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
@@ -487,7 +482,7 @@ class _SplitSelectorState extends State<SplitSelector> {
         for (int i = 0; i < widget.memberIds.length; i++)
           Padding(
             padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-            child: BeityCard(
+            child: SawaCard(
               padding: const EdgeInsets.symmetric(
                 horizontal: AppSpacing.md,
                 vertical: AppSpacing.xs,
@@ -519,13 +514,13 @@ class _SplitSelectorState extends State<SplitSelector> {
                   AppSpacing.gapMD,
                   SizedBox(
                     width: 120,
-                    child: BeityTextField(
+                    child: SawaTextField(
                       controller: _sharesControllers[widget.memberIds[i]],
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
                       ),
                       hintText: '0',
-                      suffixText: context.translate('shares').replaceAll(' %', '').replaceAll(' Paylar', '').replaceAll(' حصص', 'حصة'),
+                      suffixText: context.translate('share_unit'),
                       onChanged: (value) {
                         final val = double.tryParse(value) ?? 0.0;
                         setState(() {

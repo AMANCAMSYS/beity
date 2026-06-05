@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:beity/app/theme/app_spacing.dart';
-import 'package:beity/core/localization/app_localizations.dart';
-import 'package:beity/shared/widgets/design_system/beity_card.dart';
-import 'package:beity/shared/widgets/design_system/beity_button.dart';
-import 'package:beity/shared/widgets/design_system/beity_snack_bar.dart';
-import 'package:beity/shared/widgets/design_system/beity_text_field.dart';
-import 'package:beity/core/utils/action_debouncer.dart';
+import 'package:sawa/app/theme/app_spacing.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_card.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_button.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_snack_bar.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_text_field.dart';
+import 'package:sawa/core/utils/action_debouncer.dart';
 import '../../domain/entities/home_type.dart';
 import '../providers/homes_provider.dart';
 
@@ -22,28 +22,36 @@ class CreateHomeScreen extends ConsumerStatefulWidget {
 class _CreateHomeScreenState extends ConsumerState<CreateHomeScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
+  final _nameFocusNode = FocusNode();
   HomeType _selectedType = HomeType.family;
   bool _isLoading = false;
 
   @override
   void dispose() {
     _nameController.dispose();
+    _nameFocusNode.dispose();
     super.dispose();
   }
 
   Future<void> _createHome() async {
     if (!_formKey.currentState!.validate()) return;
+    FocusManager.instance.primaryFocus?.unfocus();
 
     setState(() => _isLoading = true);
 
     try {
-      await ref.read(homesNotifierProvider.notifier).createHome(
+      await ref
+          .read(homesNotifierProvider.notifier)
+          .createHome(
             name: _nameController.text.trim(),
             type: _selectedType.value,
           );
 
       if (mounted) {
-        BeitySnackBar.success(context, context.translate('home_created_success'));
+        SawaSnackBar.success(
+          context,
+          context.translate('home_created_success'),
+        );
         ref.invalidate(hasHomesProvider);
         ref.invalidate(userHomesProvider);
         ref.invalidate(activeHomeIdProvider);
@@ -51,9 +59,12 @@ class _CreateHomeScreenState extends ConsumerState<CreateHomeScreen> {
       }
     } catch (e) {
       if (mounted) {
-        BeitySnackBar.error(
+        SawaSnackBar.error(
           context,
-          context.translate('create_home_failed', arguments: {'error': e.toString()}),
+          context.translate(
+            'create_home_failed',
+            arguments: {'error': e.toString()},
+          ),
         );
       }
     } finally {
@@ -73,6 +84,7 @@ class _CreateHomeScreenState extends ConsumerState<CreateHomeScreen> {
         centerTitle: true,
       ),
       body: SingleChildScrollView(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.all(AppSpacing.lg),
         child: Form(
@@ -112,14 +124,16 @@ class _CreateHomeScreenState extends ConsumerState<CreateHomeScreen> {
                 ),
               ),
               AppSpacing.gapXXL,
-              BeityCard(
+              SawaCard(
                 padding: const EdgeInsets.all(AppSpacing.lg),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    BeityTextField(
+                    SawaTextField(
                       controller: _nameController,
+                      focusNode: _nameFocusNode,
                       textDirection: Directionality.of(context),
+                      textInputAction: TextInputAction.done,
                       labelText: context.translate('home_name'),
                       prefixIcon: Icons.home_rounded,
                       hintText: context.translate('home_name_hint'),
@@ -132,6 +146,7 @@ class _CreateHomeScreenState extends ConsumerState<CreateHomeScreen> {
                         }
                         return null;
                       },
+                      onSubmitted: (_) => ActionDebouncer.execute(_createHome),
                     ),
                     AppSpacing.gapXL,
                     Text(
@@ -155,16 +170,23 @@ class _CreateHomeScreenState extends ConsumerState<CreateHomeScreen> {
                             }
                           },
                           showCheckmark: false,
-                          backgroundColor: theme.colorScheme.surfaceContainerHighest,
-                          selectedColor: theme.colorScheme.primary.withValues(alpha: 0.2),
+                          backgroundColor:
+                              theme.colorScheme.surfaceContainerHighest,
+                          selectedColor: theme.colorScheme.primary.withValues(
+                            alpha: 0.2,
+                          ),
                           labelStyle: TextStyle(
                             color: isSelected
                                 ? theme.colorScheme.primary
                                 : theme.colorScheme.onSurfaceVariant,
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                            fontWeight: isSelected
+                                ? FontWeight.bold
+                                : FontWeight.normal,
                           ),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                            borderRadius: BorderRadius.circular(
+                              AppSpacing.radiusMd,
+                            ),
                             side: BorderSide(
                               color: isSelected
                                   ? theme.colorScheme.primary
@@ -178,11 +200,11 @@ class _CreateHomeScreenState extends ConsumerState<CreateHomeScreen> {
                 ),
               ),
               AppSpacing.gapXXL,
-              BeityButton(
+              SawaButton(
                 onPressed: () => ActionDebouncer.execute(_createHome),
                 text: context.translate('create_home_button'),
                 isLoading: _isLoading,
-                type: BeityButtonType.primary,
+                type: SawaButtonType.primary,
                 icon: Icons.add_home_rounded,
               ),
             ],

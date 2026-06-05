@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../app/theme/app_colors.dart';
-import '../../../../shared/widgets/design_system/beity_dialog.dart';
+import '../../../../shared/widgets/design_system/sawa_dialog.dart';
 import '../../domain/entities/shopping_item.dart';
 import '../../../offline_queue/presentation/widgets/pending_sync_indicator.dart';
 import '../../../../core/accessibility/semantics_helpers.dart';
@@ -45,6 +45,10 @@ class _ShoppingItemTileWidgetState extends State<ShoppingItemTileWidget>
     with SingleTickerProviderStateMixin {
   AnimationController? _highlightController;
   Animation<Color?>? _highlightAnimation;
+  bool? _optimisticPurchased;
+  bool _isProcessing = false;
+
+  bool get _isPurchased => _optimisticPurchased ?? widget.item.isPurchased;
 
   @override
   void initState() {
@@ -58,6 +62,14 @@ class _ShoppingItemTileWidgetState extends State<ShoppingItemTileWidget>
     if (widget.highlightUntil != oldWidget.highlightUntil) {
       _initHighlightIfNeeded();
     }
+    final itemIdentityChanged = oldWidget.item.id != widget.item.id;
+    final purchaseStateChanged =
+        oldWidget.item.isPurchased != widget.item.isPurchased;
+
+    if (itemIdentityChanged || purchaseStateChanged) {
+      _optimisticPurchased = null;
+      _isProcessing = false;
+    }
   }
 
   void _initHighlightIfNeeded() {
@@ -68,13 +80,16 @@ class _ShoppingItemTileWidgetState extends State<ShoppingItemTileWidget>
         duration: const Duration(seconds: 3),
         vsync: this,
       );
-      _highlightAnimation = ColorTween(
-        begin: Colors.yellow.withValues(alpha: 0.3),
-        end: Colors.transparent,
-      ).animate(CurvedAnimation(
-        parent: _highlightController!,
-        curve: Curves.easeOut,
-      ));
+      _highlightAnimation =
+          ColorTween(
+            begin: Colors.yellow.withValues(alpha: 0.3),
+            end: Colors.transparent,
+          ).animate(
+            CurvedAnimation(
+              parent: _highlightController!,
+              curve: Curves.easeOut,
+            ),
+          );
       _highlightController!.forward();
     } else {
       _highlightController?.dispose();
@@ -92,7 +107,7 @@ class _ShoppingItemTileWidgetState extends State<ShoppingItemTileWidget>
   bool get _hasPartialPurchase =>
       widget.item.purchasedQuantity > 0 &&
       widget.item.purchasedQuantity < widget.item.quantity &&
-      !widget.item.isPurchased;
+      !_isPurchased;
 
   @override
   Widget build(BuildContext context) {
@@ -100,22 +115,16 @@ class _ShoppingItemTileWidgetState extends State<ShoppingItemTileWidget>
     final tile = Dismissible(
       key: Key(widget.item.id),
       background: Container(
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 20),
+        alignment: AlignmentDirectional.centerStart,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
         color: AppColors.info,
-        child: const Icon(
-          Icons.edit,
-          color: Colors.white,
-        ),
+        child: const Icon(Icons.edit, color: Colors.white),
       ),
       secondaryBackground: Container(
-        alignment: Alignment.centerLeft,
-        padding: const EdgeInsets.only(left: 20),
+        alignment: AlignmentDirectional.centerEnd,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
         color: AppColors.error,
-        child: const Icon(
-          Icons.delete,
-          color: Colors.white,
-        ),
+        child: const Icon(Icons.delete, color: Colors.white),
       ),
       confirmDismiss: (direction) async {
         if (direction == DismissDirection.startToEnd) {
@@ -125,6 +134,11 @@ class _ShoppingItemTileWidgetState extends State<ShoppingItemTileWidget>
         } else {
           if (widget.hapticsEnabled) HapticFeedback.lightImpact();
           return _showDeleteConfirmation(context);
+        }
+      },
+      onDismissed: (direction) {
+        if (direction == DismissDirection.endToStart) {
+          widget.onDelete?.call();
         }
       },
       child: Semantics(
@@ -141,14 +155,34 @@ class _ShoppingItemTileWidgetState extends State<ShoppingItemTileWidget>
             button: true,
             label: AccessibilityHelpers.markAsPurchasedLabel(
               itemName: widget.item.name,
-              currentlyPurchased: widget.item.isPurchased,
+              currentlyPurchased: _isPurchased,
             ),
             child: InkResponse(
-              onTap: () {
-                if (widget.hapticsEnabled) HapticFeedback.selectionClick();
-                if (widget.soundsEnabled) SystemSound.play(SystemSoundType.click);
-                widget.onTogglePurchased?.call();
-              },
+              onTap: _isProcessing
+                  ? null
+                  : () {
+                      final tappedItemId = widget.item.id;
+                      final willBePurchased = !_isPurchased;
+                      if (widget.hapticsEnabled) {
+                        if (willBePurchased) {
+                          HapticFeedback.mediumImpact();
+                        } else {
+                          HapticFeedback.selectionClick();
+                        }
+                      }
+                      if (widget.soundsEnabled) {
+                        SystemSound.play(SystemSoundType.click);
+                      }
+                      setState(() {
+                        _optimisticPurchased = willBePurchased;
+                        _isProcessing = true;
+                      });
+                      Future.delayed(const Duration(milliseconds: 500), () {
+                        if (mounted && widget.item.id == tappedItemId) {
+                          widget.onTogglePurchased?.call();
+                        }
+                      });
+                    },
               radius: widget.isCompact ? 18 : 22,
               splashColor: AppColors.success.withValues(alpha: 0.2),
               highlightColor: Colors.transparent,
@@ -158,9 +192,9 @@ class _ShoppingItemTileWidgetState extends State<ShoppingItemTileWidget>
           title: Text(
             widget.item.name,
             style: TextStyle(
-              decoration: widget.item.isPurchased ? TextDecoration.lineThrough : null,
-              color: widget.item.isPurchased
-                  ? AppColors.textSecondaryFor(theme.brightness)
+              decoration: _isPurchased ? TextDecoration.lineThrough : null,
+              color: _isPurchased
+                  ? theme.colorScheme.onSurface.withValues(alpha: 0.5)
                   : null,
             ),
           ),
@@ -178,10 +212,7 @@ class _ShoppingItemTileWidgetState extends State<ShoppingItemTileWidget>
       return AnimatedBuilder(
         animation: _highlightController!,
         builder: (context, child) {
-          return Container(
-            color: _highlightAnimation!.value,
-            child: child,
-          );
+          return Container(color: _highlightAnimation!.value, child: child);
         },
         child: tile,
       );
@@ -190,10 +221,6 @@ class _ShoppingItemTileWidgetState extends State<ShoppingItemTileWidget>
     return tile;
   }
 
-  /// Builds the leading circle icon with partial purchase support.
-  /// - Fully purchased: solid green circle with check mark.
-  /// - Partially purchased: circle with orange border and circular progress arc.
-  /// - Not purchased: empty circle with hint border.
   Widget _buildLeadingIcon(ThemeData theme) {
     final size = widget.isCompact ? 24.0 : 28.0;
     final containerSize = widget.isCompact ? 36.0 : 44.0;
@@ -210,7 +237,6 @@ class _ShoppingItemTileWidgetState extends State<ShoppingItemTileWidget>
           child: Stack(
             alignment: Alignment.center,
             children: [
-              // Background circle
               Container(
                 width: size,
                 height: size,
@@ -222,7 +248,6 @@ class _ShoppingItemTileWidgetState extends State<ShoppingItemTileWidget>
                   ),
                 ),
               ),
-              // Progress arc overlay
               SizedBox(
                 width: size,
                 height: size,
@@ -230,10 +255,11 @@ class _ShoppingItemTileWidgetState extends State<ShoppingItemTileWidget>
                   value: progress,
                   strokeWidth: 2.5,
                   backgroundColor: Colors.transparent,
-                  valueColor: const AlwaysStoppedAnimation<Color>(AppColors.warning),
+                  valueColor: const AlwaysStoppedAnimation<Color>(
+                    AppColors.warning,
+                  ),
                 ),
               ),
-              // Half icon indicator
               Text(
                 '½',
                 style: TextStyle(
@@ -258,14 +284,14 @@ class _ShoppingItemTileWidgetState extends State<ShoppingItemTileWidget>
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           border: Border.all(
-            color: widget.item.isPurchased
+            color: _isPurchased
                 ? AppColors.success
                 : AppColors.textHintFor(theme.brightness),
             width: 2,
           ),
-          color: widget.item.isPurchased ? AppColors.success : Colors.transparent,
+          color: _isPurchased ? AppColors.success : Colors.transparent,
         ),
-        child: widget.item.isPurchased
+        child: _isPurchased
             ? const Icon(Icons.check, size: 18, color: Colors.white)
             : null,
       ),
@@ -287,7 +313,7 @@ class _ShoppingItemTileWidgetState extends State<ShoppingItemTileWidget>
       parts.add(widget.item.notes!);
     }
 
-    if (widget.item.isPurchased && widget.item.purchasedAt != null) {
+    if (_isPurchased && widget.item.purchasedAt != null) {
       parts.add(context.translate('purchased'));
     }
 
@@ -297,15 +323,19 @@ class _ShoppingItemTileWidgetState extends State<ShoppingItemTileWidget>
           ? widget.item.quantity.toInt().toString()
           : widget.item.quantity.toStringAsFixed(1);
 
-      final purchasedQty = widget.item.purchasedQuantity ==
+      final purchasedQty =
+          widget.item.purchasedQuantity ==
               widget.item.purchasedQuantity.roundToDouble()
           ? widget.item.purchasedQuantity.toInt().toString()
           : widget.item.purchasedQuantity.toStringAsFixed(1);
 
-      final text = context.translate('bought_of_total', arguments: {
-        'bought': purchasedQty,
-        'total': widget.unitName != null ? '$qty ${widget.unitName}' : qty,
-      });
+      final text = context.translate(
+        'bought_of_total',
+        arguments: {
+          'bought': purchasedQty,
+          'total': widget.unitName != null ? '$qty ${widget.unitName}' : qty,
+        },
+      );
 
       badge = Container(
         margin: const EdgeInsets.only(top: 4),
@@ -318,7 +348,11 @@ class _ShoppingItemTileWidgetState extends State<ShoppingItemTileWidget>
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.pie_chart_outline, size: 12, color: AppColors.warning),
+            const Icon(
+              Icons.pie_chart_outline,
+              size: 12,
+              color: AppColors.warning,
+            ),
             const SizedBox(width: 6),
             Text(
               text,
@@ -357,7 +391,7 @@ class _ShoppingItemTileWidgetState extends State<ShoppingItemTileWidget>
     if (widget.showPendingIndicator) {
       return const PendingSyncIndicator();
     }
-    
+
     final theme = Theme.of(context);
     final hasPrice = widget.item.hasPrice;
     final canEditQuantity = widget.item.quantity > 1;
@@ -385,20 +419,21 @@ class _ShoppingItemTileWidgetState extends State<ShoppingItemTileWidget>
           Text(
             widget.item.formattedPrice,
             style: theme.textTheme.bodySmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+              fontWeight: FontWeight.bold,
+            ),
           ),
       ],
     );
   }
 
   Future<bool?> _showDeleteConfirmation(BuildContext context) {
-    return BeityDialog.show(
+    return SawaDialog.show(
       context,
       title: context.translate('delete_item_title'),
-      message: context.translate('delete_item_message', arguments: {
-        'name': widget.item.name,
-      }),
+      message: context.translate(
+        'delete_item_message',
+        arguments: {'name': widget.item.name},
+      ),
       confirmText: context.translate('delete'),
       cancelText: context.translate('cancel'),
       isDestructive: true,

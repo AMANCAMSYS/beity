@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import '../../../../core/config/feature_flags.dart';
 import '../../../../core/localization/app_localizations.dart';
 import '../../data/onboarding_storage.dart';
@@ -98,7 +98,9 @@ class AppTourController extends StateNotifier<AppTourState> {
     ];
 
     // Only keep steps whose target widget is actually mounted.
-    return all.where((s) => AppTourTargetRegistry.isMounted(s.targetKey)).toList();
+    return all
+        .where((s) => AppTourTargetRegistry.isMounted(s.targetKey))
+        .toList();
   }
 
   /// Builds steps for the Inventory tour.
@@ -115,7 +117,9 @@ class AppTourController extends StateNotifier<AppTourState> {
         descKey: 'tour_inventory_filter_desc',
       ),
     ];
-    return all.where((s) => AppTourTargetRegistry.isMounted(s.targetKey)).toList();
+    return all
+        .where((s) => AppTourTargetRegistry.isMounted(s.targetKey))
+        .toList();
   }
 
   /// Builds steps for the Expenses tour.
@@ -142,7 +146,9 @@ class AppTourController extends StateNotifier<AppTourState> {
         descKey: 'tour_expenses_add_desc',
       ),
     ];
-    return all.where((s) => AppTourTargetRegistry.isMounted(s.targetKey)).toList();
+    return all
+        .where((s) => AppTourTargetRegistry.isMounted(s.targetKey))
+        .toList();
   }
 
   /// Builds steps for the Tasks tour.
@@ -164,7 +170,9 @@ class AppTourController extends StateNotifier<AppTourState> {
         descKey: 'tour_tasks_add_desc',
       ),
     ];
-    return all.where((s) => AppTourTargetRegistry.isMounted(s.targetKey)).toList();
+    return all
+        .where((s) => AppTourTargetRegistry.isMounted(s.targetKey))
+        .toList();
   }
 
   /// Builds steps for the Categories tour.
@@ -181,7 +189,9 @@ class AppTourController extends StateNotifier<AppTourState> {
         descKey: 'tour_categories_add_desc',
       ),
     ];
-    return all.where((s) => AppTourTargetRegistry.isMounted(s.targetKey)).toList();
+    return all
+        .where((s) => AppTourTargetRegistry.isMounted(s.targetKey))
+        .toList();
   }
 
   /// Builds steps for the Units tour.
@@ -198,7 +208,9 @@ class AppTourController extends StateNotifier<AppTourState> {
         descKey: 'tour_units_add_desc',
       ),
     ];
-    return all.where((s) => AppTourTargetRegistry.isMounted(s.targetKey)).toList();
+    return all
+        .where((s) => AppTourTargetRegistry.isMounted(s.targetKey))
+        .toList();
   }
 
   /// Safely starts the tour after the dashboard is fully rendered.
@@ -219,7 +231,11 @@ class AppTourController extends StateNotifier<AppTourState> {
       if (!context.mounted) return;
       final steps = _buildSteps();
       if (steps.isNotEmpty) {
-        _startTour(context, steps, onComplete: OnboardingStorage.markAppTourSeen);
+        _startTour(
+          context,
+          steps,
+          onComplete: OnboardingStorage.markAppTourSeen,
+        );
         return;
       }
     }
@@ -239,7 +255,11 @@ class AppTourController extends StateNotifier<AppTourState> {
       if (!context.mounted) return;
       final steps = _buildInventorySteps();
       if (steps.isNotEmpty) {
-        _startTour(context, steps, onComplete: OnboardingStorage.markInventoryTourSeen);
+        _startTour(
+          context,
+          steps,
+          onComplete: OnboardingStorage.markInventoryTourSeen,
+        );
         return;
       }
     }
@@ -259,7 +279,11 @@ class AppTourController extends StateNotifier<AppTourState> {
       if (!context.mounted) return;
       final steps = _buildExpensesSteps();
       if (steps.isNotEmpty) {
-        _startTour(context, steps, onComplete: OnboardingStorage.markExpensesTourSeen);
+        _startTour(
+          context,
+          steps,
+          onComplete: OnboardingStorage.markExpensesTourSeen,
+        );
         return;
       }
     }
@@ -279,7 +303,11 @@ class AppTourController extends StateNotifier<AppTourState> {
       if (!context.mounted) return;
       final steps = _buildTasksSteps();
       if (steps.isNotEmpty) {
-        _startTour(context, steps, onComplete: OnboardingStorage.markTasksTourSeen);
+        _startTour(
+          context,
+          steps,
+          onComplete: OnboardingStorage.markTasksTourSeen,
+        );
         return;
       }
     }
@@ -299,7 +327,11 @@ class AppTourController extends StateNotifier<AppTourState> {
       if (!context.mounted) return;
       final steps = _buildCategoriesSteps();
       if (steps.isNotEmpty) {
-        _startTour(context, steps, onComplete: OnboardingStorage.markCategoriesTourSeen);
+        _startTour(
+          context,
+          steps,
+          onComplete: OnboardingStorage.markCategoriesTourSeen,
+        );
         return;
       }
     }
@@ -319,7 +351,11 @@ class AppTourController extends StateNotifier<AppTourState> {
       if (!context.mounted) return;
       final steps = _buildUnitsSteps();
       if (steps.isNotEmpty) {
-        _startTour(context, steps, onComplete: OnboardingStorage.markUnitsTourSeen);
+        _startTour(
+          context,
+          steps,
+          onComplete: OnboardingStorage.markUnitsTourSeen,
+        );
         return;
       }
     }
@@ -327,7 +363,11 @@ class AppTourController extends StateNotifier<AppTourState> {
 
   VoidCallback? _onTourComplete;
 
-  void _startTour(BuildContext context, List<_TourStep> steps, {VoidCallback? onComplete}) {
+  void _startTour(
+    BuildContext context,
+    List<_TourStep> steps, {
+    VoidCallback? onComplete,
+  }) {
     _steps = steps;
     _onTourComplete = onComplete;
     state = AppTourState(
@@ -426,8 +466,8 @@ class AppTourController extends StateNotifier<AppTourState> {
 
 final appTourControllerProvider =
     StateNotifierProvider<AppTourController, AppTourState>(
-  (_) => AppTourController(),
-);
+      (_) => AppTourController(),
+    );
 
 // ── Tour Overlay widget ───────────────────────────────────────────────────────
 
@@ -458,8 +498,7 @@ class _TourOverlayState extends State<_TourOverlay>
       vsync: this,
       duration: const Duration(milliseconds: 1200),
     )..repeat(reverse: true);
-    _pulseAnim =
-        Tween<double>(begin: 1.0, end: 1.08).animate(
+    _pulseAnim = Tween<double>(begin: 1.0, end: 1.08).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
   }
@@ -499,20 +538,17 @@ class _TourOverlayState extends State<_TourOverlay>
             top: r.top - padding,
             child: AnimatedBuilder(
               animation: _pulseAnim,
-              builder: (_, child) => Transform.scale(
-                scale: _pulseAnim.value,
-                child: child,
-              ),
+              builder: (_, child) =>
+                  Transform.scale(scale: _pulseAnim.value, child: child),
               child: Container(
                 width: r.width + padding * 2,
                 height: r.height + padding * 2,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .primary
-                        .withValues(alpha: 0.6),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.primary.withValues(alpha: 0.6),
                     width: 2,
                   ),
                 ),
@@ -546,10 +582,7 @@ class _SpotlightPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final paint = Paint()..color = Colors.black.withValues(alpha: 0.65);
     final fullRect = Rect.fromLTWH(0, 0, size.width, size.height);
-    final cutout = RRect.fromRectAndRadius(
-      targetRect,
-      Radius.circular(radius),
-    );
+    final cutout = RRect.fromRectAndRadius(targetRect, Radius.circular(radius));
     final path = Path()
       ..addRect(fullRect)
       ..addRRect(cutout)

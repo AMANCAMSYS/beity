@@ -64,7 +64,7 @@ class ExpenseRemoteDataSource {
   }) async {
     final user = _client.auth.currentUser;
     if (user == null) {
-      throw Exception('يجب تسجيل الدخول أولاً');
+      throw Exception('must_login_first');
     }
 
     final response = await _client
@@ -135,7 +135,7 @@ class ExpenseRemoteDataSource {
   }) async {
     final user = _client.auth.currentUser;
     if (user == null) {
-      throw Exception('يجب تسجيل الدخول أولاً');
+      throw Exception('must_login_first');
     }
 
     final updates = <String, dynamic>{'updated_by': user.id};
@@ -163,7 +163,7 @@ class ExpenseRemoteDataSource {
   Future<void> deleteExpense({required String expenseId}) async {
     final user = _client.auth.currentUser;
     if (user == null) {
-      throw Exception('يجب تسجيل الدخول أولاً');
+      throw Exception('must_login_first');
     }
 
     await _client

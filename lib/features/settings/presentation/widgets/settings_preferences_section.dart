@@ -26,17 +26,16 @@ class SettingsPreferencesSection extends ConsumerWidget {
       _ => l10n.translate('huge'),
     };
 
-    final isArabic = settings.locale.languageCode == 'ar';
-    final isTurkish = settings.locale.languageCode == 'tr';
+
 
     // Map country code to readable string
     final countryLabel = switch (settings.country) {
-      'SA' => isArabic ? 'المملكة العربية السعودية (لهجة خليجية)' : (isTurkish ? 'Suudi Arabistan (Körfez Ağzı)' : 'Saudi Arabia (Gulf Dialect)'),
-      'EG' => isArabic ? 'جمهورية مصر العربية (لهجة مصرية)' : (isTurkish ? 'Mısır (Mısır Ağzı)' : 'Egypt (Egyptian Dialect)'),
-      'TR' => isArabic ? 'الجمهورية التركية (لهجة تركية)' : (isTurkish ? 'Türkiye (Türkçe Terimler)' : 'Turkey (Turkish Dialect)'),
-      'AE' => isArabic ? 'الإمارات العربية المتحدة (لهجة خليجية)' : (isTurkish ? 'Birleşik Arap Emirlikleri (Körfez Ağzı)' : 'United Arab Emirates (Gulf Dialect)'),
-      'JO' => isArabic ? 'الأردن وبلاد الشام (لهجة شامية)' : (isTurkish ? 'Ürdün ve Levant (Levant Ağzı)' : 'Jordan & Levant (Levantine Dialect)'),
-      _ => isArabic ? 'دولة أخرى / عالمي (عربية فصحى)' : (isTurkish ? 'Diğer / Küresel (Arapça / Türkçe)' : 'Other / Global (Standard Arabic / English)'),
+      'SA' => l10n.translate('country_sa'),
+      'EG' => l10n.translate('country_eg'),
+      'TR' => l10n.translate('country_tr'),
+      'AE' => l10n.translate('country_ae'),
+      'JO' => l10n.translate('country_jo'),
+      _ => l10n.translate('country_other'),
     };
 
     return SettingsSection(
@@ -48,7 +47,7 @@ class SettingsPreferencesSection extends ConsumerWidget {
         const SettingsDivider(),
         SettingsActionTile(
           icon: Icons.public_rounded,
-          title: isArabic ? 'بلد اللهجة والذكاء الاصطناعي' : (isTurkish ? 'YZ Ülke ve Ağız Ayarı' : 'AI Country & Dialect'),
+          title: l10n.translate('ai_country_dialect'),
           subtitle: countryLabel,
           onTap: () => CountryDialectBottomSheet.show(
             context,

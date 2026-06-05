@@ -16,7 +16,9 @@ class UpdateInventoryQuantityUseCase {
     if (item == null) return null;
 
     if (newQuantity <= 0) {
-      // Auto-remove when quantity reaches zero
+      // Let the repository detect the out-of-stock threshold before the item
+      // is removed from the active inventory list.
+      await _repository.updateInventoryItem(itemId: itemId, quantity: 0);
       await _repository.deleteInventoryItem(itemId: itemId);
       await _repository.createTransaction(
         inventoryItemId: itemId,

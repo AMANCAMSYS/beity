@@ -5,37 +5,46 @@ import '../../domain/entities/sync_status.dart';
 
 abstract class QueueDataSource {
   Future<void> clearQueue();
-  
+
   Future<void> clearQueueForUser(String userId);
-  
+
   Future<int> enqueueAction({
     required ActionType actionType,
     required EntityType entityType,
     required String entityId,
-    required String homeId,
+    String? homeId,
+    MutationScope scope = MutationScope.home,
     required Map<String, dynamic> payload,
   });
-  
+
   Future<List<QueueEntry>> getEntriesByHome(String homeId);
-  
+
+  Future<List<QueueEntry>> getEntriesByUserScope(String userId);
+
+  Future<List<QueueEntry>> getEntriesByGlobalScope();
+
   Future<List<QueueEntry>> getEntriesByStatus(SyncStatus status);
-  
+
   Future<int> getPendingCount(String homeId);
-  
+
+  Future<int> getPendingCountForUser(String userId);
+
   Future<QueueEntry?> getEntryById(int id);
-  
+
   Future<void> updateEntryStatus({
     required int entryId,
     required SyncStatus status,
     String? errorMessage,
   });
-  
+
   Future<void> deleteEntry(int entryId);
-  
+
   Future<void> deleteCompletedEntries(String homeId);
-  
+
   Future<List<QueueEntry>> getFailedEntries(String homeId);
 
   // Recovery helper
   Future<void> resetProcessingToPending(String homeId);
+
+  Future<void> resetProcessingToPendingForUserScope(String userId);
 }

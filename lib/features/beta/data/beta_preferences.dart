@@ -1,4 +1,4 @@
-import 'package:beity/core/services/shared_prefs_provider.dart';
+import 'package:sawa/core/services/shared_prefs_provider.dart';
 
 class BetaPreferences {
   static const String _welcomeShownKey = 'beta_welcome_shown';

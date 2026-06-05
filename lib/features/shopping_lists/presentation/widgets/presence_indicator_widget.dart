@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
 import '../../../../core/services/realtime_service.dart';
 
 class PresenceIndicatorWidget extends StatelessWidget {
@@ -13,7 +14,6 @@ class PresenceIndicatorWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
     final theme = Theme.of(context);
     final others = presences.values
         .where((p) => p.userId != currentUserId)
@@ -26,7 +26,7 @@ class PresenceIndicatorWidget extends StatelessWidget {
       child: Row(
         children: [
           Text(
-            isArabic ? 'المتواجدون:' : 'Active now:',
+            context.translate('active_now', fallback: 'Active now:'),
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),

@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:beity/app/theme/app_spacing.dart';
-import 'package:beity/app/theme/app_colors.dart';
-import 'package:beity/shared/widgets/design_system/beity_card.dart';
+import 'package:sawa/app/theme/app_spacing.dart';
+import 'package:sawa/app/theme/app_colors.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_card.dart';
 import '../../data/models/home_member_model.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
 
 class MemberCardWidget extends StatelessWidget {
   final HomeMemberModel member;
@@ -23,7 +24,7 @@ class MemberCardWidget extends StatelessWidget {
     final isOwner = member.role == 'owner';
     final isAdmin = member.role == 'admin';
 
-    return BeityCard(
+    return SawaCard(
       margin: const EdgeInsets.only(bottom: AppSpacing.md),
       child: Row(
         children: [
@@ -57,7 +58,7 @@ class MemberCardWidget extends StatelessWidget {
                   children: [
                     Expanded(
                       child: Text(
-                        member.userName ?? 'مستخدم',
+                        member.userName ?? context.translate('guest_user'),
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
@@ -68,14 +69,14 @@ class MemberCardWidget extends StatelessWidget {
                     if (isOwner)
                       _buildBadge(
                         context,
-                        'مالك',
+                        context.translate('role_owner'),
                         AppColors.warning,
                         Icons.star_rounded,
                       )
                     else if (isAdmin)
                       _buildBadge(
                         context,
-                        'مشرف',
+                        context.translate('role_admin'),
                         AppColors.primary,
                         Icons.admin_panel_settings_rounded,
                       ),
@@ -101,7 +102,7 @@ class MemberCardWidget extends StatelessWidget {
                 ),
                 AppSpacing.gapXXS,
                 Text(
-                  _getRoleName(member.role),
+                  _getRoleName(context, member.role),
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
@@ -116,7 +117,15 @@ class MemberCardWidget extends StatelessWidget {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      'انضم: ${DateFormat('yyyy/MM/dd', 'ar').format(member.joinedAt)}',
+                      context.translate(
+                        'joined_date',
+                        arguments: {
+                          'date': DateFormat(
+                            'yyyy/MM/dd',
+                            Localizations.localeOf(context).languageCode,
+                          ).format(member.joinedAt),
+                        },
+                      ),
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: theme.colorScheme.outline,
                       ),
@@ -161,16 +170,16 @@ class MemberCardWidget extends StatelessWidget {
     );
   }
 
-  String _getRoleName(String role) {
+  String _getRoleName(BuildContext context, String role) {
     switch (role) {
       case 'owner':
-        return 'مالك';
+        return context.translate('role_owner');
       case 'admin':
-        return 'مشرف';
+        return context.translate('role_admin');
       case 'member':
-        return 'عضو';
+        return context.translate('role_member');
       case 'viewer':
-        return 'مشاهد';
+        return context.translate('role_viewer');
       default:
         return role;
     }

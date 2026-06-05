@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:beity/features/expenses/domain/usecases/split_expense.dart';
+import 'package:sawa/features/expenses/domain/usecases/split_expense.dart';
 
 void main() {
   group('SplitExpense.calculateEqualSplits', () {

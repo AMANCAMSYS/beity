@@ -1,0 +1,52 @@
+<!doctype html>
+<html
+  lang='{{ if eq .Data.language "en" }}en{{ else if eq .Data.language "tr" }}tr{{ else }}ar{{ end }}'
+  dir='{{ if eq .Data.language "en" }}ltr{{ else if eq .Data.language "tr" }}ltr{{ else }}rtl{{ end }}'
+>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>
+      {{ if eq .Data.language "en" }}You have been invited to SAWA{{ else if eq .Data.language "tr" }}SAWA'ya davet edildiniz{{ else }}تمت دعوتك إلى سوا{{ end }}
+    </title>
+  </head>
+  <body style="margin:0;background:#f6f7f5;color:#1f2a24;font-family:Arial,Tahoma,sans-serif;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f6f7f5;margin:0;padding:28px 12px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #dde5dc;border-radius:20px;overflow:hidden;">
+            <tr>
+              <td style="background:#eef8ef;padding:28px 28px 22px;text-align:center;">
+                <img src="{{ .SiteURL }}/icons/Icon-192.png" width="72" height="72" alt="SAWA" style="display:inline-block;width:72px;height:72px;border-radius:18px;border:1px solid #d7e5d7;">
+                <div style="margin-top:14px;font-size:13px;font-weight:700;color:#2f6f3f;">SAWA</div>
+                <h1 style="margin:10px 0 0;font-size:24px;line-height:1.35;color:#18231d;font-weight:800;">
+                  {{ if eq .Data.language "en" }}Join a shared home{{ else if eq .Data.language "tr" }}Paylasimli eve katilin{{ else }}انضم إلى منزل مشترك{{ end }}
+                </h1>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:28px;text-align:{{ if eq .Data.language "en" }}left{{ else if eq .Data.language "tr" }}left{{ else }}right{{ end }};">
+                <p style="margin:0 0 18px;font-size:16px;line-height:1.8;color:#26352c;">
+                  {{ if eq .Data.language "en" }}You have been invited to create a SAWA account and join a shared home. Accept the invite to start collaborating on lists and home planning.{{ else if eq .Data.language "tr" }}Bir SAWA hesabi olusturup paylasimli bir eve katilmak icin davet edildiniz. Listeler ve ev planlamasi uzerinde birlikte calismak icin daveti kabul edin.{{ else }}تمت دعوتك لإنشاء حساب في سوا والانضمام إلى منزل مشترك. اقبل الدعوة لتبدأ التعاون في القوائم وتنظيم شؤون المنزل.{{ end }}
+                </p>
+                <table role="presentation" cellpadding="0" cellspacing="0" style="margin:22px 0;width:100%;">
+                  <tr>
+                    <td align="center">
+                      <a href="{{ .ConfirmationURL }}" style="display:inline-block;background:#2f6f3f;color:#ffffff;text-decoration:none;border-radius:12px;padding:14px 24px;font-size:16px;font-weight:700;">
+                        {{ if eq .Data.language "en" }}Accept invite{{ else if eq .Data.language "tr" }}Daveti kabul et{{ else }}قبول الدعوة{{ end }}
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+                <p style="margin:0;font-size:13px;line-height:1.8;color:#6c786f;">
+                  {{ if eq .Data.language "en" }}If you were not expecting this invitation, you can ignore this email.{{ else if eq .Data.language "tr" }}Bu daveti beklemiyorsaniz bu e-postayi yok sayabilirsiniz.{{ else }}إذا لم تكن تتوقع هذه الدعوة، يمكنك تجاهل هذه الرسالة.{{ end }}
+                </p>
+                <p style="margin:8px 0 0;font-size:12px;line-height:1.7;color:#6c786f;direction:ltr;text-align:left;word-break:break-all;">{{ .ConfirmationURL }}</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

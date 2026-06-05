@@ -1,7 +1,7 @@
 class AppConfig {
-  static const String appName = 'Beity';
+  static const String appName = 'SAWA';
   static const String appVersion = '1.0.0';
-  static const String packageName = 'com.beity.beity';
+  static const String packageName = 'com.sawa.sawa';
   
   // API Configuration
   static const String apiVersion = 'v1';

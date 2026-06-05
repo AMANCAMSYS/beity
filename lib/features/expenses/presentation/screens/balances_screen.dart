@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:beity/app/theme/app_spacing.dart';
-import 'package:beity/app/theme/app_colors.dart';
-import 'package:beity/shared/widgets/design_system/beity_empty_state.dart';
+import 'package:sawa/app/theme/app_spacing.dart';
+import 'package:sawa/app/theme/app_colors.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_empty_state.dart';
 import '../../../homes/data/models/home_member_model.dart';
 import '../../../homes/presentation/providers/homes_provider.dart';
 import '../../domain/entities/settlement.dart';
@@ -45,7 +45,7 @@ class BalancesScreen extends ConsumerWidget {
           : balancesAsync.when(
               data: (balances) {
                 if (balances.isEmpty) {
-                  return BeityEmptyState(
+                  return SawaEmptyState(
                     title: context.translate('all_accounts_settled'),
                     message: context.translate('all_accounts_settled_msg'),
                     icon: Icons.check_circle_outline_rounded,
@@ -84,7 +84,7 @@ class BalancesScreen extends ConsumerWidget {
                 );
               },
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, stack) => BeityEmptyState(
+              error: (error, stack) => SawaEmptyState(
                 title: context.translate('error_title'),
                 message: error.toString(),
                 icon: Icons.error_outline_rounded,

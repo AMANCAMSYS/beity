@@ -1,5 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:beity/core/services/supabase_service.dart';
+import 'package:flutter_riverpod/legacy.dart';
+import 'package:sawa/core/services/supabase_service.dart';
+import 'package:flutter/material.dart';
+import '../../../../core/localization/app_localizations.dart';
+import '../../../../core/errors/error_formatter.dart';
 
 import '../../domain/entities/ai_mode.dart';
 import '../../domain/entities/ai_response.dart';
@@ -7,16 +11,25 @@ import '../../domain/entities/ai_assistant_request.dart';
 import '../../domain/entities/ai_recipe_ingredient.dart';
 import '../../domain/entities/ai_suggestion.dart';
 import '../../domain/entities/local_ingredient_context.dart';
+import '../../domain/services/smart_item_resolver.dart';
 import '../../data/models/local_food_key_mapper.dart';
 import '../../data/datasources/ai_suggestion_remote_data_source.dart';
 import '../../../shopping_lists/data/repositories/shopping_list_repository.dart';
+import '../../../shopping_lists/domain/usecases/add_item_usecase.dart';
 import '../../../shopping_lists/presentation/providers/shopping_lists_provider.dart';
 import '../../../shopping_lists/presentation/providers/shopping_items_provider.dart';
 import '../../../inventory/presentation/providers/inventory_provider.dart';
 import '../../../inventory/domain/entities/inventory_item.dart';
 import '../../../shopping_lists/domain/entities/shopping_item.dart';
 import '../../../shopping_lists/domain/entities/shopping_list.dart';
-
+import '../../../shopping_lists/data/models/shopping_list_model.dart';
+import '../../../shopping_lists/data/models/shopping_item_model.dart';
+import '../../../inventory/data/models/inventory_item_model.dart';
+import '../../../shopping_lists/data/models/item_template_model.dart';
+import '../../../categories/data/models/unit_model.dart';
+import '../../../categories/data/models/category_model.dart';
+import '../../../categories/presentation/providers/units_provider.dart';
+import '../../../categories/presentation/providers/categories_provider.dart';
 // ──────────────────── State ────────────────────
 
 sealed class AiAssistantState {
@@ -35,12 +48,19 @@ class AiAssistantResult extends AiAssistantState {
   final AiResponse response;
   final Set<int> selectedIngredientIndices;
 
-  const AiAssistantResult(this.response, {this.selectedIngredientIndices = const {}});
+  const AiAssistantResult(
+    this.response, {
+    this.selectedIngredientIndices = const {},
+  });
 
-  AiAssistantResult copyWith({AiResponse? response, Set<int>? selectedIngredientIndices}) {
+  AiAssistantResult copyWith({
+    AiResponse? response,
+    Set<int>? selectedIngredientIndices,
+  }) {
     return AiAssistantResult(
       response ?? this.response,
-      selectedIngredientIndices: selectedIngredientIndices ?? this.selectedIngredientIndices,
+      selectedIngredientIndices:
+          selectedIngredientIndices ?? this.selectedIngredientIndices,
     );
   }
 }
@@ -59,15 +79,102 @@ class AiAssistantAddingItems extends AiAssistantState {
 
 // ──────────────────── Providers ────────────────────
 
-final aiAssistantDataSourceProvider = Provider<AiSuggestionRemoteDataSource>((ref) {
+final aiAssistantDataSourceProvider = Provider<AiSuggestionRemoteDataSource>((
+  ref,
+) {
   return AiSuggestionRemoteDataSource(supabaseClient: SupabaseService.client);
 });
 
-final aiAssistantProvider = StateNotifierProvider<AiAssistantNotifier, AiAssistantState>((ref) {
-  final dataSource = ref.watch(aiAssistantDataSourceProvider);
-  final shoppingRepository = ref.watch(shoppingListRepositoryProvider);
-  return AiAssistantNotifier(dataSource, shoppingRepository, ref);
-});
+final aiAssistantProvider =
+    StateNotifierProvider<AiAssistantNotifier, AiAssistantState>((ref) {
+      final dataSource = ref.watch(aiAssistantDataSourceProvider);
+      final shoppingRepository = ref.watch(shoppingListRepositoryProvider);
+      return AiAssistantNotifier(dataSource, shoppingRepository, ref);
+    });
+
+// ──────────────────── Context Gathering Provider ────────────────────
+
+typedef AiLocalContextParams = (
+  String homeId,
+  String listId,
+  String listTitle,
+  String localeCode,
+);
+
+final aiLocalContextProvider = FutureProvider.autoDispose
+    .family<
+      (List<String>, List<String>, Map<String, String>),
+      AiLocalContextParams
+    >((ref, params) async {
+      final (homeId, listId, listTitle, localeCode) = params;
+
+      final List<String> formattedShoppingItems = [];
+      List<InventoryItemModel> inventoryItems = [];
+
+      try {
+        inventoryItems = await ref.watch(inventoryItemsProvider(homeId).future);
+      } catch (_) {}
+
+      List<ShoppingListModel> lists = [];
+      try {
+        lists = await ref.watch(shoppingListsProvider(homeId).future);
+      } catch (_) {}
+      final uncompletedLists = lists.where((l) => !l.isArchived).toList();
+
+      List<ShoppingItemModel> currentListItems = [];
+      String currentListName = listTitle;
+      final Map<String, List<ShoppingItemModel>> otherListsItems = {};
+
+      for (final list in uncompletedLists) {
+        List<ShoppingItemModel> items = [];
+        try {
+          items = await ref.watch(shoppingItemsProvider(list.id).future);
+        } catch (_) {}
+        final isCurrentList = list.id == listId;
+
+        if (isCurrentList) {
+          currentListItems = items;
+          currentListName = list.name;
+        } else {
+          otherListsItems[list.name] = items;
+        }
+
+        final l10n = ref.read(appLocalizationsProvider);
+        final listSuffix = isCurrentList
+            ? l10n.translate('current_list_suffix', arguments: {'name': list.name})
+            : l10n.translate('other_list_suffix', arguments: {'name': list.name});
+
+        for (final item in items) {
+          if (!item.isPurchased) {
+            formattedShoppingItems.add('${item.name} ($listSuffix)');
+          }
+        }
+      }
+
+      final List<String> formattedInventoryItems = [];
+      final l10n = ref.read(appLocalizationsProvider);
+      final inventorySuffix = l10n.translate('inventory_suffix');
+      for (final item in inventoryItems) {
+        if (item.quantity > 0) {
+          formattedInventoryItems.add('${item.name} ($inventorySuffix)');
+        }
+      }
+
+      // Build the structural LocalIngredientContext
+      final localContext = LocalIngredientContextBuilder.build(
+        inventoryItems: inventoryItems,
+        currentListItems: currentListItems,
+        currentListName: currentListName,
+        otherListsItems: otherListsItems,
+      );
+
+      // Build the user terms for AI
+      final userTerms = LocalIngredientContextBuilder.buildUserTerms(
+        localContext,
+      );
+
+      return (formattedShoppingItems, formattedInventoryItems, userTerms);
+    });
 
 // ──────────────────── Helper Functions for Local Comparison ────────────────────
 
@@ -80,9 +187,36 @@ String _normalizeIngredientName(String text) {
   s = s.replaceAll('ة', 'ه').replaceAll('ى', 'ي');
   // Remove numbers and units/words that skew comparison
   final stopwords = [
-    'جرام', 'كوب', 'ملعقة', 'كيس', 'علبة', 'حبة', 'قطع', 'قطعة', 'كيلو', 'حبات',
-    'مفروم', 'مقطع', 'طازج', 'ناعم', 'ملح', 'فلفل', 'بهارات', 'ماء', 'زيت',
-    'chopped', 'sliced', 'fresh', 'ground', 'powder', 'grams', 'kg', 'cup', 'cups', 'spoon', 'spoons',
+    'جرام',
+    'كوب',
+    'ملعقة',
+    'كيس',
+    'علبة',
+    'حبة',
+    'قطع',
+    'قطعة',
+    'كيلو',
+    'حبات',
+    'مفروم',
+    'مقطع',
+    'طازج',
+    'ناعم',
+    'ملح',
+    'فلفل',
+    'بهارات',
+    'ماء',
+    'زيت',
+    'chopped',
+    'sliced',
+    'fresh',
+    'ground',
+    'powder',
+    'grams',
+    'kg',
+    'cup',
+    'cups',
+    'spoon',
+    'spoons',
   ];
   for (final word in stopwords) {
     s = s.replaceAll(word, '');
@@ -102,10 +236,12 @@ AiRecipeIngredient _matchIngredientLocal(
     return ing;
   }
 
+  final l10n = AppLocalizations(Locale(languageCode));
+
   // 1. Resolve and normalize standard food key
   final rawAiFoodKey = ing.foodKey;
   String aiFoodKey = '';
-  
+
   if (rawAiFoodKey != null && rawAiFoodKey.isNotEmpty) {
     aiFoodKey = LocalFoodKeyMapper.normalizeFoodKey(rawAiFoodKey);
   } else {
@@ -113,7 +249,8 @@ AiRecipeIngredient _matchIngredientLocal(
     if (matchResult.confidence >= 0.75) {
       aiFoodKey = matchResult.foodKey;
     } else {
-      aiFoodKey = 'custom:${LocalFoodKeyMapper.normalize(ing.name).replaceAll(' ', '_')}';
+      aiFoodKey =
+          'custom:${LocalFoodKeyMapper.normalize(ing.name).replaceAll(' ', '_')}';
     }
   }
 
@@ -130,7 +267,9 @@ AiRecipeIngredient _matchIngredientLocal(
     for (final ref in refs) {
       final normRefName = _normalizeIngredientName(ref.displayName);
       if (normRefName.isNotEmpty && normAiName.isNotEmpty) {
-        if (normRefName == normAiName || normRefName.contains(normAiName) || normAiName.contains(normRefName)) {
+        if (normRefName == normAiName ||
+            normRefName.contains(normAiName) ||
+            normAiName.contains(normRefName)) {
           return ref;
         }
       }
@@ -143,25 +282,27 @@ AiRecipeIngredient _matchIngredientLocal(
   if (invMatch != null) {
     final reqQty = ing.quantity;
     final invQty = invMatch.quantity ?? 0.0;
-    
+
     if (invQty > 0 && invQty < reqQty) {
       final diff = reqQty - invQty;
-      String fmt(double val) => val % 1 == 0 ? val.toInt().toString() : val.toString();
+      String fmt(double val) =>
+          val % 1 == 0 ? val.toInt().toString() : val.toString();
       return ing.copyWith(
         foodKey: aiFoodKey,
         displayName: invMatch.displayName,
         status: IngredientStatus.missing,
-        reason: languageCode == 'ar'
-            ? 'متوفر بالمخزن (${fmt(invQty)}) ولكن ناقص (${fmt(diff)} ناقصة)'
-            : 'Available in inventory (${fmt(invQty)}) but insufficient (${fmt(diff)} missing)',
+        reason: l10n.translate(
+          'ai_available_but_insufficient',
+          arguments: {'available': fmt(invQty), 'needed': fmt(diff)},
+        ),
       );
     }
-    
+
     return ing.copyWith(
       foodKey: aiFoodKey,
       displayName: invMatch.displayName,
       status: IngredientStatus.available,
-      reason: languageCode == 'ar' ? 'متوفر في المخزن' : 'Available in inventory',
+      reason: l10n.translate('ai_available_in_inventory'),
     );
   }
 
@@ -172,7 +313,7 @@ AiRecipeIngredient _matchIngredientLocal(
       foodKey: aiFoodKey,
       displayName: currentMatch.displayName,
       status: IngredientStatus.inCurrentList,
-      reason: languageCode == 'ar' ? 'موجود في القائمة الحالية' : 'Already in current list',
+      reason: l10n.translate('ai_in_current_list'),
       sourceListName: currentMatch.listName,
     );
   }
@@ -184,25 +325,27 @@ AiRecipeIngredient _matchIngredientLocal(
       foodKey: aiFoodKey,
       displayName: otherMatch.displayName,
       status: IngredientStatus.inOtherList,
-      reason: languageCode == 'ar' 
-          ? 'موجود في قائمة: ${otherMatch.listName}' 
-          : 'Already in list: ${otherMatch.listName}',
+      reason: l10n.translate(
+        'ai_in_other_list',
+        arguments: {'name': otherMatch.listName ?? ''},
+      ),
       sourceListName: otherMatch.listName,
     );
   }
 
   // High confidence vs low confidence missing check
   final nameMatch = LocalFoodKeyMapper.match(ing.name);
-  final isUnknown = nameMatch.foodKey.startsWith('custom:') || nameMatch.method == 'unknown';
+  final isUnknown =
+      nameMatch.foodKey.startsWith('custom:') || nameMatch.method == 'unknown';
 
   // Fallback: Missing or Unknown
   return ing.copyWith(
     foodKey: aiFoodKey,
     displayName: ing.name,
     status: isUnknown ? IngredientStatus.unknown : IngredientStatus.missing,
-    reason: isUnknown 
-        ? (languageCode == 'ar' ? 'غير معروف' : 'Unknown status')
-        : (languageCode == 'ar' ? 'ناقص' : 'Missing'),
+    reason: isUnknown
+        ? l10n.translate('ai_unknown_status')
+        : l10n.translate('ai_missing'),
   );
 }
 
@@ -215,8 +358,11 @@ AiSuggestion _matchSuggestionLocal(
     return ing;
   }
 
+  final l10n = AppLocalizations(Locale(languageCode));
+
   // 1. Resolve and normalize standard food key
-  String aiFoodKey = 'custom:${LocalFoodKeyMapper.normalize(ing.name).replaceAll(' ', '_')}';
+  String aiFoodKey =
+      'custom:${LocalFoodKeyMapper.normalize(ing.name).replaceAll(' ', '_')}';
   final matchResult = LocalFoodKeyMapper.match(ing.name);
   if (matchResult.confidence >= 0.75) {
     aiFoodKey = matchResult.foodKey;
@@ -235,7 +381,9 @@ AiSuggestion _matchSuggestionLocal(
     for (final ref in refs) {
       final normRefName = _normalizeIngredientName(ref.displayName);
       if (normRefName.isNotEmpty && normAiName.isNotEmpty) {
-        if (normRefName == normAiName || normRefName.contains(normAiName) || normAiName.contains(normRefName)) {
+        if (normRefName == normAiName ||
+            normRefName.contains(normAiName) ||
+            normAiName.contains(normRefName)) {
           return ref;
         }
       }
@@ -248,23 +396,25 @@ AiSuggestion _matchSuggestionLocal(
   if (invMatch != null) {
     final reqQty = ing.quantity ?? 1.0;
     final invQty = invMatch.quantity ?? 0.0;
-    
+
     if (invQty > 0 && invQty < reqQty) {
       final diff = reqQty - invQty;
-      String fmt(double val) => val % 1 == 0 ? val.toInt().toString() : val.toString();
+      String fmt(double val) =>
+          val % 1 == 0 ? val.toInt().toString() : val.toString();
       return ing.copyWith(
         displayName: invMatch.displayName,
         status: IngredientStatus.missing,
-        reason: languageCode == 'ar'
-            ? 'متوفر بالمخزن (${fmt(invQty)}) ولكن ناقص (${fmt(diff)} ناقصة)'
-            : 'Available in inventory (${fmt(invQty)}) but insufficient (${fmt(diff)} missing)',
+        reason: l10n.translate(
+          'ai_available_but_insufficient',
+          arguments: {'available': fmt(invQty), 'needed': fmt(diff)},
+        ),
       );
     }
-    
+
     return ing.copyWith(
       displayName: invMatch.displayName,
       status: IngredientStatus.available,
-      reason: languageCode == 'ar' ? 'متوفر في المخزن' : 'Available in inventory',
+      reason: l10n.translate('ai_available_in_inventory'),
     );
   }
 
@@ -274,7 +424,7 @@ AiSuggestion _matchSuggestionLocal(
     return ing.copyWith(
       displayName: currentMatch.displayName,
       status: IngredientStatus.inCurrentList,
-      reason: languageCode == 'ar' ? 'موجود في القائمة الحالية' : 'Already in current list',
+      reason: l10n.translate('ai_in_current_list'),
       sourceListName: currentMatch.listName,
     );
   }
@@ -285,24 +435,28 @@ AiSuggestion _matchSuggestionLocal(
     return ing.copyWith(
       displayName: otherMatch.displayName,
       status: IngredientStatus.inOtherList,
-      reason: languageCode == 'ar' 
-          ? 'موجود في قائمة: ${otherMatch.listName}' 
-          : 'Already in list: ${otherMatch.listName}',
+      reason: l10n.translate(
+        'ai_in_other_list',
+        arguments: {'name': otherMatch.listName ?? ''},
+      ),
       sourceListName: otherMatch.listName,
     );
   }
 
   // High confidence vs low confidence missing check
   final nameMatch = LocalFoodKeyMapper.match(ing.name);
-  final isUnknown = nameMatch.foodKey.startsWith('custom:') || nameMatch.method == 'unknown';
+  final isUnknown =
+      nameMatch.foodKey.startsWith('custom:') || nameMatch.method == 'unknown';
 
   // Fallback: Missing or Unknown
   return ing.copyWith(
     displayName: ing.name,
     status: isUnknown ? IngredientStatus.unknown : IngredientStatus.missing,
-    reason: ing.reason ?? (isUnknown 
-        ? (languageCode == 'ar' ? 'غير معروف' : 'Unknown status')
-        : (languageCode == 'ar' ? 'ناقص' : 'Missing')),
+    reason:
+        ing.reason ??
+        (isUnknown
+            ? l10n.translate('ai_unknown_status')
+            : l10n.translate('ai_missing')),
   );
 }
 
@@ -313,9 +467,14 @@ class AiAssistantNotifier extends StateNotifier<AiAssistantState> {
   final ShoppingListRepository _shoppingRepository;
   final Ref _ref;
 
-  AiAssistantNotifier(this._dataSource, this._shoppingRepository, this._ref) : super(const AiAssistantIdle());
+  AiAssistantNotifier(this._dataSource, this._shoppingRepository, this._ref)
+    : super(const AiAssistantIdle());
 
   /// Send a request to the AI assistant.
+  void startLoading() {
+    state = const AiAssistantLoading();
+  }
+
   Future<void> sendRequest(AiAssistantRequest request) async {
     final errors = request.validate();
     if (errors.isNotEmpty) {
@@ -333,7 +492,7 @@ class AiAssistantNotifier extends StateNotifier<AiAssistantState> {
         return;
       }
 
-        if (response is AiRecipeIngredientsResponse) {
+      if (response is AiRecipeIngredientsResponse) {
         // Build structural local context in memory without hitting the database
         LocalIngredientContext? localContext;
         final homeId = request.homeId ?? '';
@@ -342,23 +501,25 @@ class AiAssistantNotifier extends StateNotifier<AiAssistantState> {
           try {
             List<InventoryItem> inventoryItems = [];
             try {
-              inventoryItems = _ref.read(inventoryItemsProvider(homeId)).valueOrNull ?? [];
+              inventoryItems =
+                  _ref.read(inventoryItemsProvider(homeId)).value ?? [];
             } catch (_) {}
-            
+
             List<ShoppingList> lists = [];
             try {
-              lists = _ref.read(shoppingListsProvider(homeId)).valueOrNull ?? [];
+              lists = _ref.read(shoppingListsProvider(homeId)).value ?? [];
             } catch (_) {}
             final uncompletedLists = lists.where((l) => !l.isArchived).toList();
 
             List<ShoppingItem> currentListItems = [];
-            String currentListName = request.listTitle ?? 'قائمة';
+            final l10n = _ref.read(appLocalizationsProvider);
+            String currentListName = request.listTitle ?? l10n.translate('default_list_name');
             final Map<String, List<ShoppingItem>> otherListsItems = {};
 
             for (final list in uncompletedLists) {
               List<ShoppingItem> items = [];
               try {
-                items = _ref.read(shoppingItemsProvider(list.id)).valueOrNull ?? [];
+                items = _ref.read(shoppingItemsProvider(list.id)).value ?? [];
               } catch (_) {}
               if (list.id == listId) {
                 currentListItems = items;
@@ -386,10 +547,12 @@ class AiAssistantNotifier extends StateNotifier<AiAssistantState> {
           return _matchIngredientLocal(ing, localContext, localeCode);
         }).toList();
 
-        final updatedOptionalIngredients = response.optionalIngredients.map((ing) {
+        final updatedOptionalIngredients = response.optionalIngredients.map((
+          ing,
+        ) {
           final matched = _matchIngredientLocal(ing, localContext, localeCode);
-          if (matched.status == IngredientStatus.available || 
-              matched.status == IngredientStatus.inCurrentList || 
+          if (matched.status == IngredientStatus.available ||
+              matched.status == IngredientStatus.inCurrentList ||
               matched.status == IngredientStatus.inOtherList) {
             return matched;
           }
@@ -444,7 +607,10 @@ class AiAssistantNotifier extends StateNotifier<AiAssistantState> {
           }
         }
 
-        state = AiAssistantResult(localMatchedResponse, selectedIngredientIndices: autoSelected);
+        state = AiAssistantResult(
+          localMatchedResponse,
+          selectedIngredientIndices: autoSelected,
+        );
         return;
       }
 
@@ -457,23 +623,25 @@ class AiAssistantNotifier extends StateNotifier<AiAssistantState> {
           try {
             List<InventoryItem> inventoryItems = [];
             try {
-              inventoryItems = _ref.read(inventoryItemsProvider(homeId)).valueOrNull ?? [];
+              inventoryItems =
+                  _ref.read(inventoryItemsProvider(homeId)).value ?? [];
             } catch (_) {}
-            
+
             List<ShoppingList> lists = [];
             try {
-              lists = _ref.read(shoppingListsProvider(homeId)).valueOrNull ?? [];
+              lists = _ref.read(shoppingListsProvider(homeId)).value ?? [];
             } catch (_) {}
             final uncompletedLists = lists.where((l) => !l.isArchived).toList();
 
             List<ShoppingItem> currentListItems = [];
-            String currentListName = request.listTitle ?? 'قائمة';
+            final l10n = _ref.read(appLocalizationsProvider);
+            String currentListName = request.listTitle ?? l10n.translate('default_list_name');
             final Map<String, List<ShoppingItem>> otherListsItems = {};
 
             for (final list in uncompletedLists) {
               List<ShoppingItem> items = [];
               try {
-                items = _ref.read(shoppingItemsProvider(list.id)).valueOrNull ?? [];
+                items = _ref.read(shoppingItemsProvider(list.id)).value ?? [];
               } catch (_) {}
               if (list.id == listId) {
                 currentListItems = items;
@@ -501,7 +669,9 @@ class AiAssistantNotifier extends StateNotifier<AiAssistantState> {
           return _matchSuggestionLocal(s, localContext, localeCode);
         }).toList();
 
-        final localMatchedResponse = AiShoppingSuggestionsResponse(suggestions: updatedSuggestions);
+        final localMatchedResponse = AiShoppingSuggestionsResponse(
+          suggestions: updatedSuggestions,
+        );
 
         // Pre-select only missing and unknown suggestions by default
         Set<int> autoSelected = {};
@@ -511,17 +681,23 @@ class AiAssistantNotifier extends StateNotifier<AiAssistantState> {
           }
         }
 
-        state = AiAssistantResult(localMatchedResponse, selectedIngredientIndices: autoSelected);
+        state = AiAssistantResult(
+          localMatchedResponse,
+          selectedIngredientIndices: autoSelected,
+        );
         return;
       }
 
       state = AiAssistantResult(response);
     } on AiValidationException catch (e) {
-      state = AiAssistantError(e.message);
+      final l10n = _ref.read(appLocalizationsProvider);
+      state = AiAssistantError(ErrorFormatter.formatWithL10n(e, l10n));
     } on AiServiceException catch (e) {
-      state = AiAssistantError(e.message);
+      final l10n = _ref.read(appLocalizationsProvider);
+      state = AiAssistantError(ErrorFormatter.formatWithL10n(e, l10n));
     } catch (e) {
-      state = const AiAssistantError('تعذر إنشاء الاقتراحات، حاول مرة أخرى');
+      final l10n = _ref.read(appLocalizationsProvider);
+      state = AiAssistantError(ErrorFormatter.formatWithL10n(e, l10n));
     }
   }
 
@@ -541,11 +717,14 @@ class AiAssistantNotifier extends StateNotifier<AiAssistantState> {
   }) async {
     final String prompt;
     if (language == 'ar') {
-      prompt = 'أعطني مكونات وجبة "$mealName" بالتفصيل وبالمقادير الدقيقة مع خطوات الطبخ بالتفصيل خطوة بخطوة';
+      prompt =
+          'أعطني مكونات وجبة "$mealName" بالتفصيل وبالمقادير الدقيقة مع خطوات الطبخ بالتفصيل خطوة بخطوة';
     } else if (language == 'tr') {
-      prompt = '"$mealName" yemeğinin detaylı malzemelerini, ölçülerini ve adım adım tarifini/hazırlanış adımlarını ver.';
+      prompt =
+          '"$mealName" yemeğinin detaylı malzemelerini, ölçülerini ve adım adım tarifini/hazırlanış adımlarını ver.';
     } else {
-      prompt = 'Give me the detailed ingredients, precise measurements, and step-by-step cooking instructions for "$mealName".';
+      prompt =
+          'Give me the detailed ingredients, precise measurements, and step-by-step cooking instructions for "$mealName".';
     }
 
     final request = AiAssistantRequest(
@@ -573,33 +752,38 @@ class AiAssistantNotifier extends StateNotifier<AiAssistantState> {
     int estimatedTimeMinutes = 30,
     int servings = 4,
   }) {
-    final ingredients = mainIngredients.map((name) => AiRecipeIngredient(
-      name: name,
-      quantity: 1,
-      unit: '',
-      required: true,
-      status: IngredientStatus.missing,
-    )).toList();
+    final ingredients = mainIngredients
+        .map(
+          (name) => AiRecipeIngredient(
+            name: name,
+            quantity: 1,
+            unit: '',
+            required: true,
+            status: IngredientStatus.missing,
+          ),
+        )
+        .toList();
 
+    final l10n = _ref.read(appLocalizationsProvider);
     final response = AiRecipeIngredientsResponse(
       meal: AiMealInfo(
         name: mealName,
         description: description,
         servings: servings,
         estimatedTimeMinutes: estimatedTimeMinutes,
-        difficulty: 'متوسط',
-        cuisine: 'متنوع',
+        difficulty: l10n.translate('difficulty_medium'),
+        cuisine: l10n.translate('cuisine_varied'),
       ),
       ingredients: ingredients,
       optionalIngredients: [],
       cookingStepsPreview: [
-        'المعلومات المتوفرة حالياً هي المكونات الأساسية فقط.',
-        'يمكنك إضافة هذه المكونات إلى قائمة التسوق الخاصة بك.'
+        l10n.translate('ai_info_basic_only'),
+        l10n.translate('ai_add_to_shopping_list'),
       ],
       shoppingSummary: ShoppingSummary(
-        availableCount: 0, 
-        missingCount: ingredients.length, 
-        alreadyInListCount: 0
+        availableCount: 0,
+        missingCount: ingredients.length,
+        alreadyInListCount: 0,
       ),
     );
 
@@ -609,14 +793,19 @@ class AiAssistantNotifier extends StateNotifier<AiAssistantState> {
       autoSelected.add(i);
     }
 
-    state = AiAssistantResult(response, selectedIngredientIndices: autoSelected);
+    state = AiAssistantResult(
+      response,
+      selectedIngredientIndices: autoSelected,
+    );
   }
 
   /// Toggle ingredient selection.
   void toggleIngredientSelection(int index) {
     final currentState = state;
     if (currentState is AiAssistantResult) {
-      final newSelection = Set<int>.from(currentState.selectedIngredientIndices);
+      final newSelection = Set<int>.from(
+        currentState.selectedIngredientIndices,
+      );
       if (newSelection.contains(index)) {
         newSelection.remove(index);
       } else {
@@ -696,33 +885,72 @@ class AiAssistantNotifier extends StateNotifier<AiAssistantState> {
   void setAddingState() {
     final currentState = state;
     if (currentState is AiAssistantResult) {
-      state = AiAssistantAddingItems(currentState.response, currentState.selectedIngredientIndices);
+      state = AiAssistantAddingItems(
+        currentState.response,
+        currentState.selectedIngredientIndices,
+      );
     }
   }
 
   /// Add selected ingredients to a shopping list.
-  Future<bool> addSelectedToShoppingList(String listId) async {
+  Future<bool> addSelectedToShoppingList(String listId, String homeId) async {
     final selectedIngredients = getSelectedIngredients();
     if (selectedIngredients.isEmpty) return false;
 
     final currentState = state;
     if (currentState is! AiAssistantResult) return false;
 
-    state = AiAssistantAddingItems(currentState.response, currentState.selectedIngredientIndices);
+    state = AiAssistantAddingItems(
+      currentState.response,
+      currentState.selectedIngredientIndices,
+    );
 
     try {
-      for (final ingredient in selectedIngredients) {
-        await _shoppingRepository.createShoppingItem(
+      final useCase = AddItemUseCase(_shoppingRepository);
+
+      // Fetch user context for precise mapping
+      List<UnitModel> units = [];
+      List<CategoryModel> categories = [];
+      List<ItemTemplateModel> templates = [];
+
+      try {
+        units = _ref.read(unitsProvider(null)).value ?? [];
+      } catch (_) {}
+      try {
+        categories = _ref.read(categoriesProvider(homeId)).value ?? [];
+      } catch (_) {}
+      try {
+        templates = _ref.read(itemTemplatesProvider(homeId)).value ?? [];
+      } catch (_) {}
+
+      // Add items concurrently instead of sequentially to prevent UI freezing
+      final futures = selectedIngredients.map((ingredient) {
+        final resolution = SmartItemResolver.resolve(
+          ingredient: ingredient,
+          templates: templates,
+          categories: categories,
+          units: units,
+        );
+
+        return useCase(
           listId: listId,
+          homeId: homeId,
           name: ingredient.displayName ?? ingredient.name,
           quantity: ingredient.quantity,
+          unitId: resolution.unitId,
+          categoryId: resolution.categoryId,
           notes: ingredient.reason,
+          skipDuplicateCheck: true,
         );
-      }
+      });
+
+      await Future.wait(futures);
+
       state = const AiAssistantIdle();
       return true;
     } catch (e) {
-      state = AiAssistantError('حدث خطأ أثناء إضافة العناصر: ${e.toString()}');
+      final l10n = _ref.read(appLocalizationsProvider);
+      state = AiAssistantError(l10n.translate('ai_add_items_error', arguments: {'error': e.toString()}));
       return false;
     }
   }

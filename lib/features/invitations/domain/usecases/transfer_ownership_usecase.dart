@@ -10,7 +10,7 @@ class TransferOwnershipUseCase {
     required String newOwnerId,
   }) async {
     if (homeId.isEmpty || newOwnerId.isEmpty) {
-      throw Exception('معرف المنزل والمالك الجديد مطلوبان');
+      throw Exception('home_owner_required');
     }
 
     await _repository.transferOwnership(

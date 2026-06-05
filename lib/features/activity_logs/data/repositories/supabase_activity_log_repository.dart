@@ -1,7 +1,8 @@
 import 'dart:async';
-import 'package:beity/core/services/shared_prefs_provider.dart';
-import 'dart:convert';
 
+import 'package:sawa/core/local_database/daos/activity_logs_dao.dart';
+import 'package:sawa/core/local_database/daos/homes_dao.dart';
+import 'package:sawa/core/local_database/local_database_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/activity_log_model.dart';
 import '../../domain/entities/activity_log.dart';
@@ -9,8 +10,16 @@ import 'activity_log_repository.dart';
 
 class SupabaseActivityLogRepository implements ActivityLogRepository {
   final SupabaseClient _client;
+  final ActivityLogsDao _activityLogsDao;
+  final HomesDao _homesDao;
 
-  SupabaseActivityLogRepository(this._client);
+  SupabaseActivityLogRepository(
+    this._client, {
+    ActivityLogsDao? activityLogsDao,
+    HomesDao? homesDao,
+  }) : _activityLogsDao =
+           activityLogsDao ?? ActivityLogsDao(LocalDatabaseService.instance),
+       _homesDao = homesDao ?? HomesDao(LocalDatabaseService.instance);
 
   @override
   Stream<List<ActivityLogModel>> watchHomeActivity({
@@ -19,82 +28,46 @@ class SupabaseActivityLogRepository implements ActivityLogRepository {
     int offset = 0,
   }) {
     final controller = StreamController<List<ActivityLogModel>>();
+    StreamSubscription<List<ActivityLogModel>>? localSubscription;
+    StreamSubscription<List<Map<String, dynamic>>>? remoteSubscription;
 
-    // Load initial data via regular query
-    _loadInitialData(controller, homeId, limit, offset);
+    controller.onListen = () {
+      localSubscription = _activityLogsDao
+          .watchActivityLogs(homeId: homeId, limit: limit, offset: offset)
+          .listen(
+            controller.add,
+            onError: (error, stackTrace) {
+              if (!controller.isClosed) {
+                controller.addError(error, stackTrace);
+              }
+            },
+          );
 
-    // Also listen to realtime changes
-    _client
-        .from('activity_logs')
-        .stream(primaryKey: ['id'])
-        .eq('home_id', homeId)
-        .order('created_at', ascending: false)
-        .limit(limit)
-        .map(
-          (response) =>
-              response.map((json) => ActivityLogModel.fromJson(json)).toList(),
-        )
-        .listen(
-          (data) {
-            if (!controller.isClosed) {
-              controller.add(data);
-            }
-          },
-          onError: (error) {
-            // Silently handle realtime errors - initial data already loaded
-          },
-        );
+      unawaited(_refreshActivityLogs(homeId: homeId, limit: limit, offset: 0));
 
-    return controller.stream;
-  }
-
-  Future<void> _loadInitialData(
-    StreamController<List<ActivityLogModel>> controller,
-    String homeId,
-    int limit,
-    int offset,
-  ) async {
-    final cacheKey = 'cached_activity_logs_$homeId';
-    
-    // 1. Emit cached logs immediately
-    try {
-      final prefs = AppPreferences.instance;
-      final cached = prefs.getString(cacheKey);
-      if (cached != null && !controller.isClosed) {
-        final List<dynamic> list = jsonDecode(cached);
-        final cachedLogs = list.map((json) => ActivityLogModel.fromJson(json)).toList();
-        controller.add(cachedLogs);
-      }
-    } catch (_) {}
-
-    try {
-      final response = await _client
+      remoteSubscription = _client
           .from('activity_logs')
-          .select('*, users:user_id(full_name)')
+          .stream(primaryKey: ['id'])
           .eq('home_id', homeId)
           .order('created_at', ascending: false)
-          .range(offset, offset + limit - 1);
+          .limit(limit)
+          .listen(
+            (response) {
+              unawaited(_saveRemoteRows(response));
+            },
+            onError: (_) {
+              // Offline or realtime errors should not break the local stream.
+            },
+          );
+    };
 
-      final logs = (response as List)
-          .map((json) => ActivityLogModel.fromJson(json))
-          .toList();
+    controller.onCancel = () async {
+      await localSubscription?.cancel();
+      await remoteSubscription?.cancel();
+      await controller.close();
+    };
 
-      // Cache new logs
-      try {
-        final prefs = AppPreferences.instance;
-        final rawJson = jsonEncode(logs.map((l) => l.toJson()).toList());
-        await prefs.setString(cacheKey, rawJson);
-      } catch (_) {}
-
-      if (!controller.isClosed) {
-        controller.add(logs);
-      }
-    } catch (e) {
-      final prefs = AppPreferences.instance;
-      if (!prefs.containsKey(cacheKey) && !controller.isClosed) {
-        controller.addError(e);
-      }
-    }
+    return controller.stream;
   }
 
   @override
@@ -105,97 +78,51 @@ class SupabaseActivityLogRepository implements ActivityLogRepository {
     int offset = 0,
   }) {
     final controller = StreamController<List<ActivityLogModel>>();
+    StreamSubscription<List<ActivityLogModel>>? localSubscription;
+    StreamSubscription<List<Map<String, dynamic>>>? remoteSubscription;
 
-    // Load initial data via regular query
-    _loadListInitialData(controller, homeId, listId, limit, offset);
+    controller.onListen = () {
+      localSubscription = _activityLogsDao
+          .watchListActivityLogs(
+            homeId: homeId,
+            listId: listId,
+            limit: limit,
+            offset: offset,
+          )
+          .listen(
+            controller.add,
+            onError: (error, stackTrace) {
+              if (!controller.isClosed) {
+                controller.addError(error, stackTrace);
+              }
+            },
+          );
 
-    // Also listen to realtime changes
-    _client
-        .from('activity_logs')
-        .stream(primaryKey: ['id'])
-        .eq('home_id', homeId)
-        .order('created_at', ascending: false)
-        .limit(limit)
-        .map(
-          (response) => response
-              .map((json) => ActivityLogModel.fromJson(json))
-              .where(
-                (log) =>
-                    (log.entityType == EntityType.shoppingList &&
-                        log.entityId == listId) ||
-                    (log.metadata != null &&
-                        log.metadata!['list_id'] == listId),
-              )
-              .toList(),
-        )
-        .listen(
-          (data) {
-            if (!controller.isClosed) {
-              controller.add(data);
-            }
-          },
-          onError: (error) {
-            // Silently handle realtime errors
-          },
-        );
+      unawaited(_refreshActivityLogs(homeId: homeId, limit: limit, offset: 0));
 
-    return controller.stream;
-  }
-
-  Future<void> _loadListInitialData(
-    StreamController<List<ActivityLogModel>> controller,
-    String homeId,
-    String listId,
-    int limit,
-    int offset,
-  ) async {
-    final cacheKey = 'cached_activity_logs_list_${homeId}_$listId';
-    
-    // 1. Emit cached logs immediately
-    try {
-      final prefs = AppPreferences.instance;
-      final cached = prefs.getString(cacheKey);
-      if (cached != null && !controller.isClosed) {
-        final List<dynamic> list = jsonDecode(cached);
-        final cachedLogs = list.map((json) => ActivityLogModel.fromJson(json)).toList();
-        controller.add(cachedLogs);
-      }
-    } catch (_) {}
-
-    try {
-      final response = await _client
+      remoteSubscription = _client
           .from('activity_logs')
-          .select('*, users:user_id(full_name)')
+          .stream(primaryKey: ['id'])
           .eq('home_id', homeId)
           .order('created_at', ascending: false)
-          .range(offset, offset + limit - 1);
+          .limit(limit)
+          .listen(
+            (response) {
+              unawaited(_saveRemoteRows(response));
+            },
+            onError: (_) {
+              // Offline or realtime errors should not break the local stream.
+            },
+          );
+    };
 
-      final logs = (response as List)
-          .map((json) => ActivityLogModel.fromJson(json))
-          .where(
-            (log) =>
-                (log.entityType == EntityType.shoppingList &&
-                    log.entityId == listId) ||
-                (log.metadata != null && log.metadata!['list_id'] == listId),
-          )
-          .toList();
+    controller.onCancel = () async {
+      await localSubscription?.cancel();
+      await remoteSubscription?.cancel();
+      await controller.close();
+    };
 
-      // Cache new logs
-      try {
-        final prefs = AppPreferences.instance;
-        final rawJson = jsonEncode(logs.map((l) => l.toJson()).toList());
-        await prefs.setString(cacheKey, rawJson);
-      } catch (_) {}
-
-      if (!controller.isClosed) {
-        controller.add(logs);
-      }
-    } catch (e) {
-      final prefs = AppPreferences.instance;
-      if (!prefs.containsKey(cacheKey) && !controller.isClosed) {
-        controller.addError(e);
-      }
-    }
+    return controller.stream;
   }
 
   @override
@@ -206,55 +133,75 @@ class SupabaseActivityLogRepository implements ActivityLogRepository {
     int limit = 50,
     int offset = 0,
   }) async {
-    final cacheKey = 'cached_activity_logs_filter_${homeId}_${actorId}_${actionTypes?.map((a) => a.value).join(',')}';
-    
+    final localLogs = await _activityLogsDao.getActivityLogs(
+      homeId: homeId,
+      actorId: actorId,
+      actionTypes: actionTypes,
+      limit: limit,
+      offset: offset,
+    );
+    final refresh = _refreshActivityLogs(
+      homeId: homeId,
+      actorId: actorId,
+      actionTypes: actionTypes,
+      limit: limit,
+      offset: offset,
+    );
+
+    if (localLogs.isNotEmpty || offset > 0) {
+      unawaited(refresh);
+      return localLogs;
+    }
+
     try {
-      var query = _client.from('activity_logs').select('*, users:user_id(full_name)').eq('home_id', homeId);
+      await refresh;
+      return _activityLogsDao.getActivityLogs(
+        homeId: homeId,
+        actorId: actorId,
+        actionTypes: actionTypes,
+        limit: limit,
+        offset: offset,
+      );
+    } catch (_) {
+      return localLogs;
+    }
+  }
 
-      if (actorId != null) {
-        query = query.eq('user_id', actorId);
-      }
+  @override
+  Future<ActivityLogModel?> getActivityLogById(String id) async {
+    final localLog = await _activityLogsDao.getActivityLogById(id);
+    if (localLog != null) return localLog;
 
-      if (actionTypes != null && actionTypes.isNotEmpty) {
-        query = query.inFilter(
-          'action',
-          actionTypes.map((a) => a.value).toList(),
-        );
-      }
+    try {
+      final response = await _client
+          .from('activity_logs')
+          .select('*, users:user_id(full_name)')
+          .eq('id', id)
+          .maybeSingle();
 
-      final response = await query
-          .order('created_at', ascending: false)
-          .range(offset, offset + limit - 1);
-
-      final logs = (response as List)
-          .map((json) => ActivityLogModel.fromJson(json))
-          .toList();
-
-      // Cache
-      try {
-        final prefs = AppPreferences.instance;
-        final rawJson = jsonEncode(logs.map((l) => l.toJson()).toList());
-        await prefs.setString(cacheKey, rawJson);
-      } catch (_) {}
-
-      return logs;
-    } catch (e) {
-      // Fallback to cache if offline
-      try {
-        final prefs = AppPreferences.instance;
-        final cached = prefs.getString(cacheKey);
-        if (cached != null) {
-          final List<dynamic> list = jsonDecode(cached);
-          return list.map((json) => ActivityLogModel.fromJson(json)).toList();
-        }
-      } catch (_) {}
-      rethrow;
+      if (response == null) return null;
+      final log = ActivityLogModel.fromJson(response);
+      await _activityLogsDao.upsertActivityLogs([log]);
+      return log;
+    } catch (_) {
+      return null;
     }
   }
 
   @override
   Future<List<ActivityActor>> getHomeActors({required String homeId}) async {
-    final cacheKey = 'cached_actors_$homeId';
+    final localMembers = await _homesDao.getHomeMembers(homeId);
+    if (localMembers.isNotEmpty) {
+      return localMembers
+          .map(
+            (member) => ActivityActor(
+              userId: member.userId,
+              displayName: member.userName,
+            ),
+          )
+          .toList();
+    }
+
     try {
       final response = await _client
           .from('home_members')
@@ -279,31 +226,9 @@ class SupabaseActivityLogRepository implements ActivityLogRepository {
         }
       }
 
-      // Cache actors
-      try {
-        final prefs = AppPreferences.instance;
-        final rawJson = jsonEncode(actors.map((a) => {'userId': a.userId, 'displayName': a.displayName}).toList());
-        await prefs.setString(cacheKey, rawJson);
-      } catch (_) {}
-
       return actors;
-    } catch (e) {
-      // Fallback to cache if offline
-      try {
-        final prefs = AppPreferences.instance;
-        final cached = prefs.getString(cacheKey);
-        if (cached != null) {
-          final List<dynamic> list = jsonDecode(cached);
-          return list.map((item) {
-            final map = item as Map<String, dynamic>;
-            return ActivityActor(
-              userId: map['userId'] as String,
-              displayName: map['displayName'] as String?,
-            );
-          }).toList();
-        }
-      } catch (_) {}
-      rethrow;
+    } catch (_) {
+      return const [];
     }
   }
 
@@ -319,14 +244,62 @@ class SupabaseActivityLogRepository implements ActivityLogRepository {
     final userId = _client.auth.currentUser?.id;
     if (userId == null) return;
 
-    await _client.from('activity_logs').insert({
-      'home_id': homeId,
-      'user_id': userId,
-      'action': action.value,
-      'entity_type': entityType.value,
-      'entity_id': entityId,
-      'entity_name': entityName,
-      'metadata': metadata,
-    });
+    final response = await _client
+        .from('activity_logs')
+        .insert({
+          'home_id': homeId,
+          'user_id': userId,
+          'action': action.value,
+          'entity_type': entityType.value,
+          'entity_id': entityId,
+          'entity_name': entityName,
+          'metadata': metadata,
+        })
+        .select('*, users:user_id(full_name)')
+        .maybeSingle();
+
+    if (response != null) {
+      await _activityLogsDao.upsertActivityLogs([
+        ActivityLogModel.fromJson(response),
+      ]);
+    }
+  }
+
+  Future<void> _refreshActivityLogs({
+    required String homeId,
+    String? actorId,
+    List<ActionType>? actionTypes,
+    int limit = 50,
+    int offset = 0,
+  }) async {
+    var query = _client
+        .from('activity_logs')
+        .select('*, users:user_id(full_name)')
+        .eq('home_id', homeId);
+
+    if (actorId != null && actorId.isNotEmpty) {
+      query = query.eq('user_id', actorId);
+    }
+
+    if (actionTypes != null && actionTypes.isNotEmpty) {
+      query = query.inFilter(
+        'action',
+        actionTypes.map((a) => a.value).toList(),
+      );
+    }
+
+    final response = await query
+        .order('created_at', ascending: false)
+        .range(offset, offset + limit - 1);
+
+    final logs = (response as List)
+        .map((json) => ActivityLogModel.fromJson(json as Map<String, dynamic>))
+        .toList();
+    await _activityLogsDao.upsertActivityLogs(logs);
+  }
+
+  Future<void> _saveRemoteRows(List<Map<String, dynamic>> rows) async {
+    final logs = rows.map(ActivityLogModel.fromJson).toList();
+    await _activityLogsDao.upsertActivityLogs(logs);
   }
 }

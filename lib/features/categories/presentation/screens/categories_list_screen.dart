@@ -1,13 +1,13 @@
-import 'package:beity/shared/widgets/design_system/beity_empty_state.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_empty_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../providers/categories_provider.dart';
 import '../widgets/category_card_widget.dart';
-import 'package:beity/core/localization/app_localizations.dart';
-import 'package:beity/features/onboarding/presentation/providers/app_tour_controller.dart';
-import 'package:beity/features/onboarding/presentation/providers/app_tour_target_registry.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
+import 'package:sawa/features/onboarding/presentation/providers/app_tour_controller.dart';
+import 'package:sawa/features/onboarding/presentation/providers/app_tour_target_registry.dart';
 
 class CategoriesListScreen extends ConsumerStatefulWidget {
   final String? homeId;
@@ -74,7 +74,7 @@ class _CategoriesListScreenState extends ConsumerState<CategoriesListScreen> {
             child: categoriesAsync.when(
               data: (categories) {
                 if (categories.isEmpty) {
-                  return BeityEmptyState(
+                  return SawaEmptyState(
                     title: context.translate('no_categories'),
                     message: context.translate('default_categories_desc'),
                     icon: Icons.category_outlined,
@@ -95,7 +95,7 @@ class _CategoriesListScreenState extends ConsumerState<CategoriesListScreen> {
               },
               loading: () =>
                   const Center(child: CircularProgressIndicator()),
-              error: (error, stack) => BeityEmptyState(
+              error: (error, stack) => SawaEmptyState(
                 title: context.translate('error_occurred'),
                 message: error.toString(),
                 icon: Icons.error_outline_rounded,

@@ -3,7 +3,7 @@ import '../../../../core/services/shared_prefs_provider.dart';
 import '../models/inventory_item_model.dart';
 
 /// Abstract interface for local persistence of Inventory Items.
-/// Prepares Beity for SQLite/Drift/Isar migrations.
+/// Prepares SAWA for SQLite/Drift/Isar migrations.
 abstract class InventoryLocalDataSource {
   Future<List<InventoryItemModel>> getInventoryItems({
     required String homeId,

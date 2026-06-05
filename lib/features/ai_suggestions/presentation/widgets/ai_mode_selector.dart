@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
 import '../../domain/entities/ai_mode.dart';
 import '../../../../app/theme/app_colors.dart';
 
@@ -7,20 +8,12 @@ enum AiPortal {
   cooking,
   occasions;
 
-  String label(String languageCode) {
-    if (languageCode == 'ar') {
-      return switch (this) {
-        AiPortal.shopping => 'اقتراح مشتريات',
-        AiPortal.cooking => 'ماذا أطبخ؟',
-        AiPortal.occasions => 'مناسبات وضيافة',
-      };
-    } else {
-      return switch (this) {
-        AiPortal.shopping => 'Shopping',
-        AiPortal.cooking => 'What to Cook?',
-        AiPortal.occasions => 'Occasions & Guests',
-      };
-    }
+  String get translationKey {
+    return switch (this) {
+      AiPortal.shopping => 'portal_shopping',
+      AiPortal.cooking => 'portal_cooking',
+      AiPortal.occasions => 'portal_occasions',
+    };
   }
 
   IconData get icon {
@@ -111,7 +104,6 @@ class _AiModeSelectorState extends State<AiModeSelector> {
 
   @override
   Widget build(BuildContext context) {
-    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -161,7 +153,7 @@ class _AiModeSelectorState extends State<AiModeSelector> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            portal.label(isArabic ? 'ar' : 'en'),
+                            context.translate(portal.translationKey),
                             textAlign: TextAlign.center,
                             style: theme.textTheme.labelMedium?.copyWith(
                               fontWeight: _activePortal == portal ? FontWeight.bold : FontWeight.normal,
@@ -214,7 +206,7 @@ class _AiModeSelectorState extends State<AiModeSelector> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        mode.label(isArabic ? 'ar' : 'en'),
+                        context.translate(mode.translationKey),
                         style: theme.textTheme.labelSmall?.copyWith(
                           fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                           color: isSelected ? Colors.white : (isDark ? Colors.white70 : Colors.grey.shade700),

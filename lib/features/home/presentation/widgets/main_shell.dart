@@ -1,16 +1,27 @@
-import 'package:beity/app/theme/app_spacing.dart';
-import 'package:beity/core/localization/app_localizations.dart';
-import 'package:beity/features/onboarding/presentation/providers/app_tour_target_registry.dart';
+import 'package:sawa/app/theme/app_spacing.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
+import 'package:sawa/features/onboarding/presentation/providers/app_tour_target_registry.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../homes/presentation/providers/homes_provider.dart';
+import '../../../../core/services/initial_data_hydration_service.dart';
+import '../../../../core/services/startup_prefetch_provider.dart';
 
-class MainShell extends StatelessWidget {
+class MainShell extends ConsumerWidget {
   final StatefulNavigationShell navigationShell;
 
   const MainShell({super.key, required this.navigationShell});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Watch for revocation invalidations (user removed from active home)
+    ref.watch(revocationWatcherProvider);
+    
+    // Globally watch hydration and prefetch so background syncs run regardless of active tab
+    ref.watch(initialDataHydrationServiceProvider);
+    ref.watch(startupPrefetchProvider);
+    
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final items = [

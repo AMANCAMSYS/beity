@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:beity/core/services/supabase_service.dart';
-import 'package:beity/core/services/sync_service.dart';
-import 'package:beity/core/services/local_cache_notifier.dart';
+import 'package:sawa/core/services/supabase_service.dart';
+import 'package:sawa/core/services/sync_service.dart';
+import 'package:sawa/core/services/local_cache_notifier.dart';
 import '../../data/datasources/expense_remote_datasource.dart';
 import '../../data/repositories/expense_repository_impl.dart';
 import '../../domain/entities/expense.dart';
@@ -38,6 +38,7 @@ final expensesProvider =
 final expenseByIdProvider =
     FutureProvider.family<Expense?, String>((ref, expenseId) async {
   final repository = ref.watch(expenseRepositoryProvider);
+  await repository.syncExpenseByIdIfMissing(expenseId: expenseId);
   return repository.getCachedExpenseById(expenseId: expenseId);
 });
 

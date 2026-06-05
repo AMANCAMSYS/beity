@@ -12,11 +12,11 @@ class ChangeMemberRoleUseCase {
     required String newRole,
   }) async {
     if (homeId.isEmpty || userId.isEmpty) {
-      throw Exception('معرف المنزل والمستخدم مطلوبان');
+      throw Exception('home_user_required');
     }
 
     if (!_isValidRole(newRole)) {
-      throw Exception('الدور غير صالح');
+      throw Exception('invalid_role');
     }
 
     return _repository.changeMemberRole(

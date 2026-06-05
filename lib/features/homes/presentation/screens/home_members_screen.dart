@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:beity/core/services/supabase_service.dart';
+import 'package:sawa/core/services/supabase_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:beity/app/theme/app_spacing.dart';
-import 'package:beity/app/theme/app_colors.dart';
-import 'package:beity/shared/widgets/design_system/beity_empty_state.dart';
+import 'package:sawa/app/theme/app_spacing.dart';
+import 'package:sawa/app/theme/app_colors.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_empty_state.dart';
 import '../providers/homes_provider.dart';
 import '../../data/models/home_model.dart';
 import '../widgets/member_card_widget.dart';
 import '../../domain/usecases/remove_member_with_balance_check.dart';
 import '../../../invitations/presentation/providers/invitations_provider.dart';
 import '../../../invitations/presentation/widgets/invitation_card_widget.dart';
-import 'package:beity/core/localization/app_localizations.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
 
 class HomeMembersScreen extends ConsumerWidget {
   final String homeId;
@@ -301,7 +301,7 @@ class HomeMembersScreen extends ConsumerWidget {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => BeityEmptyState(
+        error: (error, stack) => SawaEmptyState(
           title: context.translate('load_members_failed'),
           message: error.toString(),
           icon: Icons.error_outline_rounded,
@@ -324,7 +324,7 @@ class HomeMembersScreen extends ConsumerWidget {
   }
 
   Widget _buildEmptyState(BuildContext context, WidgetRef ref, List<HomeModel> homes) {
-    return BeityEmptyState(
+    return SawaEmptyState(
       title: context.translate('no_other_members'),
       message: context.translate('no_other_members_desc'),
       icon: Icons.group_add_outlined,

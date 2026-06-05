@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:beity/features/homes/data/models/home_model.dart';
-import 'package:beity/features/homes/data/repositories/home_repository.dart';
-import 'package:beity/features/homes/domain/usecases/create_home_usecase.dart';
+import 'package:sawa/features/homes/data/models/home_model.dart';
+import 'package:sawa/features/homes/data/repositories/home_repository.dart';
+import 'package:sawa/features/homes/domain/usecases/create_home_usecase.dart';
 
 class MockHomeRepository extends Mock implements HomeRepository {}
 

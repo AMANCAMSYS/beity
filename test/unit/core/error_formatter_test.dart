@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:beity/core/errors/error_formatter.dart' as ef;
-import 'package:beity/core/localization/app_localizations.dart';
+import 'package:sawa/core/errors/error_formatter.dart' as ef;
+import 'package:sawa/core/localization/app_localizations.dart';
 
 void main() {
   testWidgets('ErrorFormatter should format exceptions correctly with localized messages', (tester) async {

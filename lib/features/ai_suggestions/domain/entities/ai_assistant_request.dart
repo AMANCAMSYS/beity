@@ -62,21 +62,21 @@ class AiAssistantRequest {
 
     final trimmedPrompt = userPrompt.trim();
     if (trimmedPrompt.isEmpty) {
-      errors.add('اكتب ما تريد اقتراحه أولًا');
+      errors.add('ai_error_prompt_empty');
     } else if (trimmedPrompt.length > 500) {
-      errors.add('النص طويل جدًا (الحد الأقصى 500 حرف)');
+      errors.add('ai_error_prompt_too_long');
     }
 
     if (language != 'ar' && language != 'en' && language != 'tr') {
-      errors.add('اللغة غير مدعومة');
+      errors.add('ai_error_lang_unsupported');
     }
 
     if (existingShoppingItems.length > 100) {
-      errors.add('عناصر القائمة الحالية تتجاوز الحد (100)');
+      errors.add('ai_error_list_items_limit');
     }
 
     if (inventoryItems.length > 100) {
-      errors.add('عناصر المخزون تتجاوز الحد (100)');
+      errors.add('ai_error_inventory_items_limit');
     }
 
     return errors;

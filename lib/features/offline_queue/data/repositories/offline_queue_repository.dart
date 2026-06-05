@@ -8,15 +8,22 @@ abstract class OfflineQueueRepository {
     required ActionType actionType,
     required EntityType entityType,
     required String entityId,
-    required String homeId,
+    String? homeId,
+    MutationScope scope = MutationScope.home,
     required Map<String, dynamic> payload,
   });
 
   Future<List<QueueEntry>> getEntriesByHome(String homeId);
 
+  Future<List<QueueEntry>> getEntriesByUserScope(String userId);
+
+  Future<List<QueueEntry>> getEntriesByGlobalScope();
+
   Future<List<QueueEntry>> getEntriesByStatus(SyncStatus status);
 
   Future<int> getPendingCount(String homeId);
+
+  Future<int> getPendingCountForUser(String userId);
 
   Future<QueueEntry?> getEntryById(int id);
 
@@ -33,4 +40,6 @@ abstract class OfflineQueueRepository {
   Future<List<QueueEntry>> getFailedEntries(String homeId);
 
   Future<void> resetProcessingToPending(String homeId);
+
+  Future<void> resetProcessingToPendingForUserScope(String userId);
 }

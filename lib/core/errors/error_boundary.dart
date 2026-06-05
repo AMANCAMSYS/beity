@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:sawa/core/localization/app_localizations.dart';
 import '../../app/theme/app_colors.dart';
 import 'error_screen.dart';
 import '../monitoring/monitoring_service.dart';
@@ -21,7 +22,7 @@ class _ErrorBoundaryState extends State<ErrorBoundary> {
   Widget build(BuildContext context) {
     if (_error != null) {
       return ErrorScreen(
-        message: 'حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.',
+        message: context.translate('unexpected_error_retry'),
         onRetry: () {
           setState(() {
             _error = null;
@@ -35,8 +36,8 @@ class _ErrorBoundaryState extends State<ErrorBoundary> {
             reason: 'User reported error from ErrorBoundary',
           );
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('تم إرسال تقرير الخطأ. شكراً لك!'),
+            SnackBar(
+              content: Text(context.translate('error_report_sent')),
               backgroundColor: AppColors.success,
             ),
           );

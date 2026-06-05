@@ -1,6 +1,6 @@
-# OpenCode Prompt: Beity Audit Remediation Plan & Implementation
+# OpenCode Prompt: SAWA Audit Remediation Plan & Implementation
 
-You are working in `/home/omar/Desktop/Beity` on the Beity project.
+You are working in `/home/omar/Desktop/Sawa` on the SAWA project.
 
 Act as a senior Flutter, Riverpod, Supabase, PostgreSQL/RLS, and Edge Functions engineer. Your task is to turn the audit report into an implementation plan, then start implementing the highest-priority fixes safely.
 

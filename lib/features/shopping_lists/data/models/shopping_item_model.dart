@@ -1,5 +1,7 @@
 import '../../domain/entities/shopping_item.dart';
 
+const _modelSentinel = Object();
+
 class ShoppingItemModel extends ShoppingItem {
   const ShoppingItemModel({
     required super.id,
@@ -9,8 +11,9 @@ class ShoppingItemModel extends ShoppingItem {
     super.purchasedQuantity = 0,
     super.unitId,
     super.categoryId,
+    super.priority = 'medium',
     super.price,
-    super.currency = 'SAR',
+    super.currency,
     super.notes,
     super.isPurchased = false,
     super.purchasedBy,
@@ -23,31 +26,47 @@ class ShoppingItemModel extends ShoppingItem {
 
   factory ShoppingItemModel.fromJson(Map<String, dynamic> json) {
     final status = json['status'] as String? ?? 'pending';
+    final id = json['id'] as String?;
+    final listId = json['list_id'] as String?;
+    final name = json['name'] as String?;
+
+    // Defensive: if critical fields are missing, this is a corrupt payload.
+    // Return a minimal model instead of crashing the entire sync pipeline.
+    if (id == null || listId == null || name == null) {
+      return ShoppingItemModel(
+        id: id ?? 'unknown',
+        shoppingListId: listId ?? 'unknown',
+        name: name ?? 'unknown',
+        createdBy: json['created_by'] as String? ?? 'unknown',
+      );
+    }
+
     return ShoppingItemModel(
-      id: json['id'] as String,
-      shoppingListId: json['list_id'] as String, // Database uses 'list_id'
-      name: json['name'] as String,
+      id: id,
+      shoppingListId: listId,
+      name: name,
       quantity: (json['quantity'] as num?)?.toDouble() ?? 1,
       purchasedQuantity: (json['purchased_quantity'] as num?)?.toDouble() ?? 0,
       unitId: json['unit_id'] as String?,
       categoryId: json['category_id'] as String?,
+      priority: json['priority'] as String? ?? 'medium',
       price: (json['estimated_price'] as num?)?.toDouble(),
       currency: json['currency'] as String? ?? 'SAR',
-      notes: json['note'] as String?, // Database uses 'note' not 'notes'
-      isPurchased: status == 'completed', // Database uses 'status' field
-      purchasedBy: json['completed_by'] as String?, // Database uses 'completed_by'
+      notes: json['note'] as String?,
+      isPurchased: status == 'completed',
+      purchasedBy: json['completed_by'] as String?,
       purchasedAt: json['completed_at'] != null
-          ? DateTime.parse(json['completed_at'] as String)
+          ? DateTime.tryParse(json['completed_at'] as String)
           : null,
-      createdBy: json['created_by'] as String,
+      createdBy: json['created_by'] as String? ?? 'unknown',
       createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'] as String)
+          ? DateTime.tryParse(json['created_at'] as String)
           : null,
       updatedAt: json['updated_at'] != null
-          ? DateTime.parse(json['updated_at'] as String)
+          ? DateTime.tryParse(json['updated_at'] as String)
           : null,
       deletedAt: json['deleted_at'] != null
-          ? DateTime.parse(json['deleted_at'] as String)
+          ? DateTime.tryParse(json['deleted_at'] as String)
           : null,
     );
   }
@@ -61,6 +80,7 @@ class ShoppingItemModel extends ShoppingItem {
       'purchased_quantity': purchasedQuantity,
       'unit_id': unitId,
       'category_id': categoryId,
+      'priority': priority,
       'estimated_price': price,
       'currency': currency,
       'note': notes,
@@ -70,6 +90,7 @@ class ShoppingItemModel extends ShoppingItem {
       'created_by': createdBy,
       'created_at': createdAt?.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),
+      'deleted_at': deletedAt?.toIso8601String(),
     };
   }
 
@@ -94,18 +115,19 @@ class ShoppingItemModel extends ShoppingItem {
     String? name,
     double? quantity,
     double? purchasedQuantity,
-    String? unitId,
-    String? categoryId,
-    double? price,
-    String? currency,
-    String? notes,
+    Object? unitId = _modelSentinel,
+    Object? categoryId = _modelSentinel,
+    String? priority,
+    Object? price = _modelSentinel,
+    Object? currency = _modelSentinel,
+    Object? notes = _modelSentinel,
     bool? isPurchased,
-    String? purchasedBy,
-    DateTime? purchasedAt,
+    Object? purchasedBy = _modelSentinel,
+    Object? purchasedAt = _modelSentinel,
     String? createdBy,
-    DateTime? createdAt,
-    DateTime? updatedAt,
-    DateTime? deletedAt,
+    Object? createdAt = _modelSentinel,
+    Object? updatedAt = _modelSentinel,
+    Object? deletedAt = _modelSentinel,
   }) {
     return ShoppingItemModel(
       id: id ?? this.id,
@@ -113,18 +135,19 @@ class ShoppingItemModel extends ShoppingItem {
       name: name ?? this.name,
       quantity: quantity ?? this.quantity,
       purchasedQuantity: purchasedQuantity ?? this.purchasedQuantity,
-      unitId: unitId ?? this.unitId,
-      categoryId: categoryId ?? this.categoryId,
-      price: price ?? this.price,
-      currency: currency ?? this.currency,
-      notes: notes ?? this.notes,
+      unitId: identical(unitId, _modelSentinel) ? this.unitId : unitId as String?,
+      categoryId: identical(categoryId, _modelSentinel) ? this.categoryId : categoryId as String?,
+      priority: priority ?? this.priority,
+      price: identical(price, _modelSentinel) ? this.price : price as double?,
+      currency: identical(currency, _modelSentinel) ? this.currency : currency as String?,
+      notes: identical(notes, _modelSentinel) ? this.notes : notes as String?,
       isPurchased: isPurchased ?? this.isPurchased,
-      purchasedBy: purchasedBy ?? this.purchasedBy,
-      purchasedAt: purchasedAt ?? this.purchasedAt,
+      purchasedBy: identical(purchasedBy, _modelSentinel) ? this.purchasedBy : purchasedBy as String?,
+      purchasedAt: identical(purchasedAt, _modelSentinel) ? this.purchasedAt : purchasedAt as DateTime?,
       createdBy: createdBy ?? this.createdBy,
-      createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
-      deletedAt: deletedAt ?? this.deletedAt,
+      createdAt: identical(createdAt, _modelSentinel) ? this.createdAt : createdAt as DateTime?,
+      updatedAt: identical(updatedAt, _modelSentinel) ? this.updatedAt : updatedAt as DateTime?,
+      deletedAt: identical(deletedAt, _modelSentinel) ? this.deletedAt : deletedAt as DateTime?,
     );
   }
 }

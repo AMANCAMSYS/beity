@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
 import '../providers/ai_suggestions_provider.dart';
 import 'ai_suggestion_tile.dart';
 import '../../domain/entities/ai_suggestion.dart';
@@ -37,20 +38,18 @@ class AiSuggestionsList extends ConsumerWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  isArabic 
-                    ? 'تم تحديد $selectedCount من $totalCount'
-                    : '$selectedCount of $totalCount selected',
+                  context.translate('ai_selected_count', arguments: {'selected': selectedCount.toString(), 'total': totalCount.toString()}),
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
                 Row(
                   children: [
                     TextButton(
                       onPressed: () => ref.read(aiSuggestionsProvider.notifier).selectAll(),
-                      child: Text(isArabic ? 'تحديد الكل' : 'Select All'),
+                      child: Text(context.translate('select_all')),
                     ),
                     TextButton(
                       onPressed: () => ref.read(aiSuggestionsProvider.notifier).deselectAll(),
-                      child: Text(isArabic ? 'إلغاء التحديد' : 'Deselect All'),
+                      child: Text(context.translate('deselect_all')),
                     ),
                   ],
                 ),

@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:beity/core/services/realtime_service.dart';
+import 'package:sawa/core/services/realtime_service.dart';
 
 void main() {
   group('ConnectionStateModel', () {

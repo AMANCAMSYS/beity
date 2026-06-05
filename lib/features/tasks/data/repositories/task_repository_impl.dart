@@ -1,20 +1,66 @@
 import '../../../../core/services/sync_service.dart';
 import '../../../../core/services/local_cache_notifier.dart';
+import '../../../../core/services/notification_service.dart';
+import '../../../../core/services/supabase_service.dart';
 import '../../domain/entities/task.dart';
 import '../../domain/repositories/task_repository.dart';
 import '../datasources/task_remote_datasource.dart';
 import '../datasources/task_local_datasource.dart';
+import '../models/task_model.dart';
+
+typedef TaskAssignmentNotifier =
+    Future<void> Function({
+      required String homeId,
+      required String actorId,
+      required String taskId,
+      required String targetUserId,
+      required String taskTitle,
+    });
+
+typedef CurrentUserIdReader = String? Function();
 
 class TaskRepositoryImpl implements TaskRepository {
   final TaskRemoteDataSource _remoteDataSource;
   final TaskLocalDataSource _localDataSource;
   final SyncService _syncService;
+  final TaskAssignmentNotifier _taskAssignmentNotifier;
+  final CurrentUserIdReader _currentUserIdReader;
 
   TaskRepositoryImpl(
     this._remoteDataSource,
     this._localDataSource,
-    this._syncService,
-  );
+    this._syncService, [
+    TaskAssignmentNotifier? taskAssignmentNotifier,
+    CurrentUserIdReader? currentUserIdReader,
+  ]) : _taskAssignmentNotifier =
+           taskAssignmentNotifier ??
+           NotificationService.sendTaskAssignedNotification,
+       _currentUserIdReader =
+           currentUserIdReader ??
+           (() => SupabaseService.client.auth.currentUser?.id);
+
+  Future<void> _notifyTaskAssignedIfNeeded({
+    required Task task,
+    String? previousAssignee,
+  }) async {
+    final targetUserId = task.assignedTo;
+    final actorId = _currentUserIdReader();
+    if (targetUserId == null ||
+        targetUserId.isEmpty ||
+        actorId == null ||
+        targetUserId == actorId ||
+        targetUserId == previousAssignee) {
+      return;
+    }
+
+    await _taskAssignmentNotifier(
+      homeId: task.homeId,
+      actorId: actorId,
+      taskId: task.id,
+      targetUserId: targetUserId,
+      taskTitle: task.title,
+    );
+  }
 
   @override
   Future<List<Task>> getTasks({
@@ -68,9 +114,7 @@ class TaskRepositoryImpl implements TaskRepository {
   }
 
   @override
-  Future<Task?> getTaskById({
-    required String taskId,
-  }) async {
+  Future<Task?> getTaskById({required String taskId}) async {
     // Read from remote (detail pages can be fetch on demand or local-first later)
     return _remoteDataSource.getTaskById(taskId: taskId);
   }
@@ -85,7 +129,7 @@ class TaskRepositoryImpl implements TaskRepository {
     String? assignedTo,
     String? recurrenceType,
   }) async {
-    return _remoteDataSource.createTask(
+    final task = await _remoteDataSource.createTask(
       homeId: homeId,
       title: title,
       description: description,
@@ -94,6 +138,8 @@ class TaskRepositoryImpl implements TaskRepository {
       assignedTo: assignedTo,
       recurrenceType: recurrenceType,
     );
+    await _notifyTaskAssignedIfNeeded(task: task);
+    return task;
   }
 
   @override
@@ -106,7 +152,13 @@ class TaskRepositoryImpl implements TaskRepository {
     String? assignedTo,
     String? recurrenceType,
   }) async {
-    return _remoteDataSource.updateTask(
+    Task? previousTask;
+    if (assignedTo != null) {
+      try {
+        previousTask = await _remoteDataSource.getTaskById(taskId: taskId);
+      } catch (_) {}
+    }
+    final task = await _remoteDataSource.updateTask(
       taskId: taskId,
       title: title,
       description: description,
@@ -115,6 +167,13 @@ class TaskRepositoryImpl implements TaskRepository {
       assignedTo: assignedTo,
       recurrenceType: recurrenceType,
     );
+    if (assignedTo != null) {
+      await _notifyTaskAssignedIfNeeded(
+        task: task,
+        previousAssignee: previousTask?.assignedTo,
+      );
+    }
+    return task;
   }
 
   @override
@@ -122,37 +181,38 @@ class TaskRepositoryImpl implements TaskRepository {
     required String taskId,
     required String? assignedTo,
   }) async {
-    return _remoteDataSource.updateTaskAssignee(
+    Task? previousTask;
+    try {
+      previousTask = await _remoteDataSource.getTaskById(taskId: taskId);
+    } catch (_) {}
+    final task = await _remoteDataSource.updateTaskAssignee(
       taskId: taskId,
       assignedTo: assignedTo,
     );
+    await _notifyTaskAssignedIfNeeded(
+      task: task,
+      previousAssignee: previousTask?.assignedTo,
+    );
+    return task;
   }
 
   @override
-  Future<void> deleteTask({
-    required String taskId,
-  }) async {
+  Future<void> deleteTask({required String taskId}) async {
     return _remoteDataSource.deleteTask(taskId: taskId);
   }
 
   @override
-  Future<Task> completeTask({
-    required String taskId,
-  }) async {
-    return _remoteDataSource.completeTask(taskId: taskId);
+  Future<Task> completeTask({required String taskId}) async {
+    return _updateCompletionState(taskId: taskId, isCompleted: true);
   }
 
   @override
-  Future<Task> uncompleteTask({
-    required String taskId,
-  }) async {
-    return _remoteDataSource.uncompleteTask(taskId: taskId);
+  Future<Task> uncompleteTask({required String taskId}) async {
+    return _updateCompletionState(taskId: taskId, isCompleted: false);
   }
 
   @override
-  Future<String?> createNextRecurringTask({
-    required String taskId,
-  }) async {
+  Future<String?> createNextRecurringTask({required String taskId}) async {
     return _remoteDataSource.createNextRecurringTask(taskId: taskId);
   }
 
@@ -169,15 +229,46 @@ class TaskRepositoryImpl implements TaskRepository {
   }) async* {
     // Helper function to read the stream cache
     Future<List<Task>> loadCache() async {
-      return _localDataSource.getTasksStreamCache(
+      final cached = await _localDataSource.getTasksStreamCache(
         homeId: homeId,
-        assignedTo: assignedTo,
+        assignedTo: null,
         activeOnly: activeOnly,
       );
+
+      if (assignedTo == null) return cached;
+
+      return cached.where((task) => task.assignedTo == assignedTo).toList();
     }
 
     // 1. Emit cached tasks instantly (0 network requests, instant perceived loading)
-    yield await loadCache();
+    final initialCache = await loadCache();
+    yield initialCache;
+
+    if (initialCache.isEmpty) {
+      try {
+        final tasks = await _remoteDataSource.getTasks(
+          homeId: homeId,
+          assignedTo: null,
+          status: null,
+          activeOnly: activeOnly,
+        );
+        await _localDataSource.saveTasksStreamCache(
+          homeId: homeId,
+          assignedTo: null,
+          activeOnly: activeOnly,
+          tasks: tasks,
+        );
+        await _localDataSource.saveTasks(
+          homeId: homeId,
+          assignedTo: null,
+          activeOnly: activeOnly,
+          tasks: tasks,
+        );
+        yield await loadCache();
+      } catch (_) {
+        // Keep the instant empty state if offline or the refresh fails.
+      }
+    }
 
     // 2. React to local cache updates from background sync or local alterations
     await for (final event in LocalCacheNotifier.stream) {
@@ -240,7 +331,11 @@ class TaskRepositoryImpl implements TaskRepository {
           if (maxTs.year > 1970) {
             await _syncService.updateLocalSyncTime(homeId, 'tasks', maxTs);
           } else {
-            await _syncService.updateLocalSyncTime(homeId, 'tasks', DateTime.now());
+            await _syncService.updateLocalSyncTime(
+              homeId,
+              'tasks',
+              DateTime.now(),
+            );
           }
 
           // 4. Notify all reactive UI streams that tasks cache changed
@@ -249,6 +344,41 @@ class TaskRepositoryImpl implements TaskRepository {
       }
     } catch (_) {
       // Absorb sync failures so other parallel sync domains can continue
+      rethrow;
+    }
+  }
+
+  Future<Task> _updateCompletionState({
+    required String taskId,
+    required bool isCompleted,
+  }) async {
+    final cachedTask = await _localDataSource.getCachedTaskById(taskId);
+    TaskModel? optimisticTask;
+
+    if (cachedTask != null) {
+      final now = DateTime.now();
+      optimisticTask = cachedTask.copyWithModel(
+        status: isCompleted ? 'completed' : 'incomplete',
+        completedAt: isCompleted ? now : null,
+        completedBy: isCompleted ? _currentUserIdReader() : null,
+        updatedAt: now,
+      );
+      await _localDataSource.updateTaskInCaches(optimisticTask);
+      LocalCacheNotifier.notify(cachedTask.homeId, 'tasks');
+    }
+
+    try {
+      final serverTask = isCompleted
+          ? await _remoteDataSource.completeTask(taskId: taskId)
+          : await _remoteDataSource.uncompleteTask(taskId: taskId);
+      await _localDataSource.updateTaskInCaches(serverTask);
+      LocalCacheNotifier.notify(serverTask.homeId, 'tasks');
+      return serverTask;
+    } catch (_) {
+      if (cachedTask != null && optimisticTask != null) {
+        await _localDataSource.updateTaskInCaches(cachedTask);
+        LocalCacheNotifier.notify(cachedTask.homeId, 'tasks');
+      }
       rethrow;
     }
   }

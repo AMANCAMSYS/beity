@@ -105,7 +105,7 @@ class SupabaseNotificationRepository implements NotificationRepository {
   @override
   Future<NotificationPreferences> getPreferences({required String homeId}) async {
     final user = _client.auth.currentUser;
-    if (user == null) throw Exception('يجب تسجيل الدخول أولاً');
+    if (user == null) throw Exception('must_login_first');
 
     try {
       final response = await _client
@@ -128,6 +128,7 @@ class SupabaseNotificationRepository implements NotificationRepository {
                 'low_stock': true,
                 'expiry_alert': true,
                 'expense_added': true,
+                'task_assigned': true,
                 'task_due': true,
               },
               onConflict: 'user_id,home_id',
@@ -156,7 +157,7 @@ class SupabaseNotificationRepository implements NotificationRepository {
     required bool value,
   }) async {
     final user = _client.auth.currentUser;
-    if (user == null) throw Exception('يجب تسجيل الدخول أولاً');
+    if (user == null) throw Exception('must_login_first');
 
     // Allowlist of valid column names — prevents arbitrary column injection.
     const allowedFields = {
@@ -165,10 +166,11 @@ class SupabaseNotificationRepository implements NotificationRepository {
       'low_stock',
       'expiry_alert',
       'expense_added',
+      'task_assigned',
       'task_due',
     };
     if (!allowedFields.contains(field)) {
-      throw ArgumentError('حقل غير مسموح به: $field');
+      throw ArgumentError('unallowed_field: $field');
     }
 
     try {
@@ -235,6 +237,7 @@ class SupabaseNotificationRepository implements NotificationRepository {
       lowStock: true,
       expiryAlert: true,
       expenseAdded: true,
+      taskAssigned: true,
       taskDue: true,
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),

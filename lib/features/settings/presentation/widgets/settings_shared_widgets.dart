@@ -1,19 +1,18 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:beity/core/utils/action_debouncer.dart';
+import 'package:sawa/core/utils/action_debouncer.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../core/localization/app_localizations.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../providers/app_settings_provider.dart';
 
 class IconBox extends StatelessWidget {
   final IconData icon;
   final Color? color;
 
-  const IconBox({
-    super.key,
-    required this.icon,
-    this.color,
-  });
+  const IconBox({super.key, required this.icon, this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -200,7 +199,9 @@ class SettingsActionTile extends StatelessWidget {
               ),
               AppSpacing.gapSM,
               Icon(
-                isRtl ? Icons.chevron_left_rounded : Icons.chevron_right_rounded,
+                isRtl
+                    ? Icons.chevron_left_rounded
+                    : Icons.chevron_right_rounded,
                 color: theme.colorScheme.onSurfaceVariant,
               ),
             ],
@@ -346,7 +347,8 @@ class AccountSummaryCard extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onPrimaryContainer.withValues(alpha: 0.72),
+                          color: theme.colorScheme.onPrimaryContainer
+                              .withValues(alpha: 0.72),
                         ),
                       ),
                     ],
@@ -379,11 +381,7 @@ class ThemeModeTile extends ConsumerWidget {
   final AppSettingsState settings;
   final AppLocalizations l10n;
 
-  const ThemeModeTile({
-    super.key,
-    required this.settings,
-    required this.l10n,
-  });
+  const ThemeModeTile({super.key, required this.settings, required this.l10n});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -429,7 +427,9 @@ class ThemeModeTile extends ConsumerWidget {
               ),
             ),
             onSelectionChanged: (selection) {
-              ref.read(appSettingsProvider.notifier).setThemeMode(selection.first);
+              ref
+                  .read(appSettingsProvider.notifier)
+                  .setThemeMode(selection.first);
             },
           ),
         ],
@@ -441,10 +441,7 @@ class ThemeModeTile extends ConsumerWidget {
 class LanguageTile extends ConsumerWidget {
   final AppSettingsState settings;
 
-  const LanguageTile({
-    super.key,
-    required this.settings,
-  });
+  const LanguageTile({super.key, required this.settings});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -491,12 +488,19 @@ class LanguageTile extends ConsumerWidget {
               ),
             ),
             onSelectionChanged: (selection) {
+              final languageCode = selection.first;
               ref.read(appSettingsProvider.notifier).setLocale(
-                switch (selection.first) {
+                switch (languageCode) {
                   'en' => const Locale('en', 'US'),
                   'tr' => const Locale('tr', 'TR'),
                   _ => const Locale('ar', 'SA'),
                 },
+              );
+              unawaited(
+                ref
+                    .read(authNotifierProvider.notifier)
+                    .updateProfile(language: languageCode)
+                    .catchError((_) {}),
               );
             },
           ),

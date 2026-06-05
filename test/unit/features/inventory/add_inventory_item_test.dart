@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:beity/features/inventory/data/models/inventory_item_model.dart';
-import 'package:beity/features/inventory/data/models/inventory_transaction_model.dart';
-import 'package:beity/features/inventory/data/repositories/inventory_repository.dart';
-import 'package:beity/features/inventory/domain/usecases/add_inventory_item_usecase.dart';
+import 'package:sawa/features/inventory/data/models/inventory_item_model.dart';
+import 'package:sawa/features/inventory/data/models/inventory_transaction_model.dart';
+import 'package:sawa/features/inventory/data/repositories/inventory_repository.dart';
+import 'package:sawa/features/inventory/domain/usecases/add_inventory_item_usecase.dart';
 
 class MockInventoryRepository extends Mock implements InventoryRepository {}
 

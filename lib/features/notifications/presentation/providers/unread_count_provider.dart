@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sawa/core/services/local_cache_notifier.dart';
 
 import '../../domain/usecases/get_unread_count_usecase.dart';
 import 'notification_preferences_provider.dart';
@@ -15,6 +16,13 @@ final unreadCountProvider = AsyncNotifierProvider<UnreadCountNotifier, int>(
 class UnreadCountNotifier extends AsyncNotifier<int> {
   @override
   Future<int> build() async {
+    final subscription = LocalCacheNotifier.stream.listen((event) {
+      if (event.entityType == 'notifications') {
+        ref.invalidateSelf();
+      }
+    });
+    ref.onDispose(subscription.cancel);
+
     final useCase = ref.read(getUnreadCountUseCaseProvider);
     return useCase.call();
   }
@@ -28,7 +36,7 @@ class UnreadCountNotifier extends AsyncNotifier<int> {
   }
 
   void decrement(int count) {
-    final current = state.valueOrNull ?? 0;
+    final current = state.value ?? 0;
     state = AsyncValue.data((current - count).clamp(0, current));
   }
 

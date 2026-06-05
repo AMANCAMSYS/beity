@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:beity/core/localization/app_localizations.dart';
+import 'package:sawa/core/localization/app_localizations.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../shared/widgets/star_rating.dart';
 import '../data/beta_preferences.dart';
@@ -53,7 +53,7 @@ class _SatisfactionSurveyDialogState extends State<SatisfactionSurveyDialog> {
         feedbackType: 'survey',
         description: _commentController.text.trim().isNotEmpty
             ? _commentController.text.trim()
-            : 'No comment',
+            : context.translate('no_comment'),
         starRating: _rating,
       );
 
@@ -61,8 +61,8 @@ class _SatisfactionSurveyDialogState extends State<SatisfactionSurveyDialog> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('شكراً لملاحظاتك!'),
+          SnackBar(
+            content: Text(context.translate('thank_you_for_feedback')),
             backgroundColor: AppColors.success,
           ),
         );
@@ -72,8 +72,8 @@ class _SatisfactionSurveyDialogState extends State<SatisfactionSurveyDialog> {
       setState(() => _isSubmitting = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('فشل الإرسال. يرجى المحاولة مرة أخرى.'),
+          SnackBar(
+            content: Text(context.translate('submit_failed_retry')),
             backgroundColor: AppColors.error,
           ),
         );
@@ -93,7 +93,7 @@ class _SatisfactionSurveyDialogState extends State<SatisfactionSurveyDialog> {
     return AlertDialog(
       title: Semantics(
         label: 'Shopping experience survey',
-        child: const Text('كيف كانت تجربة التسوق؟'),
+        child: Text(context.translate('shopping_experience_question')),
       ),
       content: Column(
         mainAxisSize: MainAxisSize.min,
@@ -115,9 +115,9 @@ class _SatisfactionSurveyDialogState extends State<SatisfactionSurveyDialog> {
               controller: _commentController,
               maxLines: 3,
               maxLength: 1000,
-              decoration: const InputDecoration(
-                hintText: 'أي ملاحظات إضافية؟ (اختياري)',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                hintText: context.translate('additional_comments_hint'),
+                border: const OutlineInputBorder(),
               ),
             ),
           ),
@@ -126,7 +126,7 @@ class _SatisfactionSurveyDialogState extends State<SatisfactionSurveyDialog> {
       actions: [
         TextButton(
           onPressed: _isSubmitting ? null : _skip,
-          child: const Text('تخطي'),
+          child: Text(context.translate('skip')),
         ),
         Semantics(
           button: true,
@@ -139,7 +139,7 @@ class _SatisfactionSurveyDialogState extends State<SatisfactionSurveyDialog> {
                     width: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Text('إرسال'),
+                : Text(context.translate('submit')),
           ),
         ),
       ],

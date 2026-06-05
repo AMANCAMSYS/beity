@@ -10,11 +10,13 @@ class SignUpUseCase {
     required String email,
     required String password,
     required String fullName,
+    String? language,
   }) async {
     return _repository.signUp(
       email: email,
       password: password,
       fullName: fullName,
+      language: language,
     );
   }
 }
