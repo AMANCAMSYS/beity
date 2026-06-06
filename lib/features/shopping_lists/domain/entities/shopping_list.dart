@@ -54,7 +54,8 @@ class ShoppingList {
   bool get isArchived => status == ShoppingListStatus.archived;
   bool get isActive => status == ShoppingListStatus.active;
   bool get isVisibleOnHome => status == ShoppingListStatus.active;
-  bool get canTransferToInventory => status == ShoppingListStatus.completed && inventoryTransferredAt == null;
+  bool get canTransferToInventory =>
+      status == ShoppingListStatus.completed && inventoryTransferredAt == null;
 
   ShoppingList copyWith({
     String? id,

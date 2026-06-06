@@ -18,9 +18,9 @@ class TaskFilterBar extends ConsumerWidget {
             label: Text(context.translate('today')),
             selected: filter.dueDateFilter == 'today',
             onSelected: (selected) {
-              ref.read(taskFilterProvider.notifier).setDueDateFilter(
-                    selected ? 'today' : null,
-                  );
+              ref
+                  .read(taskFilterProvider.notifier)
+                  .setDueDateFilter(selected ? 'today' : null);
             },
           ),
           const SizedBox(width: 8),
@@ -28,9 +28,9 @@ class TaskFilterBar extends ConsumerWidget {
             label: Text(context.translate('this_week')),
             selected: filter.dueDateFilter == 'this_week',
             onSelected: (selected) {
-              ref.read(taskFilterProvider.notifier).setDueDateFilter(
-                    selected ? 'this_week' : null,
-                  );
+              ref
+                  .read(taskFilterProvider.notifier)
+                  .setDueDateFilter(selected ? 'this_week' : null);
             },
           ),
           const SizedBox(width: 8),
@@ -38,9 +38,9 @@ class TaskFilterBar extends ConsumerWidget {
             label: Text(context.translate('overdue')),
             selected: filter.dueDateFilter == 'overdue',
             onSelected: (selected) {
-              ref.read(taskFilterProvider.notifier).setDueDateFilter(
-                    selected ? 'overdue' : null,
-                  );
+              ref
+                  .read(taskFilterProvider.notifier)
+                  .setDueDateFilter(selected ? 'overdue' : null);
             },
           ),
           const Spacer(),

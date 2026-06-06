@@ -27,23 +27,26 @@ void main() {
     );
 
     test('should create task with title only', () async {
-      when(() => mockRepository.createTask(
-            homeId: 'home-123',
-            title: 'تنظيف المطبخ',
-          )).thenAnswer((_) async => testTask);
+      when(
+        () => mockRepository.createTask(
+          homeId: 'home-123',
+          title: 'تنظيف المطبخ',
+        ),
+      ).thenAnswer((_) async => testTask);
 
-      final result = await useCase(const CreateTaskParams(
-        homeId: 'home-123',
-        title: 'تنظيف المطبخ',
-      ));
+      final result = await useCase(
+        const CreateTaskParams(homeId: 'home-123', title: 'تنظيف المطبخ'),
+      );
 
       expect(result, testTask);
       expect(result.title, 'تنظيف المطبخ');
       expect(result.status, 'incomplete');
-      verify(() => mockRepository.createTask(
-            homeId: 'home-123',
-            title: 'تنظيف المطبخ',
-          )).called(1);
+      verify(
+        () => mockRepository.createTask(
+          homeId: 'home-123',
+          title: 'تنظيف المطبخ',
+        ),
+      ).called(1);
     });
 
     test('should create task with all optional fields', () async {
@@ -56,25 +59,29 @@ void main() {
         recurrenceType: 'weekly',
       );
 
-      when(() => mockRepository.createTask(
-            homeId: 'home-123',
-            title: 'تنظيف المطبخ',
-            description: 'تنظيف المطبخ بالتفصيل',
-            dueDate: dueDate,
-            categoryId: 'cat-456',
-            assignedTo: 'user-456',
-            recurrenceType: 'weekly',
-          )).thenAnswer((_) async => fullTask);
+      when(
+        () => mockRepository.createTask(
+          homeId: 'home-123',
+          title: 'تنظيف المطبخ',
+          description: 'تنظيف المطبخ بالتفصيل',
+          dueDate: dueDate,
+          categoryId: 'cat-456',
+          assignedTo: 'user-456',
+          recurrenceType: 'weekly',
+        ),
+      ).thenAnswer((_) async => fullTask);
 
-      final result = await useCase(CreateTaskParams(
-        homeId: 'home-123',
-        title: 'تنظيف المطبخ',
-        description: 'تنظيف المطبخ بالتفصيل',
-        dueDate: dueDate,
-        categoryId: 'cat-456',
-        assignedTo: 'user-456',
-        recurrenceType: 'weekly',
-      ));
+      final result = await useCase(
+        CreateTaskParams(
+          homeId: 'home-123',
+          title: 'تنظيف المطبخ',
+          description: 'تنظيف المطبخ بالتفصيل',
+          dueDate: dueDate,
+          categoryId: 'cat-456',
+          assignedTo: 'user-456',
+          recurrenceType: 'weekly',
+        ),
+      );
 
       expect(result.description, 'تنظيف المطبخ بالتفصيل');
       expect(result.dueDate, dueDate);
@@ -87,17 +94,21 @@ void main() {
       final dueDate = DateTime(2026, 5, 20);
       final taskWithDueDate = testTask.copyWith(dueDate: dueDate);
 
-      when(() => mockRepository.createTask(
-            homeId: 'home-123',
-            title: 'تنظيف المطبخ',
-            dueDate: dueDate,
-          )).thenAnswer((_) async => taskWithDueDate);
+      when(
+        () => mockRepository.createTask(
+          homeId: 'home-123',
+          title: 'تنظيف المطبخ',
+          dueDate: dueDate,
+        ),
+      ).thenAnswer((_) async => taskWithDueDate);
 
-      final result = await useCase(CreateTaskParams(
-        homeId: 'home-123',
-        title: 'تنظيف المطبخ',
-        dueDate: dueDate,
-      ));
+      final result = await useCase(
+        CreateTaskParams(
+          homeId: 'home-123',
+          title: 'تنظيف المطبخ',
+          dueDate: dueDate,
+        ),
+      );
 
       expect(result.dueDate, dueDate);
     });
@@ -105,17 +116,21 @@ void main() {
     test('should create recurring task', () async {
       final recurringTask = testTask.copyWith(recurrenceType: 'daily');
 
-      when(() => mockRepository.createTask(
-            homeId: 'home-123',
-            title: 'تنظيف المطبخ',
-            recurrenceType: 'daily',
-          )).thenAnswer((_) async => recurringTask);
+      when(
+        () => mockRepository.createTask(
+          homeId: 'home-123',
+          title: 'تنظيف المطبخ',
+          recurrenceType: 'daily',
+        ),
+      ).thenAnswer((_) async => recurringTask);
 
-      final result = await useCase(const CreateTaskParams(
-        homeId: 'home-123',
-        title: 'تنظيف المطبخ',
-        recurrenceType: 'daily',
-      ));
+      final result = await useCase(
+        const CreateTaskParams(
+          homeId: 'home-123',
+          title: 'تنظيف المطبخ',
+          recurrenceType: 'daily',
+        ),
+      );
 
       expect(result.isRecurring, true);
       expect(result.recurrenceType, 'daily');

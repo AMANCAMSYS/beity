@@ -29,14 +29,10 @@ class TaskRemoteDataSource {
     }
 
     final response = await query.order('created_at', ascending: false);
-    return (response as List)
-        .map((json) => TaskModel.fromJson(json))
-        .toList();
+    return (response as List).map((json) => TaskModel.fromJson(json)).toList();
   }
 
-  Future<TaskModel?> getTaskById({
-    required String taskId,
-  }) async {
+  Future<TaskModel?> getTaskById({required String taskId}) async {
     final response = await _client
         .from('tasks')
         .select()
@@ -140,9 +136,7 @@ class TaskRemoteDataSource {
     return TaskModel.fromJson(response);
   }
 
-  Future<void> deleteTask({
-    required String taskId,
-  }) async {
+  Future<void> deleteTask({required String taskId}) async {
     final user = _client.auth.currentUser;
     if (user == null) {
       throw Exception('must_login_first');
@@ -158,9 +152,7 @@ class TaskRemoteDataSource {
         .eq('id', taskId);
   }
 
-  Future<TaskModel> completeTask({
-    required String taskId,
-  }) async {
+  Future<TaskModel> completeTask({required String taskId}) async {
     final user = _client.auth.currentUser;
     if (user == null) {
       throw Exception('must_login_first');
@@ -182,9 +174,7 @@ class TaskRemoteDataSource {
     return TaskModel.fromJson(response);
   }
 
-  Future<TaskModel> uncompleteTask({
-    required String taskId,
-  }) async {
+  Future<TaskModel> uncompleteTask({required String taskId}) async {
     final user = _client.auth.currentUser;
     if (user == null) {
       throw Exception('must_login_first');
@@ -206,9 +196,7 @@ class TaskRemoteDataSource {
     return TaskModel.fromJson(response);
   }
 
-  Future<String?> createNextRecurringTask({
-    required String taskId,
-  }) async {
+  Future<String?> createNextRecurringTask({required String taskId}) async {
     try {
       final response = await _client.rpc(
         'create_next_recurring_task',
@@ -235,12 +223,16 @@ class TaskRemoteDataSource {
         .stream(primaryKey: ['id'])
         .eq('home_id', homeId)
         .order('created_at', ascending: false)
-        .map((response) => response
-            .map((json) => TaskModel.fromJson(json))
-            .where((task) =>
-                task.deletedAt == null &&
-                (!activeOnly || task.archivedAt == null) &&
-                (assignedTo == null || task.assignedTo == assignedTo))
-            .toList());
+        .map(
+          (response) => response
+              .map((json) => TaskModel.fromJson(json))
+              .where(
+                (task) =>
+                    task.deletedAt == null &&
+                    (!activeOnly || task.archivedAt == null) &&
+                    (assignedTo == null || task.assignedTo == assignedTo),
+              )
+              .toList(),
+        );
   }
 }

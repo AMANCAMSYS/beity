@@ -7,6 +7,7 @@ import 'package:sawa/app/theme/app_colors.dart';
 import 'package:sawa/shared/widgets/design_system/sawa_button.dart';
 import 'package:sawa/shared/widgets/design_system/sawa_card.dart';
 import 'package:sawa/shared/widgets/design_system/sawa_empty_state.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_loading_state.dart';
 import '../providers/expense_providers.dart';
 import '../../domain/entities/expense.dart';
 import '../../domain/entities/expense_split.dart';
@@ -14,6 +15,7 @@ import '../../../homes/data/models/home_member_model.dart';
 import '../../../homes/presentation/providers/homes_provider.dart';
 import '../../../../core/utils/action_debouncer.dart';
 import '../../../../core/localization/app_localizations.dart';
+import '../../../../core/providers/permissions_provider.dart';
 import '../../../settings/presentation/providers/app_settings_provider.dart';
 import 'package:sawa/core/errors/error_formatter.dart';
 
@@ -21,7 +23,11 @@ class ExpenseDetailScreen extends ConsumerStatefulWidget {
   final String expenseId;
   final String homeId;
 
-  const ExpenseDetailScreen({super.key, required this.expenseId, required this.homeId});
+  const ExpenseDetailScreen({
+    super.key,
+    required this.expenseId,
+    required this.homeId,
+  });
 
   @override
   ConsumerState<ExpenseDetailScreen> createState() =>
@@ -36,6 +42,10 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen> {
     final expenseAsync = ref.watch(expenseByIdProvider(widget.expenseId));
     final splitsAsync = ref.watch(expenseSplitsProvider(widget.expenseId));
     final theme = Theme.of(context);
+    final permissions = ref.watch(
+      currentHomePermissionsProvider(widget.homeId),
+    );
+    final canManage = permissions.canEdit;
 
     return Scaffold(
       appBar: AppBar(
@@ -47,34 +57,32 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen> {
           context.translate('expense_details'),
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.edit_rounded),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  behavior: SnackBarBehavior.floating,
-                  content: Text(
-                    context.translate('edit_feature_soon'),
-                  ),
-                  backgroundColor: AppColors.info,
+        actions: canManage
+            ? [
+                IconButton(
+                  icon: const Icon(Icons.edit_rounded),
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        behavior: SnackBarBehavior.floating,
+                        content: Text(context.translate('edit_feature_soon')),
+                        backgroundColor: AppColors.info,
+                      ),
+                    );
+                  },
                 ),
-              );
-            },
-          ),
-          IconButton(
-            icon: _isDeleting
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.delete_outline_rounded),
-            onPressed: _isDeleting
-                ? null
-                : () => _confirmDelete(context),
-          ),
-        ],
+                IconButton(
+                  icon: _isDeleting
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.delete_outline_rounded),
+                  onPressed: _isDeleting ? null : () => _confirmDelete(context),
+                ),
+              ]
+            : null,
       ),
       body: expenseAsync.when(
         data: (expense) {
@@ -121,10 +129,12 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen> {
             ],
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => SawaLoadingState(
+          message: context.translate('loading_expense_details'),
+        ),
         error: (error, stack) => SawaEmptyState(
           title: context.translate('error_title'),
-          message: error.toString(),
+          message: ErrorFormatter.format(error, context),
           icon: Icons.error_outline_rounded,
           isError: true,
           actionText: context.translate('retry'),
@@ -134,9 +144,7 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen> {
     );
   }
 
-  Map<String, String> _memberNames(
-    List<HomeMemberModel> members,
-  ) {
+  Map<String, String> _memberNames(List<HomeMemberModel> members) {
     return {
       for (final member in members)
         member.userId: (member.userName?.trim().isNotEmpty ?? false)
@@ -157,8 +165,7 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen> {
         ? _memberNames(membersAsync.value!)
         : const <String, String>{};
     final payerName =
-        memberNames[expense.paidBy] ??
-        context.translate('member');
+        memberNames[expense.paidBy] ?? context.translate('member');
 
     return SawaCard(
       padding: const EdgeInsets.all(AppSpacing.xl),
@@ -464,9 +471,7 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen> {
             ),
           ],
         ),
-        content: Text(
-          context.translate('delete_expense_warning'),
-        ),
+        content: Text(context.translate('delete_expense_warning')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -508,9 +513,7 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen> {
         ScaffoldMessenger.of(screenContext).showSnackBar(
           SnackBar(
             behavior: SnackBarBehavior.floating,
-            content: Text(
-              context.translate('expense_deleted_success'),
-            ),
+            content: Text(context.translate('expense_deleted_success')),
             backgroundColor: AppColors.success,
           ),
         );
@@ -520,7 +523,12 @@ class _ExpenseDetailScreenState extends ConsumerState<ExpenseDetailScreen> {
         ScaffoldMessenger.of(screenContext).showSnackBar(
           SnackBar(
             behavior: SnackBarBehavior.floating,
-            content: Text(context.translate('error_deleting_expense', arguments: {'error': ErrorFormatter.format(e, context)})),
+            content: Text(
+              context.translate(
+                'error_deleting_expense',
+                arguments: {'error': ErrorFormatter.format(e, context)},
+              ),
+            ),
             backgroundColor: AppColors.error,
           ),
         );

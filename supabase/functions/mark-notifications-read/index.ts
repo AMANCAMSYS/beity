@@ -50,7 +50,7 @@ Deno.serve(async (req: Request) => {
     const { data, error: updateError } = await query.select("id");
 
     if (updateError) {
-      console.error("Error marking notifications as read:", updateError);
+      console.error(JSON.stringify({ event: "mark_read_failed", userId: user.id, error: updateError.message }));
       return new Response(
         JSON.stringify({ error: "Failed to mark notifications as read" }),
         { status: 500, headers: { "Content-Type": "application/json" } }
@@ -65,7 +65,7 @@ Deno.serve(async (req: Request) => {
       { status: 200, headers: { "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("Error in mark-notifications-read:", error);
+    console.error(JSON.stringify({ event: "mark_read_unhandled", error: error instanceof Error ? error.message : String(error) }));
     return new Response(
       JSON.stringify({ error: "Internal server error" }),
       { status: 500, headers: { "Content-Type": "application/json" } }

@@ -50,7 +50,8 @@ class PurchaseNotificationOverlay extends StatefulWidget {
       _PurchaseNotificationOverlayState();
 }
 
-class _PurchaseNotificationOverlayState extends State<PurchaseNotificationOverlay>
+class _PurchaseNotificationOverlayState
+    extends State<PurchaseNotificationOverlay>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _slideAnimation;
@@ -64,13 +65,15 @@ class _PurchaseNotificationOverlayState extends State<PurchaseNotificationOverla
       duration: const Duration(milliseconds: 300),
     );
 
-    _slideAnimation = Tween<double>(begin: -100, end: 0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
-    );
+    _slideAnimation = Tween<double>(
+      begin: -100,
+      end: 0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
 
-    _fadeAnimation = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeIn),
-    );
+    _fadeAnimation = Tween<double>(
+      begin: 0,
+      end: 1,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeIn));
 
     _controller.forward();
   }
@@ -84,7 +87,7 @@ class _PurchaseNotificationOverlayState extends State<PurchaseNotificationOverla
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     // Construct the message
     String message;
     if (widget.isPurchased) {
@@ -131,10 +134,7 @@ class _PurchaseNotificationOverlayState extends State<PurchaseNotificationOverla
             builder: (context, child) {
               return Transform.translate(
                 offset: Offset(0, _slideAnimation.value),
-                child: Opacity(
-                  opacity: _fadeAnimation.value,
-                  child: child,
-                ),
+                child: Opacity(opacity: _fadeAnimation.value, child: child),
               );
             },
             child: Container(

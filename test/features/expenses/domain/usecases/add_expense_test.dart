@@ -29,80 +29,95 @@ void main() {
     );
 
     test('should create expense successfully', () async {
-      when(() => mockRepository.createExpense(
-            homeId: 'home-123',
-            amount: 10000,
-            description: 'Groceries',
-            date: testDate,
-            paidBy: 'user-123',
-            convertedAmount: 10000,
-          )).thenAnswer((_) async => testExpense);
+      when(
+        () => mockRepository.createExpense(
+          homeId: 'home-123',
+          amount: 10000,
+          description: 'Groceries',
+          date: testDate,
+          paidBy: 'user-123',
+          convertedAmount: 10000,
+        ),
+      ).thenAnswer((_) async => testExpense);
 
-      final result = await useCase(AddExpenseParams(
-        homeId: 'home-123',
-        amount: 10000,
-        description: 'Groceries',
-        date: testDate,
-        paidBy: 'user-123',
-        convertedAmount: 10000,
-      ));
+      final result = await useCase(
+        AddExpenseParams(
+          homeId: 'home-123',
+          amount: 10000,
+          description: 'Groceries',
+          date: testDate,
+          paidBy: 'user-123',
+          convertedAmount: 10000,
+        ),
+      );
 
       expect(result, testExpense);
-      verify(() => mockRepository.createExpense(
-            homeId: 'home-123',
-            amount: 10000,
-            description: 'Groceries',
-            date: testDate,
-            paidBy: 'user-123',
-            convertedAmount: 10000,
-          )).called(1);
+      verify(
+        () => mockRepository.createExpense(
+          homeId: 'home-123',
+          amount: 10000,
+          description: 'Groceries',
+          date: testDate,
+          paidBy: 'user-123',
+          convertedAmount: 10000,
+        ),
+      ).called(1);
     });
 
     test('should pass category when provided', () async {
-      when(() => mockRepository.createExpense(
-            homeId: 'home-123',
-            amount: 10000,
-            description: 'Groceries',
-            date: testDate,
-            categoryId: 'cat-456',
-            paidBy: 'user-123',
-            convertedAmount: 10000,
-          )).thenAnswer((_) async => testExpense.copyWith(categoryId: 'cat-456'));
+      when(
+        () => mockRepository.createExpense(
+          homeId: 'home-123',
+          amount: 10000,
+          description: 'Groceries',
+          date: testDate,
+          categoryId: 'cat-456',
+          paidBy: 'user-123',
+          convertedAmount: 10000,
+        ),
+      ).thenAnswer((_) async => testExpense.copyWith(categoryId: 'cat-456'));
 
-      final result = await useCase(AddExpenseParams(
-        homeId: 'home-123',
-        amount: 10000,
-        description: 'Groceries',
-        date: testDate,
-        categoryId: 'cat-456',
-        paidBy: 'user-123',
-        convertedAmount: 10000,
-      ));
+      final result = await useCase(
+        AddExpenseParams(
+          homeId: 'home-123',
+          amount: 10000,
+          description: 'Groceries',
+          date: testDate,
+          categoryId: 'cat-456',
+          paidBy: 'user-123',
+          convertedAmount: 10000,
+        ),
+      );
 
       expect(result.categoryId, 'cat-456');
     });
 
     test('should pass shopping list item when provided', () async {
-      when(() => mockRepository.createExpense(
-            homeId: 'home-123',
-            amount: 10000,
-            description: 'Groceries',
-            date: testDate,
-            paidBy: 'user-123',
-            shoppingListItemId: 'item-789',
-            convertedAmount: 10000,
-          )).thenAnswer(
-              (_) async => testExpense.copyWith(shoppingListItemId: 'item-789'));
+      when(
+        () => mockRepository.createExpense(
+          homeId: 'home-123',
+          amount: 10000,
+          description: 'Groceries',
+          date: testDate,
+          paidBy: 'user-123',
+          shoppingListItemId: 'item-789',
+          convertedAmount: 10000,
+        ),
+      ).thenAnswer(
+        (_) async => testExpense.copyWith(shoppingListItemId: 'item-789'),
+      );
 
-      final result = await useCase(AddExpenseParams(
-        homeId: 'home-123',
-        amount: 10000,
-        description: 'Groceries',
-        date: testDate,
-        paidBy: 'user-123',
-        shoppingListItemId: 'item-789',
-        convertedAmount: 10000,
-      ));
+      final result = await useCase(
+        AddExpenseParams(
+          homeId: 'home-123',
+          amount: 10000,
+          description: 'Groceries',
+          date: testDate,
+          paidBy: 'user-123',
+          shoppingListItemId: 'item-789',
+          convertedAmount: 10000,
+        ),
+      );
 
       expect(result.shoppingListItemId, 'item-789');
     });

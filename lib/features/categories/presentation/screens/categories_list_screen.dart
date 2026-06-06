@@ -26,15 +26,17 @@ class _CategoriesListScreenState extends ConsumerState<CategoriesListScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(appTourControllerProvider.notifier).maybeStartCategoriesTour(context);
+      ref
+          .read(appTourControllerProvider.notifier)
+          .maybeStartCategoriesTour(context);
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final categoriesAsync = ref.watch(categoriesByTypeProvider(
-      (homeId: widget.homeId, type: _selectedType),
-    ));
+    final categoriesAsync = ref.watch(
+      categoriesByTypeProvider((homeId: widget.homeId, type: _selectedType)),
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -63,7 +65,10 @@ class _CategoriesListScreenState extends ConsumerState<CategoriesListScreen> {
                 const SizedBox(width: 8),
                 _buildFilterChip('shopping', context.translate('shopping')),
                 const SizedBox(width: 8),
-                _buildFilterChip('inventory', context.translate('inventory_filter')),
+                _buildFilterChip(
+                  'inventory',
+                  context.translate('inventory_filter'),
+                ),
                 const SizedBox(width: 8),
                 _buildFilterChip('expense', context.translate('expense')),
               ],
@@ -93,8 +98,7 @@ class _CategoriesListScreenState extends ConsumerState<CategoriesListScreen> {
                   },
                 );
               },
-              loading: () =>
-                  const Center(child: CircularProgressIndicator()),
+              loading: () => const Center(child: CircularProgressIndicator()),
               error: (error, stack) => SawaEmptyState(
                 title: context.translate('error_occurred'),
                 message: error.toString(),

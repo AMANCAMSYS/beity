@@ -43,8 +43,14 @@ class SyncStatusBanner extends StatelessWidget {
         : isPausedForWifi
         ? context.translate('sync_banner_wifi_paused')
         : failedCount > 0
-        ? context.translate('sync_banner_failed_count', arguments: {'count': failedCount.toString()})
-        : context.translate('sync_banner_pending_count', arguments: {'count': pendingCount.toString()});
+        ? context.translate(
+            'sync_banner_failed_count',
+            arguments: {'count': failedCount.toString()},
+          )
+        : context.translate(
+            'sync_banner_pending_count',
+            arguments: {'count': pendingCount.toString()},
+          );
 
     return Container(
       width: double.infinity,

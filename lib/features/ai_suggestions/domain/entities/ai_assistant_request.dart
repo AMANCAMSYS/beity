@@ -1,4 +1,5 @@
 import 'ai_mode.dart';
+import '../../../../core/localization/app_localizations.dart';
 
 class AiAssistantRequest {
   final AiMode mode;
@@ -67,7 +68,7 @@ class AiAssistantRequest {
       errors.add('ai_error_prompt_too_long');
     }
 
-    if (language != 'ar' && language != 'en' && language != 'tr') {
+    if (!AppLocalizations.supportedLanguages.contains(language)) {
       errors.add('ai_error_lang_unsupported');
     }
 

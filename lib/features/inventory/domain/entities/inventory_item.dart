@@ -29,8 +29,7 @@ class InventoryItem {
     this.deletedAt,
   });
 
-  bool get isLowStock =>
-      minQuantity != null && quantity <= minQuantity!;
+  bool get isLowStock => minQuantity != null && quantity <= minQuantity!;
 
   double get restockSuggestion =>
       minQuantity != null ? (minQuantity! * 2) - quantity : 0;

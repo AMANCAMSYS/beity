@@ -16,7 +16,9 @@ void main() {
       expect(true, isTrue); // Placeholder
     });
 
-    testWidgets('Shopping mode state preserved after phone restart', (tester) async {
+    testWidgets('Shopping mode state preserved after phone restart', (
+      tester,
+    ) async {
       // Test scenario:
       // 1. User is in shopping mode with items marked
       // 2. Phone restarts (simulate)

@@ -37,7 +37,9 @@ class _CreateUnitScreenState extends ConsumerState<CreateUnitScreen> {
     setState(() => _isLoading = true);
 
     try {
-      await ref.read(unitNotifierProvider.notifier).createUnit(
+      await ref
+          .read(unitNotifierProvider.notifier)
+          .createUnit(
             name: _nameController.text.trim(),
             symbol: _symbolController.text.trim(),
             type: _selectedType,
@@ -49,15 +51,15 @@ class _CreateUnitScreenState extends ConsumerState<CreateUnitScreen> {
       }
 
       if (mounted) {
-        SawaSnackBar.success(context, context.translate('unit_created_success'));
+        SawaSnackBar.success(
+          context,
+          context.translate('unit_created_success'),
+        );
         context.pop();
       }
     } catch (e) {
       if (mounted) {
-        SawaSnackBar.error(
-          context,
-          ErrorFormatter.format(e, context),
-        );
+        SawaSnackBar.error(context, ErrorFormatter.format(e, context));
       }
     } finally {
       if (mounted) {
@@ -69,9 +71,7 @@ class _CreateUnitScreenState extends ConsumerState<CreateUnitScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(context.translate('create_new_unit')),
-      ),
+      appBar: AppBar(title: Text(context.translate('create_new_unit'))),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Form(
@@ -101,7 +101,7 @@ class _CreateUnitScreenState extends ConsumerState<CreateUnitScreen> {
                 textDirection: TextDirection.ltr,
                 decoration: InputDecoration(
                   labelText: context.translate('unit_symbol'),
-                  hintText: 'e.g. kg',
+                  hintText: context.translate('placeholder_unit_symbol'),
                   prefixIcon: const Icon(Icons.text_fields),
                 ),
                 validator: (value) {
@@ -147,7 +147,9 @@ class _CreateUnitScreenState extends ConsumerState<CreateUnitScreen> {
               ),
               const SizedBox(height: 32),
               ElevatedButton(
-                onPressed: _isLoading ? null : () => ActionDebouncer.execute(_createUnit),
+                onPressed: _isLoading
+                    ? null
+                    : () => ActionDebouncer.execute(_createUnit),
                 child: _isLoading
                     ? const SizedBox(
                         height: 20,
@@ -157,9 +159,7 @@ class _CreateUnitScreenState extends ConsumerState<CreateUnitScreen> {
                           color: Colors.white,
                         ),
                       )
-                    : Text(
-                        context.translate('create_unit'),
-                      ),
+                    : Text(context.translate('create_unit')),
               ),
             ],
           ),

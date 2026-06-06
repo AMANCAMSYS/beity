@@ -26,7 +26,8 @@ class InventoryQuickAddSheet extends ConsumerStatefulWidget {
       _InventoryQuickAddSheetState();
 }
 
-class _InventoryQuickAddSheetState extends ConsumerState<InventoryQuickAddSheet> {
+class _InventoryQuickAddSheetState
+    extends ConsumerState<InventoryQuickAddSheet> {
   final _nameController = TextEditingController();
   final _quantityController = TextEditingController(text: '1');
   final _formKey = GlobalKey<FormState>();
@@ -44,53 +45,47 @@ class _InventoryQuickAddSheetState extends ConsumerState<InventoryQuickAddSheet>
     if (!_formKey.currentState!.validate()) return;
 
     ActionDebouncer.execute(() async {
-        setState(() {
-          _isSubmitting = true;
-          _error = null;
-        });
+      setState(() {
+        _isSubmitting = true;
+        _error = null;
+      });
 
-        try {
-          final useCase = AddInventoryItemUseCase(
-            ref.read(inventoryRepositoryProvider),
-          );
+      try {
+        final useCase = AddInventoryItemUseCase(
+          ref.read(inventoryRepositoryProvider),
+        );
 
-          final name = _nameController.text.trim();
-          final quantity = double.tryParse(_quantityController.text) ?? 1;
+        final name = _nameController.text.trim();
+        final quantity = double.tryParse(_quantityController.text) ?? 1;
 
-          await useCase(
-            homeId: widget.homeId,
-            name: name,
-            quantity: quantity,
-          );
+        await useCase(homeId: widget.homeId, name: name, quantity: quantity);
 
-          ref.invalidate(inventoryItemsProvider(widget.homeId));
+        ref.invalidate(inventoryItemsProvider(widget.homeId));
 
-          if (mounted) {
-            widget.onItemAdded();
-            Navigator.pop(context);
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                behavior: SnackBarBehavior.floating,
-                content: Text(
-                  context.translate(
-                    'added_to_inventory_success_msg',
-                    arguments: {'name': name},
-                    fallback: 'Added "$name" to inventory',
-                  ),
+        if (mounted) {
+          widget.onItemAdded();
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              behavior: SnackBarBehavior.floating,
+              content: Text(
+                context.translate(
+                  'added_to_inventory_success_msg',
+                  arguments: {'name': name},
                 ),
-                backgroundColor: AppColors.success,
               ),
-            );
-          }
-        } catch (e) {
-          if (mounted) {
-            setState(() => _error = ErrorFormatter.format(e, context));
-          }
-        } finally {
-          if (mounted) setState(() => _isSubmitting = false);
+              backgroundColor: AppColors.success,
+            ),
+          );
         }
-      },
-    );
+      } catch (e) {
+        if (mounted) {
+          setState(() => _error = ErrorFormatter.format(e, context));
+        }
+      } finally {
+        if (mounted) setState(() => _isSubmitting = false);
+      }
+    });
   }
 
   @override
@@ -100,7 +95,9 @@ class _InventoryQuickAddSheetState extends ConsumerState<InventoryQuickAddSheet>
     return Container(
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusXl)),
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(AppSpacing.radiusXl),
+        ),
       ),
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom + AppSpacing.xl,
@@ -121,15 +118,17 @@ class _InventoryQuickAddSheetState extends ConsumerState<InventoryQuickAddSheet>
                 height: 5,
                 margin: const EdgeInsets.only(bottom: AppSpacing.xl),
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.15),
+                  color: theme.colorScheme.onSurfaceVariant.withValues(
+                    alpha: 0.15,
+                  ),
                   borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
                 ),
               ),
             ),
-            
+
             // Title
             Text(
-              context.translate('quick_add_to_inventory', fallback: 'Quick Add to Inventory'),
+              context.translate('quick_add_to_inventory'),
               style: theme.textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,
                 color: theme.colorScheme.onSurface,
@@ -145,11 +144,17 @@ class _InventoryQuickAddSheetState extends ConsumerState<InventoryQuickAddSheet>
                 decoration: BoxDecoration(
                   color: theme.colorScheme.error.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-                  border: Border.all(color: theme.colorScheme.error.withValues(alpha: 0.15)),
+                  border: Border.all(
+                    color: theme.colorScheme.error.withValues(alpha: 0.15),
+                  ),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.error_outline_rounded, color: theme.colorScheme.error, size: 20),
+                    Icon(
+                      Icons.error_outline_rounded,
+                      color: theme.colorScheme.error,
+                      size: 20,
+                    ),
                     AppSpacing.gapMD,
                     Expanded(
                       child: Text(
@@ -169,16 +174,13 @@ class _InventoryQuickAddSheetState extends ConsumerState<InventoryQuickAddSheet>
             // Name field
             SawaTextField(
               controller: _nameController,
-              labelText: context.translate('product_name', fallback: 'Product Name'),
-              hintText: context.translate('what_to_add_hint', fallback: 'What do you want to add?'),
+              labelText: context.translate('product_name'),
+              hintText: context.translate('what_to_add_hint'),
               prefixIcon: Icons.inventory_2_rounded,
               autofocus: true,
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
-                  return context.translate(
-                    'please_enter_product_name',
-                    fallback: 'Please enter product name',
-                  );
+                  return context.translate('please_enter_product_name');
                 }
                 return null;
               },
@@ -190,7 +192,7 @@ class _InventoryQuickAddSheetState extends ConsumerState<InventoryQuickAddSheet>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  context.translate('initial_quantity', fallback: 'Initial Quantity'),
+                  context.translate('initial_quantity'),
                   style: theme.textTheme.labelSmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                     fontWeight: FontWeight.bold,
@@ -205,14 +207,16 @@ class _InventoryQuickAddSheetState extends ConsumerState<InventoryQuickAddSheet>
                         controller: _quantityController,
                         hintText: '1',
                         prefixIcon: Icons.numbers_rounded,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return context.translate('field_required', fallback: 'This field is required');
+                            return context.translate('field_required');
                           }
                           final q = double.tryParse(value);
                           if (q == null || q <= 0) {
-                            return context.translate('invalid_value', fallback: 'Invalid value');
+                            return context.translate('invalid_value');
                           }
                           return null;
                         },
@@ -239,7 +243,7 @@ class _InventoryQuickAddSheetState extends ConsumerState<InventoryQuickAddSheet>
             SawaButton(
               onPressed: _submit,
               isLoading: _isSubmitting,
-              text: context.translate('add_to_inventory', fallback: 'Add to Inventory'),
+              text: context.translate('add_to_inventory'),
               icon: Icons.check_circle_rounded,
               width: double.infinity,
             ),
@@ -264,19 +268,25 @@ class _InventoryQuickAddSheetState extends ConsumerState<InventoryQuickAddSheet>
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           decoration: BoxDecoration(
-            color: isSelected ? theme.colorScheme.primary : theme.colorScheme.surface,
+            color: isSelected
+                ? theme.colorScheme.primary
+                : theme.colorScheme.surface,
             borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
             border: Border.all(
-              color: isSelected ? theme.colorScheme.primary : theme.colorScheme.outlineVariant,
+              color: isSelected
+                  ? theme.colorScheme.primary
+                  : theme.colorScheme.outlineVariant,
               width: isSelected ? 2 : 1,
             ),
-            boxShadow: isSelected ? [
-              BoxShadow(
-                color: theme.colorScheme.primary.withValues(alpha: 0.2),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
-              )
-            ] : null,
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.2),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : null,
           ),
           alignment: Alignment.center,
           child: Text(

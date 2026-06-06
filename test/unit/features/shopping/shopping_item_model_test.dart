@@ -137,10 +137,7 @@ void main() {
         createdBy: 'user-1',
       );
 
-      final copy = original.copyWithModel(
-        name: 'Almond Milk',
-        quantity: 3.0,
-      );
+      final copy = original.copyWithModel(name: 'Almond Milk', quantity: 3.0);
 
       expect(copy.id, original.id); // preserved
       expect(copy.name, 'Almond Milk'); // changed

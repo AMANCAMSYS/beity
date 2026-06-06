@@ -76,12 +76,16 @@ class AddPurchasedToInventoryUseCase {
   }) async {
     if (items.isEmpty) return;
 
-    final inputs = items.map((i) => {
-      'name': i.name,
-      'quantity': i.quantity,
-      'unitId': i.unitId,
-      'categoryId': i.categoryId,
-    }).toList();
+    final inputs = items
+        .map(
+          (i) => {
+            'name': i.name,
+            'quantity': i.quantity,
+            'unitId': i.unitId,
+            'categoryId': i.categoryId,
+          },
+        )
+        .toList();
 
     await _inventoryRepository.transferItemsBatch(
       listId: listId,

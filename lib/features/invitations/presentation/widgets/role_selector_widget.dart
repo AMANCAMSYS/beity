@@ -37,17 +37,20 @@ class RoleSelectorWidget extends StatelessWidget {
     );
   }
 
-  void _showConfirmationDialog(BuildContext context, String newRole) {
+  void _showConfirmationDialog(BuildContext outerContext, String newRole) {
     showDialog(
-      context: context,
+      context: outerContext,
       builder: (context) => AlertDialog(
         title: Text(
-          context.translate('change_role'),
-          textDirection: TextDirection.rtl,
+          outerContext.translate('change_role'),
+          textDirection: Directionality.of(outerContext),
         ),
         content: Text(
-          context.translate('confirm_change_role', arguments: {'role': _getRoleName(context, newRole)}),
-          textDirection: TextDirection.rtl,
+          outerContext.translate(
+            'confirm_change_role',
+            arguments: {'role': _getRoleName(outerContext, newRole)},
+          ),
+          textDirection: Directionality.of(outerContext),
         ),
         actions: [
           TextButton(

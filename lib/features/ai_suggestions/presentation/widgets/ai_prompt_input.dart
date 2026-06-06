@@ -33,12 +33,15 @@ class _AiPromptInputState extends ConsumerState<AiPromptInput> {
   void _submit() {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
-    
+
     // Check loading state
     final state = ref.read(aiSuggestionsProvider);
     if (state is AiSuggestionsLoading || state is AiSuggestionsAdding) return;
 
-    final locale = Localizations.localeOf(context).languageCode == 'ar' ? 'ar' : 'en';
+    final localeCode = Localizations.localeOf(context).languageCode;
+    final locale = AppLocalizations.supportedLanguages.contains(localeCode)
+        ? localeCode
+        : 'en';
 
     ActionDebouncer.execute(() async {
       FocusScope.of(context).unfocus();
@@ -56,13 +59,13 @@ class _AiPromptInputState extends ConsumerState<AiPromptInput> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(aiSuggestionsProvider);
-    final isLoading = state is AiSuggestionsLoading || state is AiSuggestionsAdding;
-    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+    final isLoading =
+        state is AiSuggestionsLoading || state is AiSuggestionsAdding;
 
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Directionality(
-        textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
+        textDirection: context.textDirection,
         child: Row(
           children: [
             Expanded(
@@ -76,7 +79,10 @@ class _AiPromptInputState extends ConsumerState<AiPromptInput> {
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   counterText: "",
                 ),
               ),
@@ -84,9 +90,13 @@ class _AiPromptInputState extends ConsumerState<AiPromptInput> {
             const SizedBox(width: 8),
             IconButton(
               onPressed: isLoading ? null : _submit,
-              icon: isLoading 
-                ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2)) 
-                : const Icon(Icons.send),
+              icon: isLoading
+                  ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.send),
               color: Theme.of(context).primaryColor,
             ),
           ],

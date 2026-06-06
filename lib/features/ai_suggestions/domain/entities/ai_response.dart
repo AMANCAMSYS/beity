@@ -31,10 +31,7 @@ class AiMealSuggestionsResponse extends AiResponse {
   final String summary;
   final List<AiMeal> meals;
 
-  const AiMealSuggestionsResponse({
-    this.summary = '',
-    this.meals = const [],
-  });
+  const AiMealSuggestionsResponse({this.summary = '', this.meals = const []});
 }
 
 /// Full recipe ingredients for a specific meal.
@@ -66,10 +63,7 @@ class AiPantryMealsResponse extends AiResponse {
   final String summary;
   final List<AiPantryMeal> meals;
 
-  const AiPantryMealsResponse({
-    this.summary = '',
-    this.meals = const [],
-  });
+  const AiPantryMealsResponse({this.summary = '', this.meals = const []});
 }
 
 /// Response when the user asks something outside the app's scope.

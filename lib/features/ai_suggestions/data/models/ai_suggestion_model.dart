@@ -17,7 +17,8 @@ class AiSuggestionModel {
 
   factory AiSuggestionModel.fromJson(Map<String, dynamic> json) {
     // Graceful handling of name: default to empty string if missing, then trim and cap
-    String parsedName = (json['name'] as String? ?? json['n'] as String?)?.trim() ?? '';
+    String parsedName =
+        (json['name'] as String? ?? json['n'] as String?)?.trim() ?? '';
     if (parsedName.length > 100) {
       parsedName = parsedName.substring(0, 100);
     }
@@ -37,7 +38,8 @@ class AiSuggestionModel {
     }
 
     // Strip null or empty unit/category
-    String? parsedUnit = (json['unit'] as String? ?? json['u'] as String?)?.trim();
+    String? parsedUnit = (json['unit'] as String? ?? json['u'] as String?)
+        ?.trim();
     if (parsedUnit != null && parsedUnit.isEmpty) parsedUnit = null;
 
     String? parsedCategory = (json['category'] as String?)?.trim();

@@ -26,10 +26,7 @@ class SupabaseNotificationRepository implements NotificationRepository {
     final user = _client.auth.currentUser;
     if (user == null) throw Exception('User not authenticated');
 
-    var query = _client
-        .from('notifications')
-        .select()
-        .eq('user_id', user.id);
+    var query = _client.from('notifications').select().eq('user_id', user.id);
 
     if (homeId != null) {
       query = query.eq('home_id', homeId);
@@ -48,8 +45,11 @@ class SupabaseNotificationRepository implements NotificationRepository {
         .range(offset, offset + limit - 1);
 
     return (response as List)
-        .map((json) =>
-            NotificationModel.fromJson(json as Map<String, dynamic>).toEntity())
+        .map(
+          (json) => NotificationModel.fromJson(
+            json as Map<String, dynamic>,
+          ).toEntity(),
+        )
         .toList();
   }
 
@@ -103,7 +103,9 @@ class SupabaseNotificationRepository implements NotificationRepository {
   // ---------------------------------------------------------------------------
 
   @override
-  Future<NotificationPreferences> getPreferences({required String homeId}) async {
+  Future<NotificationPreferences> getPreferences({
+    required String homeId,
+  }) async {
     final user = _client.auth.currentUser;
     if (user == null) throw Exception('must_login_first');
 
@@ -119,20 +121,17 @@ class SupabaseNotificationRepository implements NotificationRepository {
         // No row yet — upsert defaults so the UI can immediately toggle them.
         final created = await _client
             .from('notification_preferences')
-            .upsert(
-              {
-                'user_id': user.id,
-                'home_id': homeId,
-                'item_added': true,
-                'item_completed': true,
-                'low_stock': true,
-                'expiry_alert': true,
-                'expense_added': true,
-                'task_assigned': true,
-                'task_due': true,
-              },
-              onConflict: 'user_id,home_id',
-            )
+            .upsert({
+              'user_id': user.id,
+              'home_id': homeId,
+              'item_added': true,
+              'item_completed': true,
+              'low_stock': true,
+              'expiry_alert': true,
+              'expense_added': true,
+              'task_assigned': true,
+              'task_due': true,
+            }, onConflict: 'user_id,home_id')
             .select()
             .maybeSingle();
 
@@ -177,14 +176,11 @@ class SupabaseNotificationRepository implements NotificationRepository {
       // Upsert so we never crash when the row doesn't exist yet.
       final response = await _client
           .from('notification_preferences')
-          .upsert(
-            {
-              'user_id': user.id,
-              'home_id': homeId,
-              field: value,
-            },
-            onConflict: 'user_id,home_id',
-          )
+          .upsert({
+            'user_id': user.id,
+            'home_id': homeId,
+            field: value,
+          }, onConflict: 'user_id,home_id')
           .select()
           .maybeSingle();
 
@@ -210,14 +206,17 @@ class SupabaseNotificationRepository implements NotificationRepository {
     required String referenceType,
     Map<String, dynamic>? context,
   }) async {
-    await _client.functions.invoke('send-notification', body: {
-      'event_type': eventType,
-      'home_id': homeId,
-      'actor_id': actorId,
-      'reference_id': referenceId,
-      'reference_type': referenceType,
-      'context': context ?? {},
-    });
+    await _client.functions.invoke(
+      'send-notification',
+      body: {
+        'event_type': eventType,
+        'home_id': homeId,
+        'actor_id': actorId,
+        'reference_id': referenceId,
+        'reference_type': referenceType,
+        'context': context ?? {},
+      },
+    );
   }
 
   // ---------------------------------------------------------------------------

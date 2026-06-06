@@ -19,7 +19,8 @@ class OnboardingDotIndicator extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final active = activeColor ?? AppColors.primary;
-    final inactive = inactiveColor ??
+    final inactive =
+        inactiveColor ??
         (Theme.of(context).brightness == Brightness.dark
             ? Colors.white.withValues(alpha: 0.25)
             : Colors.black.withValues(alpha: 0.15));

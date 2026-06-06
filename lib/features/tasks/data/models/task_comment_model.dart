@@ -32,10 +32,6 @@ class TaskCommentModel extends TaskComment {
   }
 
   Map<String, dynamic> toInsertJson() {
-    return {
-      'task_id': taskId,
-      'content': content,
-      'created_by': createdBy,
-    };
+    return {'task_id': taskId, 'content': content, 'created_by': createdBy};
   }
 }

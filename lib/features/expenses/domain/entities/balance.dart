@@ -18,11 +18,7 @@ class Balance {
   String getDebtor() => netAmount > 0 ? memberA : memberB;
   String getCreditor() => netAmount > 0 ? memberB : memberA;
 
-  Balance copyWith({
-    String? memberA,
-    String? memberB,
-    int? netAmount,
-  }) {
+  Balance copyWith({String? memberA, String? memberB, int? netAmount}) {
     return Balance(
       memberA: memberA ?? this.memberA,
       memberB: memberB ?? this.memberB,

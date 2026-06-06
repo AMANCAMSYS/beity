@@ -11,7 +11,10 @@ class LowStockBadge extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 2),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.sm,
+        vertical: 2,
+      ),
       decoration: BoxDecoration(
         color: AppColors.warning.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
@@ -20,10 +23,14 @@ class LowStockBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.warning_amber_rounded, size: 12, color: AppColors.warning),
+          const Icon(
+            Icons.warning_amber_rounded,
+            size: 12,
+            color: AppColors.warning,
+          ),
           AppSpacing.gapXXS,
           Text(
-            context.translate('low_stock', fallback: 'Low Stock'),
+            context.translate('low_stock'),
             style: theme.textTheme.labelSmall?.copyWith(
               fontSize: 10,
               fontWeight: FontWeight.bold,

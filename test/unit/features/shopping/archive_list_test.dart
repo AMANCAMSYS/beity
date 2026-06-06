@@ -5,7 +5,8 @@ import 'package:sawa/features/shopping_lists/data/models/shopping_list_model.dar
 import 'package:sawa/features/shopping_lists/data/repositories/shopping_list_repository.dart';
 import 'package:sawa/features/shopping_lists/domain/usecases/archive_list_usecase.dart';
 
-class MockShoppingListRepository extends Mock implements ShoppingListRepository {}
+class MockShoppingListRepository extends Mock
+    implements ShoppingListRepository {}
 
 void main() {
   late MockShoppingListRepository mockRepository;
@@ -35,32 +36,46 @@ void main() {
       status: ShoppingListStatus.active,
     );
 
-    test('should update shopping list status to archived in repository', () async {
-      when(() => mockRepository.updateShoppingList(
+    test(
+      'should update shopping list status to archived in repository',
+      () async {
+        when(
+          () => mockRepository.updateShoppingList(
             listId: any(named: 'listId'),
             status: any(named: 'status'),
-          )).thenAnswer((_) async => tShoppingList);
+          ),
+        ).thenAnswer((_) async => tShoppingList);
 
-      await useCase(listId: tListId);
+        await useCase(listId: tListId);
 
-      verify(() => mockRepository.updateShoppingList(
+        verify(
+          () => mockRepository.updateShoppingList(
             listId: tListId,
             status: 'archived',
-          )).called(1);
-    });
+          ),
+        ).called(1);
+      },
+    );
 
-    test('should restore (status to active) shopping list through repository', () async {
-      when(() => mockRepository.updateShoppingList(
+    test(
+      'should restore (status to active) shopping list through repository',
+      () async {
+        when(
+          () => mockRepository.updateShoppingList(
             listId: any(named: 'listId'),
             status: any(named: 'status'),
-          )).thenAnswer((_) async => tActiveShoppingList);
+          ),
+        ).thenAnswer((_) async => tActiveShoppingList);
 
-      await useCase.restore(listId: tListId);
+        await useCase.restore(listId: tListId);
 
-      verify(() => mockRepository.updateShoppingList(
+        verify(
+          () => mockRepository.updateShoppingList(
             listId: tListId,
             status: 'active',
-          )).called(1);
-    });
+          ),
+        ).called(1);
+      },
+    );
   });
 }

@@ -28,32 +28,33 @@ void main() {
     test('should update task title', () async {
       final updatedTask = originalTask.copyWith(title: 'تنظيف الحمام');
 
-      when(() => mockRepository.updateTask(
-            taskId: 'task-123',
-            title: 'تنظيف الحمام',
-          )).thenAnswer((_) async => updatedTask);
+      when(
+        () => mockRepository.updateTask(
+          taskId: 'task-123',
+          title: 'تنظيف الحمام',
+        ),
+      ).thenAnswer((_) async => updatedTask);
 
-      final result = await useCase(const EditTaskParams(
-        taskId: 'task-123',
-        title: 'تنظيف الحمام',
-      ));
+      final result = await useCase(
+        const EditTaskParams(taskId: 'task-123', title: 'تنظيف الحمام'),
+      );
 
       expect(result.title, 'تنظيف الحمام');
     });
 
     test('should update task description', () async {
-      final updatedTask =
-          originalTask.copyWith(description: 'وصف جديد');
+      final updatedTask = originalTask.copyWith(description: 'وصف جديد');
 
-      when(() => mockRepository.updateTask(
-            taskId: 'task-123',
-            description: 'وصف جديد',
-          )).thenAnswer((_) async => updatedTask);
+      when(
+        () => mockRepository.updateTask(
+          taskId: 'task-123',
+          description: 'وصف جديد',
+        ),
+      ).thenAnswer((_) async => updatedTask);
 
-      final result = await useCase(const EditTaskParams(
-        taskId: 'task-123',
-        description: 'وصف جديد',
-      ));
+      final result = await useCase(
+        const EditTaskParams(taskId: 'task-123', description: 'وصف جديد'),
+      );
 
       expect(result.description, 'وصف جديد');
     });
@@ -62,15 +63,14 @@ void main() {
       final newDueDate = DateTime(2026, 6, 1);
       final updatedTask = originalTask.copyWith(dueDate: newDueDate);
 
-      when(() => mockRepository.updateTask(
-            taskId: 'task-123',
-            dueDate: newDueDate,
-          )).thenAnswer((_) async => updatedTask);
+      when(
+        () =>
+            mockRepository.updateTask(taskId: 'task-123', dueDate: newDueDate),
+      ).thenAnswer((_) async => updatedTask);
 
-      final result = await useCase(EditTaskParams(
-        taskId: 'task-123',
-        dueDate: newDueDate,
-      ));
+      final result = await useCase(
+        EditTaskParams(taskId: 'task-123', dueDate: newDueDate),
+      );
 
       expect(result.dueDate, newDueDate);
     });
@@ -78,15 +78,16 @@ void main() {
     test('should update task assignee', () async {
       final updatedTask = originalTask.copyWith(assignedTo: 'user-456');
 
-      when(() => mockRepository.updateTask(
-            taskId: 'task-123',
-            assignedTo: 'user-456',
-          )).thenAnswer((_) async => updatedTask);
+      when(
+        () => mockRepository.updateTask(
+          taskId: 'task-123',
+          assignedTo: 'user-456',
+        ),
+      ).thenAnswer((_) async => updatedTask);
 
-      final result = await useCase(const EditTaskParams(
-        taskId: 'task-123',
-        assignedTo: 'user-456',
-      ));
+      final result = await useCase(
+        const EditTaskParams(taskId: 'task-123', assignedTo: 'user-456'),
+      );
 
       expect(result.assignedTo, 'user-456');
     });
@@ -94,30 +95,30 @@ void main() {
     test('should update task recurrence', () async {
       final updatedTask = originalTask.copyWith(recurrenceType: 'monthly');
 
-      when(() => mockRepository.updateTask(
-            taskId: 'task-123',
-            recurrenceType: 'monthly',
-          )).thenAnswer((_) async => updatedTask);
+      when(
+        () => mockRepository.updateTask(
+          taskId: 'task-123',
+          recurrenceType: 'monthly',
+        ),
+      ).thenAnswer((_) async => updatedTask);
 
-      final result = await useCase(const EditTaskParams(
-        taskId: 'task-123',
-        recurrenceType: 'monthly',
-      ));
+      final result = await useCase(
+        const EditTaskParams(taskId: 'task-123', recurrenceType: 'monthly'),
+      );
 
       expect(result.recurrenceType, 'monthly');
       expect(result.isRecurring, true);
     });
 
     test('should disable recurrence by setting null', () async {
-      when(() => mockRepository.updateTask(
-            taskId: 'task-123',
-            recurrenceType: null,
-          )).thenAnswer((_) async => originalTask);
+      when(
+        () =>
+            mockRepository.updateTask(taskId: 'task-123', recurrenceType: null),
+      ).thenAnswer((_) async => originalTask);
 
-      final result = await useCase(const EditTaskParams(
-        taskId: 'task-123',
-        recurrenceType: null,
-      ));
+      final result = await useCase(
+        const EditTaskParams(taskId: 'task-123', recurrenceType: null),
+      );
 
       expect(result.isRecurring, false);
     });

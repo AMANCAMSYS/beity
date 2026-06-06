@@ -44,6 +44,9 @@ void main() {
         () => mockConnectivity.getCurrentStatus(),
       ).thenAnswer((_) async => DeviceSyncStatus.offline);
       when(
+        () => mockLocalDS.getLastLoggedInUserId(),
+      ).thenAnswer((_) async => 'user_123');
+      when(
         () => mockLocalDS.getShoppingListsStreamCache(
           homeId: 'home_123',
           status: any(named: 'status'),
@@ -95,11 +98,11 @@ void main() {
       ).called(1);
       verify(
         () => mockQueueRepo.enqueueAction(
-          actionType: ActionType.deleteItem,
+          actionType: ActionType.deleteList,
           entityType: EntityType.shoppingList,
           entityId: 'list_123',
           homeId: 'home_123',
-          payload: {},
+          payload: any(named: 'payload'),
         ),
       ).called(1);
       verifyNever(

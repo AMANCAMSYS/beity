@@ -11,7 +11,8 @@ class GetInventoryItemsUseCase {
   }
 
   Map<String?, List<InventoryItemModel>> groupByCategory(
-      List<InventoryItemModel> items) {
+    List<InventoryItemModel> items,
+  ) {
     final map = <String?, List<InventoryItemModel>>{};
     for (final item in items) {
       map.putIfAbsent(item.categoryId, () => []).add(item);

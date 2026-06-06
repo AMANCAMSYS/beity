@@ -457,7 +457,7 @@ void main() {
 
         verify(
           () => mockQueue.enqueueAction(
-            actionType: ActionType.deleteItem,
+            actionType: ActionType.deleteList,
             entityType: EntityType.shoppingList,
             entityId: 'list-1',
             homeId: 'home-123',

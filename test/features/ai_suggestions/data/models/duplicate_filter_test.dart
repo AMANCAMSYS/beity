@@ -5,7 +5,9 @@ void main() {
   group('Duplicate Detection Logic', () {
     bool isDuplicate(AiSuggestion suggestion, List<String> existingItemNames) {
       final suggestionNameClean = suggestion.name.trim().toLowerCase();
-      return existingItemNames.any((name) => name.trim().toLowerCase() == suggestionNameClean);
+      return existingItemNames.any(
+        (name) => name.trim().toLowerCase() == suggestionNameClean,
+      );
     }
 
     test('detects exact match', () {

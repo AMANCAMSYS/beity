@@ -18,13 +18,17 @@ class HomeActiveListCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final summariesAsync = ref.watch(shoppingListSummariesProvider(activeList.homeId));
+    final summariesAsync = ref.watch(
+      shoppingListSummariesProvider(activeList.homeId),
+    );
 
     return summariesAsync.when(
       skipLoadingOnReload: true,
       skipLoadingOnRefresh: true,
       data: (summaries) {
-        final summary = summaries[activeList.id] ?? ShoppingListSummary(total: 0, purchased: 0);
+        final summary =
+            summaries[activeList.id] ??
+            ShoppingListSummary(total: 0, purchased: 0);
         final total = summary.total;
         final remaining = summary.remaining;
         final progress = summary.progress;

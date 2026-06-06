@@ -37,7 +37,9 @@ class GetTasks {
           final weekEnd = today.add(Duration(days: 7 - now.weekday));
           filtered = filtered.where((t) {
             if (t.dueDate == null) return false;
-            return t.dueDate!.isAfter(today.subtract(const Duration(days: 1))) &&
+            return t.dueDate!.isAfter(
+                  today.subtract(const Duration(days: 1)),
+                ) &&
                 t.dueDate!.isBefore(weekEnd.add(const Duration(days: 1)));
           }).toList();
           break;

@@ -20,7 +20,8 @@ class SatisfactionSurveyDialog extends StatefulWidget {
   }
 
   @override
-  State<SatisfactionSurveyDialog> createState() => _SatisfactionSurveyDialogState();
+  State<SatisfactionSurveyDialog> createState() =>
+      _SatisfactionSurveyDialogState();
 }
 
 class _SatisfactionSurveyDialogState extends State<SatisfactionSurveyDialog> {

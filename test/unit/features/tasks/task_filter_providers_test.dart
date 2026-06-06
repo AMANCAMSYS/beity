@@ -1,30 +1,37 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sawa/features/tasks/presentation/providers/task_filter_providers.dart';
 
 void main() {
   group('TaskFilterNotifier', () {
     test('setDueDateFilter can clear the active due date filter', () {
-      final notifier = TaskFilterNotifier();
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      final notifier = container.read(taskFilterProvider.notifier);
 
       notifier.setDueDateFilter('today');
-      expect(notifier.state.dueDateFilter, 'today');
+      expect(container.read(taskFilterProvider).dueDateFilter, 'today');
 
       notifier.setDueDateFilter(null);
-      expect(notifier.state.dueDateFilter, isNull);
+      expect(container.read(taskFilterProvider).dueDateFilter, isNull);
     });
 
     test('setAssignedTo and setStatus can clear nullable filters', () {
-      final notifier = TaskFilterNotifier();
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      final notifier = container.read(taskFilterProvider.notifier);
 
       notifier.setAssignedTo('user-1');
       notifier.setStatus('completed');
-      expect(notifier.state.assignedTo, 'user-1');
-      expect(notifier.state.status, 'completed');
+      expect(container.read(taskFilterProvider).assignedTo, 'user-1');
+      expect(container.read(taskFilterProvider).status, 'completed');
 
       notifier.setAssignedTo(null);
       notifier.setStatus(null);
-      expect(notifier.state.assignedTo, isNull);
-      expect(notifier.state.status, isNull);
+      expect(container.read(taskFilterProvider).assignedTo, isNull);
+      expect(container.read(taskFilterProvider).status, isNull);
     });
   });
 }

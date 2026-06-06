@@ -3,13 +3,9 @@ import '../models/inventory_transaction_model.dart';
 
 abstract class InventoryRepository {
   // Inventory Items
-  Future<List<InventoryItemModel>> getInventoryItems({
-    required String homeId,
-  });
+  Future<List<InventoryItemModel>> getInventoryItems({required String homeId});
 
-  Future<InventoryItemModel?> getInventoryItemById({
-    required String itemId,
-  });
+  Future<InventoryItemModel?> getInventoryItemById({required String itemId});
 
   Future<InventoryItemModel> createInventoryItem({
     required String homeId,
@@ -32,9 +28,7 @@ abstract class InventoryRepository {
     List<String> fieldsToNull = const [],
   });
 
-  Future<void> deleteInventoryItem({
-    required String itemId,
-  });
+  Future<void> deleteInventoryItem({required String itemId});
 
   Future<InventoryItemModel?> findDuplicateItem({
     required String homeId,

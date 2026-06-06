@@ -51,11 +51,16 @@ class ShoppingItem {
   /// Priority order value for sorting (lower = higher priority).
   static int priorityOrder(String priority) {
     switch (priority) {
-      case 'urgent': return 0;
-      case 'high': return 1;
-      case 'medium': return 2;
-      case 'low': return 3;
-      default: return 2;
+      case 'urgent':
+        return 0;
+      case 'high':
+        return 1;
+      case 'medium':
+        return 2;
+      case 'low':
+        return 3;
+      default:
+        return 2;
     }
   }
 
@@ -86,18 +91,32 @@ class ShoppingItem {
       quantity: quantity ?? this.quantity,
       purchasedQuantity: purchasedQuantity ?? this.purchasedQuantity,
       unitId: identical(unitId, _sentinel) ? this.unitId : unitId as String?,
-      categoryId: identical(categoryId, _sentinel) ? this.categoryId : categoryId as String?,
+      categoryId: identical(categoryId, _sentinel)
+          ? this.categoryId
+          : categoryId as String?,
       priority: priority ?? this.priority,
       price: identical(price, _sentinel) ? this.price : price as double?,
-      currency: identical(currency, _sentinel) ? this.currency : currency as String?,
+      currency: identical(currency, _sentinel)
+          ? this.currency
+          : currency as String?,
       notes: identical(notes, _sentinel) ? this.notes : notes as String?,
       isPurchased: isPurchased ?? this.isPurchased,
-      purchasedBy: identical(purchasedBy, _sentinel) ? this.purchasedBy : purchasedBy as String?,
-      purchasedAt: identical(purchasedAt, _sentinel) ? this.purchasedAt : purchasedAt as DateTime?,
+      purchasedBy: identical(purchasedBy, _sentinel)
+          ? this.purchasedBy
+          : purchasedBy as String?,
+      purchasedAt: identical(purchasedAt, _sentinel)
+          ? this.purchasedAt
+          : purchasedAt as DateTime?,
       createdBy: createdBy ?? this.createdBy,
-      createdAt: identical(createdAt, _sentinel) ? this.createdAt : createdAt as DateTime?,
-      updatedAt: identical(updatedAt, _sentinel) ? this.updatedAt : updatedAt as DateTime?,
-      deletedAt: identical(deletedAt, _sentinel) ? this.deletedAt : deletedAt as DateTime?,
+      createdAt: identical(createdAt, _sentinel)
+          ? this.createdAt
+          : createdAt as DateTime?,
+      updatedAt: identical(updatedAt, _sentinel)
+          ? this.updatedAt
+          : updatedAt as DateTime?,
+      deletedAt: identical(deletedAt, _sentinel)
+          ? this.deletedAt
+          : deletedAt as DateTime?,
     );
   }
 }

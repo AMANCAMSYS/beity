@@ -6,11 +6,7 @@ class SawaLoadingState extends StatelessWidget {
   final String? message;
   final double size;
 
-  const SawaLoadingState({
-    super.key,
-    this.message,
-    this.size = 40,
-  });
+  const SawaLoadingState({super.key, this.message, this.size = 40});
 
   @override
   Widget build(BuildContext context) {

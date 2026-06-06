@@ -72,7 +72,10 @@ abstract class ExpenseRepository {
 
   Future<bool> isInitialSyncCompleted({required String homeId});
 
-  Future<void> setInitialSyncCompleted({required String homeId, required bool completed});
+  Future<void> setInitialSyncCompleted({
+    required String homeId,
+    required bool completed,
+  });
 
   Future<Expense?> getCachedExpenseById({required String expenseId});
 

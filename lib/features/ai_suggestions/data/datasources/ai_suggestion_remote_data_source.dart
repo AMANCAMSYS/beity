@@ -27,7 +27,7 @@ class AiSuggestionRemoteDataSource {
   final SupabaseClient _supabaseClient;
 
   AiSuggestionRemoteDataSource({SupabaseClient? supabaseClient})
-      : _supabaseClient = supabaseClient ?? SupabaseService.client;
+    : _supabaseClient = supabaseClient ?? SupabaseService.client;
 
   /// New method: Fetch AI response for the advanced assistant.
   Future<AiResponse> fetchAssistantResponse(AiAssistantRequest request) async {
@@ -51,10 +51,12 @@ class AiSuggestionRemoteDataSource {
           throw const AiServiceException('ai_error_parsing');
         }
       } else if (response.status == 400) {
-        final errorMsg = _extractErrorMessage(response.data) ?? 'invalid_request';
+        final errorMsg =
+            _extractErrorMessage(response.data) ?? 'invalid_request';
         throw AiValidationException(errorMsg);
       } else {
-        final errorMsg = _extractErrorMessage(response.data) ?? 'ai_error_parsing';
+        final errorMsg =
+            _extractErrorMessage(response.data) ?? 'ai_error_parsing';
         throw AiServiceException(errorMsg);
       }
     } on FunctionException catch (e) {
@@ -62,18 +64,23 @@ class AiSuggestionRemoteDataSource {
         final errorMsg = _extractErrorMessage(e.details) ?? 'invalid_request';
         throw AiValidationException(errorMsg);
       }
-      final errorMsg = _extractErrorMessage(e.details) ?? e.reasonPhrase ?? 'service_unavailable';
+      final errorMsg =
+          _extractErrorMessage(e.details) ??
+          e.reasonPhrase ??
+          'service_unavailable';
       throw AiServiceException(errorMsg);
     } catch (e) {
       if (e is AiValidationException || e is AiServiceException) {
         rethrow;
       }
-      throw AiServiceException('unexpected_error_retry: ${e.toString()}');
+      throw const AiServiceException('unexpected_error_retry');
     }
   }
 
   /// Legacy method: Fetch suggestions only (for backward compatibility).
-  Future<List<AiSuggestionModel>> fetchSuggestions(AiSuggestionRequestModel request) async {
+  Future<List<AiSuggestionModel>> fetchSuggestions(
+    AiSuggestionRequestModel request,
+  ) async {
     try {
       final response = await _supabaseClient.functions.invoke(
         'generate-shopping-suggestions',
@@ -87,17 +94,25 @@ class AiSuggestionRemoteDataSource {
           // Cap at 20 items
           final cappedList = suggestionsList.take(20);
           return cappedList
-              .map((json) => AiSuggestionModel.fromJson(json as Map<String, dynamic>))
+              .map(
+                (json) =>
+                    AiSuggestionModel.fromJson(json as Map<String, dynamic>),
+              )
               .where((model) => model.name.isNotEmpty) // Extra safety check
               .toList();
         } else {
-          throw const AiServiceException('Invalid response format: missing suggestions array.');
+          throw const AiServiceException(
+            'Invalid response format: missing suggestions array.',
+          );
         }
       } else if (response.status == 400) {
-        final errorMsg = _extractErrorMessage(response.data) ?? 'Invalid request.';
+        final errorMsg =
+            _extractErrorMessage(response.data) ?? 'Invalid request.';
         throw AiValidationException(errorMsg);
       } else {
-        final errorMsg = _extractErrorMessage(response.data) ?? 'Failed to generate suggestions.';
+        final errorMsg =
+            _extractErrorMessage(response.data) ??
+            'Failed to generate suggestions.';
         throw AiServiceException(errorMsg);
       }
     } on FunctionException catch (e) {
@@ -105,13 +120,16 @@ class AiSuggestionRemoteDataSource {
         final errorMsg = _extractErrorMessage(e.details) ?? 'Invalid request.';
         throw AiValidationException(errorMsg);
       }
-      final errorMsg = _extractErrorMessage(e.details) ?? e.reasonPhrase ?? 'Service unavailable.';
+      final errorMsg =
+          _extractErrorMessage(e.details) ??
+          e.reasonPhrase ??
+          'Service unavailable.';
       throw AiServiceException(errorMsg);
     } catch (e) {
       if (e is AiValidationException || e is AiServiceException) {
         rethrow;
       }
-      throw AiServiceException('An unexpected error occurred: ${e.toString()}');
+      throw const AiServiceException('unexpected_error_retry');
     }
   }
 

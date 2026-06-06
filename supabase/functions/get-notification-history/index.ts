@@ -54,7 +54,7 @@ Deno.serve(async (req: Request) => {
     const { data: notifications, error: queryError, count } = await query;
 
     if (queryError) {
-      console.error("Error querying notifications:", queryError);
+      console.error(JSON.stringify({ event: "notification_query_failed", userId: user.id, error: queryError.message }));
       return new Response(
         JSON.stringify({ error: "Failed to fetch notifications" }),
         { status: 500, headers: { "Content-Type": "application/json" } }
@@ -78,7 +78,7 @@ Deno.serve(async (req: Request) => {
       { status: 200, headers: { "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("Error in get-notification-history:", error);
+    console.error(JSON.stringify({ event: "get_history_unhandled", error: error instanceof Error ? error.message : String(error) }));
     return new Response(
       JSON.stringify({ error: "Internal server error" }),
       { status: 500, headers: { "Content-Type": "application/json" } }

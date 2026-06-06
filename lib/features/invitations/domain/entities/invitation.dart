@@ -1,9 +1,4 @@
-enum InvitationStatus {
-  pending,
-  accepted,
-  expired,
-  cancelled,
-}
+enum InvitationStatus { pending, accepted, expired, cancelled }
 
 class Invitation {
   final String id;
@@ -33,7 +28,8 @@ class Invitation {
   });
 
   bool get isPending => status == InvitationStatus.pending;
-  bool get isExpired => expiresAt != null && expiresAt!.isBefore(DateTime.now());
+  bool get isExpired =>
+      expiresAt != null && expiresAt!.isBefore(DateTime.now());
 
   Invitation copyWith({
     String? id,

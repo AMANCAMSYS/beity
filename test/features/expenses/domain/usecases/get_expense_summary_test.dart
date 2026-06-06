@@ -57,116 +57,144 @@ void main() {
     ];
 
     test('should return correct total amount', () async {
-      when(() => mockRepository.getExpenses(
-            homeId: 'home-123',
-            startDate: startDate,
-            endDate: endDate,
-          )).thenAnswer((_) async => testExpenses);
+      when(
+        () => mockRepository.getExpenses(
+          homeId: 'home-123',
+          startDate: startDate,
+          endDate: endDate,
+        ),
+      ).thenAnswer((_) async => testExpenses);
 
-      final result = await useCase(GetExpenseSummaryParams(
-        homeId: 'home-123',
-        startDate: startDate,
-        endDate: endDate,
-      ));
+      final result = await useCase(
+        GetExpenseSummaryParams(
+          homeId: 'home-123',
+          startDate: startDate,
+          endDate: endDate,
+        ),
+      );
 
       expect(result.totalAmount, 10000);
     });
 
     test('should return correct expense count', () async {
-      when(() => mockRepository.getExpenses(
-            homeId: 'home-123',
-            startDate: startDate,
-            endDate: endDate,
-          )).thenAnswer((_) async => testExpenses);
+      when(
+        () => mockRepository.getExpenses(
+          homeId: 'home-123',
+          startDate: startDate,
+          endDate: endDate,
+        ),
+      ).thenAnswer((_) async => testExpenses);
 
-      final result = await useCase(GetExpenseSummaryParams(
-        homeId: 'home-123',
-        startDate: startDate,
-        endDate: endDate,
-      ));
+      final result = await useCase(
+        GetExpenseSummaryParams(
+          homeId: 'home-123',
+          startDate: startDate,
+          endDate: endDate,
+        ),
+      );
 
       expect(result.expenseCount, 3);
     });
 
     test('should return correct category breakdown', () async {
-      when(() => mockRepository.getExpenses(
-            homeId: 'home-123',
-            startDate: startDate,
-            endDate: endDate,
-          )).thenAnswer((_) async => testExpenses);
+      when(
+        () => mockRepository.getExpenses(
+          homeId: 'home-123',
+          startDate: startDate,
+          endDate: endDate,
+        ),
+      ).thenAnswer((_) async => testExpenses);
 
-      final result = await useCase(GetExpenseSummaryParams(
-        homeId: 'home-123',
-        startDate: startDate,
-        endDate: endDate,
-      ));
+      final result = await useCase(
+        GetExpenseSummaryParams(
+          homeId: 'home-123',
+          startDate: startDate,
+          endDate: endDate,
+        ),
+      );
 
       expect(result.categoryBreakdown['cat-food'], 7000);
       expect(result.categoryBreakdown['cat-transport'], 3000);
     });
 
     test('should return correct member breakdown', () async {
-      when(() => mockRepository.getExpenses(
-            homeId: 'home-123',
-            startDate: startDate,
-            endDate: endDate,
-          )).thenAnswer((_) async => testExpenses);
+      when(
+        () => mockRepository.getExpenses(
+          homeId: 'home-123',
+          startDate: startDate,
+          endDate: endDate,
+        ),
+      ).thenAnswer((_) async => testExpenses);
 
-      final result = await useCase(GetExpenseSummaryParams(
-        homeId: 'home-123',
-        startDate: startDate,
-        endDate: endDate,
-      ));
+      final result = await useCase(
+        GetExpenseSummaryParams(
+          homeId: 'home-123',
+          startDate: startDate,
+          endDate: endDate,
+        ),
+      );
 
       expect(result.memberBreakdown['user-1'], 7000);
       expect(result.memberBreakdown['user-2'], 3000);
     });
 
     test('should calculate correct average expense', () async {
-      when(() => mockRepository.getExpenses(
-            homeId: 'home-123',
-            startDate: startDate,
-            endDate: endDate,
-          )).thenAnswer((_) async => testExpenses);
+      when(
+        () => mockRepository.getExpenses(
+          homeId: 'home-123',
+          startDate: startDate,
+          endDate: endDate,
+        ),
+      ).thenAnswer((_) async => testExpenses);
 
-      final result = await useCase(GetExpenseSummaryParams(
-        homeId: 'home-123',
-        startDate: startDate,
-        endDate: endDate,
-      ));
+      final result = await useCase(
+        GetExpenseSummaryParams(
+          homeId: 'home-123',
+          startDate: startDate,
+          endDate: endDate,
+        ),
+      );
 
       expect(result.averageExpense, closeTo(3333.33, 0.01));
     });
 
     test('should return correct category percentages', () async {
-      when(() => mockRepository.getExpenses(
-            homeId: 'home-123',
-            startDate: startDate,
-            endDate: endDate,
-          )).thenAnswer((_) async => testExpenses);
+      when(
+        () => mockRepository.getExpenses(
+          homeId: 'home-123',
+          startDate: startDate,
+          endDate: endDate,
+        ),
+      ).thenAnswer((_) async => testExpenses);
 
-      final result = await useCase(GetExpenseSummaryParams(
-        homeId: 'home-123',
-        startDate: startDate,
-        endDate: endDate,
-      ));
+      final result = await useCase(
+        GetExpenseSummaryParams(
+          homeId: 'home-123',
+          startDate: startDate,
+          endDate: endDate,
+        ),
+      );
 
       expect(result.categoryPercentages['cat-food'], 70.0);
       expect(result.categoryPercentages['cat-transport'], 30.0);
     });
 
     test('should handle empty expenses list', () async {
-      when(() => mockRepository.getExpenses(
-            homeId: 'home-123',
-            startDate: startDate,
-            endDate: endDate,
-          )).thenAnswer((_) async => []);
+      when(
+        () => mockRepository.getExpenses(
+          homeId: 'home-123',
+          startDate: startDate,
+          endDate: endDate,
+        ),
+      ).thenAnswer((_) async => []);
 
-      final result = await useCase(GetExpenseSummaryParams(
-        homeId: 'home-123',
-        startDate: startDate,
-        endDate: endDate,
-      ));
+      final result = await useCase(
+        GetExpenseSummaryParams(
+          homeId: 'home-123',
+          startDate: startDate,
+          endDate: endDate,
+        ),
+      );
 
       expect(result.totalAmount, 0);
       expect(result.expenseCount, 0);
@@ -176,44 +204,51 @@ void main() {
       expect(result.categoryPercentages, isEmpty);
     });
 
-    test('should categorize expenses without category as uncategorized', () async {
-      final expensesWithoutCategory = [
-        Expense(
-          id: 'exp-1',
-          homeId: 'home-123',
-          amount: 5000,
-          description: 'Misc',
-          date: testDate,
-          paidBy: 'user-1',
-          convertedAmount: 5000,
-          createdBy: 'user-1',
-        ),
-      ];
+    test(
+      'should categorize expenses without category as uncategorized',
+      () async {
+        final expensesWithoutCategory = [
+          Expense(
+            id: 'exp-1',
+            homeId: 'home-123',
+            amount: 5000,
+            description: 'Misc',
+            date: testDate,
+            paidBy: 'user-1',
+            convertedAmount: 5000,
+            createdBy: 'user-1',
+          ),
+        ];
 
-      when(() => mockRepository.getExpenses(
+        when(
+          () => mockRepository.getExpenses(
             homeId: 'home-123',
             startDate: startDate,
             endDate: endDate,
-          )).thenAnswer((_) async => expensesWithoutCategory);
+          ),
+        ).thenAnswer((_) async => expensesWithoutCategory);
 
-      final result = await useCase(GetExpenseSummaryParams(
-        homeId: 'home-123',
-        startDate: startDate,
-        endDate: endDate,
-      ));
+        final result = await useCase(
+          GetExpenseSummaryParams(
+            homeId: 'home-123',
+            startDate: startDate,
+            endDate: endDate,
+          ),
+        );
 
-      expect(result.categoryBreakdown.containsKey('uncategorized'), true);
-      expect(result.categoryBreakdown['uncategorized'], 5000);
-    });
+        expect(result.categoryBreakdown.containsKey('uncategorized'), true);
+        expect(result.categoryBreakdown['uncategorized'], 5000);
+      },
+    );
 
     test('should work without date filters', () async {
-      when(() => mockRepository.getExpenses(
-            homeId: 'home-123',
-          )).thenAnswer((_) async => testExpenses);
+      when(
+        () => mockRepository.getExpenses(homeId: 'home-123'),
+      ).thenAnswer((_) async => testExpenses);
 
-      final result = await useCase(const GetExpenseSummaryParams(
-        homeId: 'home-123',
-      ));
+      final result = await useCase(
+        const GetExpenseSummaryParams(homeId: 'home-123'),
+      );
 
       expect(result.totalAmount, 10000);
       expect(result.expenseCount, 3);

@@ -10,7 +10,10 @@ import 'home_route_paths.dart';
 typedef HomeNameResolver = String Function(GoRouterState state);
 
 List<GoRoute> homeRoutes({required HomeNameResolver resolveHomeName}) => [
-  GoRoute(path: HomeRoutePaths.homes, builder: (context, state) => const HomesListScreen()),
+  GoRoute(
+    path: HomeRoutePaths.homes,
+    builder: (context, state) => const HomesListScreen(),
+  ),
   GoRoute(
     path: HomeRoutePaths.createHome,
     builder: (context, state) => const CreateHomeScreen(),

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:sawa/core/services/sync_coordinator.dart';
@@ -13,7 +14,16 @@ import 'package:sawa/features/categories/data/repositories/category_repository.d
 import 'package:sawa/features/homes/data/repositories/home_repository.dart';
 import 'package:sawa/features/offline_queue/data/repositories/offline_queue_repository.dart';
 import 'package:sawa/features/offline_queue/domain/usecases/sync_queue_usecase.dart';
+import 'package:sawa/features/tasks/presentation/providers/task_providers.dart';
+import 'package:sawa/features/shopping_lists/presentation/providers/shopping_lists_provider.dart';
+import 'package:sawa/features/expenses/presentation/providers/expense_providers.dart';
+import 'package:sawa/features/inventory/presentation/providers/inventory_provider.dart';
+import 'package:sawa/features/categories/presentation/providers/categories_provider.dart';
+import 'package:sawa/features/homes/presentation/providers/homes_provider.dart';
+import 'package:sawa/features/offline_queue/presentation/providers/offline_queue_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+class MockSyncService extends Mock implements SyncService {}
 
 class MockTaskRepository extends Mock implements TaskRepository {}
 
@@ -33,8 +43,6 @@ class MockOfflineQueueRepository extends Mock
 
 class MockSyncQueueUseCase extends Mock implements SyncQueueUseCase {}
 
-class MockSyncService extends Mock implements SyncService {}
-
 void main() {
   late MockTaskRepository mockTaskRepository;
   late MockShoppingListRepository mockShoppingListRepository;
@@ -44,7 +52,9 @@ void main() {
   late MockHomeRepository mockHomeRepository;
   late MockOfflineQueueRepository mockOfflineQueueRepository;
   late MockSyncQueueUseCase mockSyncQueueUseCase;
+  late MockSyncService mockSyncService;
   late SyncCoordinator syncCoordinator;
+  late ProviderContainer container;
 
   setUp(() async {
     mockTaskRepository = MockTaskRepository();
@@ -55,20 +65,30 @@ void main() {
     mockHomeRepository = MockHomeRepository();
     mockOfflineQueueRepository = MockOfflineQueueRepository();
     mockSyncQueueUseCase = MockSyncQueueUseCase();
+    mockSyncService = MockSyncService();
 
     SharedPreferences.setMockInitialValues({});
     await AppPreferences.init();
 
-    syncCoordinator = SyncCoordinator(
-      taskRepository: mockTaskRepository,
-      shoppingRepository: mockShoppingListRepository,
-      expenseRepository: mockExpenseRepository,
-      inventoryRepository: mockInventoryRepository,
-      categoryRepository: mockCategoryRepository,
-      homeRepository: mockHomeRepository,
-      offlineQueueRepository: mockOfflineQueueRepository,
-      syncQueueUseCase: mockSyncQueueUseCase,
+    container = ProviderContainer(
+      overrides: [
+        taskRepositoryProvider.overrideWithValue(mockTaskRepository),
+        shoppingListRepositoryProvider.overrideWithValue(
+          mockShoppingListRepository,
+        ),
+        expenseRepositoryProvider.overrideWithValue(mockExpenseRepository),
+        inventoryRepositoryProvider.overrideWithValue(mockInventoryRepository),
+        categoryRepositoryProvider.overrideWithValue(mockCategoryRepository),
+        homeRepositoryProvider.overrideWithValue(mockHomeRepository),
+        offlineQueueRepositoryProvider.overrideWithValue(
+          mockOfflineQueueRepository,
+        ),
+        syncQueueUseCaseProvider.overrideWithValue(mockSyncQueueUseCase),
+        syncServiceProvider.overrideWithValue(mockSyncService),
+        cachedActiveHomeIdProvider.overrideWithValue(null),
+      ],
     );
+    syncCoordinator = container.read(syncCoordinatorProvider.notifier);
 
     // Default setups
     when(
@@ -83,6 +103,10 @@ void main() {
     when(
       () => mockHomeRepository.syncMembersWithServer(any()),
     ).thenAnswer((_) async => []);
+  });
+
+  tearDown(() {
+    container.dispose();
   });
 
   group('SyncCoordinator - smartResumeSync', () {
@@ -318,7 +342,6 @@ void main() {
 
     test('repairMissing rewinds cursors before manual full sync', () async {
       const homeId = 'home-123';
-      final mockSyncService = MockSyncService();
       final resetTables = <List<String>>[];
 
       when(() => mockSyncService.resetLocalSyncTimes(any(), any())).thenAnswer((
@@ -341,17 +364,7 @@ void main() {
         () => mockCategoryRepository.syncCategoriesWithServer(any()),
       ).thenAnswer((_) async {});
 
-      final coordinator = SyncCoordinator(
-        taskRepository: mockTaskRepository,
-        shoppingRepository: mockShoppingListRepository,
-        expenseRepository: mockExpenseRepository,
-        inventoryRepository: mockInventoryRepository,
-        categoryRepository: mockCategoryRepository,
-        homeRepository: mockHomeRepository,
-        offlineQueueRepository: mockOfflineQueueRepository,
-        syncQueueUseCase: mockSyncQueueUseCase,
-        syncService: mockSyncService,
-      );
+      final coordinator = container.read(syncCoordinatorProvider.notifier);
 
       await coordinator.syncAll(homeId, force: true, repairMissing: true);
 

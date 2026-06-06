@@ -1,5 +1,5 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
 import 'package:sawa/core/services/supabase_service.dart';
 
 import '../../data/models/role_permission_model.dart';
@@ -12,50 +12,70 @@ final roleRepositoryProvider = Provider<RoleRepository>((ref) {
   return SupabaseRoleRepository(SupabaseService.client);
 });
 
-final homeMembersProvider = FutureProvider.family<List<HomeMemberModel>, String>((ref, homeId) async {
-  final repo = ref.read(roleRepositoryProvider);
-  return repo.getHomeMembers(homeId: homeId);
-});
+final homeMembersProvider =
+    FutureProvider.family<List<HomeMemberModel>, String>((ref, homeId) async {
+      final repo = ref.read(roleRepositoryProvider);
+      return repo.getHomeMembers(homeId: homeId);
+    });
 
-final homeMembersStreamProvider = StreamProvider.autoDispose.family<List<HomeMemberModel>, String>((ref, homeId) {
-  final repo = ref.read(roleRepositoryProvider);
-  return repo.watchHomeMembers(homeId: homeId);
-});
+final homeMembersStreamProvider = StreamProvider.autoDispose
+    .family<List<HomeMemberModel>, String>((ref, homeId) {
+      final repo = ref.read(roleRepositoryProvider);
+      return repo.watchHomeMembers(homeId: homeId);
+    });
 
-final rolePermissionsProvider = FutureProvider<Map<String, List<RolePermissionModel>>>((ref) async {
-  final repo = ref.read(roleRepositoryProvider);
-  return repo.getAllRolePermissions();
-});
+final rolePermissionsProvider =
+    FutureProvider<Map<String, List<RolePermissionModel>>>((ref) async {
+      final repo = ref.read(roleRepositoryProvider);
+      return repo.getAllRolePermissions();
+    });
 
-final currentHomeRoleProvider = Provider.family<HomeRole, String>((ref, homeId) {
+final currentHomeRoleProvider = Provider.family<HomeRole, String>((
+  ref,
+  homeId,
+) {
   final membersAsync = ref.watch(homeMembersStreamProvider(homeId));
   final currentUserId = SupabaseService.client.auth.currentUser?.id;
-  final roleString = membersAsync.value?.firstWhere(
-        (m) => m.userId == currentUserId,
-        orElse: () => HomeMemberModel(
-          id: '', homeId: homeId, userId: '', role: 'viewer', status: 'active', joinedAt: DateTime.now(),
-        ),
-      ).role ?? 'viewer';
-      
+  final roleString =
+      membersAsync.value
+          ?.firstWhere(
+            (m) => m.userId == currentUserId,
+            orElse: () => HomeMemberModel(
+              id: '',
+              homeId: homeId,
+              userId: '',
+              role: 'viewer',
+              status: 'active',
+              joinedAt: DateTime.now(),
+            ),
+          )
+          .role ??
+      'viewer';
+
   return HomeRole.values.firstWhere(
     (r) => r.name == roleString,
     orElse: () => HomeRole.viewer,
   );
 });
 
-final userPermissionProvider = FutureProvider.family<bool, ({String homeId, String userId, String permission})>((ref, params) async {
-  final repo = ref.read(roleRepositoryProvider);
-  return repo.hasPermission(
-    homeId: params.homeId,
-    userId: params.userId,
-    permission: params.permission,
-  );
-});
+final userPermissionProvider =
+    FutureProvider.family<
+      bool,
+      ({String homeId, String userId, String permission})
+    >((ref, params) async {
+      final repo = ref.read(roleRepositoryProvider);
+      return repo.hasPermission(
+        homeId: params.homeId,
+        userId: params.userId,
+        permission: params.permission,
+      );
+    });
 
-class RoleNotifier extends StateNotifier<AsyncValue<void>> {
-  final RoleRepository _repo;
-
-  RoleNotifier(this._repo) : super(const AsyncValue.data(null));
+class RoleNotifier extends AsyncNotifier<void> {
+  @override
+  FutureOr<void> build() {
+    return null;
+  }
 
   Future<HomeMemberModel> changeMemberRole({
     required String homeId,
@@ -64,11 +84,9 @@ class RoleNotifier extends StateNotifier<AsyncValue<void>> {
   }) async {
     state = const AsyncValue.loading();
     try {
-      final member = await _repo.changeMemberRole(
-        homeId: homeId,
-        userId: userId,
-        newRole: newRole,
-      );
+      final member = await ref
+          .read(roleRepositoryProvider)
+          .changeMemberRole(homeId: homeId, userId: userId, newRole: newRole);
       state = const AsyncValue.data(null);
       return member;
     } catch (e) {
@@ -83,10 +101,9 @@ class RoleNotifier extends StateNotifier<AsyncValue<void>> {
   }) async {
     state = const AsyncValue.loading();
     try {
-      await _repo.removeMember(
-        homeId: homeId,
-        userId: userId,
-      );
+      await ref
+          .read(roleRepositoryProvider)
+          .removeMember(homeId: homeId, userId: userId);
       state = const AsyncValue.data(null);
     } catch (e) {
       state = AsyncValue.error(e, StackTrace.current);
@@ -100,10 +117,9 @@ class RoleNotifier extends StateNotifier<AsyncValue<void>> {
   }) async {
     state = const AsyncValue.loading();
     try {
-      await _repo.transferOwnership(
-        homeId: homeId,
-        newOwnerId: newOwnerId,
-      );
+      await ref
+          .read(roleRepositoryProvider)
+          .transferOwnership(homeId: homeId, newOwnerId: newOwnerId);
       state = const AsyncValue.data(null);
     } catch (e) {
       state = AsyncValue.error(e, StackTrace.current);
@@ -112,8 +128,6 @@ class RoleNotifier extends StateNotifier<AsyncValue<void>> {
   }
 }
 
-final roleNotifierProvider =
-    StateNotifierProvider<RoleNotifier, AsyncValue<void>>((ref) {
-  final repo = ref.read(roleRepositoryProvider);
-  return RoleNotifier(repo);
+final roleNotifierProvider = AsyncNotifierProvider<RoleNotifier, void>(() {
+  return RoleNotifier();
 });

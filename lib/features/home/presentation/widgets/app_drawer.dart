@@ -59,7 +59,10 @@ class AppDrawer extends ConsumerWidget {
                     child: ListView(
                       padding: const EdgeInsets.symmetric(horizontal: 6),
                       children: [
-                        _label(context, context.translate('drawer_section_main')),
+                        _label(
+                          context,
+                          context.translate('drawer_section_main'),
+                        ),
                         _item(
                           context,
                           theme,
@@ -96,7 +99,10 @@ class AppDrawer extends ConsumerWidget {
                           enabled: hasHome,
                         ),
                         _sep(context),
-                        _label(context, context.translate('drawer_section_home')),
+                        _label(
+                          context,
+                          context.translate('drawer_section_home'),
+                        ),
                         _item(
                           context,
                           theme,
@@ -127,7 +133,10 @@ class AppDrawer extends ConsumerWidget {
                             FeatureFlags.enableTasks ||
                             FeatureFlags.enableAi) ...[
                           _sep(context),
-                          _label(context, context.translate('drawer_section_tools')),
+                          _label(
+                            context,
+                            context.translate('drawer_section_tools'),
+                          ),
                           if (FeatureFlags.enableInventory)
                             _item(
                               context,
@@ -175,7 +184,10 @@ class AppDrawer extends ConsumerWidget {
                             ),
                         ],
                         _sep(context),
-                        _label(context, context.translate('drawer_section_settings')),
+                        _label(
+                          context,
+                          context.translate('drawer_section_settings'),
+                        ),
                         _item(
                           context,
                           theme,
@@ -248,7 +260,9 @@ class AppDrawer extends ConsumerWidget {
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text(context.translate('sign_out_failed')),
+                              content: Text(
+                                context.translate('sign_out_failed'),
+                              ),
                               backgroundColor: AppColors.error,
                             ),
                           );

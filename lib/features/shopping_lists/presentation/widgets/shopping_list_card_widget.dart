@@ -66,7 +66,10 @@ class ShoppingListCardWidget extends StatelessWidget {
                       ? Icons.archive_rounded
                       : isCompleted
                       ? Icons.task_alt_rounded
-                      : ShoppingUiUtils.getIconData(shoppingList.icon, style: IconStyle.outlined),
+                      : ShoppingUiUtils.getIconData(
+                          shoppingList.icon,
+                          style: IconStyle.outlined,
+                        ),
                   color: isInactive
                       ? theme.colorScheme.onSurfaceVariant
                       : theme.colorScheme.primary,

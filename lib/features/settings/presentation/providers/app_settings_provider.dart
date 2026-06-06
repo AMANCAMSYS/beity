@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
 
 import '../../data/repositories/app_settings_repository.dart';
 
@@ -62,7 +61,8 @@ class AppSettingsState {
       compactListMode: compactListMode ?? this.compactListMode,
       groupedByCategory: groupedByCategory ?? this.groupedByCategory,
       syncOverWifiOnly: syncOverWifiOnly ?? this.syncOverWifiOnly,
-      purchaseNotifications: purchaseNotifications ?? this.purchaseNotifications,
+      purchaseNotifications:
+          purchaseNotifications ?? this.purchaseNotifications,
       country: country == _unset ? this.country : country as String?,
       dialect: dialect == _unset ? this.dialect : dialect as String?,
       isLoading: isLoading ?? this.isLoading,
@@ -75,30 +75,31 @@ final appSettingsRepositoryProvider = Provider<AppSettingsRepository>((ref) {
 });
 
 final appSettingsProvider =
-    StateNotifierProvider<AppSettingsNotifier, AppSettingsState>((ref) {
-      return AppSettingsNotifier(ref.read(appSettingsRepositoryProvider));
+    NotifierProvider<AppSettingsNotifier, AppSettingsState>(() {
+      return AppSettingsNotifier();
     });
 
-class AppSettingsNotifier extends StateNotifier<AppSettingsState> {
-  final AppSettingsRepository _repository;
-
-  AppSettingsNotifier(this._repository) : super(const AppSettingsState()) {
+class AppSettingsNotifier extends Notifier<AppSettingsState> {
+  @override
+  AppSettingsState build() {
     _load();
+    return const AppSettingsState();
   }
 
   Future<void> _load() async {
-    final themeMode = await _repository.getThemeMode();
-    final locale = await _repository.getLocale();
-    final fontSizeScale = await _repository.getFontSizeScale();
-    final hapticFeedback = await _repository.getHapticFeedback();
-    final soundEffects = await _repository.getSoundEffects();
-    final keepScreenOn = await _repository.getKeepScreenOn();
-    final compactListMode = await _repository.getCompactListMode();
-    final groupedByCategory = await _repository.getGroupedByCategory();
-    final syncOverWifiOnly = await _repository.getSyncOverWifiOnly();
-    final purchaseNotifications = await _repository.getPurchaseNotifications();
-    final country = await _repository.getCountry();
-    final dialect = await _repository.getDialect();
+    final repository = ref.read(appSettingsRepositoryProvider);
+    final themeMode = await repository.getThemeMode();
+    final locale = await repository.getLocale();
+    final fontSizeScale = await repository.getFontSizeScale();
+    final hapticFeedback = await repository.getHapticFeedback();
+    final soundEffects = await repository.getSoundEffects();
+    final keepScreenOn = await repository.getKeepScreenOn();
+    final compactListMode = await repository.getCompactListMode();
+    final groupedByCategory = await repository.getGroupedByCategory();
+    final syncOverWifiOnly = await repository.getSyncOverWifiOnly();
+    final purchaseNotifications = await repository.getPurchaseNotifications();
+    final country = await repository.getCountry();
+    final dialect = await repository.getDialect();
 
     state = state.copyWith(
       themeMode: themeMode,
@@ -118,120 +119,132 @@ class AppSettingsNotifier extends StateNotifier<AppSettingsState> {
   }
 
   Future<void> setThemeMode(ThemeMode mode) async {
+    final repository = ref.read(appSettingsRepositoryProvider);
     final oldState = state;
     try {
       state = state.copyWith(themeMode: mode);
-      await _repository.setThemeMode(mode);
+      await repository.setThemeMode(mode);
     } catch (_) {
       state = oldState;
     }
   }
 
   Future<void> setLocale(Locale locale) async {
+    final repository = ref.read(appSettingsRepositoryProvider);
     final oldState = state;
     try {
       state = state.copyWith(locale: locale);
-      await _repository.setLocale(locale);
+      await repository.setLocale(locale);
     } catch (_) {
       state = oldState;
     }
   }
 
   Future<void> setFontSizeScale(double scale) async {
+    final repository = ref.read(appSettingsRepositoryProvider);
     final oldState = state;
     try {
       state = state.copyWith(fontSizeScale: scale);
-      await _repository.setFontSizeScale(scale);
+      await repository.setFontSizeScale(scale);
     } catch (_) {
       state = oldState;
     }
   }
 
   Future<void> setHapticFeedback(bool enabled) async {
+    final repository = ref.read(appSettingsRepositoryProvider);
     final oldState = state;
     try {
       state = state.copyWith(hapticFeedback: enabled);
-      await _repository.setHapticFeedback(enabled);
+      await repository.setHapticFeedback(enabled);
     } catch (_) {
       state = oldState;
     }
   }
 
   Future<void> setSoundEffects(bool enabled) async {
+    final repository = ref.read(appSettingsRepositoryProvider);
     final oldState = state;
     try {
       state = state.copyWith(soundEffects: enabled);
-      await _repository.setSoundEffects(enabled);
+      await repository.setSoundEffects(enabled);
     } catch (_) {
       state = oldState;
     }
   }
 
   Future<void> setKeepScreenOn(bool enabled) async {
+    final repository = ref.read(appSettingsRepositoryProvider);
     final oldState = state;
     try {
       state = state.copyWith(keepScreenOn: enabled);
-      await _repository.setKeepScreenOn(enabled);
+      await repository.setKeepScreenOn(enabled);
     } catch (_) {
       state = oldState;
     }
   }
 
   Future<void> setCompactListMode(bool enabled) async {
+    final repository = ref.read(appSettingsRepositoryProvider);
     final oldState = state;
     try {
       state = state.copyWith(compactListMode: enabled);
-      await _repository.setCompactListMode(enabled);
+      await repository.setCompactListMode(enabled);
     } catch (_) {
       state = oldState;
     }
   }
 
   Future<void> setGroupedByCategory(bool enabled) async {
+    final repository = ref.read(appSettingsRepositoryProvider);
     final oldState = state;
     try {
       state = state.copyWith(groupedByCategory: enabled);
-      await _repository.setGroupedByCategory(enabled);
+      await repository.setGroupedByCategory(enabled);
     } catch (_) {
       state = oldState;
     }
   }
 
   Future<void> setSyncOverWifiOnly(bool enabled) async {
+    final repository = ref.read(appSettingsRepositoryProvider);
     final oldState = state;
     try {
       state = state.copyWith(syncOverWifiOnly: enabled);
-      await _repository.setSyncOverWifiOnly(enabled);
+      await repository.setSyncOverWifiOnly(enabled);
     } catch (_) {
       state = oldState;
     }
   }
 
   Future<void> setPurchaseNotifications(bool enabled) async {
+    final repository = ref.read(appSettingsRepositoryProvider);
     final oldState = state;
     try {
       state = state.copyWith(purchaseNotifications: enabled);
-      await _repository.setPurchaseNotifications(enabled);
+      await repository.setPurchaseNotifications(enabled);
     } catch (_) {
       state = oldState;
     }
   }
 
   Future<void> setCountry(String? country) async {
+    final repository = ref.read(appSettingsRepositoryProvider);
     final oldState = state;
     try {
       state = state.copyWith(country: country);
-      await _repository.setCountry(country);
+      await repository.setCountry(country);
     } catch (_) {
       state = oldState;
     }
   }
 
   Future<void> setDialect(String? dialect) async {
+    final repository = ref.read(appSettingsRepositoryProvider);
     final oldState = state;
     try {
       state = state.copyWith(dialect: dialect);
-      await _repository.setDialect(dialect);
+      await repository.setDialect(dialect);
     } catch (_) {
       state = oldState;
     }

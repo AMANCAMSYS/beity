@@ -17,30 +17,38 @@ class AiResponseModel {
         );
 
       case 'shopping_suggestions':
-        final suggestions = _parseList(json['suggestions'] ?? json['sug'], _parseSuggestion);
+        final suggestions = _parseList(
+          json['suggestions'] ?? json['sug'],
+          _parseSuggestion,
+        );
         return AiShoppingSuggestionsResponse(suggestions: suggestions);
 
       case 'meal_suggestions':
         final mealsVal = json['meals'] ?? json['m'] ?? [];
-        final sumVal = json['sum'] as String? ?? json['summary'] as String? ?? '';
+        final sumVal =
+            json['sum'] as String? ?? json['summary'] as String? ?? '';
         final meals = _parseList(mealsVal, _parseMeal);
-        return AiMealSuggestionsResponse(
-          summary: sumVal,
-          meals: meals,
-        );
+        return AiMealSuggestionsResponse(summary: sumVal, meals: meals);
 
       case 'recipe_ingredients':
         final mealVal = json['meal'] ?? json['m'];
         final ingredientsVal = json['ingredients'] ?? json['ing'] ?? [];
-        final optionalIngredientsVal = json['optionalIngredients'] ?? json['opt_ing'] ?? [];
-        final stepsVal = json['cookingStepsPreview'] ?? json['st'] ?? json['steps'] ?? [];
+        final optionalIngredientsVal =
+            json['optionalIngredients'] ?? json['opt_ing'] ?? [];
+        final stepsVal =
+            json['cookingStepsPreview'] ?? json['st'] ?? json['steps'] ?? [];
 
         return AiRecipeIngredientsResponse(
           meal: _parseMealInfo(mealVal as Map<String, dynamic>?),
           ingredients: _parseList(ingredientsVal, _parseIngredient),
-          optionalIngredients: _parseList(optionalIngredientsVal, (j) => _parseIngredient(j, isRequired: false)),
+          optionalIngredients: _parseList(
+            optionalIngredientsVal,
+            (j) => _parseIngredient(j, isRequired: false),
+          ),
           cookingStepsPreview: _parseStringList(stepsVal),
-          shoppingSummary: _parseShoppingSummary(json['shoppingSummary'] as Map<String, dynamic>?),
+          shoppingSummary: _parseShoppingSummary(
+            json['shoppingSummary'] as Map<String, dynamic>?,
+          ),
         );
 
       case 'weekly_meal_plan':
@@ -64,7 +72,10 @@ class AiResponseModel {
 
       case 'error':
         return AiErrorResponse(
-          message: json['message_ar'] as String? ?? json['error'] as String? ?? 'error_unexpected_generic',
+          message:
+              json['message_ar'] as String? ??
+              json['error'] as String? ??
+              'error_unexpected_generic',
         );
 
       default:
@@ -91,16 +102,17 @@ class AiResponseModel {
     return val.whereType<String>().toList();
   }
 
-  static List<T> _parseList<T>(dynamic val, T Function(Map<String, dynamic>) parser) {
+  static List<T> _parseList<T>(
+    dynamic val,
+    T Function(Map<String, dynamic>) parser,
+  ) {
     if (val is! List) return [];
-    return val
-        .whereType<Map<String, dynamic>>()
-        .map(parser)
-        .toList();
+    return val.whereType<Map<String, dynamic>>().map(parser).toList();
   }
 
   static AiSuggestion _parseSuggestion(Map<String, dynamic> json) {
-    final name = (json['name'] as String? ?? json['n'] as String?)?.trim() ?? '';
+    final name =
+        (json['name'] as String? ?? json['n'] as String?)?.trim() ?? '';
     if (name.isEmpty) {
       return const AiSuggestion(name: '—'); // Will be filtered
     }
@@ -121,9 +133,14 @@ class AiResponseModel {
 
   static AiMeal _parseMeal(Map<String, dynamic> json) {
     final name = _safeStr(json['n']) ?? _safeStr(json['name']) ?? '';
-    final description = _safeStr(json['d']) ?? _safeStr(json['description']) ?? '';
-    final difficulty = _safeStr(json['df']) ?? _safeStr(json['difficulty']) ?? '';
-    final time = _safeInt(json['t'], _safeInt(json['time'], _safeInt(json['estimatedTimeMinutes'], 30)));
+    final description =
+        _safeStr(json['d']) ?? _safeStr(json['description']) ?? '';
+    final difficulty =
+        _safeStr(json['df']) ?? _safeStr(json['difficulty']) ?? '';
+    final time = _safeInt(
+      json['t'],
+      _safeInt(json['time'], _safeInt(json['estimatedTimeMinutes'], 30)),
+    );
     final servings = _safeInt(json['srv'], _safeInt(json['servings'], 4));
     final mealType = _safeStr(json['mealType']) ?? '';
     final cuisine = _safeStr(json['cuisine']) ?? '';
@@ -167,11 +184,18 @@ class AiResponseModel {
       name: _safeStr(json['n']) ?? _safeStr(json['name']) ?? '',
       description: _safeStr(json['d']) ?? _safeStr(json['description']) ?? '',
       difficulty: _safeStr(json['df']) ?? _safeStr(json['difficulty']) ?? '',
-      estimatedTimeMinutes: _safeInt(json['t'], _safeInt(json['time'], _safeInt(json['estimatedTimeMinutes'], 30))),
+      estimatedTimeMinutes: _safeInt(
+        json['t'],
+        _safeInt(json['time'], _safeInt(json['estimatedTimeMinutes'], 30)),
+      ),
       servings: _safeInt(json['srv'], _safeInt(json['servings'], 4)),
       cuisine: _safeStr(json['cuisine']) ?? '',
-      availableIngredients: _parseStringList(json['availableIngredients'] ?? json['av_ing']),
-      missingIngredients: _parseStringList(json['missingIngredients'] ?? json['mis_ing']),
+      availableIngredients: _parseStringList(
+        json['availableIngredients'] ?? json['av_ing'],
+      ),
+      missingIngredients: _parseStringList(
+        json['missingIngredients'] ?? json['mis_ing'],
+      ),
       whyThisMeal: _safeStr(json['whyThisMeal']) ?? '',
       tags: _parseStringList(json['tags']),
     );
@@ -185,13 +209,19 @@ class AiResponseModel {
       name: _safeStr(json['n']) ?? _safeStr(json['name']) ?? '',
       description: _safeStr(json['d']) ?? _safeStr(json['description']) ?? '',
       servings: _safeInt(json['srv'], _safeInt(json['servings'], 4)),
-      estimatedTimeMinutes: _safeInt(json['t'], _safeInt(json['time'], _safeInt(json['estimatedTimeMinutes'], 30))),
+      estimatedTimeMinutes: _safeInt(
+        json['t'],
+        _safeInt(json['time'], _safeInt(json['estimatedTimeMinutes'], 30)),
+      ),
       difficulty: _safeStr(json['df']) ?? _safeStr(json['difficulty']) ?? '',
       cuisine: _safeStr(json['cuisine']) ?? '',
     );
   }
 
-  static AiRecipeIngredient _parseIngredient(Map<String, dynamic> json, {bool isRequired = true}) {
+  static AiRecipeIngredient _parseIngredient(
+    Map<String, dynamic> json, {
+    bool isRequired = true,
+  }) {
     double qty = 1.0;
     final qtyVal = json['q'] ?? json['quantity'];
     if (qtyVal is num) {
@@ -200,12 +230,15 @@ class AiResponseModel {
     }
 
     final name = _safeStr(json['n']) ?? _safeStr(json['name']) ?? '';
-    final foodKey = _safeStr(json['k']) ?? _safeStr(json['food_key']) ?? _safeStr(json['foodKey']);
+    final foodKey =
+        _safeStr(json['k']) ??
+        _safeStr(json['food_key']) ??
+        _safeStr(json['foodKey']);
     final unit = _safeStr(json['u']) ?? _safeStr(json['unit']);
     final category = _safeStr(json['category']);
     final requiredVal = json['r'] ?? json['required'];
     final isReq = requiredVal is bool ? requiredVal : isRequired;
-    
+
     final status = IngredientStatus.fromApiValue(json['status'] as String?);
     final reason = _safeStr(json['reason']);
     final note = _safeStr(json['note']);
@@ -234,10 +267,7 @@ class AiResponseModel {
 
   static AiPlanDay _parsePlanDay(Map<String, dynamic> json) {
     final meals = _parseList(json['meals'], _parseDayMeal);
-    return AiPlanDay(
-      day: json['day'] as String? ?? '',
-      meals: meals,
-    );
+    return AiPlanDay(day: json['day'] as String? ?? '', meals: meals);
   }
 
   static AiDayMeal _parseDayMeal(Map<String, dynamic> json) {

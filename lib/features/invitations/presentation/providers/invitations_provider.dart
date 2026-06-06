@@ -1,5 +1,5 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
 import 'package:sawa/core/services/supabase_service.dart';
 
 import '../../../homes/presentation/providers/homes_provider.dart';
@@ -16,41 +16,47 @@ final invitationRepositoryProvider = Provider<InvitationRepository>((ref) {
   );
 });
 
-final userInvitationsProvider = FutureProvider<List<InvitationModel>>((ref) async {
+final userInvitationsProvider = FutureProvider<List<InvitationModel>>((
+  ref,
+) async {
   final repo = ref.read(invitationRepositoryProvider);
   return repo.getUserInvitations();
 });
 
-final homeInvitationsProvider = FutureProvider.family<List<InvitationModel>, String>((ref, homeId) async {
-  final repo = ref.read(invitationRepositoryProvider);
-  return repo.getHomeInvitations(homeId: homeId);
-});
+final homeInvitationsProvider =
+    FutureProvider.family<List<InvitationModel>, String>((ref, homeId) async {
+      final repo = ref.read(invitationRepositoryProvider);
+      return repo.getHomeInvitations(homeId: homeId);
+    });
 
-final userInvitationsStreamProvider = StreamProvider<List<InvitationModel>>((ref) {
+final userInvitationsStreamProvider = StreamProvider<List<InvitationModel>>((
+  ref,
+) {
   final repo = ref.read(invitationRepositoryProvider);
   return repo.watchUserInvitations();
 });
 
-final homeInvitationsStreamProvider = StreamProvider.autoDispose.family<List<InvitationModel>, String>((ref, homeId) {
-  final repo = ref.read(invitationRepositoryProvider);
-  return repo.watchHomeInvitations(homeId: homeId);
-});
+final homeInvitationsStreamProvider = StreamProvider.autoDispose
+    .family<List<InvitationModel>, String>((ref, homeId) {
+      final repo = ref.read(invitationRepositoryProvider);
+      return repo.watchHomeInvitations(homeId: homeId);
+    });
 
-class InvitationNotifier extends StateNotifier<AsyncValue<void>> {
-  final InvitationRepository _repo;
-  final Ref _ref;
-
-  InvitationNotifier(this._repo, this._ref) : super(const AsyncValue.data(null));
+class InvitationNotifier extends AsyncNotifier<void> {
+  @override
+  FutureOr<void> build() {
+    return null;
+  }
 
   void _invalidateRelatedProviders(String homeId) {
-    _ref.invalidate(homeInvitationsStreamProvider(homeId));
-    _ref.invalidate(homeInvitationsProvider(homeId));
-    _ref.invalidate(userInvitationsStreamProvider);
-    _ref.invalidate(userInvitationsProvider);
-    _ref.invalidate(homeMembersProvider(homeId));
-    _ref.invalidate(userHomesProvider);
-    _ref.invalidate(hasHomesProvider);
-    _ref.invalidate(activeHomeIdProvider);
+    ref.invalidate(homeInvitationsStreamProvider(homeId));
+    ref.invalidate(homeInvitationsProvider(homeId));
+    ref.invalidate(userInvitationsStreamProvider);
+    ref.invalidate(userInvitationsProvider);
+    ref.invalidate(homeMembersProvider(homeId));
+    ref.invalidate(userHomesProvider);
+    ref.invalidate(hasHomesProvider);
+    ref.invalidate(activeHomeIdProvider);
   }
 
   Future<InvitationModel> sendInvitation({
@@ -60,11 +66,9 @@ class InvitationNotifier extends StateNotifier<AsyncValue<void>> {
   }) async {
     state = const AsyncValue.loading();
     try {
-      final invitation = await _repo.sendInvitation(
-        homeId: homeId,
-        email: email,
-        role: role,
-      );
+      final invitation = await ref
+          .read(invitationRepositoryProvider)
+          .sendInvitation(homeId: homeId, email: email, role: role);
       _invalidateRelatedProviders(homeId);
       state = const AsyncValue.data(null);
       return invitation;
@@ -74,17 +78,15 @@ class InvitationNotifier extends StateNotifier<AsyncValue<void>> {
     }
   }
 
-  Future<InvitationModel> acceptInvitation({
-    required String token,
-  }) async {
+  Future<InvitationModel> acceptInvitation({required String token}) async {
     state = const AsyncValue.loading();
     try {
-      final invitation = await _repo.acceptInvitation(
-        token: token,
-      );
-      
+      final invitation = await ref
+          .read(invitationRepositoryProvider)
+          .acceptInvitation(token: token);
+
       try {
-        final homeRepo = _ref.read(homeRepositoryProvider);
+        final homeRepo = ref.read(homeRepositoryProvider);
         await homeRepo.syncHomesWithServer();
         await homeRepo.syncMembersWithServer(invitation.homeId);
       } catch (_) {}
@@ -98,14 +100,12 @@ class InvitationNotifier extends StateNotifier<AsyncValue<void>> {
     }
   }
 
-  Future<InvitationModel> declineInvitation({
-    required String token,
-  }) async {
+  Future<InvitationModel> declineInvitation({required String token}) async {
     state = const AsyncValue.loading();
     try {
-      final invitation = await _repo.declineInvitation(
-        token: token,
-      );
+      final invitation = await ref
+          .read(invitationRepositoryProvider)
+          .declineInvitation(token: token);
       _invalidateRelatedProviders(invitation.homeId);
       state = const AsyncValue.data(null);
       return invitation;
@@ -120,9 +120,9 @@ class InvitationNotifier extends StateNotifier<AsyncValue<void>> {
   }) async {
     state = const AsyncValue.loading();
     try {
-      final invitation = await _repo.cancelInvitation(
-        invitationId: invitationId,
-      );
+      final invitation = await ref
+          .read(invitationRepositoryProvider)
+          .cancelInvitation(invitationId: invitationId);
       _invalidateRelatedProviders(invitation.homeId);
       state = const AsyncValue.data(null);
       return invitation;
@@ -134,7 +134,6 @@ class InvitationNotifier extends StateNotifier<AsyncValue<void>> {
 }
 
 final invitationNotifierProvider =
-    StateNotifierProvider<InvitationNotifier, AsyncValue<void>>((ref) {
-  final repo = ref.read(invitationRepositoryProvider);
-  return InvitationNotifier(repo, ref);
-});
+    AsyncNotifierProvider<InvitationNotifier, void>(() {
+      return InvitationNotifier();
+    });

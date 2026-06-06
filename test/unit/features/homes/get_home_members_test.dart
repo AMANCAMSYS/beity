@@ -40,8 +40,9 @@ void main() {
     ];
 
     test('should get list of home members from repository', () async {
-      when(() => mockRepository.getHomeMembers(any()))
-          .thenAnswer((_) async => tMembers);
+      when(
+        () => mockRepository.getHomeMembers(any()),
+      ).thenAnswer((_) async => tMembers);
 
       final result = await useCase(tHomeId);
 

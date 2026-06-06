@@ -5,9 +5,7 @@ import '../models/inventory_item_model.dart';
 /// Abstract interface for local persistence of Inventory Items.
 /// Prepares SAWA for SQLite/Drift/Isar migrations.
 abstract class InventoryLocalDataSource {
-  Future<List<InventoryItemModel>> getInventoryItems({
-    required String homeId,
-  });
+  Future<List<InventoryItemModel>> getInventoryItems({required String homeId});
 
   Future<void> saveInventoryItems({
     required String homeId,
@@ -25,12 +23,11 @@ abstract class InventoryLocalDataSource {
 }
 
 /// SharedPreferences-based implementation of [InventoryLocalDataSource].
-class SharedPreferencesInventoryLocalDataSource implements InventoryLocalDataSource {
-  String _getInventoryKey(String homeId) =>
-      'cached_inventory_$homeId';
+class SharedPreferencesInventoryLocalDataSource
+    implements InventoryLocalDataSource {
+  String _getInventoryKey(String homeId) => 'cached_inventory_$homeId';
 
-  String _getStreamKey(String homeId) =>
-      'cached_inventory_stream_$homeId';
+  String _getStreamKey(String homeId) => 'cached_inventory_stream_$homeId';
 
   @override
   Future<List<InventoryItemModel>> getInventoryItems({

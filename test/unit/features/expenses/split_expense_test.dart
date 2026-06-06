@@ -83,10 +83,7 @@ void main() {
     test('should return true when splits match total', () {
       final result = SplitExpense.validateSplits(
         totalAmount: 1000,
-        splits: [
-          (memberId: 'a', amount: 500),
-          (memberId: 'b', amount: 500),
-        ],
+        splits: [(memberId: 'a', amount: 500), (memberId: 'b', amount: 500)],
       );
 
       expect(result, isTrue);
@@ -95,20 +92,14 @@ void main() {
     test('should return false when splits do not match total', () {
       final result = SplitExpense.validateSplits(
         totalAmount: 1000,
-        splits: [
-          (memberId: 'a', amount: 500),
-          (memberId: 'b', amount: 300),
-        ],
+        splits: [(memberId: 'a', amount: 500), (memberId: 'b', amount: 300)],
       );
 
       expect(result, isFalse);
     });
 
     test('should return true for zero amount with no splits', () {
-      final result = SplitExpense.validateSplits(
-        totalAmount: 0,
-        splits: [],
-      );
+      final result = SplitExpense.validateSplits(totalAmount: 0, splits: []);
 
       expect(result, isTrue);
     });

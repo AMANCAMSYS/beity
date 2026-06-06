@@ -26,30 +26,34 @@ class PresenceIndicatorWidget extends StatelessWidget {
       child: Row(
         children: [
           Text(
-            context.translate('active_now', fallback: 'Active now:'),
+            context.translate('active_now'),
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(width: 8),
-          ...others.take(5).map((presence) => Padding(
-                padding: const EdgeInsetsDirectional.only(end: 4),
-                child: Tooltip(
-                  message: presence.displayName,
-                  child: CircleAvatar(
-                    radius: 14,
-                    backgroundColor: theme.colorScheme.primaryContainer,
-                    child: Text(
-                      presence.initials,
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: theme.colorScheme.onPrimaryContainer,
+          ...others
+              .take(5)
+              .map(
+                (presence) => Padding(
+                  padding: const EdgeInsetsDirectional.only(end: 4),
+                  child: Tooltip(
+                    message: presence.displayName,
+                    child: CircleAvatar(
+                      radius: 14,
+                      backgroundColor: theme.colorScheme.primaryContainer,
+                      child: Text(
+                        presence.initials,
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: theme.colorScheme.onPrimaryContainer,
+                        ),
                       ),
                     ),
                   ),
                 ),
-              )),
+              ),
           if (others.length > 5)
             Padding(
               padding: const EdgeInsetsDirectional.only(end: 4),

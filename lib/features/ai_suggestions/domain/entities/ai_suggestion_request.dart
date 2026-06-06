@@ -1,3 +1,5 @@
+import '../../../../core/localization/app_localizations.dart';
+
 class AiSuggestionRequest {
   final String prompt;
   final String homeType;
@@ -35,8 +37,8 @@ class AiSuggestionRequest {
       errors.add('Existing items cannot exceed 100 entries.');
     }
 
-    if (language != 'ar' && language != 'en') {
-      errors.add('Language must be either "ar" or "en".');
+    if (!AppLocalizations.supportedLanguages.contains(language)) {
+      errors.add('Language is not supported.');
     }
 
     return errors;

@@ -5,7 +5,8 @@ import 'package:sawa/features/shopping_lists/data/models/shopping_list_model.dar
 import 'package:sawa/features/shopping_lists/data/repositories/shopping_list_repository.dart';
 import 'package:sawa/features/shopping_lists/domain/usecases/create_shopping_list_usecase.dart';
 
-class MockShoppingListRepository extends Mock implements ShoppingListRepository {}
+class MockShoppingListRepository extends Mock
+    implements ShoppingListRepository {}
 
 void main() {
   late MockShoppingListRepository mockRepository;
@@ -40,28 +41,35 @@ void main() {
       verifyZeroInteractions(mockRepository);
     });
 
-    test('should call repository.createShoppingList and return the created list', () async {
-      when(() => mockRepository.createShoppingList(
+    test(
+      'should call repository.createShoppingList and return the created list',
+      () async {
+        when(
+          () => mockRepository.createShoppingList(
             homeId: any(named: 'homeId'),
             name: any(named: 'name'),
             description: any(named: 'description'),
             icon: any(named: 'icon'),
-          )).thenAnswer((_) async => tShoppingList);
+          ),
+        ).thenAnswer((_) async => tShoppingList);
 
-      final result = await useCase(
-        homeId: tHomeId,
-        name: tListName,
-        description: tDescription,
-        icon: tIcon,
-      );
+        final result = await useCase(
+          homeId: tHomeId,
+          name: tListName,
+          description: tDescription,
+          icon: tIcon,
+        );
 
-      expect(result, tShoppingList);
-      verify(() => mockRepository.createShoppingList(
+        expect(result, tShoppingList);
+        verify(
+          () => mockRepository.createShoppingList(
             homeId: tHomeId,
             name: tListName,
             description: tDescription,
             icon: tIcon,
-          )).called(1);
-    });
+          ),
+        ).called(1);
+      },
+    );
   });
 }

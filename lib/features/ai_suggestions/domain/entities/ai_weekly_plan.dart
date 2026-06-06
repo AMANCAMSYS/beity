@@ -20,10 +20,7 @@ class AiPlanDay {
   final String day;
   final List<AiDayMeal> meals;
 
-  const AiPlanDay({
-    required this.day,
-    this.meals = const [],
-  });
+  const AiPlanDay({required this.day, this.meals = const []});
 }
 
 /// A full weekly meal plan.
@@ -31,8 +28,5 @@ class AiWeeklyPlan {
   final String summary;
   final List<AiPlanDay> days;
 
-  const AiWeeklyPlan({
-    this.summary = '',
-    this.days = const [],
-  });
+  const AiWeeklyPlan({this.summary = '', this.days = const []});
 }

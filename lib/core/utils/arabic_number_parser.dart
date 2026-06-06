@@ -14,7 +14,7 @@ extension ArabicNumberParser on String {
       '٨': '8',
       '٩': '9',
     };
-    
+
     const persianDigits = {
       '۰': '0',
       '۱': '1',
@@ -35,10 +35,10 @@ extension ArabicNumberParser on String {
     persianDigits.forEach((key, value) {
       result = result.replaceAll(key, value);
     });
-    
+
     // Normalize Arabic decimal comma '٫' to standard dot '.'
     result = result.replaceAll('٫', '.');
-    
+
     return result.trim();
   }
 

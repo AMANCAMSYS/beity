@@ -21,10 +21,7 @@ class NotificationPreferenceToggle extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: SwitchListTile(
-        title: Text(
-          label,
-          style: const TextStyle(fontWeight: FontWeight.w500),
-        ),
+        title: Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
         subtitle: Text(description),
         secondary: Icon(
           icon,

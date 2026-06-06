@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sawa/app/theme/app_spacing.dart';
 import 'package:sawa/app/theme/app_colors.dart';
 import 'package:sawa/shared/widgets/design_system/sawa_empty_state.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_loading_state.dart';
 import '../../../homes/data/models/home_member_model.dart';
 import '../../../homes/presentation/providers/homes_provider.dart';
 import '../../domain/entities/settlement.dart';
@@ -10,6 +11,7 @@ import '../providers/balance_providers.dart';
 import '../widgets/balance_card.dart';
 import '../widgets/settlement_form.dart';
 import '../../../../core/localization/app_localizations.dart';
+import '../../../../core/errors/error_formatter.dart';
 
 class BalancesScreen extends ConsumerWidget {
   final String homeId;
@@ -41,7 +43,7 @@ class BalancesScreen extends ConsumerWidget {
         ),
       ),
       body: membersLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? SawaLoadingState(message: context.translate('loading_balances'))
           : balancesAsync.when(
               data: (balances) {
                 if (balances.isEmpty) {
@@ -83,10 +85,12 @@ class BalancesScreen extends ConsumerWidget {
                   ],
                 );
               },
-              loading: () => const Center(child: CircularProgressIndicator()),
+              loading: () => SawaLoadingState(
+                message: context.translate('loading_balances'),
+              ),
               error: (error, stack) => SawaEmptyState(
                 title: context.translate('error_title'),
-                message: error.toString(),
+                message: ErrorFormatter.format(error, context),
                 icon: Icons.error_outline_rounded,
                 isError: true,
                 actionText: context.translate('retry'),
@@ -177,17 +181,24 @@ class BalancesScreen extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         Text(
-                           context.translate('record_payment'),
+                          context.translate('record_payment'),
                           style: theme.textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                         AppSpacing.gapXS,
                         Text(
-                          context.translate('pays_to_label', arguments: {
-                            'from': _memberName(context, memberNames, fromMember),
-                            'to': _memberName(context, memberNames, toMember),
-                          }),
+                          context.translate(
+                            'pays_to_label',
+                            arguments: {
+                              'from': _memberName(
+                                context,
+                                memberNames,
+                                fromMember,
+                              ),
+                              'to': _memberName(context, memberNames, toMember),
+                            },
+                          ),
                           style: theme.textTheme.bodyMedium?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
                           ),
@@ -241,10 +252,21 @@ class BalancesScreen extends ConsumerWidget {
                   ),
                   leading: const Icon(Icons.payments_rounded),
                   title: Text(
-                    context.translate('paid_to_label', arguments: {
-                      'from': _memberName(context, memberNames, settlement.fromMember),
-                      'to': _memberName(context, memberNames, settlement.toMember),
-                    }),
+                    context.translate(
+                      'paid_to_label',
+                      arguments: {
+                        'from': _memberName(
+                          context,
+                          memberNames,
+                          settlement.fromMember,
+                        ),
+                        'to': _memberName(
+                          context,
+                          memberNames,
+                          settlement.toMember,
+                        ),
+                      },
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),

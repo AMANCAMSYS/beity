@@ -22,12 +22,15 @@ class SupabaseErrorMapper {
         msg.contains('network') ||
         msg.contains('timeout')) {
       return NetworkException(
-        message: 'أنت غير متصل بالإنترنت. سيتم مزامنة التغييرات عند عودة الاتصال.',
+        message:
+            'أنت غير متصل بالإنترنت. سيتم مزامنة التغييرات عند عودة الاتصال.',
         originalError: error,
       );
     }
 
-    if (msg.contains('jwt') || msg.contains('unauthorized') || msg.contains('401')) {
+    if (msg.contains('jwt') ||
+        msg.contains('unauthorized') ||
+        msg.contains('401')) {
       return AuthException(
         message: 'انتهت صلاحية جلستك. يرجى تسجيل الدخول مرة أخرى.',
         originalError: error,
@@ -51,7 +54,9 @@ class SupabaseErrorMapper {
     final code = e.code ?? '';
     final msg = e.message.toLowerCase();
 
-    if (code == '42501' || msg.contains('permission denied') || msg.contains('access denied')) {
+    if (code == '42501' ||
+        msg.contains('permission denied') ||
+        msg.contains('access denied')) {
       return PermissionException(
         message: 'ليس لديك صلاحية لتنفيذ هذا الإجراء.',
         code: code,
@@ -59,7 +64,9 @@ class SupabaseErrorMapper {
       );
     }
 
-    if (code == '23505' || msg.contains('duplicate') || msg.contains('unique')) {
+    if (code == '23505' ||
+        msg.contains('duplicate') ||
+        msg.contains('unique')) {
       return ValidationException(
         message: 'هذا العنصر موجود بالفعل.',
         code: code,
@@ -67,7 +74,9 @@ class SupabaseErrorMapper {
       );
     }
 
-    if (code == '23503' || msg.contains('foreign key') || msg.contains('violates')) {
+    if (code == '23503' ||
+        msg.contains('foreign key') ||
+        msg.contains('violates')) {
       return ValidationException(
         message: 'لا يمكن تنفيذ هذا الإجراء بسبب ارتباط بيانات أخرى.',
         code: code,
@@ -75,7 +84,9 @@ class SupabaseErrorMapper {
       );
     }
 
-    if (code == '23514' || msg.contains('check') || msg.contains('constraint')) {
+    if (code == '23514' ||
+        msg.contains('check') ||
+        msg.contains('constraint')) {
       return ValidationException(
         message: 'البيانات المدخلة غير صالحة.',
         code: code,
@@ -110,7 +121,8 @@ class SupabaseErrorMapper {
       );
     }
 
-    if (msg.contains('user already registered') || msg.contains('already exists')) {
+    if (msg.contains('user already registered') ||
+        msg.contains('already exists')) {
       return ValidationException(
         message: 'هذا البريد الإلكتروني مسجل بالفعل.',
         originalError: e,

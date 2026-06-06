@@ -4,6 +4,7 @@ import 'package:sawa/app/theme/app_spacing.dart';
 import 'package:sawa/app/theme/app_colors.dart';
 import 'package:sawa/shared/widgets/design_system/sawa_card.dart';
 import 'package:sawa/shared/widgets/design_system/sawa_empty_state.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_loading_state.dart';
 import 'package:sawa/core/services/sync_coordinator.dart';
 import '../../../categories/presentation/providers/categories_provider.dart';
 import '../../../homes/data/models/home_member_model.dart';
@@ -11,6 +12,7 @@ import '../../../homes/presentation/providers/homes_provider.dart';
 import '../providers/expense_providers.dart';
 import '../../domain/usecases/get_expense_summary.dart';
 import '../../../../core/localization/app_localizations.dart';
+import '../../../../core/errors/error_formatter.dart';
 
 class ExpenseSummaryScreen extends ConsumerStatefulWidget {
   final String homeId;
@@ -206,7 +208,9 @@ class _ExpenseSummaryScreenState extends ConsumerState<ExpenseSummaryScreen> {
                   final isSyncCompleted =
                       initialSyncCompletedAsync.value ?? false;
                   if (!isSyncCompleted) {
-                    return const Center(child: CircularProgressIndicator());
+                    return SawaLoadingState(
+                      message: context.translate('loading_expense_summary'),
+                    );
                   }
                   return RefreshIndicator(
                     onRefresh: () => ref
@@ -259,13 +263,17 @@ class _ExpenseSummaryScreenState extends ConsumerState<ExpenseSummaryScreen> {
                 final isSyncCompleted =
                     initialSyncCompletedAsync.value ?? false;
                 if (!isSyncCompleted) {
-                  return const Center(child: CircularProgressIndicator());
+                  return SawaLoadingState(
+                    message: context.translate('loading_expense_summary'),
+                  );
                 }
-                return const Center(child: CircularProgressIndicator());
+                return SawaLoadingState(
+                  message: context.translate('loading_expense_summary'),
+                );
               },
               error: (error, stackTrace) => SawaEmptyState(
                 title: context.translate('error_title'),
-                message: error.toString(),
+                message: ErrorFormatter.format(error, context),
                 icon: Icons.error_outline_rounded,
                 isError: true,
                 actionText: context.translate('retry'),

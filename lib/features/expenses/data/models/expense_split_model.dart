@@ -32,11 +32,7 @@ class ExpenseSplitModel extends ExpenseSplit {
   }
 
   Map<String, dynamic> toInsertJson() {
-    return {
-      'expense_id': expenseId,
-      'member_id': memberId,
-      'amount': amount,
-    };
+    return {'expense_id': expenseId, 'member_id': memberId, 'amount': amount};
   }
 
   ExpenseSplitModel copyWithModel({

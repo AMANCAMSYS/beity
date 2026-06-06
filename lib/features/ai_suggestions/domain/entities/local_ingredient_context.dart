@@ -21,7 +21,8 @@ class LocalIngredientRef {
   });
 
   @override
-  String toString() => 'LocalIngredientRef(key: $foodKey, name: $displayName, source: $source, listName: $listName)';
+  String toString() =>
+      'LocalIngredientRef(key: $foodKey, name: $displayName, source: $source, listName: $listName)';
 }
 
 /// Represents the organized local context parsed from the user's phone database.
@@ -41,10 +42,10 @@ class LocalIngredientContext {
   /// 2. Current List
   /// 3. Other Active Lists
   List<LocalIngredientRef> get flatRefs => [
-        ...inventory,
-        ...currentList,
-        ...otherActiveLists,
-      ];
+    ...inventory,
+    ...currentList,
+    ...otherActiveLists,
+  ];
 }
 
 /// Helper class to construct local ingredient context and build the user terms mapping.
@@ -67,13 +68,15 @@ class LocalIngredientContextBuilder {
 
       final match = LocalFoodKeyMapper.match(name);
       if (match.confidence >= 0.75) {
-        inventoryRefs.add(LocalIngredientRef(
-          foodKey: match.foodKey,
-          displayName: name,
-          source: 'inventory',
-          quantity: qty,
-          unit: item.unitId,
-        ));
+        inventoryRefs.add(
+          LocalIngredientRef(
+            foodKey: match.foodKey,
+            displayName: name,
+            source: 'inventory',
+            quantity: qty,
+            unit: item.unitId,
+          ),
+        );
       }
     }
 
@@ -85,14 +88,16 @@ class LocalIngredientContextBuilder {
 
       final match = LocalFoodKeyMapper.match(name);
       if (match.confidence >= 0.75) {
-        currentRefs.add(LocalIngredientRef(
-          foodKey: match.foodKey,
-          displayName: name,
-          source: 'current_list',
-          listName: currentListName,
-          quantity: item.quantity,
-          unit: item.unitId,
-        ));
+        currentRefs.add(
+          LocalIngredientRef(
+            foodKey: match.foodKey,
+            displayName: name,
+            source: 'current_list',
+            listName: currentListName,
+            quantity: item.quantity,
+            unit: item.unitId,
+          ),
+        );
       }
     }
 
@@ -105,14 +110,16 @@ class LocalIngredientContextBuilder {
 
         final match = LocalFoodKeyMapper.match(name);
         if (match.confidence >= 0.75) {
-          otherRefs.add(LocalIngredientRef(
-            foodKey: match.foodKey,
-            displayName: name,
-            source: 'other_list',
-            listName: listName,
-            quantity: item.quantity,
-            unit: item.unitId,
-          ));
+          otherRefs.add(
+            LocalIngredientRef(
+              foodKey: match.foodKey,
+              displayName: name,
+              source: 'other_list',
+              listName: listName,
+              quantity: item.quantity,
+              unit: item.unitId,
+            ),
+          );
         }
       }
     });

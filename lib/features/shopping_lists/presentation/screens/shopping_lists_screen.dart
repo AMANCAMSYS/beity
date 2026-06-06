@@ -11,6 +11,7 @@ import 'package:sawa/shared/widgets/design_system/sawa_button.dart';
 import 'package:sawa/shared/widgets/design_system/sawa_text_field.dart';
 import 'package:sawa/shared/widgets/design_system/sawa_snack_bar.dart';
 import 'package:sawa/shared/widgets/design_system/sawa_empty_state.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_skeleton_list.dart';
 import '../../../homes/presentation/providers/homes_provider.dart';
 import '../../../home/presentation/widgets/app_drawer.dart';
 import '../../../home/presentation/widgets/drawer_toggle_button.dart';
@@ -63,7 +64,7 @@ class _ShoppingListsScreenState extends ConsumerState<ShoppingListsScreen>
         : ref.watch(cachedActiveHomeIdProvider) ?? '';
 
     if (homeId.isEmpty) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(body: SawaSkeletonList(itemCount: 5));
     }
 
     final listsAsync = ref.watch(shoppingListsProvider(homeId));
@@ -134,10 +135,10 @@ class _ShoppingListsScreenState extends ConsumerState<ShoppingListsScreen>
             _buildListsList(archivedLists, homeId: homeId, isArchived: true),
           ],
         ),
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const SawaSkeletonList(itemCount: 5),
         error: (error, _) => SawaEmptyState(
           title: context.translate('error_loading_lists'),
-          message: error.toString(),
+          message: ErrorFormatter.format(error, context),
           icon: Icons.error_outline_rounded,
           isError: true,
           actionText: context.translate('retry'),
@@ -374,8 +375,6 @@ class _ShoppingListsScreenState extends ConsumerState<ShoppingListsScreen>
     BuildContext context,
     ShoppingList list,
   ) async {
-    final messenger = ScaffoldMessenger.of(context);
-
     // Show loading
     showDialog(
       context: context,
@@ -426,37 +425,14 @@ class _ShoppingListsScreenState extends ConsumerState<ShoppingListsScreen>
       Navigator.pop(context);
       ref.invalidate(shoppingListsProvider(list.homeId));
 
-      messenger.showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(
-                Icons.check_circle_rounded,
-                color: Colors.white,
-                size: 20,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  context.translate(
-                    'added_to_inventory_success',
-                    arguments: {'count': purchasedItems.length.toString()},
-                  ),
-                ),
-              ),
-            ],
-          ),
-          backgroundColor: AppColors.success,
-          duration: const Duration(seconds: 4),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          margin: const EdgeInsets.all(16),
-          action: SnackBarAction(
-            label: context.translate('view_inventory'),
-            textColor: Colors.white,
-            onPressed: () => context.push(FeatureRoutePaths.inventory),
-          ),
+      SawaSnackBar.success(
+        context,
+        context.translate(
+          'added_to_inventory_success',
+          arguments: {'count': purchasedItems.length.toString()},
         ),
+        actionLabel: context.translate('view_inventory'),
+        onAction: () => context.push(FeatureRoutePaths.inventory),
       );
     } catch (e) {
       await MonitoringService().log('Failed to transfer list to inventory: $e');
@@ -517,7 +493,10 @@ class _ShoppingListsScreenState extends ConsumerState<ShoppingListsScreen>
                       }
                     } catch (e) {
                       if (context.mounted) {
-                        SawaSnackBar.error(context, ErrorFormatter.format(e, context));
+                        SawaSnackBar.error(
+                          context,
+                          ErrorFormatter.format(e, context),
+                        );
                       }
                     }
                   }),

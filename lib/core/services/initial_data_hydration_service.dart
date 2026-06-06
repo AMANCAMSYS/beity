@@ -1,6 +1,4 @@
-import 'package:flutter_riverpod/legacy.dart';
-import '../../features/homes/data/repositories/home_repository.dart';
-import '../../features/homes/data/repositories/home_local_data_source.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../features/homes/data/models/home_selection.dart';
 import '../../features/homes/presentation/providers/homes_provider.dart';
 import '../../features/shopping_mode/data/services/shopping_mode_session_recovery_service.dart';
@@ -33,66 +31,68 @@ class HydrationState {
   factory HydrationState.idle() => HydrationState(status: HydrationStatus.idle);
 }
 
-class InitialDataHydrationService extends StateNotifier<HydrationState> {
-  final HomeRepository _homeRepository;
-  final SyncCoordinator _syncCoordinator;
-  final HomeLocalDataSource _localDataSource;
-  final ShoppingModeSessionRecoveryService? _shoppingModeSessionRecoveryService;
+class InitialDataHydrationService extends Notifier<HydrationState> {
+  bool _disposed = false;
 
-  InitialDataHydrationService({
-    required HomeRepository homeRepository,
-    required SyncCoordinator syncCoordinator,
-    required HomeLocalDataSource localDataSource,
-    ShoppingModeSessionRecoveryService? shoppingModeSessionRecoveryService,
-    bool autoHydrate = true,
-  }) : _homeRepository = homeRepository,
-       _syncCoordinator = syncCoordinator,
-       _localDataSource = localDataSource,
-       _shoppingModeSessionRecoveryService = shoppingModeSessionRecoveryService,
-       super(HydrationState.idle()) {
-    if (autoHydrate) {
-      // Automatically trigger on initialization
-      hydrate();
-    }
+  @override
+  HydrationState build() {
+    ref.onDispose(() {
+      _disposed = true;
+    });
+    ref.watch(homeRepositoryProvider);
+    ref.watch(syncCoordinatorProvider);
+    ref.watch(homeLocalDataSourceProvider);
+    ref.watch(shoppingModeSessionRecoveryServiceProvider);
+
+    Future.microtask(() => hydrate());
+    return HydrationState.idle();
   }
 
   Future<void> hydrate({bool force = false}) async {
     try {
       final userId = SupabaseService.currentUser?.id;
       if (userId == null) {
-        if (!mounted) return;
+        if (_disposed) return;
         state = HydrationState(status: HydrationStatus.idle);
         return;
       }
 
-      final isUserSynced = await _localDataSource.isInitialSyncCompleted(
-        userId,
-      );
-      if (!mounted) return;
+      final isUserSynced = await ref
+          .read(homeLocalDataSourceProvider)
+          .isInitialSyncCompleted(userId);
+      if (_disposed) return;
       if (isUserSynced && !force) {
         String? activeHomeId;
         try {
           await _recoverAbandonedShoppingModeSession(userId);
-          if (!mounted) return;
-          await _homeRepository.syncHomesWithServer();
-          if (!mounted) return;
+          if (_disposed) return;
+          await ref.read(homeRepositoryProvider).syncHomesWithServer();
+          if (_disposed) return;
           await _cleanupStaleShoppingModeSessions(userId);
-          if (!mounted) return;
-          final homes = await _homeRepository.getCachedUserHomes();
-          if (!mounted) return;
-          activeHomeId = await _localDataSource.getActiveHomeIdForUser(userId);
-          if (!mounted) return;
+          if (_disposed) return;
+          final homes = await ref
+              .read(homeRepositoryProvider)
+              .getCachedUserHomes();
+          if (_disposed) return;
+          activeHomeId = await ref
+              .read(homeLocalDataSourceProvider)
+              .getActiveHomeIdForUser(userId);
+          if (_disposed) return;
 
           if (findAvailableHomeById(homes, activeHomeId) == null) {
             final nextHome = newestAvailableHome(homes);
             if (nextHome != null) {
               activeHomeId = nextHome.id;
-              await _localDataSource.setActiveHome(nextHome.id, nextHome.name);
-              if (!mounted) return;
+              await ref
+                  .read(homeLocalDataSourceProvider)
+                  .setActiveHome(nextHome.id, nextHome.name);
+              if (_disposed) return;
               LocalCacheNotifier.notify('global', 'active_home');
             } else {
-              await _localDataSource.setInitialSyncCompleted(userId, false);
-              if (!mounted) return;
+              await ref
+                  .read(homeLocalDataSourceProvider)
+                  .setInitialSyncCompleted(userId, false);
+              if (_disposed) return;
               state = HydrationState(status: HydrationStatus.success);
               return;
             }
@@ -103,7 +103,7 @@ class InitialDataHydrationService extends StateNotifier<HydrationState> {
           );
         }
 
-        if (!mounted) return;
+        if (_disposed) return;
         state = HydrationState(
           status: HydrationStatus.success,
           activeHomeId: activeHomeId,
@@ -111,48 +111,56 @@ class InitialDataHydrationService extends StateNotifier<HydrationState> {
         return;
       }
 
-      if (!mounted) return;
+      if (_disposed) return;
       state = HydrationState(status: HydrationStatus.hydratingHomes);
 
       try {
         // 1. Sync homes first
         await _recoverAbandonedShoppingModeSession(userId);
-        if (!mounted) return;
-        await _homeRepository.syncHomesWithServer();
-        if (!mounted) return;
+        if (_disposed) return;
+        await ref.read(homeRepositoryProvider).syncHomesWithServer();
+        if (_disposed) return;
         await _cleanupStaleShoppingModeSessions(userId);
-        if (!mounted) return;
+        if (_disposed) return;
 
-        final homes = await _homeRepository.getCachedUserHomes();
-        if (!mounted) return;
+        final homes = await ref
+            .read(homeRepositoryProvider)
+            .getCachedUserHomes();
+        if (_disposed) return;
         if (homes.isEmpty) {
           // No homes found. Set user sync completed so they can go to onboarding to create one
-          await _localDataSource.setInitialSyncCompleted(userId, true);
-          if (!mounted) return;
+          await ref
+              .read(homeLocalDataSourceProvider)
+              .setInitialSyncCompleted(userId, true);
+          if (_disposed) return;
           LocalCacheNotifier.notify('global', 'homes');
           state = HydrationState(status: HydrationStatus.success);
           return;
         }
 
         // 2. Resolve active home ID with validation against current user's homes
-        String? activeHomeId = await _localDataSource.getActiveHomeIdForUser(
-          userId,
-        );
-        if (!mounted) return;
+        String? activeHomeId = await ref
+            .read(homeLocalDataSourceProvider)
+            .getActiveHomeIdForUser(userId);
+        if (_disposed) return;
         final activeHome = findAvailableHomeById(homes, activeHomeId);
 
         if (activeHome == null) {
           // activeHomeId is stale or doesn't belong to current user — reset it
           final nextHome = newestAvailableHome(homes);
           if (nextHome == null) {
-            await _localDataSource.setInitialSyncCompleted(userId, false);
-            if (!mounted) return;
+            await ref
+                .read(homeLocalDataSourceProvider)
+                .setInitialSyncCompleted(userId, false);
+            if (_disposed) return;
             state = HydrationState(status: HydrationStatus.success);
             return;
           }
           activeHomeId = nextHome.id;
-          await _localDataSource.setActiveHome(activeHomeId, nextHome.name);
-          if (!mounted) return;
+          await ref
+              .read(homeLocalDataSourceProvider)
+              .setActiveHome(activeHomeId, nextHome.name);
+          if (_disposed) return;
           LocalCacheNotifier.notify('global', 'active_home');
         } else {
           activeHomeId = activeHome.id;
@@ -160,37 +168,42 @@ class InitialDataHydrationService extends StateNotifier<HydrationState> {
 
         final selectedHomeId = activeHomeId;
         if (selectedHomeId.isEmpty) {
-          await _localDataSource.setInitialSyncCompleted(userId, false);
-          if (!mounted) return;
+          await ref
+              .read(homeLocalDataSourceProvider)
+              .setInitialSyncCompleted(userId, false);
+          if (_disposed) return;
           state = HydrationState(status: HydrationStatus.success);
           return;
         }
 
-        if (!mounted) return;
+        if (_disposed) return;
         state = HydrationState(
           status: HydrationStatus.hydratingData,
           activeHomeId: selectedHomeId,
         );
 
         // 3. Trigger Full Initial Sync for the active home
-        await _syncCoordinator.initialFullSync(selectedHomeId);
-        if (!mounted) return;
+        await ref
+            .read(syncCoordinatorProvider.notifier)
+            .initialFullSync(selectedHomeId);
+        if (_disposed) return;
 
         // 4. Save success flags only after absolute successful sync
-        await _localDataSource.setInitialSyncCompleted(userId, true);
-        if (!mounted) return;
-        await _localDataSource.setHomeInitialSyncCompleted(
-          selectedHomeId,
-          true,
-        );
-        if (!mounted) return;
+        await ref
+            .read(homeLocalDataSourceProvider)
+            .setInitialSyncCompleted(userId, true);
+        if (_disposed) return;
+        await ref
+            .read(homeLocalDataSourceProvider)
+            .setHomeInitialSyncCompleted(selectedHomeId, true);
+        if (_disposed) return;
 
         state = HydrationState(
           status: HydrationStatus.success,
           activeHomeId: selectedHomeId,
         );
       } catch (e) {
-        if (!mounted) return;
+        if (_disposed) return;
         state = HydrationState(
           status: HydrationStatus.error,
           error: e.toString(),
@@ -200,7 +213,7 @@ class InitialDataHydrationService extends StateNotifier<HydrationState> {
     } catch (e) {
       // Outer catch: handles errors in early validation (e.g., isInitialSyncCompleted)
       // that occur before the inner try-catch blocks.
-      if (!mounted) return;
+      if (_disposed) return;
       state = HydrationState(
         status: HydrationStatus.error,
         error: e.toString(),
@@ -228,9 +241,9 @@ class InitialDataHydrationService extends StateNotifier<HydrationState> {
 
   Future<void> _recoverAbandonedShoppingModeSession(String userId) async {
     try {
-      await _shoppingModeSessionRecoveryService?.recoverAbandonedSession(
-        userId,
-      );
+      await ref
+          .read(shoppingModeSessionRecoveryServiceProvider)
+          .recoverAbandonedSession(userId);
     } catch (e) {
       AppLogger.i(
         '[InitialDataHydration] Failed to recover shopping session: $e',
@@ -240,17 +253,6 @@ class InitialDataHydrationService extends StateNotifier<HydrationState> {
 }
 
 final initialDataHydrationServiceProvider =
-    StateNotifierProvider<InitialDataHydrationService, HydrationState>((ref) {
-      final homeRepository = ref.watch(homeRepositoryProvider);
-      final syncCoordinator = ref.watch(syncCoordinatorProvider.notifier);
-      final localDataSource = ref.watch(homeLocalDataSourceProvider);
-
-      return InitialDataHydrationService(
-        homeRepository: homeRepository,
-        syncCoordinator: syncCoordinator,
-        localDataSource: localDataSource,
-        shoppingModeSessionRecoveryService: ref.watch(
-          shoppingModeSessionRecoveryServiceProvider,
-        ),
-      );
+    NotifierProvider<InitialDataHydrationService, HydrationState>(() {
+      return InitialDataHydrationService();
     });

@@ -1,10 +1,7 @@
 import '../models/category_model.dart';
 
 abstract class CategoryRepository {
-  Future<List<CategoryModel>> getCategories({
-    String? homeId,
-    String? type,
-  });
+  Future<List<CategoryModel>> getCategories({String? homeId, String? type});
 
   Future<CategoryModel> createCategory({
     required String homeId,
@@ -23,18 +20,11 @@ abstract class CategoryRepository {
     int? sortOrder,
   });
 
-  Future<void> deleteCategory({
-    required String categoryId,
-  });
+  Future<void> deleteCategory({required String categoryId});
 
-  Future<CategoryModel?> getCategoryById({
-    required String categoryId,
-  });
+  Future<CategoryModel?> getCategoryById({required String categoryId});
 
-  Stream<List<CategoryModel>> watchCategories({
-    String? homeId,
-    String? type,
-  });
+  Stream<List<CategoryModel>> watchCategories({String? homeId, String? type});
 
   Future<void> syncCategoriesWithServer(String homeId);
 }

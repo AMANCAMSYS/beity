@@ -4,18 +4,18 @@ void main() {
   group('Account Switching Isolation', () {
     test('User A data never appears for User B', () async {
       final repository = FakeHomeRepository();
-      
+
       // Setup User A
       repository.currentUserId = 'userA';
       await repository.addHome({'id': 'home1', 'name': 'User A Home'});
-      
+
       var homesA = await repository.getHomes();
       expect(homesA.length, 1);
       expect(homesA.first['name'], 'User A Home');
 
       // Switch to User B
       repository.currentUserId = 'userB';
-      
+
       // User B should not see User A's data
       var homesB = await repository.getHomes();
       expect(homesB.isEmpty, true);

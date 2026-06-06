@@ -31,7 +31,9 @@ class ActivityDetailScreen extends ConsumerWidget {
         if (log == null) {
           return Scaffold(
             appBar: AppBar(title: Text(context.translate('activity_details'))),
-            body: Center(child: Text(context.translate('error_occurred'))), // Replace with proper not found string later
+            body: Center(
+              child: Text(context.translate('error_occurred')),
+            ), // Replace with proper not found string later
           );
         }
         return _buildContent(context, log);
@@ -49,9 +51,7 @@ class ActivityDetailScreen extends ConsumerWidget {
 
   Widget _buildContent(BuildContext context, ActivityLogModel log) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(context.translate('activity_details')),
-      ),
+      appBar: AppBar(title: Text(context.translate('activity_details'))),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -92,15 +92,15 @@ class ActivityDetailScreen extends ConsumerWidget {
                   Text(
                     log.actorName ?? context.translate('user_label'),
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     log.entityType.getLocalizedName(context),
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.grey[600],
-                        ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
                   ),
                 ],
               ),
@@ -122,9 +122,9 @@ class ActivityDetailScreen extends ConsumerWidget {
             Text(
               context.translate('action'),
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: Colors.grey[600],
-                    fontWeight: FontWeight.bold,
-                  ),
+                color: Colors.grey[600],
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
@@ -136,17 +136,17 @@ class ActivityDetailScreen extends ConsumerWidget {
               Text(
                 log.entityName!,
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: Theme.of(context).primaryColor,
-                      fontWeight: FontWeight.w500,
-                    ),
+                  color: Theme.of(context).primaryColor,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ],
             const SizedBox(height: 12),
             Text(
               log.getLocalizedDescription(context),
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey[700],
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: Colors.grey[700]),
             ),
           ],
         ),
@@ -165,9 +165,9 @@ class ActivityDetailScreen extends ConsumerWidget {
             Text(
               context.translate('details'),
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: Colors.grey[600],
-                    fontWeight: FontWeight.bold,
-                  ),
+                color: Colors.grey[600],
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 12),
             ..._buildMetadataEntries(context, log),
@@ -177,70 +177,87 @@ class ActivityDetailScreen extends ConsumerWidget {
     );
   }
 
-  List<Widget> _buildMetadataEntries(BuildContext context, ActivityLogModel log) {
+  List<Widget> _buildMetadataEntries(
+    BuildContext context,
+    ActivityLogModel log,
+  ) {
     final entries = <Widget>[];
     final metadata = log.metadata!;
 
-    if (metadata.containsKey('old_name') &&
-        metadata.containsKey('new_name')) {
-      entries.add(_buildBeforeAfter(
-        context,
-        label: context.translate('name'),
-        before: metadata['old_name']?.toString() ?? '',
-        after: metadata['new_name']?.toString() ?? '',
-      ));
+    if (metadata.containsKey('old_name') && metadata.containsKey('new_name')) {
+      entries.add(
+        _buildBeforeAfter(
+          context,
+          label: context.translate('name'),
+          before: metadata['old_name']?.toString() ?? '',
+          after: metadata['new_name']?.toString() ?? '',
+        ),
+      );
     }
 
-    if (metadata.containsKey('old_role') &&
-        metadata.containsKey('new_role')) {
-      entries.add(_buildBeforeAfter(
-        context,
-        label: context.translate('role_label'),
-        before: metadata['old_role']?.toString() ?? '',
-        after: metadata['new_role']?.toString() ?? '',
-      ));
+    if (metadata.containsKey('old_role') && metadata.containsKey('new_role')) {
+      entries.add(
+        _buildBeforeAfter(
+          context,
+          label: context.translate('role_label'),
+          before: metadata['old_role']?.toString() ?? '',
+          after: metadata['new_role']?.toString() ?? '',
+        ),
+      );
     }
 
     if (metadata.containsKey('old_values') &&
         metadata.containsKey('new_values')) {
-      final oldValues =
-          Map<String, dynamic>.from(metadata['old_values'] as Map);
-      final newValues =
-          Map<String, dynamic>.from(metadata['new_values'] as Map);
+      final oldValues = Map<String, dynamic>.from(
+        metadata['old_values'] as Map,
+      );
+      final newValues = Map<String, dynamic>.from(
+        metadata['new_values'] as Map,
+      );
 
       for (final key in oldValues.keys) {
         if (oldValues[key] != newValues[key]) {
-          entries.add(_buildBeforeAfter(
-            context,
-            label: _fieldNameToLocalized(context, key),
-            before: oldValues[key]?.toString() ?? '',
-            after: newValues[key]?.toString() ?? '',
-          ));
+          entries.add(
+            _buildBeforeAfter(
+              context,
+              label: _fieldNameToLocalized(context, key),
+              before: oldValues[key]?.toString() ?? '',
+              after: newValues[key]?.toString() ?? '',
+            ),
+          );
         }
       }
     }
 
     if (metadata.containsKey('list_name')) {
-      entries.add(_buildInfoRow(
-        context,
-        label: context.translate('shopping_lists'),
-        value: metadata['list_name']?.toString() ?? '',
-      ));
+      entries.add(
+        _buildInfoRow(
+          context,
+          label: context.translate('shopping_lists'),
+          value: metadata['list_name']?.toString() ?? '',
+        ),
+      );
     }
 
     if (metadata.containsKey('member_name')) {
-      entries.add(_buildInfoRow(
-        context,
-        label: context.translate('member'),
-        value: metadata['member_name']?.toString() ?? '',
-      ));
+      entries.add(
+        _buildInfoRow(
+          context,
+          label: context.translate('member'),
+          value: metadata['member_name']?.toString() ?? '',
+        ),
+      );
     }
 
     return entries;
   }
 
-  Widget _buildBeforeAfter(BuildContext context,
-      {required String label, required String before, required String after}) {
+  Widget _buildBeforeAfter(
+    BuildContext context, {
+    required String label,
+    required String before,
+    required String after,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Column(
@@ -249,9 +266,9 @@ class ActivityDetailScreen extends ConsumerWidget {
           Text(
             label,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.grey[600],
-                  fontWeight: FontWeight.bold,
-                ),
+              color: Colors.grey[600],
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 4),
           Row(
@@ -296,23 +313,26 @@ class ActivityDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildInfoRow(BuildContext context,
-      {required String label, required String value}) {
+  Widget _buildInfoRow(
+    BuildContext context, {
+    required String label,
+    required String value,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         children: [
           Text(
             '$label: ',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.grey[600],
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
           ),
           Text(
             value,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w500,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
           ),
         ],
       ),
@@ -331,9 +351,9 @@ class ActivityDetailScreen extends ConsumerWidget {
             Text(
               context.translate('time'),
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: Colors.grey[600],
-                    fontWeight: FontWeight.bold,
-                  ),
+                color: Colors.grey[600],
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
@@ -343,9 +363,9 @@ class ActivityDetailScreen extends ConsumerWidget {
             const SizedBox(height: 4),
             Text(
               _formatFullDateTime(log.createdAt),
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Colors.grey[500],
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: Colors.grey[500]),
             ),
           ],
         ),

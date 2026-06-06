@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:sawa/app/theme/app_spacing.dart';
 import 'package:sawa/app/theme/app_colors.dart';
 import 'package:sawa/shared/widgets/design_system/sawa_empty_state.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_loading_state.dart';
 import '../providers/inventory_provider.dart';
 import '../widgets/inventory_item_tile.dart';
 import '../widgets/category_group_header.dart';
@@ -76,10 +77,11 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
         ),
       ),
       body: inventoryAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () =>
+            SawaLoadingState(message: context.translate('loading_inventory')),
         error: (error, _) => SawaEmptyState(
           title: context.translate('error_occurred'),
-          message: error.toString(),
+          message: ErrorFormatter.format(error, context),
           icon: Icons.error_outline_rounded,
           isError: true,
           actionText: context.translate('retry'),
@@ -207,6 +209,10 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
             ? context.translate('no_low_stock_desc')
             : context.translate('inventory_empty_desc'),
         icon: Icons.check_circle_outline_rounded,
+        actionText: _showOnlyLowStock ? context.translate('show_all') : null,
+        onAction: _showOnlyLowStock
+            ? () => setState(() => _showOnlyLowStock = false)
+            : null,
       );
     }
 

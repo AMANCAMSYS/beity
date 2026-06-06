@@ -84,35 +84,35 @@ final shoppingModeItemsProvider =
       );
     });
 
-  List<ShoppingItemModel> _sortItems(List<ShoppingItemModel> items) {
-    return items..sort((a, b) {
-      // 1. Purchased status first (unpurchased at top)
-      if (a.isPurchased != b.isPurchased) {
-        return a.isPurchased ? 1 : -1;
-      }
+List<ShoppingItemModel> _sortItems(List<ShoppingItemModel> items) {
+  return items..sort((a, b) {
+    // 1. Purchased status first (unpurchased at top)
+    if (a.isPurchased != b.isPurchased) {
+      return a.isPurchased ? 1 : -1;
+    }
 
-      // 2. If both are purchased, sort by recently purchased
-      if (a.isPurchased) {
-        final aTime = a.purchasedAt ?? a.updatedAt;
-        final bTime = b.purchasedAt ?? b.updatedAt;
-        if (aTime != null && bTime != null) {
-          return bTime.compareTo(aTime); // descending
-        }
-        return 0;
+    // 2. If both are purchased, sort by recently purchased
+    if (a.isPurchased) {
+      final aTime = a.purchasedAt ?? a.updatedAt;
+      final bTime = b.purchasedAt ?? b.updatedAt;
+      if (aTime != null && bTime != null) {
+        return bTime.compareTo(aTime); // descending
       }
+      return 0;
+    }
 
-      // 3. If both are unpurchased, sort by priority
-      final priorityOrder = {'urgent': 0, 'high': 1, 'medium': 2, 'low': 3};
-      final aPriority = priorityOrder[a.priority] ?? 2;
-      final bPriority = priorityOrder[b.priority] ?? 2;
-      if (aPriority != bPriority) {
-        return aPriority.compareTo(bPriority);
-      }
+    // 3. If both are unpurchased, sort by priority
+    final priorityOrder = {'urgent': 0, 'high': 1, 'medium': 2, 'low': 3};
+    final aPriority = priorityOrder[a.priority] ?? 2;
+    final bPriority = priorityOrder[b.priority] ?? 2;
+    if (aPriority != bPriority) {
+      return aPriority.compareTo(bPriority);
+    }
 
-      // 4. Fallback to name alphabetical
-      return a.name.compareTo(b.name);
-    });
-  }
+    // 4. Fallback to name alphabetical
+    return a.name.compareTo(b.name);
+  });
+}
 
 final shoppingModePurchasedCountProvider = Provider.family<int, String>((
   ref,

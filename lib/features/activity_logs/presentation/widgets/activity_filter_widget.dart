@@ -55,7 +55,9 @@ class ActivityFilterWidget extends ConsumerWidget {
                 ...actors.map(
                   (actor) => DropdownMenuItem<String>(
                     value: actor.userId,
-                    child: Text(actor.displayName ?? context.translate('user_label')),
+                    child: Text(
+                      actor.displayName ?? context.translate('user_label'),
+                    ),
                   ),
                 ),
               ],

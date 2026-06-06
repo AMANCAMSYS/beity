@@ -41,7 +41,9 @@ class HomeCardWidget extends StatelessWidget {
             ),
             child: Icon(
               _getIconForType(homeType),
-              color: isActive ? AppColors.primary : theme.colorScheme.onSurfaceVariant,
+              color: isActive
+                  ? AppColors.primary
+                  : theme.colorScheme.onSurfaceVariant,
               size: 32,
             ),
           ),
@@ -70,7 +72,9 @@ class HomeCardWidget extends StatelessWidget {
                         ),
                         decoration: BoxDecoration(
                           color: AppColors.success.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                          borderRadius: BorderRadius.circular(
+                            AppSpacing.radiusSm,
+                          ),
                         ),
                         child: Text(
                           context.translate('active'),

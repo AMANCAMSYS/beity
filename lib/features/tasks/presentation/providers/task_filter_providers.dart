@@ -1,4 +1,4 @@
-import 'package:flutter_riverpod/legacy.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 enum TaskSortBy { dueDate, createdAt }
 
@@ -42,8 +42,11 @@ class TaskFilterState {
   }
 }
 
-class TaskFilterNotifier extends StateNotifier<TaskFilterState> {
-  TaskFilterNotifier() : super(const TaskFilterState());
+class TaskFilterNotifier extends Notifier<TaskFilterState> {
+  @override
+  TaskFilterState build() {
+    return const TaskFilterState();
+  }
 
   void setAssignedTo(String? assignedTo) {
     state = state.copyWith(assignedTo: assignedTo);
@@ -71,6 +74,6 @@ class TaskFilterNotifier extends StateNotifier<TaskFilterState> {
 }
 
 final taskFilterProvider =
-    StateNotifierProvider<TaskFilterNotifier, TaskFilterState>((ref) {
+    NotifierProvider<TaskFilterNotifier, TaskFilterState>(() {
       return TaskFilterNotifier();
     });

@@ -23,7 +23,7 @@ class RetryButton extends StatelessWidget {
             )
           : const Icon(Icons.refresh, size: 16),
       label: Text(
-        context.translate('retry', fallback: 'Retry'),
+        context.translate('retry'),
         style: const TextStyle(fontSize: 12),
       ),
       style: TextButton.styleFrom(

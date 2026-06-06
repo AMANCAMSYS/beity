@@ -28,7 +28,9 @@ class AiAssistantRequestModel {
       json['listTitle'] = entity.listTitle;
     }
     if (entity.existingShoppingItems.isNotEmpty) {
-      json['existingShoppingItems'] = entity.existingShoppingItems.take(100).toList();
+      json['existingShoppingItems'] = entity.existingShoppingItems
+          .take(100)
+          .toList();
     }
     if (entity.inventoryItems.isNotEmpty) {
       json['inventoryItems'] = entity.inventoryItems.take(100).toList();
@@ -36,20 +38,25 @@ class AiAssistantRequestModel {
     if (entity.servings != null && entity.servings! > 0) {
       json['servings'] = entity.servings;
     }
-    if (entity.preferredCuisine != null && entity.preferredCuisine!.isNotEmpty) {
+    if (entity.preferredCuisine != null &&
+        entity.preferredCuisine!.isNotEmpty) {
       json['preferredCuisine'] = entity.preferredCuisine;
     }
-    if (entity.dietaryPreference != null && entity.dietaryPreference!.isNotEmpty) {
+    if (entity.dietaryPreference != null &&
+        entity.dietaryPreference!.isNotEmpty) {
       json['dietaryPreference'] = entity.dietaryPreference;
     }
     if (entity.budgetLevel != null && entity.budgetLevel!.isNotEmpty) {
       json['budgetLevel'] = entity.budgetLevel;
     }
-    if (entity.maxPreparationTimeMinutes != null && entity.maxPreparationTimeMinutes! > 0) {
+    if (entity.maxPreparationTimeMinutes != null &&
+        entity.maxPreparationTimeMinutes! > 0) {
       json['maxPreparationTimeMinutes'] = entity.maxPreparationTimeMinutes;
     }
     if (entity.availableVegetables.isNotEmpty) {
-      json['availableVegetables'] = entity.availableVegetables.take(20).toList();
+      json['availableVegetables'] = entity.availableVegetables
+          .take(20)
+          .toList();
     }
     if (entity.availableSpices.isNotEmpty) {
       json['availableSpices'] = entity.availableSpices.take(20).toList();
@@ -61,7 +68,9 @@ class AiAssistantRequestModel {
       json['availableCarbs'] = entity.availableCarbs.take(20).toList();
     }
     if (entity.excludedIngredients.isNotEmpty) {
-      json['excludedIngredients'] = entity.excludedIngredients.take(20).toList();
+      json['excludedIngredients'] = entity.excludedIngredients
+          .take(20)
+          .toList();
     }
     if (entity.occasion != null && entity.occasion!.isNotEmpty) {
       json['occasion'] = entity.occasion;
@@ -69,7 +78,8 @@ class AiAssistantRequestModel {
     if (entity.mealType != null && entity.mealType!.isNotEmpty) {
       json['mealType'] = entity.mealType;
     }
-    if (entity.cookingSkillLevel != null && entity.cookingSkillLevel!.isNotEmpty) {
+    if (entity.cookingSkillLevel != null &&
+        entity.cookingSkillLevel!.isNotEmpty) {
       json['cookingSkillLevel'] = entity.cookingSkillLevel;
     }
     if (entity.country != null && entity.country!.isNotEmpty) {

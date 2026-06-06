@@ -9,10 +9,7 @@ import 'settings_shared_widgets.dart';
 class SettingsOnboardingSection extends ConsumerWidget {
   final AppLocalizations l10n;
 
-  const SettingsOnboardingSection({
-    super.key,
-    required this.l10n,
-  });
+  const SettingsOnboardingSection({super.key, required this.l10n});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

@@ -7,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:sawa/core/services/local_cache_notifier.dart';
 import 'package:sawa/core/services/realtime_sync_service.dart';
 import 'package:sawa/core/services/supabase_service.dart';
+import 'package:sawa/core/services/sync_service.dart';
 import 'package:sawa/features/shopping_lists/data/datasources/shopping_local_datasource.dart';
 import 'package:sawa/features/shopping_lists/data/models/item_template_model.dart';
 import 'package:sawa/features/shopping_lists/data/models/shopping_item_model.dart';
@@ -36,6 +37,8 @@ class MockInventoryLocalDataSource extends Mock
 class MockExpenseLocalDataSource extends Mock
     implements ExpenseLocalDataSource {}
 
+class MockSyncService extends Mock implements SyncService {}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -44,6 +47,7 @@ void main() {
   late MockShoppingLocalDataSource localDataSource;
   late MockInventoryLocalDataSource inventoryLocalDataSource;
   late MockExpenseLocalDataSource expenseLocalDataSource;
+  late MockSyncService syncService;
   late Map<String, void Function(PostgresChangePayload)> callbacks;
 
   setUpAll(() {
@@ -64,6 +68,7 @@ void main() {
     localDataSource = MockShoppingLocalDataSource();
     inventoryLocalDataSource = MockInventoryLocalDataSource();
     expenseLocalDataSource = MockExpenseLocalDataSource();
+    syncService = MockSyncService();
     callbacks = <String, void Function(PostgresChangePayload)>{};
 
     SupabaseService.client = supabaseClient;
@@ -148,6 +153,10 @@ void main() {
         expenses: any(named: 'expenses'),
       ),
     ).thenAnswer((_) async {});
+
+    when(
+      () => syncService.updateLocalSyncTime(any(), any(), any()),
+    ).thenAnswer((_) async {});
   });
 
   ProviderContainer buildContainer() {
@@ -160,6 +169,7 @@ void main() {
         expenseLocalDataSourceProvider.overrideWithValue(
           expenseLocalDataSource,
         ),
+        syncServiceProvider.overrideWithValue(syncService),
       ],
     );
   }

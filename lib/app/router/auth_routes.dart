@@ -4,5 +4,8 @@ import '../../features/auth/presentation/screens/register_screen.dart';
 
 List<GoRoute> authRoutes() => [
   GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
-  GoRoute(path: '/register', builder: (context, state) => const RegisterScreen()),
+  GoRoute(
+    path: '/register',
+    builder: (context, state) => const RegisterScreen(),
+  ),
 ];

@@ -5,17 +5,11 @@ class RemoveMemberUseCase {
 
   RemoveMemberUseCase(this._repository);
 
-  Future<void> call({
-    required String homeId,
-    required String userId,
-  }) async {
+  Future<void> call({required String homeId, required String userId}) async {
     if (homeId.isEmpty || userId.isEmpty) {
       throw Exception('home_user_required');
     }
 
-    await _repository.removeMember(
-      homeId: homeId,
-      userId: userId,
-    );
+    await _repository.removeMember(homeId: homeId, userId: userId);
   }
 }

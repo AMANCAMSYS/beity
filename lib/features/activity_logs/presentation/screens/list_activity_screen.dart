@@ -27,7 +27,10 @@ class ListActivityScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          context.translate('list_activities_title', arguments: {'listName': listName}),
+          context.translate(
+            'list_activities_title',
+            arguments: {'listName': listName},
+          ),
         ),
       ),
       body: activityAsync.when(

@@ -8,6 +8,7 @@ import '../../../../core/services/shared_prefs_provider.dart';
 import '../models/shopping_list_model.dart';
 import '../models/shopping_item_model.dart';
 import '../models/item_template_model.dart';
+import '../../../../core/monitoring/monitoring_service.dart';
 
 /// Abstract interface for local persistence of Shopping Lists and Items.
 /// Prepares SAWA for SQLite/Drift/Isar migrations.
@@ -121,7 +122,13 @@ class SharedPreferencesShoppingLocalDataSource
         () => jsonEncode(lists.map((l) => l.toJson()).toList()),
       );
       await prefs.setString(key, jsonStr);
-    } catch (_) {}
+    } catch (e, s) {
+      MonitoringService().logError(
+        e,
+        s,
+        reason: 'Shopping lists cache save failed for $homeId',
+      );
+    }
   }
 
   @override
@@ -177,7 +184,13 @@ class SharedPreferencesShoppingLocalDataSource
         () => jsonEncode(items.map((i) => i.toJson()).toList()),
       );
       await prefs.setString(key, jsonStr);
-    } catch (_) {}
+    } catch (e, s) {
+      MonitoringService().logError(
+        e,
+        s,
+        reason: 'Shopping items cache save failed for $listId',
+      );
+    }
   }
 
   @override
@@ -220,7 +233,13 @@ class SharedPreferencesShoppingLocalDataSource
         () => jsonEncode(templates.map((t) => t.toJson()).toList()),
       );
       await prefs.setString(key, jsonStr);
-    } catch (_) {}
+    } catch (e, s) {
+      MonitoringService().logError(
+        e,
+        s,
+        reason: 'Item templates cache save failed for $homeId',
+      );
+    }
   }
 
   @override

@@ -41,9 +41,7 @@ class Task {
   bool get isDeleted => deletedAt != null;
   bool get isArchived => archivedAt != null;
   bool get isOverdue =>
-      dueDate != null &&
-      !isCompleted &&
-      dueDate!.isBefore(DateTime.now());
+      dueDate != null && !isCompleted && dueDate!.isBefore(DateTime.now());
   bool get isDueToday =>
       dueDate != null &&
       dueDate!.year == DateTime.now().year &&

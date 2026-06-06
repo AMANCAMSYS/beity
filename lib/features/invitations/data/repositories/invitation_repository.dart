@@ -7,31 +7,19 @@ abstract class InvitationRepository {
     required String role,
   });
 
-  Future<InvitationModel> acceptInvitation({
-    required String token,
-  });
+  Future<InvitationModel> acceptInvitation({required String token});
 
-  Future<InvitationModel> declineInvitation({
-    required String token,
-  });
+  Future<InvitationModel> declineInvitation({required String token});
 
-  Future<InvitationModel> cancelInvitation({
-    required String invitationId,
-  });
+  Future<InvitationModel> cancelInvitation({required String invitationId});
 
-  Future<List<InvitationModel>> getHomeInvitations({
-    required String homeId,
-  });
+  Future<List<InvitationModel>> getHomeInvitations({required String homeId});
 
   Future<List<InvitationModel>> getUserInvitations();
 
-  Future<InvitationModel?> getInvitationByToken({
-    required String token,
-  });
+  Future<InvitationModel?> getInvitationByToken({required String token});
 
-  Stream<List<InvitationModel>> watchHomeInvitations({
-    required String homeId,
-  });
+  Stream<List<InvitationModel>> watchHomeInvitations({required String homeId});
 
   Stream<List<InvitationModel>> watchUserInvitations();
 }

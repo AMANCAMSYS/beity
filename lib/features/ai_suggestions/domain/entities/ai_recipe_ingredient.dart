@@ -1,20 +1,20 @@
+import '../../../../core/localization/app_localizations.dart';
+
 /// Status of a recipe ingredient relative to what the user already has.
 enum IngredientStatus {
-  available('available', 'موجود', 'Available'),
-  missing('missing', 'ناقص', 'Missing'),
-  alreadyInList('already_in_list', 'موجود في القائمة', 'Already in list'),
-  inCurrentList('in_current_list', 'في القائمة الحالية', 'In current list'),
-  inOtherList('in_other_list', 'في قائمة أخرى', 'In other list'),
-  optional('optional', 'اختياري', 'Optional'),
-  unknown('unknown', 'غير معروف', 'Unknown');
+  available('available'),
+  missing('missing'),
+  alreadyInList('already_in_list'),
+  inCurrentList('in_current_list'),
+  inOtherList('in_other_list'),
+  optional('optional'),
+  unknown('unknown');
 
   final String apiValue;
-  final String labelAr;
-  final String labelEn;
 
-  const IngredientStatus(this.apiValue, this.labelAr, this.labelEn);
+  const IngredientStatus(this.apiValue);
 
-  String label(String languageCode) => languageCode == 'ar' ? labelAr : labelEn;
+  String label(AppLocalizations l10n) => l10n.translate(apiValue);
 
   static IngredientStatus fromApiValue(String? value) {
     if (value == null) return IngredientStatus.unknown;
@@ -83,7 +83,9 @@ class AiRecipeIngredient {
 
   /// Whether this ingredient should be selected by default for adding to the shopping list.
   bool get isSelectedByDefault =>
-      (status == IngredientStatus.missing || status == IngredientStatus.unknown) && required;
+      (status == IngredientStatus.missing ||
+          status == IngredientStatus.unknown) &&
+      required;
 }
 
 /// Meal metadata for a recipe ingredients response.

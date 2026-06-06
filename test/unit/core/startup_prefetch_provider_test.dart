@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:sawa/core/services/initial_data_hydration_service.dart';
@@ -16,21 +15,21 @@ class MockHomeLocalDataSource extends Mock implements HomeLocalDataSource {}
 
 class MockHomeRepository extends Mock implements HomeRepository {}
 
-class MockSyncCoordinator extends StateNotifier<SyncState>
+class MockSyncCoordinator extends Notifier<SyncState>
     with Mock
     implements SyncCoordinator {
-  MockSyncCoordinator() : super(SyncState(status: SyncStatus.idle));
+  @override
+  SyncState build() => SyncState(status: SyncStatus.idle);
 }
 
 class FakeHydrationService extends InitialDataHydrationService {
-  FakeHydrationService(HydrationState state)
-    : super(
-        homeRepository: MockHomeRepository(),
-        syncCoordinator: MockSyncCoordinator(),
-        localDataSource: MockHomeLocalDataSource(),
-        autoHydrate: false,
-      ) {
-    this.state = state;
+  final HydrationState _initialState;
+
+  FakeHydrationService(this._initialState);
+
+  @override
+  HydrationState build() {
+    return _initialState;
   }
 }
 
@@ -44,11 +43,11 @@ void main() {
       final localDataSource = MockHomeLocalDataSource();
       final syncCoordinator = MockSyncCoordinator();
 
-      when(() => realtimeService.initBuffered(any())).thenReturn(null);
+      when(() => realtimeService.init(any())).thenReturn(null);
       when(() => realtimeService.flushBuffer()).thenAnswer((_) async {});
       when(
         () => localDataSource.isHomeInitialSyncCompleted('home-123'),
-      ).thenAnswer((_) async => true);
+      ).thenAnswer((_) async => false);
       when(
         () => localDataSource.setHomeInitialSyncCompleted(any(), any()),
       ).thenAnswer((_) async {});
@@ -61,15 +60,15 @@ void main() {
 
       final unresolvedContainer = ProviderContainer(
         overrides: [
-          resolvedActiveHomeIdProvider.overrideWithValue(null),
+          cachedActiveHomeIdProvider.overrideWithValue(null),
           initialDataHydrationServiceProvider.overrideWith(
-            (ref) => FakeHydrationService(
+            () => FakeHydrationService(
               HydrationState(status: HydrationStatus.success),
             ),
           ),
           realtimeSyncServiceProvider.overrideWithValue(realtimeService),
           homeLocalDataSourceProvider.overrideWithValue(localDataSource),
-          syncCoordinatorProvider.overrideWith((ref) => syncCoordinator),
+          syncCoordinatorProvider.overrideWith(() => syncCoordinator),
         ],
       );
       addTearDown(unresolvedContainer.dispose);
@@ -78,26 +77,25 @@ void main() {
 
       final resolvedContainer = ProviderContainer(
         overrides: [
-          resolvedActiveHomeIdProvider.overrideWithValue('home-123'),
+          cachedActiveHomeIdProvider.overrideWithValue('home-123'),
           initialDataHydrationServiceProvider.overrideWith(
-            (ref) => FakeHydrationService(
+            () => FakeHydrationService(
               HydrationState(status: HydrationStatus.success),
             ),
           ),
           realtimeSyncServiceProvider.overrideWithValue(realtimeService),
           homeLocalDataSourceProvider.overrideWithValue(localDataSource),
-          syncCoordinatorProvider.overrideWith((ref) => syncCoordinator),
+          syncCoordinatorProvider.overrideWith(() => syncCoordinator),
         ],
       );
       addTearDown(resolvedContainer.dispose);
 
       resolvedContainer.read(startupPrefetchProvider);
-      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(const Duration(milliseconds: 700));
 
-      verify(() => realtimeService.initBuffered('home-123')).called(1);
       verify(() => syncCoordinator.initialFullSync('home-123')).called(1);
       verifyNever(() => syncCoordinator.smartResumeSync(any()));
-      verify(() => realtimeService.flushBuffer()).called(1);
+      verify(() => realtimeService.init('home-123')).called(1);
     },
   );
 
@@ -109,7 +107,6 @@ void main() {
       final syncCoordinator = MockSyncCoordinator();
 
       when(() => realtimeService.init(any())).thenReturn(null);
-      when(() => realtimeService.initBuffered(any())).thenReturn(null);
       when(() => realtimeService.flushBuffer()).thenAnswer((_) async {});
       when(
         () => localDataSource.isHomeInitialSyncCompleted('home-123'),
@@ -123,25 +120,24 @@ void main() {
 
       final container = ProviderContainer(
         overrides: [
-          resolvedActiveHomeIdProvider.overrideWithValue('home-123'),
+          cachedActiveHomeIdProvider.overrideWithValue('home-123'),
           initialDataHydrationServiceProvider.overrideWith(
-            (ref) => FakeHydrationService(
+            () => FakeHydrationService(
               HydrationState(status: HydrationStatus.success),
             ),
           ),
           realtimeSyncServiceProvider.overrideWithValue(realtimeService),
           homeLocalDataSourceProvider.overrideWithValue(localDataSource),
-          syncCoordinatorProvider.overrideWith((ref) => syncCoordinator),
+          syncCoordinatorProvider.overrideWith(() => syncCoordinator),
         ],
       );
       addTearDown(container.dispose);
 
       container.read(startupPrefetchProvider);
-      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(const Duration(milliseconds: 700));
 
-      verify(() => realtimeService.initBuffered('home-123')).called(1);
       verify(() => syncCoordinator.smartResumeSync('home-123')).called(1);
-      verifyNever(() => realtimeService.init('home-123'));
+      verify(() => realtimeService.init('home-123')).called(1);
     },
   );
 }

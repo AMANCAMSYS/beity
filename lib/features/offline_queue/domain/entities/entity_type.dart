@@ -8,26 +8,8 @@ enum EntityType {
   notificationPreference,
   invitation;
 
-  String get displayName {
-    switch (this) {
-      case EntityType.shoppingItem:
-        return 'Shopping Item';
-      case EntityType.shoppingList:
-        return 'Shopping List';
-      case EntityType.category:
-        return 'Category';
-      case EntityType.unit:
-        return 'Unit';
-      case EntityType.shoppingModeSession:
-        return 'Shopping Mode Session';
-      case EntityType.notification:
-        return 'Notification';
-      case EntityType.notificationPreference:
-        return 'Notification Preference';
-      case EntityType.invitation:
-        return 'Invitation';
-    }
-  }
+  @Deprecated('Use translationKey with context.translate() instead')
+  String get displayName => translationKey;
 
   String get tableName {
     switch (this) {

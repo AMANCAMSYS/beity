@@ -17,9 +17,9 @@ class SawaErrorWidget extends StatelessWidget {
     } catch (_) {}
 
     final l10n = AppLocalizations(Locale(lang));
-    final title = l10n.translate('error_occurred', fallback: 'Sorry, an error occurred');
-    final subtitle = l10n.translate('unexpected_error_retry', fallback: 'An unexpected error occurred. Please try again.');
-    final buttonText = l10n.translate('back_to_home', fallback: 'Back to Home');
+    final title = l10n.translate('error_occurred');
+    final subtitle = l10n.translate('unexpected_error_retry');
+    final buttonText = l10n.translate('back_to_home');
 
     final isRtl = ['ar', 'fa', 'he', 'ur'].contains(lang);
     final direction = isRtl ? TextDirection.rtl : TextDirection.ltr;
@@ -54,17 +54,17 @@ class SawaErrorWidget extends StatelessWidget {
                 Text(
                   subtitle,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 14,
-                  ),
+                  style: const TextStyle(color: Colors.white70, fontSize: 14),
                 ),
                 const SizedBox(height: 32),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
                     foregroundColor: Colors.black,
-                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 32,
+                      vertical: 12,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),

@@ -22,16 +22,16 @@ class HomeDashboardSnapshot {
   });
 
   Map<String, dynamic> toJson() => {
-        'homeId': homeId,
-        'homeName': homeName,
-        'activeListId': activeListId,
-        'activeListName': activeListName,
-        'remainingShoppingItemsCount': remainingShoppingItemsCount,
-        'totalShoppingItemsCount': totalShoppingItemsCount,
-        'totalActiveListsCount': totalActiveListsCount,
-        'lastActivityText': lastActivityText,
-        'updatedAt': updatedAt.toIso8601String(),
-      };
+    'homeId': homeId,
+    'homeName': homeName,
+    'activeListId': activeListId,
+    'activeListName': activeListName,
+    'remainingShoppingItemsCount': remainingShoppingItemsCount,
+    'totalShoppingItemsCount': totalShoppingItemsCount,
+    'totalActiveListsCount': totalActiveListsCount,
+    'lastActivityText': lastActivityText,
+    'updatedAt': updatedAt.toIso8601String(),
+  };
 
   factory HomeDashboardSnapshot.fromJson(Map<String, dynamic> json) {
     return HomeDashboardSnapshot(
@@ -39,7 +39,8 @@ class HomeDashboardSnapshot {
       homeName: json['homeName'] as String,
       activeListId: json['activeListId'] as String?,
       activeListName: json['activeListName'] as String?,
-      remainingShoppingItemsCount: json['remainingShoppingItemsCount'] as int? ?? 0,
+      remainingShoppingItemsCount:
+          json['remainingShoppingItemsCount'] as int? ?? 0,
       totalShoppingItemsCount: json['totalShoppingItemsCount'] as int? ?? 0,
       totalActiveListsCount: json['totalActiveListsCount'] as int? ?? 0,
       lastActivityText: json['lastActivityText'] as String?,

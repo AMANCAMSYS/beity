@@ -33,19 +33,19 @@ class MemberCardWidget extends StatelessWidget {
             backgroundColor: isOwner
                 ? AppColors.warning.withValues(alpha: 0.1)
                 : isAdmin
-                    ? AppColors.primary.withValues(alpha: 0.1)
-                    : theme.colorScheme.surfaceContainerHighest,
+                ? AppColors.primary.withValues(alpha: 0.1)
+                : theme.colorScheme.surfaceContainerHighest,
             child: Icon(
               isOwner
                   ? Icons.star_rounded
                   : isAdmin
-                      ? Icons.admin_panel_settings_rounded
-                      : Icons.person_rounded,
+                  ? Icons.admin_panel_settings_rounded
+                  : Icons.person_rounded,
               color: isOwner
                   ? AppColors.warning
                   : isAdmin
-                      ? AppColors.primary
-                      : theme.colorScheme.onSurfaceVariant,
+                  ? AppColors.primary
+                  : theme.colorScheme.onSurfaceVariant,
               size: 28,
             ),
           ),

@@ -95,7 +95,10 @@ class ShoppingGuideDialog extends StatelessWidget {
               ),
               child: Text(
                 t('got_it'),
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
               ),
             ),
           ],
@@ -112,7 +115,7 @@ class ShoppingGuideDialog extends StatelessWidget {
     required String description,
   }) {
     final theme = Theme.of(context);
-    
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

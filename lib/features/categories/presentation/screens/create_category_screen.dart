@@ -13,10 +13,7 @@ import '../../../settings/presentation/providers/app_settings_provider.dart';
 class CreateCategoryScreen extends ConsumerStatefulWidget {
   final String homeId;
 
-  const CreateCategoryScreen({
-    super.key,
-    required this.homeId,
-  });
+  const CreateCategoryScreen({super.key, required this.homeId});
 
   @override
   ConsumerState<CreateCategoryScreen> createState() =>
@@ -43,7 +40,9 @@ class _CreateCategoryScreenState extends ConsumerState<CreateCategoryScreen> {
     setState(() => _isLoading = true);
 
     try {
-      await ref.read(categoryNotifierProvider.notifier).createCategory(
+      await ref
+          .read(categoryNotifierProvider.notifier)
+          .createCategory(
             homeId: widget.homeId,
             name: _nameController.text.trim(),
             type: _selectedType,
@@ -57,15 +56,15 @@ class _CreateCategoryScreenState extends ConsumerState<CreateCategoryScreen> {
       }
 
       if (mounted) {
-        SawaSnackBar.success(context, context.translate('category_created_success'));
+        SawaSnackBar.success(
+          context,
+          context.translate('category_created_success'),
+        );
         context.pop();
       }
     } catch (e) {
       if (mounted) {
-        SawaSnackBar.error(
-          context,
-          ErrorFormatter.format(e, context),
-        );
+        SawaSnackBar.error(context, ErrorFormatter.format(e, context));
       }
     } finally {
       if (mounted) {
@@ -77,9 +76,7 @@ class _CreateCategoryScreenState extends ConsumerState<CreateCategoryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(context.translate('create_new_category')),
-      ),
+      appBar: AppBar(title: Text(context.translate('create_new_category'))),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Form(
@@ -149,13 +146,14 @@ class _CreateCategoryScreenState extends ConsumerState<CreateCategoryScreen> {
                   prefixIcon: const Icon(Icons.color_lens),
                 ),
                 onChanged: (value) {
-                  setState(
-                      () => _selectedColor = value.isEmpty ? null : value);
+                  setState(() => _selectedColor = value.isEmpty ? null : value);
                 },
               ),
               const SizedBox(height: 32),
               ElevatedButton(
-                onPressed: _isLoading ? null : () => ActionDebouncer.execute(_createCategory),
+                onPressed: _isLoading
+                    ? null
+                    : () => ActionDebouncer.execute(_createCategory),
                 child: _isLoading
                     ? const SizedBox(
                         height: 20,
@@ -165,9 +163,7 @@ class _CreateCategoryScreenState extends ConsumerState<CreateCategoryScreen> {
                           color: Colors.white,
                         ),
                       )
-                    : Text(
-                        context.translate('create_category'),
-                      ),
+                    : Text(context.translate('create_category')),
               ),
             ],
           ),

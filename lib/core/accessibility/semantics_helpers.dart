@@ -7,7 +7,9 @@ mixin AccessibilityHelpers {
   }) {
     final buffer = StringBuffer(name);
     if (quantity != null && quantity > 0) {
-      buffer.write(', ${quantity.toStringAsFixed(quantity.truncateToDouble() == quantity ? 0 : 1)}');
+      buffer.write(
+        ', ${quantity.toStringAsFixed(quantity.truncateToDouble() == quantity ? 0 : 1)}',
+      );
       if (unit != null && unit.isNotEmpty) {
         buffer.write(' $unit');
       }
@@ -24,14 +26,20 @@ mixin AccessibilityHelpers {
     return 'Shopping list: $name, $itemCount items, $purchasedCount purchased';
   }
 
-  static String markAsPurchasedLabel({required String itemName, required bool currentlyPurchased}) {
+  static String markAsPurchasedLabel({
+    required String itemName,
+    required bool currentlyPurchased,
+  }) {
     if (currentlyPurchased) {
       return 'Mark $itemName as not purchased';
     }
     return 'Mark $itemName as purchased';
   }
 
-  static String categoryHeaderLabel({required String category, required int itemCount}) {
+  static String categoryHeaderLabel({
+    required String category,
+    required int itemCount,
+  }) {
     return '$category category, $itemCount items';
   }
 

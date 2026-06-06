@@ -9,6 +9,7 @@ import 'package:sawa/shared/widgets/design_system/sawa_button.dart';
 import 'package:sawa/shared/widgets/design_system/sawa_snack_bar.dart';
 import 'package:sawa/shared/widgets/design_system/sawa_text_field.dart';
 import 'package:sawa/core/utils/action_debouncer.dart';
+import 'package:sawa/core/errors/error_formatter.dart';
 import '../../domain/entities/home_type.dart';
 import '../providers/homes_provider.dart';
 
@@ -63,7 +64,7 @@ class _CreateHomeScreenState extends ConsumerState<CreateHomeScreen> {
           context,
           context.translate(
             'create_home_failed',
-            arguments: {'error': e.toString()},
+            arguments: {'error': ErrorFormatter.format(e, context)},
           ),
         );
       }

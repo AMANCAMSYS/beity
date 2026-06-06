@@ -67,20 +67,29 @@ class SawaCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final cardPadding = padding ?? (variant == SawaCardVariant.compact
-        ? const EdgeInsets.all(AppSpacing.sm)
-        : const EdgeInsets.all(AppSpacing.md));
-    final effectiveRadius = borderRadius ??
+    final cardPadding =
+        padding ??
+        (variant == SawaCardVariant.compact
+            ? const EdgeInsets.all(AppSpacing.sm)
+            : const EdgeInsets.all(AppSpacing.md));
+    final effectiveRadius =
+        borderRadius ??
         BorderRadius.circular(
-          variant == SawaCardVariant.compact ? AppSpacing.radiusMd : AppSpacing.radiusLg,
+          variant == SawaCardVariant.compact
+              ? AppSpacing.radiusMd
+              : AppSpacing.radiusLg,
         );
-    final effectiveElevation = elevation ?? (variant == SawaCardVariant.elevated ? 2 : 0);
+    final effectiveElevation =
+        elevation ?? (variant == SawaCardVariant.elevated ? 2 : 0);
     final showBorder = hasBorder || variant != SawaCardVariant.elevated;
 
     Widget cardContent = Container(
       padding: cardPadding,
       decoration: BoxDecoration(
-        color: backgroundColor ?? theme.cardTheme.color ?? theme.colorScheme.surface,
+        color:
+            backgroundColor ??
+            theme.cardTheme.color ??
+            theme.colorScheme.surface,
         borderRadius: effectiveRadius,
         border: showBorder
             ? Border.all(

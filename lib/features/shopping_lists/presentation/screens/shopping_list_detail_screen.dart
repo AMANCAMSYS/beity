@@ -5,20 +5,15 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:sawa/app/theme/app_spacing.dart';
 import 'package:sawa/app/theme/app_colors.dart';
 import 'package:sawa/app/router/shopping_route_paths.dart';
 import 'package:sawa/shared/widgets/design_system/sawa_empty_state.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_skeleton_list.dart';
 import 'package:sawa/shared/widgets/design_system/sawa_snack_bar.dart';
 import '../providers/shopping_items_provider.dart';
 import '../providers/shopping_lists_provider.dart';
 import '../providers/realtime_providers.dart';
 import '../widgets/quick_add_item_bottom_sheet.dart';
-import '../widgets/category_filter_widget.dart';
-import '../widgets/presence_indicator_widget.dart';
-import '../widgets/list_detail_search_bar.dart';
-import '../widgets/list_detail_summary_bar.dart';
-import '../widgets/shopping_item_tile_widget.dart';
 import '../../domain/usecases/mark_item_purchased_usecase.dart';
 import '../../domain/usecases/update_item_purchase_state_usecase.dart';
 import '../../../../shared/widgets/purchase_notification_overlay.dart';
@@ -26,23 +21,27 @@ import '../../../../core/services/local_cache_notifier.dart';
 import '../../../../core/services/notification_service.dart';
 import '../../domain/usecases/delete_item_usecase.dart';
 import '../../data/models/shopping_item_model.dart';
+import '../../data/models/shopping_list_model.dart';
 import '../../domain/entities/shopping_item.dart';
+import '../../../categories/data/models/category_model.dart';
 import '../../../categories/presentation/providers/categories_provider.dart';
 import '../../../settings/presentation/providers/app_settings_provider.dart';
 import '../../../categories/presentation/providers/units_provider.dart';
 import '../../../offline_queue/presentation/widgets/connectivity_listener.dart';
-import '../../../offline_queue/presentation/widgets/sync_status_banner.dart';
+import '../../../offline_queue/presentation/providers/offline_queue_provider.dart';
 import '../../../shopping_mode/presentation/widgets/partial_purchase_dialog.dart';
 import '../../../shopping_mode/presentation/widgets/shopping_guide_dialog.dart';
-import '../../../offline_queue/presentation/providers/offline_queue_provider.dart';
-import '../../../offline_queue/presentation/providers/connectivity_provider.dart';
-import '../../../offline_queue/domain/entities/sync_status.dart';
 import '../../../homes/presentation/providers/homes_provider.dart';
 import '../../../../core/services/realtime_service.dart';
 import '../../../../core/config/feature_flags.dart';
 import '../../../../core/utils/action_debouncer.dart';
 import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/errors/error_formatter.dart';
+import '../../../../core/monitoring/monitoring_service.dart';
+import 'models/list_detail_item.dart';
+import 'widgets/isolated_sync_status_banner.dart';
+import 'widgets/isolated_presence_indicator.dart';
+import 'widgets/list_items_section.dart';
 
 enum _ListAction { shoppingMode, summary, activity, quickAdd }
 
@@ -63,16 +62,15 @@ class ShoppingListDetailScreen extends ConsumerStatefulWidget {
 
 class _ShoppingListDetailScreenState
     extends ConsumerState<ShoppingListDetailScreen> {
-  // Undo delete state
   ShoppingItem? _lastDeletedItem;
   Timer? _undoTimer;
 
-  // Search/filter state
   bool _isSearchVisible = false;
   final Map<String?, bool> _expandedCategories = {};
 
-  // Conflict highlight state
   final Map<String, DateTime> _highlightedItems = {};
+
+  bool _firstRenderReported = false;
 
   StreamSubscription? _cacheSubscription;
   final ScrollController _scrollController = ScrollController();
@@ -90,11 +88,10 @@ class _ShoppingListDetailScreenState
     NotificationService.addActiveScreenSubscription(
       ShoppingRoutePaths.detail(widget.listId),
     );
+    MonitoringService().breadcrumbShoppingListOpen(widget.listId);
 
-    // Listen to real-time purchase updates from other users
     _cacheSubscription = LocalCacheNotifier.stream.listen((event) {
       if (event.isPurchaseEvent && event.listId == widget.listId && mounted) {
-        // Resolve purchaser ID to name using home members
         final members =
             ref.read(homeMembersProvider(widget.homeId)).value ?? [];
         final purchaserName = members
@@ -143,7 +140,13 @@ class _ShoppingListDetailScreenState
           avatarUrl: currentUser.userMetadata?['avatar_url'] as String?,
         ),
       );
-    } catch (_) {}
+    } catch (e, s) {
+      MonitoringService().logError(
+        e,
+        s,
+        reason: 'Presence join failed for list ${widget.listId}',
+      );
+    }
   }
 
   void _leavePresence() {
@@ -153,7 +156,13 @@ class _ShoppingListDetailScreenState
         final channelName = 'presence:list:${widget.listId}';
         service.leavePresence(channelName: channelName);
       }
-    } catch (_) {}
+    } catch (e, s) {
+      MonitoringService().logError(
+        e,
+        s,
+        reason: 'Presence leave failed for list ${widget.listId}',
+      );
+    }
   }
 
   @override
@@ -171,7 +180,6 @@ class _ShoppingListDetailScreenState
     final homeId = widget.homeId;
     final currentUser = SupabaseService.client.auth.currentUser;
 
-    // Load units for display (read instead of watch to avoid rebuilds, or watch but don't care much since it's cached)
     final unitsAsync = ref.watch(unitsProvider(null));
     final unitNames = <String, String>{};
     unitsAsync.whenData((units) {
@@ -182,172 +190,20 @@ class _ShoppingListDetailScreenState
       }
     });
 
-    // Load categories for filter
     final categoriesAsync = ref.watch(categoriesProvider(homeId));
-
-    // Get settings with select to avoid rebuilds on irrelevant setting changes
     final settings = ref.watch(appSettingsProvider.select((s) => s));
 
     return ConnectivityListener(
       homeId: homeId,
       child: Scaffold(
-        appBar: AppBar(
-          leading: IconButton(
-            icon: const BackButtonIcon(),
-            onPressed: () {
-              if (context.canPop()) {
-                context.pop();
-              } else {
-                context.go(ShoppingRoutePaths.lists);
-              }
-            },
-            tooltip: context.translate('back'),
-          ),
-          title: listAsync.when(
-            data: (list) => Text(
-              list?.name ?? context.translate('shopping_lists'),
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            loading: () => Text(context.translate('loading')),
-            error: (error, stackTrace) =>
-                Text(context.translate('error_title')),
-          ),
-          actions: [
-            if (FeatureFlags.enableAi)
-              IconButton(
-                icon: const Icon(
-                  Icons.auto_awesome_rounded,
-                  color: AppColors.accent,
-                ),
-                onPressed: () => ActionDebouncer.execute(() async {
-                  final list = listAsync.value;
-                  if (list != null) {
-                    final existingItemNames =
-                        itemsAsync.value?.map((e) => e.name).toList() ?? [];
-                    context.push(
-                      ShoppingRoutePaths.aiSuggestions(widget.listId),
-                      extra: {
-                        'listId': list.id,
-                        'listTitle': list.name,
-                        'homeId': list.homeId,
-                        'homeType': 'family',
-                        'existingItemNames': existingItemNames,
-                      },
-                    );
-                  }
-                }),
-                tooltip: context.translate('smart_suggestions'),
-              ),
-            IconButton(
-              icon: const Icon(Icons.help_outline_rounded),
-              onPressed: () => ShoppingGuideDialog.show(context),
-              tooltip: context.translate('shopping_guide_title'),
-            ),
-            IconButton(
-              icon: Icon(
-                _isSearchVisible ? Icons.close_rounded : Icons.search_rounded,
-              ),
-              onPressed: () {
-                setState(() {
-                  _isSearchVisible = !_isSearchVisible;
-                  if (!_isSearchVisible) {
-                    _searchController.clear();
-                    _searchQuery = '';
-                  }
-                });
-              },
-              tooltip: context.translate('search'),
-            ),
-            PopupMenuButton<_ListAction>(
-              tooltip: context.translate('more'),
-              icon: const Icon(Icons.more_horiz_rounded),
-              onSelected: (action) {
-                switch (action) {
-                  case _ListAction.shoppingMode:
-                    ActionDebouncer.execute(() async {
-                      final list = listAsync.value;
-                      if (list != null) {
-                        context.push(
-                          ShoppingRoutePaths.shoppingMode(widget.listId),
-                          extra: {'homeId': list.homeId, 'listName': list.name},
-                        );
-                      }
-                    });
-                    break;
-                  case _ListAction.summary:
-                    ActionDebouncer.execute(
-                      () => context.push(
-                        ShoppingRoutePaths.summary(widget.listId),
-                      ),
-                    );
-                    break;
-                  case _ListAction.activity:
-                    ActionDebouncer.execute(
-                      () => context.push(
-                        ShoppingRoutePaths.activity(widget.listId),
-                        extra: {
-                          'homeId': list?.homeId ?? '',
-                          'listName':
-                              list?.name ?? context.translate('shopping_lists'),
-                        },
-                      ),
-                    );
-                    break;
-                  case _ListAction.quickAdd:
-                    ActionDebouncer.execute(
-                      () => context.push(
-                        ShoppingRoutePaths.quickAdd(widget.listId),
-                        extra: list?.homeId ?? '',
-                      ),
-                    );
-                    break;
-                }
-              },
-              itemBuilder: (context) => [
-                PopupMenuItem(
-                  value: _ListAction.shoppingMode,
-                  child: ListTile(
-                    leading: const Icon(Icons.shopping_cart_rounded),
-                    title: Text(context.translate('start_shopping')),
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                ),
-                PopupMenuItem(
-                  value: _ListAction.summary,
-                  child: ListTile(
-                    leading: const Icon(Icons.summarize_rounded),
-                    title: Text(context.translate('list_summary')),
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                ),
-                PopupMenuItem(
-                  value: _ListAction.activity,
-                  child: ListTile(
-                    leading: const Icon(Icons.history_rounded),
-                    title: Text(context.translate('activity_log')),
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                ),
-                PopupMenuItem(
-                  value: _ListAction.quickAdd,
-                  child: ListTile(
-                    leading: const Icon(Icons.bolt_rounded),
-                    title: Text(context.translate('quick_add')),
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+        appBar: _buildAppBar(context, listAsync, itemsAsync, list),
         body: Column(
           children: [
-            _IsolatedSyncStatusBanner(homeId: homeId),
-            _IsolatedPresenceIndicatorWidget(
+            IsolatedSyncStatusBanner(homeId: homeId),
+            IsolatedPresenceIndicatorWidget(
               listId: widget.listId,
               currentUserId: currentUser?.id ?? '',
             ),
-            // Main content
             Expanded(
               child: listAsync.when(
                 skipLoadingOnReload: true,
@@ -363,6 +219,11 @@ class _ShoppingListDetailScreenState
                         () async => context.go(ShoppingRoutePaths.lists),
                       ),
                     );
+                  }
+
+                  if (!_firstRenderReported) {
+                    _firstRenderReported = true;
+                    MonitoringService().markShoppingListFirstRender();
                   }
 
                   return itemsAsync.when(
@@ -405,22 +266,6 @@ class _ShoppingListDetailScreenState
                             .toList();
                       }
 
-                      if (filtered.isEmpty) {
-                        return SawaEmptyState(
-                          title: context.translate('no_results'),
-                          message: context.translate('no_results_desc'),
-                          icon: Icons.search_off_rounded,
-                          actionText: context.translate('clear_filters'),
-                          onAction: () {
-                            setState(() {
-                              _searchQuery = '';
-                              _filterCategoryId = null;
-                              _searchController.clear();
-                            });
-                          },
-                        );
-                      }
-
                       final unpurchasedTotal = items
                           .where((i) => !i.isPurchased && i.price != null)
                           .fold<double>(0, (sum, i) => sum + i.price!);
@@ -438,279 +283,76 @@ class _ShoppingListDetailScreenState
                         for (final c in categories) c.id: c,
                       };
 
-                      final List<ListDetailItem> flattenedList = [];
-                      if (settings.groupedByCategory) {
-                        final grouped = <String?, List<ShoppingItemModel>>{};
-                        for (final item in filtered) {
-                          grouped
-                              .putIfAbsent(item.categoryId, () => [])
-                              .add(item);
-                        }
-                        for (final entry in grouped.entries) {
-                          final categoryId = entry.key;
-                          final groupItems = entry.value;
+                      final flattenedList = _buildFlattenedList(
+                        filtered,
+                        items,
+                        pendingIds,
+                        categoryById,
+                        settings.groupedByCategory,
+                        context,
+                      );
 
-                          // 3. Sort items within group
-                          groupItems.sort((a, b) {
-                            // A. Purchased status first (unpurchased at top)
-                            if (a.isPurchased != b.isPurchased) {
-                              return a.isPurchased ? 1 : -1;
-                            }
-
-                            // B. If both are purchased, sort by recently purchased
-                            if (a.isPurchased) {
-                              final aTime =
-                                  a.purchasedAt ?? a.updatedAt ?? a.createdAt;
-                              final bTime =
-                                  b.purchasedAt ?? b.updatedAt ?? b.createdAt;
-                              if (aTime != null && bTime != null) {
-                                return bTime.compareTo(aTime); // descending
-                              }
-                              return 0;
-                            }
-
-                            // C. If both are unpurchased, sort by priority
-                            final aPriority = ShoppingItem.priorityOrder(
-                              a.priority,
-                            );
-                            final bPriority = ShoppingItem.priorityOrder(
-                              b.priority,
-                            );
-                            if (aPriority != bPriority) {
-                              return aPriority.compareTo(bPriority);
-                            }
-
-                            // D. Fallback to name alphabetical
-                            return a.name.compareTo(b.name);
+                      return ListItemsSection(
+                        flattenedList: flattenedList,
+                        isSearchVisible: _isSearchVisible,
+                        searchController: _searchController,
+                        searchQuery: _searchQuery,
+                        onSearchChanged: (value) {
+                          setState(() => _searchQuery = value);
+                        },
+                        onSearchClear: () {
+                          _searchController.clear();
+                          setState(() => _searchQuery = '');
+                        },
+                        categories: categories,
+                        filterCategoryId: _filterCategoryId,
+                        onCategorySelected: (id) {
+                          setState(() => _filterCategoryId = id);
+                        },
+                        listId: widget.listId,
+                        homeId: homeId,
+                        unpurchasedTotal: unpurchasedTotal,
+                        unitNames: unitNames,
+                        highlightedItems: _highlightedItems,
+                        compactListMode: settings.compactListMode,
+                        hapticFeedback: settings.hapticFeedback,
+                        soundEffects: settings.soundEffects,
+                        onTogglePurchased: (itemId, isPurchased) =>
+                            ActionDebouncer.execute(
+                              () => _togglePurchased(itemId, isPurchased),
+                            ),
+                        onQuantityTap: (itemId) => _handleQuantityTap(itemId),
+                        onEdit: (item) => ActionDebouncer.execute(
+                          () => context.push(
+                            ShoppingRoutePaths.editItem(
+                              widget.listId,
+                              item.id,
+                              homeId: widget.homeId,
+                            ),
+                            extra: {'homeId': widget.homeId},
+                          ),
+                        ),
+                        onDelete: (item) =>
+                            ActionDebouncer.execute(() => _deleteItem(item)),
+                        onToggleCategory: (categoryId) {
+                          setState(() {
+                            _expandedCategories[categoryId] =
+                                !(_expandedCategories[categoryId] ?? true);
                           });
-
-                          final isExpanded =
-                              _expandedCategories[categoryId] ?? true;
-                          final unpurchasedCount = groupItems
-                              .where((i) => !i.isPurchased)
-                              .length;
-
-                          final cat = categoryById[categoryId];
-                          final categoryName =
-                              cat?.name ?? context.translate('uncategorized');
-
-                          flattenedList.add(
-                            CategoryHeaderItem(
-                              categoryId: categoryId,
-                              categoryName: categoryName,
-                              unpurchasedCount: unpurchasedCount,
-                              isExpanded: isExpanded,
-                            ),
-                          );
-
-                          if (isExpanded) {
-                            for (final item in groupItems) {
-                              final hasPending = pendingIds.contains(item.id);
-                              flattenedList.add(
-                                ShoppingItemRow(
-                                  item: item,
-                                  hasPending: hasPending,
-                                ),
-                              );
-                            }
-                          }
-                        }
-                      } else {
-                        final sorted = [...filtered]
-                          ..sort((a, b) {
-                            if (a.isPurchased == b.isPurchased) return 0;
-                            return a.isPurchased ? 1 : -1;
+                        },
+                        onClearFilters: () {
+                          setState(() {
+                            _searchQuery = '';
+                            _filterCategoryId = null;
+                            _searchController.clear();
                           });
-                        for (final item in sorted) {
-                          final hasPending = pendingIds.contains(item.id);
-                          flattenedList.add(
-                            ShoppingItemRow(item: item, hasPending: hasPending),
-                          );
-                        }
-                      }
-
-                      return Column(
-                        children: [
-                          if (_isSearchVisible)
-                            ListDetailSearchBar(
-                              controller: _searchController,
-                              searchQuery: _searchQuery,
-                              onChanged: (value) {
-                                setState(() => _searchQuery = value);
-                              },
-                              onClear: () {
-                                _searchController.clear();
-                                setState(() => _searchQuery = '');
-                              },
-                            ),
-                          categoriesAsync.when(
-                            data: (categories) => Padding(
-                              padding: const EdgeInsets.only(
-                                bottom: AppSpacing.md,
-                              ),
-                              child: CategoryFilterWidget(
-                                categories: categories,
-                                selectedCategoryId: _filterCategoryId,
-                                onCategorySelected: (id) {
-                                  setState(() => _filterCategoryId = id);
-                                },
-                              ),
-                            ),
-                            loading: () => const SizedBox.shrink(),
-                            error: (error, stackTrace) =>
-                                const SizedBox.shrink(),
-                          ),
-                          Expanded(
-                            child: ListView.builder(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: AppSpacing.lg,
-                              ),
-                              itemCount: flattenedList.length + 1,
-                              itemBuilder: (context, index) {
-                                if (index == flattenedList.length) {
-                                  return const SizedBox(height: AppSpacing.md);
-                                }
-
-                                final listItem = flattenedList[index];
-
-                                if (listItem is CategoryHeaderItem) {
-                                  final isDark =
-                                      Theme.of(context).brightness ==
-                                      Brightness.dark;
-                                  return InkWell(
-                                    onTap: () {
-                                      setState(() {
-                                        _expandedCategories[listItem
-                                                .categoryId] =
-                                            !listItem.isExpanded;
-                                      });
-                                    },
-                                    borderRadius: BorderRadius.circular(
-                                      AppSpacing.radiusMd,
-                                    ),
-                                    child: Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        vertical: AppSpacing.sm,
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          Icon(
-                                            listItem.isExpanded
-                                                ? Icons
-                                                      .keyboard_arrow_down_rounded
-                                                : Icons
-                                                      .keyboard_arrow_right_rounded,
-                                            color: isDark
-                                                ? AppColors.textSecondaryDark
-                                                : AppColors.textSecondaryLight,
-                                            size: 24,
-                                          ),
-                                          AppSpacing.gapXS,
-                                          Text(
-                                            listItem.categoryName,
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .titleSmall
-                                                ?.copyWith(
-                                                  color: isDark
-                                                      ? AppColors
-                                                            .textSecondaryDark
-                                                      : AppColors
-                                                            .textSecondaryLight,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                          ),
-                                          AppSpacing.gapSM,
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 10,
-                                              vertical: 2,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: Theme.of(context)
-                                                  .primaryColor
-                                                  .withValues(alpha: 0.1),
-                                              borderRadius:
-                                                  BorderRadius.circular(
-                                                    AppSpacing.radiusXl,
-                                                  ),
-                                            ),
-                                            child: Text(
-                                              '${listItem.unpurchasedCount}',
-                                              style: Theme.of(context)
-                                                  .textTheme
-                                                  .bodySmall
-                                                  ?.copyWith(
-                                                    color: Theme.of(
-                                                      context,
-                                                    ).primaryColor,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  );
-                                } else if (listItem is ShoppingItemRow) {
-                                  final item = listItem.item;
-                                  return Padding(
-                                    padding: const EdgeInsets.only(
-                                      bottom: AppSpacing.xs,
-                                    ),
-                                    child: ShoppingItemTileWidget(
-                                      item: item,
-                                      unitName: item.unitId != null
-                                          ? unitNames[item.unitId]
-                                          : null,
-                                      highlightUntil:
-                                          _highlightedItems[item.id],
-                                      showPendingIndicator: listItem.hasPending,
-                                      isCompact: settings.compactListMode,
-                                      hapticsEnabled: settings.hapticFeedback,
-                                      soundsEnabled: settings.soundEffects,
-                                      onTogglePurchased: () =>
-                                          ActionDebouncer.execute(
-                                            () => _togglePurchased(
-                                              item.id,
-                                              !item.isPurchased,
-                                            ),
-                                          ),
-                                      onQuantityTap: () =>
-                                          _handleQuantityTap(item.id),
-                                      onEdit: () => ActionDebouncer.execute(
-                                        () => context.push(
-                                          ShoppingRoutePaths.editItem(
-                                            widget.listId,
-                                            item.id,
-                                            homeId: widget.homeId,
-                                          ),
-                                          extra: {'homeId': widget.homeId},
-                                        ),
-                                      ),
-                                      onDelete: () => ActionDebouncer.execute(
-                                        () => _deleteItem(item),
-                                      ),
-                                    ),
-                                  );
-                                }
-                                return const SizedBox.shrink();
-                              },
-                            ),
-                          ),
-                          ListDetailSummaryBar(
-                            listId: widget.listId,
-                            homeId: homeId,
-                            unpurchasedTotal: unpurchasedTotal,
-                          ),
-                        ],
+                        },
                       );
                     },
-                    loading: () =>
-                        const Center(child: CircularProgressIndicator()),
+                    loading: () => const SawaSkeletonList(itemCount: 6),
                     error: (error, _) => SawaEmptyState(
                       title: context.translate('load_items_failed'),
-                      message: error.toString(),
+                      message: ErrorFormatter.format(error, context),
                       icon: Icons.error_outline_rounded,
                       isError: true,
                       actionText: context.translate('retry'),
@@ -720,10 +362,10 @@ class _ShoppingListDetailScreenState
                     ),
                   );
                 },
-                loading: () => const Center(child: CircularProgressIndicator()),
+                loading: () => const SawaSkeletonList(itemCount: 4),
                 error: (error, _) => SawaEmptyState(
                   title: context.translate('load_list_failed'),
-                  message: error.toString(),
+                  message: ErrorFormatter.format(error, context),
                   icon: Icons.error_outline_rounded,
                   isError: true,
                   actionText: context.translate('retry'),
@@ -739,6 +381,238 @@ class _ShoppingListDetailScreenState
           ],
         ),
       ),
+    );
+  }
+
+  List<ListDetailItem> _buildFlattenedList(
+    List<ShoppingItemModel> filtered,
+    List<ShoppingItemModel> items,
+    Set<String> pendingIds,
+    Map<String, CategoryModel> categoryById,
+    bool groupedByCategory,
+    BuildContext context,
+  ) {
+    final flattenedList = <ListDetailItem>[];
+
+    if (groupedByCategory) {
+      final grouped = <String?, List<ShoppingItemModel>>{};
+      for (final item in filtered) {
+        grouped.putIfAbsent(item.categoryId, () => []).add(item);
+      }
+      for (final entry in grouped.entries) {
+        final categoryId = entry.key;
+        final groupItems = entry.value;
+
+        groupItems.sort((a, b) {
+          if (a.isPurchased != b.isPurchased) {
+            return a.isPurchased ? 1 : -1;
+          }
+          if (a.isPurchased) {
+            final aTime = a.purchasedAt ?? a.updatedAt ?? a.createdAt;
+            final bTime = b.purchasedAt ?? b.updatedAt ?? b.createdAt;
+            if (aTime != null && bTime != null) {
+              return bTime.compareTo(aTime);
+            }
+            return 0;
+          }
+          final aPriority = ShoppingItem.priorityOrder(a.priority);
+          final bPriority = ShoppingItem.priorityOrder(b.priority);
+          if (aPriority != bPriority) {
+            return aPriority.compareTo(bPriority);
+          }
+          return a.name.compareTo(b.name);
+        });
+
+        final isExpanded = _expandedCategories[categoryId] ?? true;
+        final unpurchasedCount = groupItems.where((i) => !i.isPurchased).length;
+
+        final cat = categoryById[categoryId];
+        final categoryName = cat?.name ?? context.translate('uncategorized');
+
+        flattenedList.add(
+          CategoryHeaderItem(
+            categoryId: categoryId,
+            categoryName: categoryName,
+            unpurchasedCount: unpurchasedCount,
+            isExpanded: isExpanded,
+          ),
+        );
+
+        if (isExpanded) {
+          for (final item in groupItems) {
+            final hasPending = pendingIds.contains(item.id);
+            flattenedList.add(
+              ShoppingItemRow(item: item, hasPending: hasPending),
+            );
+          }
+        }
+      }
+    } else {
+      final sorted = [...filtered]
+        ..sort((a, b) {
+          if (a.isPurchased == b.isPurchased) return 0;
+          return a.isPurchased ? 1 : -1;
+        });
+      for (final item in sorted) {
+        final hasPending = pendingIds.contains(item.id);
+        flattenedList.add(ShoppingItemRow(item: item, hasPending: hasPending));
+      }
+    }
+
+    return flattenedList;
+  }
+
+  PreferredSizeWidget _buildAppBar(
+    BuildContext context,
+    AsyncValue<ShoppingListModel?> listAsync,
+    AsyncValue<List<ShoppingItemModel>> itemsAsync,
+    ShoppingListModel? list,
+  ) {
+    return AppBar(
+      leading: IconButton(
+        icon: const BackButtonIcon(),
+        onPressed: () {
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            context.go(ShoppingRoutePaths.lists);
+          }
+        },
+        tooltip: context.translate('back'),
+      ),
+      title: listAsync.when(
+        data: (list) => Text(
+          list?.name ?? context.translate('shopping_lists'),
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        loading: () => Text(context.translate('loading')),
+        error: (error, stackTrace) => Text(context.translate('error_title')),
+      ),
+      actions: [
+        if (FeatureFlags.enableAi)
+          IconButton(
+            icon: const Icon(
+              Icons.auto_awesome_rounded,
+              color: AppColors.accent,
+            ),
+            onPressed: () => ActionDebouncer.execute(() async {
+              final list = listAsync.value;
+              if (list != null) {
+                final existingItemNames =
+                    itemsAsync.value?.map((e) => e.name).toList() ?? [];
+                context.push(
+                  ShoppingRoutePaths.aiSuggestions(widget.listId),
+                  extra: {
+                    'listId': list.id,
+                    'listTitle': list.name,
+                    'homeId': list.homeId,
+                    'homeType': 'family',
+                    'existingItemNames': existingItemNames,
+                  },
+                );
+              }
+            }),
+            tooltip: context.translate('smart_suggestions'),
+          ),
+        IconButton(
+          icon: const Icon(Icons.help_outline_rounded),
+          onPressed: () => ShoppingGuideDialog.show(context),
+          tooltip: context.translate('shopping_guide_title'),
+        ),
+        IconButton(
+          icon: Icon(
+            _isSearchVisible ? Icons.close_rounded : Icons.search_rounded,
+          ),
+          onPressed: () {
+            setState(() {
+              _isSearchVisible = !_isSearchVisible;
+              if (!_isSearchVisible) {
+                _searchController.clear();
+                _searchQuery = '';
+              }
+            });
+          },
+          tooltip: context.translate('search'),
+        ),
+        PopupMenuButton<_ListAction>(
+          tooltip: context.translate('more'),
+          icon: const Icon(Icons.more_horiz_rounded),
+          onSelected: (action) {
+            switch (action) {
+              case _ListAction.shoppingMode:
+                ActionDebouncer.execute(() async {
+                  final list = listAsync.value;
+                  if (list != null) {
+                    context.push(
+                      ShoppingRoutePaths.shoppingMode(widget.listId),
+                      extra: {'homeId': list.homeId, 'listName': list.name},
+                    );
+                  }
+                });
+                break;
+              case _ListAction.summary:
+                ActionDebouncer.execute(
+                  () => context.push(ShoppingRoutePaths.summary(widget.listId)),
+                );
+                break;
+              case _ListAction.activity:
+                ActionDebouncer.execute(
+                  () => context.push(
+                    ShoppingRoutePaths.activity(widget.listId),
+                    extra: {
+                      'homeId': list?.homeId ?? '',
+                      'listName':
+                          list?.name ?? context.translate('shopping_lists'),
+                    },
+                  ),
+                );
+                break;
+              case _ListAction.quickAdd:
+                ActionDebouncer.execute(
+                  () => context.push(
+                    ShoppingRoutePaths.quickAdd(widget.listId),
+                    extra: list?.homeId ?? '',
+                  ),
+                );
+                break;
+            }
+          },
+          itemBuilder: (context) => [
+            PopupMenuItem(
+              value: _ListAction.shoppingMode,
+              child: ListTile(
+                leading: const Icon(Icons.shopping_cart_rounded),
+                title: Text(context.translate('start_shopping')),
+                contentPadding: EdgeInsets.zero,
+              ),
+            ),
+            PopupMenuItem(
+              value: _ListAction.summary,
+              child: ListTile(
+                leading: const Icon(Icons.summarize_rounded),
+                title: Text(context.translate('list_summary')),
+                contentPadding: EdgeInsets.zero,
+              ),
+            ),
+            PopupMenuItem(
+              value: _ListAction.activity,
+              child: ListTile(
+                leading: const Icon(Icons.history_rounded),
+                title: Text(context.translate('activity_log')),
+                contentPadding: EdgeInsets.zero,
+              ),
+            ),
+            PopupMenuItem(
+              value: _ListAction.quickAdd,
+              child: ListTile(
+                leading: const Icon(Icons.bolt_rounded),
+                title: Text(context.translate('quick_add')),
+                contentPadding: EdgeInsets.zero,
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -862,87 +736,4 @@ class _ShoppingListDetailScreenState
       }
     }
   }
-}
-
-class _IsolatedSyncStatusBanner extends ConsumerWidget {
-  final String homeId;
-  const _IsolatedSyncStatusBanner({required this.homeId});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final connectivityStatus = ref.watch(connectivityStatusProvider);
-    final isOffline = connectivityStatus.value?.isOffline ?? false;
-    final canSyncNow = ref.watch(canSyncNowProvider);
-    final pendingCount = homeId.isNotEmpty
-        ? ref.watch(pendingCountProvider(homeId)).value ?? 0
-        : 0;
-    final failedCount = homeId.isNotEmpty
-        ? ref.watch(failedCountProvider(homeId)).value ?? 0
-        : 0;
-
-    return SyncStatusBanner(
-      pendingCount: pendingCount,
-      failedCount: failedCount,
-      isOffline: isOffline,
-      canSyncNow: canSyncNow,
-      onRetryAll: () async {
-        final repository = ref.read(offlineQueueRepositoryProvider);
-        final failedEntries = await repository.getFailedEntries(homeId);
-        for (final entry in failedEntries) {
-          await repository.updateEntryStatus(
-            entryId: entry.id!,
-            status: SyncStatus.pending,
-          );
-        }
-        ref.invalidate(queueEntriesProvider(homeId));
-        ref.invalidate(pendingCountProvider(homeId));
-        ref.invalidate(failedCountProvider(homeId));
-      },
-    );
-  }
-}
-
-class _IsolatedPresenceIndicatorWidget extends ConsumerWidget {
-  final String listId;
-  final String currentUserId;
-  const _IsolatedPresenceIndicatorWidget({
-    required this.listId,
-    required this.currentUserId,
-  });
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final presenceAsync = ref.watch(presenceProvider(listId));
-    return presenceAsync.when(
-      data: (presences) => PresenceIndicatorWidget(
-        presences: presences,
-        currentUserId: currentUserId,
-      ),
-      loading: () => const SizedBox.shrink(),
-      error: (error, stackTrace) => const SizedBox.shrink(),
-    );
-  }
-}
-
-sealed class ListDetailItem {}
-
-class CategoryHeaderItem extends ListDetailItem {
-  final String? categoryId;
-  final String categoryName;
-  final int unpurchasedCount;
-  final bool isExpanded;
-
-  CategoryHeaderItem({
-    required this.categoryId,
-    required this.categoryName,
-    required this.unpurchasedCount,
-    required this.isExpanded,
-  });
-}
-
-class ShoppingItemRow extends ListDetailItem {
-  final ShoppingItemModel item;
-  final bool hasPending;
-
-  ShoppingItemRow({required this.item, required this.hasPending});
 }

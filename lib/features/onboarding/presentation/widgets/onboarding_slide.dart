@@ -88,10 +88,7 @@ class _OnboardingSlideState extends State<OnboardingSlide>
                   colors[0].withValues(alpha: 0.55),
                   colors[1].withValues(alpha: 0.25),
                 ]
-              : [
-                  colors[0],
-                  colors[1],
-                ],
+              : [colors[0], colors[1]],
         ),
       ),
       child: SafeArea(

@@ -430,7 +430,7 @@ async function checkRateLimitDB(
   });
 
   if (error) {
-    console.error("Rate limit RPC failed:", error);
+    console.error(JSON.stringify({ event: "rate_limit_rpc_failed", endpoint, error: error.message }));
     return new Response(
       JSON.stringify({
         type: 'error',
@@ -491,7 +491,7 @@ Deno.serve(async (req: Request) => {
     const DEEPSEEK_API_KEY = Deno.env.get("DEEPSEEK_API_KEY");
 
     if (!DEEPSEEK_API_KEY) {
-      console.error("Missing DEEPSEEK_API_KEY in Supabase Secrets");
+      console.error(JSON.stringify({ event: "deepseek_config_missing" }));
       return new Response(
         JSON.stringify({ type: 'error', error: "Configuration Error", message_ar: getMessage('config_error', reqLang) }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -636,7 +636,7 @@ Deno.serve(async (req: Request) => {
 
     if (!response.ok) {
       const errTxt = await response.text();
-      console.error("DeepSeek API Error:", response.status, errTxt);
+      console.error(JSON.stringify({ event: "deepseek_api_error", status: response.status }));
       let apiErrorMessage = getMessage('api_error_fallback', effectiveLanguage);
       try {
         const errJson = JSON.parse(errTxt);
@@ -657,7 +657,7 @@ Deno.serve(async (req: Request) => {
 
     // Check for API-specific errors in response payload
     if (result.error) {
-      console.error("AI provider returned an error:", result.error);
+      console.error(JSON.stringify({ event: "ai_provider_error", error: result.error.message || "unknown" }));
       return new Response(
         JSON.stringify({
           type: 'error',
@@ -669,7 +669,7 @@ Deno.serve(async (req: Request) => {
     }
 
     if (!result.choices || result.choices.length === 0 || !result.choices[0].message) {
-      console.error("API returned empty choices:", result);
+      console.error(JSON.stringify({ event: "ai_empty_choices" }));
       return new Response(
         JSON.stringify({
           type: 'error',
@@ -702,8 +702,7 @@ Deno.serve(async (req: Request) => {
       jsonStr = jsonStr.replace(/,(\s*[\]}])/g, '$1'); // Trailing commas
       parsed = JSON.parse(jsonStr);
     } catch (e) {
-      console.error("Failed to parse AI response as JSON:", e);
-      console.error("Raw content that failed to parse:", result.choices[0].message?.content);
+      console.error(JSON.stringify({ event: "ai_json_parse_failed", error: e instanceof Error ? e.message : String(e) }));
 
       return new Response(
         JSON.stringify({
@@ -732,7 +731,7 @@ Deno.serve(async (req: Request) => {
     );
 
   } catch (err) {
-    console.error("Unexpected error:", err);
+    console.error(JSON.stringify({ event: "shopping_suggestions_unhandled", error: err instanceof Error ? err.message : String(err) }));
     return new Response(
       JSON.stringify({
         type: 'error',

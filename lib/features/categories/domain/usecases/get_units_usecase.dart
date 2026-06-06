@@ -6,11 +6,7 @@ class GetUnitsUseCase {
 
   GetUnitsUseCase(this._repository);
 
-  Future<List<Unit>> call({
-    String? type,
-  }) async {
-    return _repository.getUnits(
-      type: type,
-    );
+  Future<List<Unit>> call({String? type}) async {
+    return _repository.getUnits(type: type);
   }
 }

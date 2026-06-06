@@ -5,23 +5,26 @@ void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   group('End-to-End Shopping Journey', () {
-    testWidgets('Full shopping flow: sign up → create home → create list → add items → shop → exit', (tester) async {
-      // This test requires a running Supabase instance with test data
-      // Run with: flutter test integration_test/shopping_journey_test.dart
+    testWidgets(
+      'Full shopping flow: sign up → create home → create list → add items → shop → exit',
+      (tester) async {
+        // This test requires a running Supabase instance with test data
+        // Run with: flutter test integration_test/shopping_journey_test.dart
 
-      // E2E test implementation checklist:
-      // 1. Sign up with test credentials
-      // 2. Create a new home
-      // 3. Create a shopping list
-      // 4. Add items to the list
-      // 5. Enter shopping mode
-      // 6. Mark items as purchased
-      // 7. Exit shopping mode
-      // 8. Verify activity log was created
+        // E2E test implementation checklist:
+        // 1. Sign up with test credentials
+        // 2. Create a new home
+        // 3. Create a shopping list
+        // 4. Add items to the list
+        // 5. Enter shopping mode
+        // 6. Mark items as purchased
+        // 7. Exit shopping mode
+        // 8. Verify activity log was created
 
-      // Placeholder assertion
-      expect(true, isTrue);
-    });
+        // Placeholder assertion
+        expect(true, isTrue);
+      },
+    );
 
     testWidgets('Arabic RTL layout verification', (tester) async {
       // RTL verification checklist:

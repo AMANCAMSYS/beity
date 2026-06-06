@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide AuthException;
 import 'app_exception.dart';
 import '../localization/app_localizations.dart';
 
@@ -13,209 +13,303 @@ class ErrorFormatter {
   }
 
   static String formatWithL10n(Object exception, AppLocalizations l10n) {
+    // 1. Type-based checks (fast path)
+    final typeResult = _handleTypeBasedError(exception, l10n);
+    if (typeResult != null) return typeResult;
+
+    // 2. String pattern matching (fallback)
+    return _handleStringBasedError(exception.toString(), l10n);
+  }
+
+  static String? _handleTypeBasedError(
+    Object exception,
+    AppLocalizations l10n,
+  ) {
     if (exception is ValidationException) {
       return l10n.translate(exception.message);
     }
 
-    // 1. Check for network and internet connectivity errors
     if (exception is SocketException ||
         exception is HttpException ||
-        exception.toString().contains('SocketException') ||
-        exception.toString().contains('Failed host lookup') ||
-        exception.toString().contains('NetworkEpoch') ||
-        exception.toString().contains('connection error') ||
-        exception.toString().contains('ClientException')) {
+        _matchesAny(exception.toString(), _networkPatterns)) {
       return l10n.translate('network_error');
     }
 
-    // 2. Check for database and PostgreSql errors
     if (exception is PostgrestException) {
-      final code = exception.code;
-      switch (code) {
-        case '23505': // Unique violation (e.g. item already exists)
-          return l10n.translate('db_duplicate_error');
-        case '23503': // Foreign key violation
-          return l10n.translate('db_relation_error');
-        case '42P01': // Undefined table
-          return l10n.translate('db_system_error');
-        default:
-          return '${l10n.translate('database_error')}: ${exception.message}';
-      }
+      return _handlePostgrestException(exception, l10n);
     }
 
-    // 3. Check for Supabase Auth errors
     if (exception is AuthException) {
-      final message = exception.message;
-      if (message.contains('Invalid login credentials')) {
-        return l10n.translate('invalid_credentials');
-      }
-      if (message.contains('Email already registered') || message.contains('already exists')) {
-        return l10n.translate('email_already_registered');
-      }
-      if (message.contains('Password should be')) {
-        return l10n.translate('weak_password');
-      }
-      if (message.contains('User not found')) {
-        return l10n.translate('user_not_found');
-      }
-      if (message.contains('فشل إنشاء الحساب') || message.contains('signup_failed') || message.contains('Failed to create account')) {
-        return l10n.translate('signup_failed');
-      }
-      if (message.contains('فشل تسجيل الدخول عبر Google') || message.contains('google_login_failed') || message.contains('Google sign-in failed')) {
-        return l10n.translate('google_login_failed');
-      }
-      if (message.contains('فشل تسجيل الدخول') || message.contains('login_failed') || message.contains('Failed to login')) {
-        return l10n.translate('login_failed');
-      }
-      if (message.contains('فشل تحديث الملف الشخصي') || message.contains('profile_update_failed') || message.contains('Failed to update profile')) {
-        return l10n.translate('profile_update_failed');
-      }
-      if (message.contains('فشل رفع الصورة') || message.contains('error_file_upload') || message.contains('Failed to upload image') || message.contains('uploading the file')) {
-        return l10n.translate('error_file_upload');
-      }
-      return message;
+      return _handleAuthException(exception, l10n);
     }
 
-    // 4. Fallback for generic or unexpected exceptions
-    final errStr = exception.toString();
-    if (errStr.contains('SocketException') || errStr.contains('Failed host lookup')) {
-      return l10n.translate('network_error');
-    }
-    if (errStr.contains('يجب تسجيل الدخول أولاً') || errStr.contains('must login first') || errStr.contains('User not authenticated') || errStr.contains('must_login_first')) {
-      return l10n.translate('must_login_first');
-    }
-    if (errStr.contains('لم يتم تحديد المنزل بشكل صحيح') || errStr.contains('home is not selected') || errStr.contains('error_home_not_selected')) {
-      return l10n.translate('error_home_not_selected');
-    }
-    if (errStr.contains('لا يمكن تعديل الوحدات الافتراضية') || errStr.contains('لا يمكن تعديل التصنيفات الافتراضية') || errStr.contains('cannot edit default') || errStr.contains('cannot_edit_default_categories') || errStr.contains('cannot_edit_default_units')) {
-      return l10n.translate('error_cannot_edit_default');
-    }
-    if (errStr.contains('لا يمكن حذف الوحدات الافتراضية') || errStr.contains('لا يمكن حذف التصنيفات الافتراضية') || errStr.contains('cannot delete default') || errStr.contains('cannot_delete_default_categories') || errStr.contains('cannot_delete_default_units')) {
-      return l10n.translate('error_cannot_delete_default');
-    }
-    if (errStr.contains('اسم الوحدة موجود بالفعل') || errStr.contains('اسم التصنيف موجود بالفعل') || errStr.contains('name already exists') || errStr.contains('category_name_exists') || errStr.contains('unit_name_exists')) {
-      return l10n.translate('error_name_exists');
-    }
-    if (errStr.contains('رمز الوحدة موجود بالفعل') || errStr.contains('symbol already exists') || errStr.contains('unit_symbol_exists')) {
-      return l10n.translate('error_symbol_exists');
-    }
-    if (errStr.contains('اسم القائمة مطلوب') || errStr.contains('list name is required') || errStr.contains('list_name_required') || errStr.contains('error_list_name_required')) {
-      return l10n.translate('error_list_name_required');
-    }
-    if (errStr.contains('اسم المنتج مطلوب') || errStr.contains('product name is required') || errStr.contains('product_name_required') || errStr.contains('error_product_name_required')) {
-      return l10n.translate('error_product_name_required');
-    }
-    if (errStr.contains('الكمية يجب أن تكون أكبر من صفر') || errStr.contains('quantity must be greater than zero') || errStr.contains('quantity_must_be_greater_than_zero') || errStr.contains('error_quantity_must_be_greater_than_zero')) {
-      return l10n.translate('error_quantity_must_be_greater_than_zero');
-    }
-    if (errStr.contains('هذا المستخدم عضو بالفعل في المنزل') || errStr.contains('already a member') || errStr.contains('already_a_member')) {
-      return l10n.translate('error_already_member');
-    }
-    if (errStr.contains('يوجد دعوة معلقة بالفعل لهذا البريد الإلكتروني') || errStr.contains('pending invitation already exists') || errStr.contains('pending_invitation_exists')) {
-      return l10n.translate('error_pending_invitation_exists');
-    }
-    if (errStr.contains('ليس لديك صلاحية لإرسال دعوات') || errStr.contains('no permission to send') || errStr.contains('no_permission_to_invite')) {
-      return l10n.translate('error_no_permission_to_invite');
-    }
-    if (errStr.contains('ليس لديك صلاحية لإلغاء هذه الدعوة') || errStr.contains('no_permission_to_cancel') || errStr.contains('no permission to cancel')) {
-      return l10n.translate('no_permission_to_cancel');
-    }
-    if (errStr.contains('ليس لديك صلاحية لرفض هذه الدعوة') || errStr.contains('no_permission_to_decline') || errStr.contains('no permission to decline')) {
-      return l10n.translate('no_permission_to_decline');
-    }
-    if (errStr.contains('الدعوة غير موجودة أو تم التعامل معها مسبقاً') || errStr.contains('invitation does not exist') || errStr.contains('invitation_not_found_or_handled') || errStr.contains('invitation_not_found')) {
-      return l10n.translate('error_invitation_not_found');
-    }
-    if (errStr.contains('الدعوة منتهية الصلاحية') || errStr.contains('invitation is expired') || errStr.contains('invitation_expired')) {
-      return l10n.translate('error_invitation_expired');
-    }
-    if (errStr.contains('غير مصرح لك بقبول هذه الدعوة') || errStr.contains('not authorized to accept') || errStr.contains('not_authorized_accept_invitation')) {
-      return l10n.translate('error_not_authorized_accept_invitation');
-    }
-    if (errStr.contains('رمز الدعوة غير صالح') || errStr.contains('معرف الدعوة غير صالح') || errStr.contains('invalid_invitation_code') || errStr.contains('invalid_invitation_id')) {
-      return l10n.translate('error_invalid_invitation_code');
-    }
-    if (errStr.contains('تعذر إنشاء رمز الدعوة') || errStr.contains('invitation_code_generation_failed') || errStr.contains('gen_random_bytes')) {
-      return l10n.translate('invitation_code_generation_failed');
-    }
-    if (errStr.contains('الدور غير صالح') || errStr.contains('invalid_role')) {
-      return l10n.translate('error_invalid_role');
-    }
-    if (errStr.contains('معرف المنزل والمستخدم مطلوبان') || errStr.contains('home_user_required')) {
-      return l10n.translate('error_home_user_required');
-    }
-    if (errStr.contains('معرف المنزل والمالك الجديد مطلوبان') || errStr.contains('home_owner_required')) {
-      return l10n.translate('error_home_owner_required');
-    }
-    if (errStr.contains('فقط المالك يمكنه تغيير الأدوار') || errStr.contains('only_owner_can_change_roles')) {
-      return l10n.translate('error_only_owner_can_change_roles');
-    }
-    if (errStr.contains('لا يمكن تغيير دور المالك') || errStr.contains('cannot_change_owner_role')) {
-      return l10n.translate('error_cannot_change_owner_role');
-    }
-    if (errStr.contains('أنت لست عضواً في هذا المنزل') || errStr.contains('أنت لست عضواً في هذا منزل') || errStr.contains('not_member_of_home')) {
-      return l10n.translate('error_not_member_of_home');
-    }
-    if (errStr.contains('العضو غير موجود') || errStr.contains('member_not_found')) {
-      return l10n.translate('error_member_not_found');
-    }
-    if (errStr.contains('لا يمكن إزالة المالك') || errStr.contains('cannot_remove_owner')) {
-      return l10n.translate('error_cannot_remove_owner');
-    }
-    if (errStr.contains('لا يمكن للمدير إزالة مدير آخر') || errStr.contains('admin_cannot_remove_admin')) {
-      return l10n.translate('error_admin_cannot_remove_admin');
-    }
-    if (errStr.contains('لا يمكن إزالة نفسك، يجب نقل الملكية أولاً') || errStr.contains('cannot_remove_self')) {
-      return l10n.translate('error_cannot_remove_self_transfer_first');
-    }
-    if (errStr.contains('فقط المالك يمكنه نقل الملكية') || errStr.contains('only_owner_can_transfer_ownership')) {
-      return l10n.translate('error_only_owner_can_transfer_ownership');
-    }
-    if (errStr.contains('المالك الجديد يجب أن يكون عضواً في المنزل') || errStr.contains('new_owner_must_be_member')) {
-      return l10n.translate('error_new_owner_must_be_member');
-    }
-    if (errStr.contains('invalid_email_format')) {
-      return l10n.translate('error_invalid_email_format');
-    }
-    if (errStr.contains('invalid_role_selected')) {
-      return l10n.translate('error_invalid_role_selected');
-    }
-    if (errStr.contains('المنتج غير موجود في المخزون') || errStr.contains('error_item_not_found_in_inventory')) {
-      return l10n.translate('error_item_not_found_in_inventory');
-    }
-    if (errStr.contains('لا يوجد منزل نشط') || errStr.contains('no active home') || errStr.contains('no_active_home') || errStr.contains('error_no_active_home')) {
-      return l10n.translate('error_no_active_home');
-    }
-    if (errStr.contains('تم الوصول إلى الحد الأقصى لعدد المنازل') || errStr.contains('maximum number of homes reached') || errStr.contains('max_homes_reached')) {
-      return l10n.translate('max_homes_reached');
-    }
-    if (errStr.contains('فشل إنشاء المنزل') || errStr.contains('create_home_failed')) {
-      return l10n.translate('create_home_failed', arguments: {'error': ''});
-    }
-    if (errStr.contains('فشل حذف المنزل') || errStr.contains('delete_home_failed')) {
-      return l10n.translate('delete_home_failed', arguments: {'error': ''});
-    }
-    if (errStr.contains('فشل إزالة العضو') || errStr.contains('remove_member_failed')) {
-      return l10n.translate('remove_member_failed', arguments: {'error': ''});
-    }
-    if (errStr.contains('فشل تحديث العملة') || errStr.contains('currency_update_failed') || errStr.contains('currency_updated_failed')) {
-      return l10n.translate('currency_update_failed', arguments: {'error': ''});
-    }
+    return null;
+  }
 
-    // AI suggestion exception strings
-    if (errStr.contains('تعذر قراءة الاقتراحات، حاول مرة أخرى') || errStr.contains('Invalid response format') || errStr.contains('ai_error_parsing')) {
-      return l10n.translate('ai_error_parsing');
+  static String _handlePostgrestException(
+    PostgrestException exception,
+    AppLocalizations l10n,
+  ) {
+    final code = exception.code;
+    switch (code) {
+      case '23505':
+        return l10n.translate('db_duplicate_error');
+      case '23503':
+        return l10n.translate('db_relation_error');
+      case '42P01':
+        return l10n.translate('db_system_error');
+      case '42501':
+        return l10n.translate('error_no_permission');
+      case 'PGRST116':
+        return l10n.translate('error_item_not_found_in_inventory');
+      case '23514':
+        return l10n.translate('db_system_error');
+      default:
+        return '${l10n.translate('database_error')}: ${exception.message}';
     }
-    if (errStr.contains('طلب غير صالح') || errStr.contains('Invalid request') || errStr.contains('invalid_request')) {
-      return l10n.translate('error_generic');
-    }
-    if (errStr.contains('تعذر إنشاء الاقتراحات، حاول مرة أخرى') || errStr.contains('Failed to generate suggestions')) {
-      return l10n.translate('ai_error_parsing');
-    }
-    if (errStr.contains('الخدمة غير متاحة') || errStr.contains('Service unavailable') || errStr.contains('service_unavailable')) {
-      return l10n.translate('network_error');
-    }
+  }
 
+  static String _handleAuthException(
+    AuthException exception,
+    AppLocalizations l10n,
+  ) {
+    final message = exception.message;
+    for (final entry in _authErrorMappings.entries) {
+      if (_matchesAny(message, entry.key)) {
+        return l10n.translate(entry.value);
+      }
+    }
+    return message;
+  }
+
+  static String _handleStringBasedError(String errStr, AppLocalizations l10n) {
+    for (final entry in _stringErrorMappings.entries) {
+      if (_matchesAny(errStr, entry.key)) {
+        return l10n.translate(entry.value);
+      }
+    }
     return l10n.translate('unexpected_error_retry');
   }
+
+  static bool _matchesAny(String input, List<String> patterns) {
+    for (final pattern in patterns) {
+      if (input.contains(pattern)) return true;
+    }
+    return false;
+  }
+
+  // ─────────────────────────────────────────────────────────────────────
+  // Error Pattern Mappings
+  // ─────────────────────────────────────────────────────────────────────
+
+  static const _networkPatterns = [
+    'SocketException',
+    'Failed host lookup',
+    'NetworkEpoch',
+    'connection error',
+    'ClientException',
+  ];
+
+  static const _authErrorMappings = <List<String>, String>{
+    ['Invalid login credentials']: 'invalid_credentials',
+    ['Email already registered', 'already exists']: 'email_already_registered',
+    ['Password should be']: 'weak_password',
+    ['User not found']: 'user_not_found',
+    ['فشل إنشاء الحساب', 'signup_failed', 'Failed to create account']:
+        'signup_failed',
+    [
+      'فشل تسجيل الدخول عبر Google',
+      'google_login_failed',
+      'Google sign-in failed',
+    ]: 'google_login_failed',
+    ['فشل تسجيل الدخول', 'login_failed', 'Failed to login']: 'login_failed',
+    [
+      'فشل تحديث الملف الشخصي',
+      'profile_update_failed',
+      'Failed to update profile',
+    ]: 'profile_update_failed',
+    [
+      'فشل رفع الصورة',
+      'error_file_upload',
+      'Failed to upload image',
+      'uploading the file',
+    ]: 'error_file_upload',
+  };
+
+  static const _stringErrorMappings = <List<String>, String>{
+    // Network
+    ['SocketException', 'Failed host lookup']: 'network_error',
+
+    // Auth
+    [
+      'يجب تسجيل الدخول أولاً',
+      'must login first',
+      'User not authenticated',
+      'must_login_first',
+    ]: 'must_login_first',
+
+    // Home
+    [
+      'لم يتم تحديد المنزل بشكل صحيح',
+      'home is not selected',
+      'error_home_not_selected',
+    ]: 'error_home_not_selected',
+    [
+      'لا يوجد منزل نشط',
+      'no active home',
+      'no_active_home',
+      'error_no_active_home',
+    ]: 'error_no_active_home',
+    [
+      'تم الوصول إلى الحد الأقصى لعدد المنازل',
+      'maximum number of homes reached',
+      'max_homes_reached',
+    ]: 'max_homes_reached',
+    ['فشل إنشاء المنزل', 'create_home_failed']: 'create_home_failed',
+    ['فشل حذف المنزل', 'delete_home_failed']: 'delete_home_failed',
+
+    // Categories & Units
+    [
+      'لا يمكن تعديل الوحدات الافتراضية',
+      'لا يمكن تعديل التصنيفات الافتراضية',
+      'cannot edit default',
+      'cannot_edit_default_categories',
+      'cannot_edit_default_units',
+    ]: 'error_cannot_edit_default',
+    [
+      'لا يمكن حذف الوحدات الافتراضية',
+      'لا يمكن حذف التصنيفات الافتراضية',
+      'cannot delete default',
+      'cannot_delete_default_categories',
+      'cannot_delete_default_units',
+    ]: 'error_cannot_delete_default',
+    [
+      'اسم الوحدة موجود بالفعل',
+      'اسم التصنيف موجود بالفعل',
+      'name already exists',
+      'category_name_exists',
+      'unit_name_exists',
+    ]: 'error_name_exists',
+    ['رمز الوحدة موجود بالفعل', 'symbol already exists', 'unit_symbol_exists']:
+        'error_symbol_exists',
+
+    // Shopping Lists
+    [
+      'اسم القائمة مطلوب',
+      'list name is required',
+      'list_name_required',
+      'error_list_name_required',
+    ]: 'error_list_name_required',
+    [
+      'اسم المنتج مطلوب',
+      'product name is required',
+      'product_name_required',
+      'error_product_name_required',
+    ]: 'error_product_name_required',
+    [
+      'الكمية يجب أن تكون أكبر من صفر',
+      'quantity must be greater than zero',
+      'quantity_must_be_greater_than_zero',
+      'error_quantity_must_be_greater_than_zero',
+    ]: 'error_quantity_must_be_greater_than_zero',
+
+    // Members & Invitations
+    [
+      'هذا المستخدم عضو بالفعل في المنزل',
+      'already a member',
+      'already_a_member',
+    ]: 'error_already_member',
+    [
+      'يوجد دعوة معلقة بالفعل لهذا البريد الإلكتروني',
+      'pending invitation already exists',
+      'pending_invitation_exists',
+    ]: 'error_pending_invitation_exists',
+    [
+      'ليس لديك صلاحية لإرسال دعوات',
+      'no permission to send',
+      'no_permission_to_invite',
+    ]: 'error_no_permission_to_invite',
+    [
+      'ليس لديك صلاحية لإلغاء هذه الدعوة',
+      'no_permission_to_cancel',
+      'no permission to cancel',
+    ]: 'no_permission_to_cancel',
+    [
+      'ليس لديك صلاحية لرفض هذه الدعوة',
+      'no_permission_to_decline',
+      'no permission to decline',
+    ]: 'no_permission_to_decline',
+    [
+      'الدعوة غير موجودة أو تم التعامل معها مسبقاً',
+      'invitation does not exist',
+      'invitation_not_found_or_handled',
+      'invitation_not_found',
+    ]: 'error_invitation_not_found',
+    ['الدعوة منتهية الصلاحية', 'invitation is expired', 'invitation_expired']:
+        'error_invitation_expired',
+    [
+      'غير مصرح لك بقبول هذه الدعوة',
+      'not authorized to accept',
+      'not_authorized_accept_invitation',
+    ]: 'error_not_authorized_accept_invitation',
+    [
+      'رمز الدعوة غير صالح',
+      'معرف الدعوة غير صالح',
+      'invalid_invitation_code',
+      'invalid_invitation_id',
+    ]: 'error_invalid_invitation_code',
+    [
+      'تعذر إنشاء رمز الدعوة',
+      'invitation_code_generation_failed',
+      'gen_random_bytes',
+    ]: 'invitation_code_generation_failed',
+    ['الدور غير صالح', 'invalid_role']: 'error_invalid_role',
+    ['invalid_email_format']: 'error_invalid_email_format',
+    ['invalid_role_selected']: 'error_invalid_role_selected',
+
+    // Home Members
+    ['معرف المنزل والمستخدم مطلوبان', 'home_user_required']:
+        'error_home_user_required',
+    ['معرف المنزل والمالك الجديد مطلوبان', 'home_owner_required']:
+        'error_home_owner_required',
+    ['فقط المالك يمكنه تغيير الأدوار', 'only_owner_can_change_roles']:
+        'error_only_owner_can_change_roles',
+    ['لا يمكن تغيير دور المالك', 'cannot_change_owner_role']:
+        'error_cannot_change_owner_role',
+    [
+      'أنت لست عضواً في هذا المنزل',
+      'أنت لست عضواً في هذا منزل',
+      'not_member_of_home',
+    ]: 'error_not_member_of_home',
+    ['العضو غير موجود', 'member_not_found']: 'error_member_not_found',
+    ['لا يمكن إزالة المالك', 'cannot_remove_owner']:
+        'error_cannot_remove_owner',
+    ['لا يمكن للمدير إزالة مدير آخر', 'admin_cannot_remove_admin']:
+        'error_admin_cannot_remove_admin',
+    ['لا يمكن إزالة نفسك، يجب نقل الملكية أولاً', 'cannot_remove_self']:
+        'error_cannot_remove_self_transfer_first',
+    ['فقط المالك يمكنه نقل الملكية', 'only_owner_can_transfer_ownership']:
+        'error_only_owner_can_transfer_ownership',
+    ['المالك الجديد يجب أن يكون عضواً في المنزل', 'new_owner_must_be_member']:
+        'error_new_owner_must_be_member',
+    ['فشل إزالة العضو', 'remove_member_failed']: 'remove_member_failed',
+    ['فشل تحديث العملة', 'currency_update_failed', 'currency_updated_failed']:
+        'currency_update_failed',
+
+    // Inventory
+    ['المنتج غير موجود في المخزون', 'error_item_not_found_in_inventory']:
+        'error_item_not_found_in_inventory',
+
+    // AI Suggestions
+    [
+      'تعذر قراءة الاقتراحات، حاول مرة أخرى',
+      'Invalid response format',
+      'ai_error_parsing',
+    ]: 'ai_error_parsing',
+    ['طلب غير صالح', 'Invalid request', 'invalid_request']: 'error_generic',
+    ['تعذر إنشاء الاقتراحات، حاول مرة أخرى', 'Failed to generate suggestions']:
+        'ai_error_parsing',
+    ['الخدمة غير متاحة', 'Service unavailable', 'service_unavailable']:
+        'network_error',
+  };
 }

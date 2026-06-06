@@ -68,19 +68,26 @@ class _InventoryItemDetailScreenState
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: Text(context.translate('item_details'), style: const TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(
+          context.translate('item_details'),
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.edit_rounded),
             tooltip: context.translate('edit'),
             onPressed: () {
-              context.push('/inventory/${widget.itemId}/edit', extra: {
-                'homeId': widget.homeId,
-              });
+              context.push(
+                '/inventory/${widget.itemId}/edit',
+                extra: {'homeId': widget.homeId},
+              );
             },
           ),
           IconButton(
-            icon: const Icon(Icons.delete_outline_rounded, color: AppColors.error),
+            icon: const Icon(
+              Icons.delete_outline_rounded,
+              color: AppColors.error,
+            ),
             onPressed: () => _confirmDelete(context),
           ),
           AppSpacing.gapSM,
@@ -92,16 +99,28 @@ class _InventoryItemDetailScreenState
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error_outline_rounded, size: 64, color: AppColors.error),
+              const Icon(
+                Icons.error_outline_rounded,
+                size: 64,
+                color: AppColors.error,
+              ),
               AppSpacing.gapLG,
-              Text(context.translate('error_occurred'), style: const TextStyle(fontWeight: FontWeight.bold)),
+              Text(
+                context.translate('error_occurred'),
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
               AppSpacing.gapSM,
-              Text(ErrorFormatter.format(e, context), textAlign: TextAlign.center, style: TextStyle(color: theme.colorScheme.onSurfaceVariant)),
+              Text(
+                ErrorFormatter.format(e, context),
+                textAlign: TextAlign.center,
+                style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+              ),
               AppSpacing.gapXL,
               SawaButton(
                 text: context.translate('retry'),
                 width: 160,
-                onPressed: () => ref.invalidate(inventoryItemByIdProvider(widget.itemId)),
+                onPressed: () =>
+                    ref.invalidate(inventoryItemByIdProvider(widget.itemId)),
               ),
             ],
           ),
@@ -114,11 +133,17 @@ class _InventoryItemDetailScreenState
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.inventory_2_outlined, size: 64, color: theme.colorScheme.outline),
+                    Icon(
+                      Icons.inventory_2_outlined,
+                      size: 64,
+                      color: theme.colorScheme.outline,
+                    ),
                     AppSpacing.gapLG,
                     Text(
                       context.translate('item_not_found'),
-                      style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     AppSpacing.gapLG,
                     SawaButton(
@@ -144,14 +169,22 @@ class _InventoryItemDetailScreenState
                       padding: const EdgeInsets.all(AppSpacing.xs),
                       decoration: BoxDecoration(
                         color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                        borderRadius: BorderRadius.circular(
+                          AppSpacing.radiusSm,
+                        ),
                       ),
-                      child: Icon(Icons.history_rounded, size: 16, color: theme.colorScheme.primary),
+                      child: Icon(
+                        Icons.history_rounded,
+                        size: 16,
+                        color: theme.colorScheme.primary,
+                      ),
                     ),
                     AppSpacing.gapMD,
                     Text(
                       context.translate('change_logs'),
-                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ],
                 ),
@@ -166,7 +199,11 @@ class _InventoryItemDetailScreenState
     );
   }
 
-  Widget _buildItemCard(InventoryItem item, BuildContext context, ThemeData theme) {
+  Widget _buildItemCard(
+    InventoryItem item,
+    BuildContext context,
+    ThemeData theme,
+  ) {
     return SawaCard(
       padding: const EdgeInsets.all(AppSpacing.xl),
       child: Column(
@@ -180,7 +217,11 @@ class _InventoryItemDetailScreenState
                   color: theme.colorScheme.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
                 ),
-                child: Icon(Icons.inventory_2_rounded, color: theme.colorScheme.primary, size: 32),
+                child: Icon(
+                  Icons.inventory_2_rounded,
+                  color: theme.colorScheme.primary,
+                  size: 32,
+                ),
               ),
               AppSpacing.gapLG,
               Expanded(
@@ -215,7 +256,9 @@ class _InventoryItemDetailScreenState
             context.translate('current_quantity'),
             _formatQuantity(item.quantity),
             theme,
-            valueColor: item.isLowStock ? theme.colorScheme.error : AppColors.primary,
+            valueColor: item.isLowStock
+                ? theme.colorScheme.error
+                : AppColors.primary,
           ),
           if (item.minQuantity != null)
             _infoRow(
@@ -242,7 +285,13 @@ class _InventoryItemDetailScreenState
     );
   }
 
-  Widget _infoRow(IconData icon, String label, String value, ThemeData theme, {Color? valueColor}) {
+  Widget _infoRow(
+    IconData icon,
+    String label,
+    String value,
+    ThemeData theme, {
+    Color? valueColor,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.lg),
       child: Row(
@@ -250,10 +299,16 @@ class _InventoryItemDetailScreenState
           Container(
             padding: const EdgeInsets.all(AppSpacing.sm),
             decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+              color: theme.colorScheme.surfaceContainerHighest.withValues(
+                alpha: 0.5,
+              ),
               borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
             ),
-            child: Icon(icon, size: 18, color: theme.colorScheme.onSurfaceVariant),
+            child: Icon(
+              icon,
+              size: 18,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
           ),
           AppSpacing.gapMD,
           Column(
@@ -345,7 +400,9 @@ class _InventoryItemDetailScreenState
                   children: [
                     Text(
                       _getTransactionLabel(context, txn.changeReason),
-                      style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     AppSpacing.gapXXS,
                     Row(
@@ -354,11 +411,16 @@ class _InventoryItemDetailScreenState
                           '${_formatQuantity(txn.previousQuantity)} ',
                           style: theme.textTheme.bodySmall?.copyWith(
                             decoration: TextDecoration.lineThrough,
-                            color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                            color: theme.colorScheme.onSurfaceVariant
+                                .withValues(alpha: 0.6),
                           ),
                         ),
                         AppSpacing.gapXXS,
-                        Icon(Icons.east_rounded, size: 10, color: theme.colorScheme.outline),
+                        Icon(
+                          Icons.east_rounded,
+                          size: 10,
+                          color: theme.colorScheme.outline,
+                        ),
                         AppSpacing.gapXXS,
                         Text(
                           _formatQuantity(txn.newQuantity),
@@ -452,23 +514,29 @@ class _InventoryItemDetailScreenState
       builder: (ctx) => AlertDialog(
         backgroundColor: theme.colorScheme.surface,
         surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusXl)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+        ),
         title: Row(
           children: [
             Icon(Icons.warning_amber_rounded, color: theme.colorScheme.error),
             AppSpacing.gapMD,
-            Text(context.translate('delete_product'), style: const TextStyle(fontWeight: FontWeight.bold)),
+            Text(
+              context.translate('delete_product'),
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
           ],
         ),
-        content: Text(
-          context.translate('delete_product_confirm'),
-        ),
+        content: Text(context.translate('delete_product_confirm')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
             child: Text(
               context.translate('cancel'),
-              style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                color: theme.colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
           SawaButton(
@@ -481,20 +549,23 @@ class _InventoryItemDetailScreenState
                 final useCase = DeleteInventoryItemUseCase(
                   ref.read(inventoryRepositoryProvider),
                 );
-                await useCase(
-                  itemId: widget.itemId,
-                  homeId: widget.homeId,
-                );
+                await useCase(itemId: widget.itemId, homeId: widget.homeId);
                 ref.invalidate(inventoryItemsProvider(widget.homeId));
                 if (context.mounted) {
-                  SawaSnackBar.success(context, context.translate('inventory_item_deleted_success'));
+                  SawaSnackBar.success(
+                    context,
+                    context.translate('inventory_item_deleted_success'),
+                  );
                   Navigator.pop(context);
                 }
               } catch (e) {
                 if (context.mounted) {
                   SawaSnackBar.error(
                     context,
-                    context.translate('error_delete_item', arguments: {'error': ErrorFormatter.format(e, context)}),
+                    context.translate(
+                      'error_delete_item',
+                      arguments: {'error': ErrorFormatter.format(e, context)},
+                    ),
                   );
                 }
               }

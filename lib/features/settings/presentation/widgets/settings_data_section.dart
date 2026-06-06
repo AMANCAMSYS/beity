@@ -62,7 +62,7 @@ class _SettingsDataSectionState extends ConsumerState<SettingsDataSection> {
       }
       final sizeInMb = totalSize / (1024 * 1024);
       final sizeInKb = totalSize / 1024;
-      
+
       String formattedSize;
       if (sizeInMb >= 1.0) {
         formattedSize = '${sizeInMb.toStringAsFixed(2)} MB';

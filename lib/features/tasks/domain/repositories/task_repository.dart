@@ -8,9 +8,7 @@ abstract class TaskRepository {
     bool activeOnly = true,
   });
 
-  Future<Task?> getTaskById({
-    required String taskId,
-  });
+  Future<Task?> getTaskById({required String taskId});
 
   Future<Task> createTask({
     required String homeId,
@@ -37,21 +35,13 @@ abstract class TaskRepository {
     required String? assignedTo,
   });
 
-  Future<void> deleteTask({
-    required String taskId,
-  });
+  Future<void> deleteTask({required String taskId});
 
-  Future<Task> completeTask({
-    required String taskId,
-  });
+  Future<Task> completeTask({required String taskId});
 
-  Future<Task> uncompleteTask({
-    required String taskId,
-  });
+  Future<Task> uncompleteTask({required String taskId});
 
-  Future<String?> createNextRecurringTask({
-    required String taskId,
-  });
+  Future<String?> createNextRecurringTask({required String taskId});
 
   Future<void> archiveOldCompletedTasks();
 

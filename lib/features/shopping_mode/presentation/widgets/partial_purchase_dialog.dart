@@ -7,11 +7,7 @@ class PartialPurchaseDialog extends StatefulWidget {
   final ShoppingItemModel item;
   final String? unitName;
 
-  const PartialPurchaseDialog({
-    super.key,
-    required this.item,
-    this.unitName,
-  });
+  const PartialPurchaseDialog({super.key, required this.item, this.unitName});
 
   @override
   State<PartialPurchaseDialog> createState() => _PartialPurchaseDialogState();
@@ -76,10 +72,14 @@ class _PartialPurchaseDialogState extends State<PartialPurchaseDialog> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            context.translate('how_much_did_you_buy', arguments: {
-              'item': widget.item.name,
-              'total': '${widget.item.quantity == widget.item.quantity.roundToDouble() ? widget.item.quantity.toInt() : widget.item.quantity} $unitLabel',
-            }),
+            context.translate(
+              'how_much_did_you_buy',
+              arguments: {
+                'item': widget.item.name,
+                'total':
+                    '${widget.item.quantity == widget.item.quantity.roundToDouble() ? widget.item.quantity.toInt() : widget.item.quantity} $unitLabel',
+              },
+            ),
             style: theme.textTheme.bodyMedium,
           ),
           const SizedBox(height: 16),

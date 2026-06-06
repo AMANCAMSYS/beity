@@ -18,10 +18,9 @@ class AiClarifyingQuestions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
 
     return Directionality(
-      textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
+      textDirection: context.textDirection,
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -30,7 +29,11 @@ class AiClarifyingQuestions extends StatelessWidget {
             // Header
             Row(
               children: [
-                const Icon(Icons.help_outline_rounded, color: AppColors.info, size: 22),
+                const Icon(
+                  Icons.help_outline_rounded,
+                  color: AppColors.info,
+                  size: 22,
+                ),
                 const SizedBox(width: 8),
                 Text(
                   context.translate('ai_clarifying_title'),
@@ -44,25 +47,33 @@ class AiClarifyingQuestions extends StatelessWidget {
             const SizedBox(height: 16),
 
             // Questions
-            ...questions.map((q) => Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('•  ', style: TextStyle(color: isDark ? Colors.white70 : Colors.black87, fontSize: 16)),
-                  Expanded(
-                    child: Text(
-                      q,
+            ...questions.map(
+              (q) => Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '•  ',
                       style: TextStyle(
-                        fontSize: 15,
                         color: isDark ? Colors.white70 : Colors.black87,
-                        height: 1.5,
+                        fontSize: 16,
                       ),
                     ),
-                  ),
-                ],
+                    Expanded(
+                      child: Text(
+                        q,
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: isDark ? Colors.white70 : Colors.black87,
+                          height: 1.5,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            )),
+            ),
 
             if (quickOptions.isNotEmpty) ...[
               const SizedBox(height: 20),
@@ -85,7 +96,10 @@ class AiClarifyingQuestions extends StatelessWidget {
                       onTap: () => onOptionSelected(option),
                       borderRadius: BorderRadius.circular(20),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 10,
+                        ),
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             colors: [
@@ -94,7 +108,9 @@ class AiClarifyingQuestions extends StatelessWidget {
                             ],
                           ),
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+                          border: Border.all(
+                            color: AppColors.primary.withValues(alpha: 0.3),
+                          ),
                         ),
                         child: Text(
                           option,

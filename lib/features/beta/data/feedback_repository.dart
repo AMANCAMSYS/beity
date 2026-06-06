@@ -13,9 +13,9 @@ class FeedbackRepository {
     SupabaseClient? supabase,
     DeviceInfoService? deviceInfoService,
     AppLogBuffer? logBuffer,
-  })  : _supabase = supabase ?? SupabaseService.client,
-        _deviceInfoService = deviceInfoService ?? DeviceInfoService(),
-        _logBuffer = logBuffer ?? AppLogBuffer();
+  }) : _supabase = supabase ?? SupabaseService.client,
+       _deviceInfoService = deviceInfoService ?? DeviceInfoService(),
+       _logBuffer = logBuffer ?? AppLogBuffer();
 
   Future<String> submitFeedback({
     required String feedbackType,

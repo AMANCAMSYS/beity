@@ -4,7 +4,8 @@ import 'package:sawa/features/shopping_lists/data/models/shopping_item_model.dar
 import 'package:sawa/features/shopping_lists/data/repositories/shopping_list_repository.dart';
 import 'package:sawa/features/shopping_lists/domain/usecases/update_item_usecase.dart';
 
-class MockShoppingListRepository extends Mock implements ShoppingListRepository {}
+class MockShoppingListRepository extends Mock
+    implements ShoppingListRepository {}
 
 void main() {
   late MockShoppingListRepository mockRepository;
@@ -42,8 +43,11 @@ void main() {
       );
     });
 
-    test('should update item in repository and return the updated item', () async {
-      when(() => mockRepository.updateShoppingItem(
+    test(
+      'should update item in repository and return the updated item',
+      () async {
+        when(
+          () => mockRepository.updateShoppingItem(
             itemId: any(named: 'itemId'),
             name: any(named: 'name'),
             quantity: any(named: 'quantity'),
@@ -51,20 +55,24 @@ void main() {
             categoryId: any(named: 'categoryId'),
             price: any(named: 'price'),
             notes: any(named: 'notes'),
-          )).thenAnswer((_) async => tItem);
+          ),
+        ).thenAnswer((_) async => tItem);
 
-      final result = await useCase(
-        itemId: tItemId,
-        name: tItemName,
-        quantity: tQuantity,
-      );
+        final result = await useCase(
+          itemId: tItemId,
+          name: tItemName,
+          quantity: tQuantity,
+        );
 
-      expect(result, tItem);
-      verify(() => mockRepository.updateShoppingItem(
+        expect(result, tItem);
+        verify(
+          () => mockRepository.updateShoppingItem(
             itemId: tItemId,
             name: tItemName,
             quantity: tQuantity,
-          )).called(1);
-    });
+          ),
+        ).called(1);
+      },
+    );
   });
 }

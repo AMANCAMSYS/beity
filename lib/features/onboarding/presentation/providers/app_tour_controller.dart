@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/legacy.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/config/feature_flags.dart';
 import '../../../../core/localization/app_localizations.dart';
 import '../../data/onboarding_storage.dart';
@@ -45,13 +45,18 @@ class _TourStep {
 
 // ── Controller ────────────────────────────────────────────────────────────────
 
-class AppTourController extends StateNotifier<AppTourState> {
-  AppTourController() : super(const AppTourState());
-
+class AppTourController extends Notifier<AppTourState> {
   OverlayEntry? _overlayEntry;
   List<_TourStep> _steps = [];
 
-  /// Builds the filtered step list respecting feature flags and mounted state.
+  @override
+  AppTourState build() {
+    ref.onDispose(() {
+      _removeOverlay();
+    });
+    return const AppTourState();
+  }
+
   List<_TourStep> _buildSteps() {
     final all = [
       _TourStep(
@@ -63,6 +68,11 @@ class AppTourController extends StateNotifier<AppTourState> {
         targetKey: AppTourTargetRegistry.homeHeaderKey,
         titleKey: 'tour_home_dashboard_title',
         descKey: 'tour_home_dashboard_desc',
+      ),
+      _TourStep(
+        targetKey: AppTourTargetRegistry.firstShoppingJourneyKey,
+        titleKey: 'tour_first_shopping_journey_title',
+        descKey: 'tour_first_shopping_journey_desc',
       ),
       _TourStep(
         targetKey: AppTourTargetRegistry.quickAddKey,
@@ -97,13 +107,11 @@ class AppTourController extends StateNotifier<AppTourState> {
       ),
     ];
 
-    // Only keep steps whose target widget is actually mounted.
     return all
         .where((s) => AppTourTargetRegistry.isMounted(s.targetKey))
         .toList();
   }
 
-  /// Builds steps for the Inventory tour.
   List<_TourStep> _buildInventorySteps() {
     final all = [
       _TourStep(
@@ -122,7 +130,6 @@ class AppTourController extends StateNotifier<AppTourState> {
         .toList();
   }
 
-  /// Builds steps for the Expenses tour.
   List<_TourStep> _buildExpensesSteps() {
     final all = [
       _TourStep(
@@ -151,7 +158,6 @@ class AppTourController extends StateNotifier<AppTourState> {
         .toList();
   }
 
-  /// Builds steps for the Tasks tour.
   List<_TourStep> _buildTasksSteps() {
     final all = [
       _TourStep(
@@ -175,7 +181,6 @@ class AppTourController extends StateNotifier<AppTourState> {
         .toList();
   }
 
-  /// Builds steps for the Categories tour.
   List<_TourStep> _buildCategoriesSteps() {
     final all = [
       _TourStep(
@@ -194,7 +199,6 @@ class AppTourController extends StateNotifier<AppTourState> {
         .toList();
   }
 
-  /// Builds steps for the Units tour.
   List<_TourStep> _buildUnitsSteps() {
     final all = [
       _TourStep(
@@ -213,10 +217,6 @@ class AppTourController extends StateNotifier<AppTourState> {
         .toList();
   }
 
-  /// Safely starts the tour after the dashboard is fully rendered.
-  ///
-  /// Retries up to [maxRetries] times with [retryDelay] if keys aren't
-  /// mounted yet (e.g. the build is still in progress).
   Future<void> maybeStartTour(
     BuildContext context, {
     int maxRetries = 5,
@@ -225,7 +225,6 @@ class AppTourController extends StateNotifier<AppTourState> {
     if (!OnboardingStorage.shouldShowAppTour()) return;
     if (state.isActive) return;
 
-    // Retry until at least one key is mounted.
     for (int attempt = 0; attempt < maxRetries; attempt++) {
       await Future.delayed(retryDelay);
       if (!context.mounted) return;
@@ -241,7 +240,6 @@ class AppTourController extends StateNotifier<AppTourState> {
     }
   }
 
-  /// Safely starts the Inventory tour after the screen is fully rendered.
   Future<void> maybeStartInventoryTour(
     BuildContext context, {
     int maxRetries = 5,
@@ -265,7 +263,6 @@ class AppTourController extends StateNotifier<AppTourState> {
     }
   }
 
-  /// Safely starts the Expenses tour after the screen is fully rendered.
   Future<void> maybeStartExpensesTour(
     BuildContext context, {
     int maxRetries = 5,
@@ -289,7 +286,6 @@ class AppTourController extends StateNotifier<AppTourState> {
     }
   }
 
-  /// Safely starts the Tasks tour after the screen is fully rendered.
   Future<void> maybeStartTasksTour(
     BuildContext context, {
     int maxRetries = 5,
@@ -313,7 +309,6 @@ class AppTourController extends StateNotifier<AppTourState> {
     }
   }
 
-  /// Safely starts the Categories tour after the screen is fully rendered.
   Future<void> maybeStartCategoriesTour(
     BuildContext context, {
     int maxRetries = 5,
@@ -337,7 +332,6 @@ class AppTourController extends StateNotifier<AppTourState> {
     }
   }
 
-  /// Safely starts the Units tour after the screen is fully rendered.
   Future<void> maybeStartUnitsTour(
     BuildContext context, {
     int maxRetries = 5,
@@ -388,7 +382,6 @@ class AppTourController extends StateNotifier<AppTourState> {
 
     final step = _steps[stepIndex];
     if (!AppTourTargetRegistry.isMounted(step.targetKey)) {
-      // Skip unmounted target
       _showStep(context, stepIndex + 1);
       return;
     }
@@ -445,7 +438,6 @@ class AppTourController extends StateNotifier<AppTourState> {
     _overlayEntry = null;
   }
 
-  /// Call this to replay the tour (e.g. from Settings).
   Future<void> replayTour(BuildContext context) async {
     await OnboardingStorage.resetAppTour();
     await OnboardingStorage.resetInventoryTour();
@@ -456,17 +448,11 @@ class AppTourController extends StateNotifier<AppTourState> {
     if (!context.mounted) return;
     await maybeStartTour(context);
   }
-
-  @override
-  void dispose() {
-    _removeOverlay();
-    super.dispose();
-  }
 }
 
 final appTourControllerProvider =
-    StateNotifierProvider<AppTourController, AppTourState>(
-      (_) => AppTourController(),
+    NotifierProvider<AppTourController, AppTourState>(
+      () => AppTourController(),
     );
 
 // ── Tour Overlay widget ───────────────────────────────────────────────────────

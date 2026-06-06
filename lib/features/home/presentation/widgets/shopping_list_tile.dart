@@ -30,7 +30,8 @@ class ShoppingListTile extends ConsumerWidget {
       skipLoadingOnReload: true,
       skipLoadingOnRefresh: true,
       data: (summaries) {
-        final summary = summaries[listId] ?? ShoppingListSummary(total: 0, purchased: 0);
+        final summary =
+            summaries[listId] ?? ShoppingListSummary(total: 0, purchased: 0);
         final total = summary.total;
         final purchased = summary.purchased;
         final remaining = summary.remaining;
@@ -49,7 +50,10 @@ class ShoppingListTile extends ConsumerWidget {
                 color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(ShoppingUiUtils.getIconData(icon, style: IconStyle.plain), color: theme.colorScheme.primary),
+              child: Icon(
+                ShoppingUiUtils.getIconData(icon, style: IconStyle.plain),
+                color: theme.colorScheme.primary,
+              ),
             ),
             title: Text(
               listName,
@@ -119,7 +123,10 @@ class ShoppingListTile extends ConsumerWidget {
               color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(ShoppingUiUtils.getIconData(icon, style: IconStyle.plain), color: theme.colorScheme.primary),
+            child: Icon(
+              ShoppingUiUtils.getIconData(icon, style: IconStyle.plain),
+              color: theme.colorScheme.primary,
+            ),
           ),
           title: Text(
             listName,
@@ -142,7 +149,10 @@ class ShoppingListTile extends ConsumerWidget {
               color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(ShoppingUiUtils.getIconData(icon, style: IconStyle.plain), color: theme.colorScheme.primary),
+            child: Icon(
+              ShoppingUiUtils.getIconData(icon, style: IconStyle.plain),
+              color: theme.colorScheme.primary,
+            ),
           ),
           title: Text(
             listName,

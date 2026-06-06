@@ -16,11 +16,11 @@ class QueueEntryTile extends StatelessWidget {
     return ListTile(
       leading: _buildLeadingIcon(),
       title: Text(
-        context.translate(entry.actionType.translationKey, fallback: entry.actionType.displayName),
+        context.translate(entry.actionType.translationKey),
         style: const TextStyle(fontSize: 14),
       ),
       subtitle: Text(
-        '${context.translate(entry.entityType.translationKey, fallback: entry.entityType.displayName)} - ${entry.entityId}',
+        '${context.translate(entry.entityType.translationKey)} - ${entry.entityId}',
         style: const TextStyle(fontSize: 12),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
@@ -51,7 +51,7 @@ class QueueEntryTile extends StatelessWidget {
     if (entry.isFailed && onRetry != null) {
       return TextButton(
         onPressed: onRetry,
-        child: Text(context.translate('retry', fallback: 'Retry')),
+        child: Text(context.translate('retry')),
       );
     }
     return null;

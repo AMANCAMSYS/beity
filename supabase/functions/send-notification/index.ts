@@ -14,6 +14,66 @@ const firebaseServiceAccountJson = Deno.env.get("FIREBASE_SERVICE_ACCOUNT_JSON")
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+const RATE_LIMIT_MAX = 30;
+const RATE_LIMIT_WINDOW_MINUTES = 5;
+
+// --- Structured logging helper (T071) ---
+function logStructured(level: "info" | "error" | "warn", data: Record<string, unknown>) {
+  const entry = { level, timestamp: new Date().toISOString(), ...data };
+  if (level === "error") {
+    console.error(JSON.stringify(entry));
+  } else if (level === "warn") {
+    console.warn(JSON.stringify(entry));
+  } else {
+    console.log(JSON.stringify(entry));
+  }
+}
+
+// --- FCM error classification and retry logic (T072) ---
+const RETRYABLE_FCM_ERRORS = ["UNAVAILABLE", "DEADLINE_EXCEEDED", "INTERNAL"];
+const NON_RETRYABLE_FCM_ERRORS = ["UNREGISTERED", "INVALID_ARGUMENT", "NOT_FOUND", "PERMISSION_DENIED", "QUOTA_EXCEEDED"];
+const MAX_RETRIES = 3;
+const BASE_RETRY_DELAY_MS = 500;
+
+function classifyFCMError(errorBody: string): { retryable: boolean; code: string | null } {
+  for (const code of RETRYABLE_FCM_ERRORS) {
+    if (errorBody.includes(code)) return { retryable: true, code };
+  }
+  for (const code of NON_RETRYABLE_FCM_ERRORS) {
+    if (errorBody.includes(code)) return { retryable: false, code };
+  }
+  return { retryable: false, code: null };
+}
+
+async function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function checkRateLimit(admin: SupabaseClient, userId: string, endpoint: string): Promise<Response | null> {
+  const windowStart = new Date();
+  windowStart.setSeconds(0, 0);
+
+  const { data, error } = await admin.rpc("check_and_increment_rate_limit", {
+    p_user_id: userId,
+    p_endpoint: endpoint,
+    p_window_start: windowStart.toISOString(),
+    p_max_requests: RATE_LIMIT_MAX,
+  });
+
+  if (error) {
+    logStructured("error", { event: "rate_limit_rpc_failed", endpoint, error: error.message });
+    return null;
+  }
+
+  if (data === false) {
+    return new Response(
+      JSON.stringify({ error: "Rate limit exceeded. Try again later." }),
+      { status: 429, headers: { "Content-Type": "application/json", "Retry-After": String(RATE_LIMIT_WINDOW_MINUTES * 60) } },
+    );
+  }
+  return null;
+}
+
 async function requireUser(req: Request, supabaseAdmin: SupabaseClient) {
   const authHeader = req.headers.get("Authorization") ?? "";
   const token = authHeader.replace(/^Bearer\s+/i, "");
@@ -195,7 +255,7 @@ function renderTemplate(
 // Get Firebase access token for FCM v1 API
 async function getFirebaseAccessToken(): Promise<string | null> {
   if (!firebaseServiceAccountJson) {
-    console.warn("FIREBASE_SERVICE_ACCOUNT_JSON not set, skipping FCM push");
+    logStructured("warn", { event: "firebase_config_missing", key: "FIREBASE_SERVICE_ACCOUNT_JSON" });
     return null;
   }
 
@@ -220,35 +280,36 @@ async function getFirebaseAccessToken(): Promise<string | null> {
     });
 
     if (!response.ok) {
-      console.error("Failed to get Firebase access token:", await response.text());
+      logStructured("error", { event: "firebase_token_failed", status: response.status });
       return null;
     }
 
     const data = await response.json();
     return data.access_token;
   } catch (e) {
-    console.error("Error parsing service account or signing JWT:", e);
+    logStructured("error", { event: "firebase_jwt_error", error: e instanceof Error ? e.message : String(e) });
     return null;
   }
 }
 
-// Send FCM notification using HTTP v1 API
+// Send FCM notification using HTTP v1 API (T071: structured logging, T072: retry logic)
 async function sendFCMNotification(
   token: string,
   platform: string | null,
   title: string,
   body: string,
-  data: Record<string, string>
+  data: Record<string, string>,
+  notificationId?: string,
 ): Promise<boolean> {
   const accessToken = await getFirebaseAccessToken();
   
   if (!accessToken) {
-    console.warn("Could not get Firebase access token, skipping FCM push");
+    logStructured("warn", { event: "fcm_send_skipped", reason: "firebase_token_unavailable", notificationId });
     return false;
   }
 
   if (!firebaseProjectId) {
-    console.warn("FIREBASE_PROJECT_ID not set, skipping FCM push");
+    logStructured("warn", { event: "fcm_send_skipped", reason: "firebase_project_missing", notificationId });
     return false;
   }
 
@@ -296,38 +357,70 @@ async function sendFCMNotification(
     };
   }
 
-  try {
-    const response = await fetch(
-      `https://fcm.googleapis.com/v1/projects/${firebaseProjectId}/messages:send`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${accessToken}`,
+  // Retry loop for retryable FCM errors (T072)
+  let lastError: string | null = null;
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const response = await fetch(
+        `https://fcm.googleapis.com/v1/projects/${firebaseProjectId}/messages:send`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({ message }),
         },
-        body: JSON.stringify({ message }),
-      },
-    );
+      );
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("FCM send failed:", errorText);
-      
-      // If token is invalid, remove it from database
-      if (errorText.includes("UNREGISTERED") || errorText.includes("INVALID_ARGUMENT")) {
-        await supabase.from("device_tokens").delete().eq("token", token);
+      if (!response.ok) {
+        const errorText = await response.text();
+        const { retryable, code } = classifyFCMError(errorText);
+
+        logStructured("error", {
+          event: "fcm_send_failed",
+          status: response.status,
+          errorCode: code,
+          retryable,
+          attempt,
+          notificationId,
+          userId: data.user_id,
+        });
+
+        // Clean up invalid tokens immediately (non-retryable)
+        if (!retryable && (code === "UNREGISTERED" || code === "INVALID_ARGUMENT" || code === "NOT_FOUND")) {
+          await supabase.from("device_tokens").delete().eq("token", token);
+          logStructured("info", { event: "fcm_token_removed", token: token.substring(0, 16) + "...", reason: code, notificationId });
+        }
+
+        if (retryable && attempt < MAX_RETRIES) {
+          const delayMs = BASE_RETRY_DELAY_MS * Math.pow(2, attempt - 1);
+          logStructured("info", { event: "fcm_retry_scheduled", attempt, nextAttempt: attempt + 1, delayMs, notificationId });
+          await sleep(delayMs);
+          continue;
+        }
+
+        lastError = errorText;
+        break;
       }
-      
-      return false;
-    }
 
-    const result = await response.json();
-    console.log("FCM sent successfully:", result);
-    return true;
-  } catch (e) {
-    console.error("Error sending FCM:", e);
-    return false;
+      logStructured("info", { event: "fcm_sent_success", attempt, notificationId, platform });
+      return true;
+    } catch (e) {
+      lastError = e instanceof Error ? e.message : String(e);
+      logStructured("error", { event: "fcm_send_exception", error: lastError, attempt, notificationId });
+
+      if (attempt < MAX_RETRIES) {
+        const delayMs = BASE_RETRY_DELAY_MS * Math.pow(2, attempt - 1);
+        logStructured("info", { event: "fcm_retry_scheduled", attempt, nextAttempt: attempt + 1, delayMs, notificationId });
+        await sleep(delayMs);
+        continue;
+      }
+    }
   }
+
+  logStructured("error", { event: "fcm_send_exhausted", attempts: MAX_RETRIES, lastError, notificationId });
+  return false;
 }
 
 Deno.serve(async (req: Request) => {
@@ -338,6 +431,9 @@ Deno.serve(async (req: Request) => {
       return authResult.response;
     }
     const authenticatedUser = authResult.user;
+
+    const rateLimitResponse = await checkRateLimit(supabase, authenticatedUser.id, "send-notification");
+    if (rateLimitResponse) return rateLimitResponse;
 
     const {
       event_type,
@@ -433,7 +529,7 @@ Deno.serve(async (req: Request) => {
         .neq("user_id", actor_id);
 
       if (membersError) {
-        console.error("Error fetching members:", membersError);
+        logStructured("error", { event: "fetch_members_failed", homeId: home_id, error: membersError.message });
         return new Response(
           JSON.stringify({ error: "Failed to fetch home members" }),
           { status: 500, headers: { "Content-Type": "application/json" } }
@@ -546,7 +642,7 @@ Deno.serve(async (req: Request) => {
           .eq("id", recentNotification.id);
 
         if (updateError) {
-          console.error("Error batching notification:", updateError);
+          logStructured("error", { event: "notification_batch_update_failed", notificationId: recentNotification.id, error: updateError.message, userId });
           continue;
         }
 
@@ -573,6 +669,7 @@ Deno.serve(async (req: Request) => {
                 home_id: home_id,
                 quiet: shouldSendQuietPush ? "true" : "false",
               },
+              recentNotification.id,
             );
 
             if (sent) {
@@ -601,7 +698,7 @@ Deno.serve(async (req: Request) => {
           .single();
 
         if (insertError || !newNotification) {
-          console.error("Error creating notification:", insertError);
+          logStructured("error", { event: "notification_create_failed", userId, homeId: home_id, error: insertError?.message });
           continue;
         }
 
@@ -629,6 +726,7 @@ Deno.serve(async (req: Request) => {
                 home_id: home_id,
                 quiet: shouldSendQuietPush ? "true" : "false",
               },
+              newNotification.id,
             );
 
             if (sent) {
@@ -638,6 +736,16 @@ Deno.serve(async (req: Request) => {
         }
       }
     }
+
+    logStructured("info", {
+      event: "send_notification_complete",
+      event_type,
+      home_id,
+      actor_id: actor_id,
+      notifications_sent: notificationsSent.length,
+      notifications_batched: notificationsBatched.length,
+      fcm_tokens_sent: fcmTokensSent.length,
+    });
 
     return new Response(
       JSON.stringify({
@@ -650,7 +758,7 @@ Deno.serve(async (req: Request) => {
       { status: 200, headers: { "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("Error in send-notification:", error);
+    logStructured("error", { event: "send_notification_unhandled", error: error instanceof Error ? error.message : String(error) });
     return new Response(
       JSON.stringify({ error: "Internal server error" }),
       { status: 500, headers: { "Content-Type": "application/json" } }

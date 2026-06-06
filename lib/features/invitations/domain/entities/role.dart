@@ -17,11 +17,9 @@ enum HomeRole {
     }
   }
 
-  bool get canInvite =>
-      this == HomeRole.owner || this == HomeRole.admin;
+  bool get canInvite => this == HomeRole.owner || this == HomeRole.admin;
 
-  bool get canManageLists =>
-      this == HomeRole.owner || this == HomeRole.admin;
+  bool get canManageLists => this == HomeRole.owner || this == HomeRole.admin;
 
   bool get canEditItems =>
       this == HomeRole.owner ||
@@ -30,11 +28,9 @@ enum HomeRole {
 
   bool get canView => true;
 
-  bool get canManageMembers =>
-      this == HomeRole.owner || this == HomeRole.admin;
+  bool get canManageMembers => this == HomeRole.owner || this == HomeRole.admin;
 
-  bool get canRemoveMembers =>
-      this == HomeRole.owner || this == HomeRole.admin;
+  bool get canRemoveMembers => this == HomeRole.owner || this == HomeRole.admin;
 
   bool get canTransferOwnership => this == HomeRole.owner;
 

@@ -18,8 +18,7 @@ class AiSuggestionsList extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(aiSuggestionsProvider);
-    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
-    
+
     int selectedCount = 0;
     if (state is AiSuggestionsSuccess) {
       selectedCount = state.selectedIndices.length;
@@ -33,22 +32,31 @@ class AiSuggestionsList extends ConsumerWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
           child: Directionality(
-            textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
+            textDirection: context.textDirection,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  context.translate('ai_selected_count', arguments: {'selected': selectedCount.toString(), 'total': totalCount.toString()}),
+                  context.translate(
+                    'ai_selected_count',
+                    arguments: {
+                      'selected': selectedCount.toString(),
+                      'total': totalCount.toString(),
+                    },
+                  ),
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
                 Row(
                   children: [
                     TextButton(
-                      onPressed: () => ref.read(aiSuggestionsProvider.notifier).selectAll(),
+                      onPressed: () =>
+                          ref.read(aiSuggestionsProvider.notifier).selectAll(),
                       child: Text(context.translate('select_all')),
                     ),
                     TextButton(
-                      onPressed: () => ref.read(aiSuggestionsProvider.notifier).deselectAll(),
+                      onPressed: () => ref
+                          .read(aiSuggestionsProvider.notifier)
+                          .deselectAll(),
                       child: Text(context.translate('deselect_all')),
                     ),
                   ],

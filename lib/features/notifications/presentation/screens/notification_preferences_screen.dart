@@ -62,7 +62,6 @@ class NotificationPreferencesScreen extends ConsumerWidget {
       error: (error, _) {
         final message = error.toString();
         final isNoHome =
-            message.contains('لا يوجد منزل نشط') ||
             message.contains('no_active_home') ||
             message.contains('no active home');
 

@@ -17,10 +17,10 @@ class AppSpacing {
   static const double radiusLg = 12.0;
   static const double radiusXl = 16.0;
   static const double radiusPill = 999.0;
-  
+
   // Layout constraints
   static const double maxContentWidth = 600.0;
-  
+
   // Gaps (SizedBoxes)
   static const SizedBox gapXXS = SizedBox(width: xxs, height: xxs);
   static const SizedBox gapXS = SizedBox(width: xs, height: xs);

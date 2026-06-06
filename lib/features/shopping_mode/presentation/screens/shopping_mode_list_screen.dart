@@ -220,7 +220,8 @@ class _ShoppingModeListScreenState
                     SizedBox(
                       width: double.infinity,
                       child: FilledButton.icon(
-                        onPressed: totalItems == 0 || purchasedItems == totalItems
+                        onPressed:
+                            totalItems == 0 || purchasedItems == totalItems
                             ? null
                             : () => ActionDebouncer.execute(() async {
                                 context.push(

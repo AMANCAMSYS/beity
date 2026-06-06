@@ -21,10 +21,7 @@ class RecentActivityWidget extends StatelessWidget {
           children: [
             Text(
               context.translate('recent_activity'),
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             TextButton(
               onPressed: onViewAll,
@@ -37,11 +34,15 @@ class RecentActivityWidget extends StatelessWidget {
           _buildEmptyState(context)
         else
           Card(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: Column(
-                children: activities.map((activity) => _buildActivityTile(context, activity)).toList(),
+                children: activities
+                    .map((activity) => _buildActivityTile(context, activity))
+                    .toList(),
               ),
             ),
           ),

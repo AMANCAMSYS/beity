@@ -26,7 +26,8 @@ class SettingsInteractionSection extends ConsumerWidget {
           title: l10n.translate('haptic_feedback'),
           subtitle: l10n.translate('haptic_feedback_subtitle'),
           value: settings.hapticFeedback,
-          onChanged: (value) => ref.read(appSettingsProvider.notifier).setHapticFeedback(value),
+          onChanged: (value) =>
+              ref.read(appSettingsProvider.notifier).setHapticFeedback(value),
         ),
         const SettingsDivider(),
         SettingsSwitchTile(
@@ -34,7 +35,8 @@ class SettingsInteractionSection extends ConsumerWidget {
           title: l10n.translate('sound_effects'),
           subtitle: l10n.translate('sound_effects_subtitle'),
           value: settings.soundEffects,
-          onChanged: (value) => ref.read(appSettingsProvider.notifier).setSoundEffects(value),
+          onChanged: (value) =>
+              ref.read(appSettingsProvider.notifier).setSoundEffects(value),
         ),
       ],
     );

@@ -27,26 +27,23 @@ enum AiPortal {
   List<AiMode> get subModes {
     return switch (this) {
       AiPortal.shopping => [
-          AiMode.shoppingSuggestions,
-          AiMode.ramadanList,
-          AiMode.travelList,
-          AiMode.cleaningList,
-        ],
+        AiMode.shoppingSuggestions,
+        AiMode.ramadanList,
+        AiMode.travelList,
+        AiMode.cleaningList,
+      ],
       AiPortal.cooking => [
-          AiMode.whatToCook,
-          AiMode.recipeIngredients,
-          AiMode.cookByAvailable,
-          AiMode.weeklyMealPlan,
-          AiMode.quickMeals,
-          AiMode.healthyMeals,
-          AiMode.budgetMeals,
-          AiMode.cookByVegetables,
-          AiMode.cookBySpices,
-        ],
-      AiPortal.occasions => [
-          AiMode.guestMeals,
-          AiMode.kidsMeals,
-        ],
+        AiMode.whatToCook,
+        AiMode.recipeIngredients,
+        AiMode.cookByAvailable,
+        AiMode.weeklyMealPlan,
+        AiMode.quickMeals,
+        AiMode.healthyMeals,
+        AiMode.budgetMeals,
+        AiMode.cookByVegetables,
+        AiMode.cookBySpices,
+      ],
+      AiPortal.occasions => [AiMode.guestMeals, AiMode.kidsMeals],
     };
   }
 
@@ -128,16 +125,23 @@ class _AiModeSelectorState extends State<AiModeSelector> {
                     borderRadius: BorderRadius.circular(12),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
-                      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 10,
+                        horizontal: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: _activePortal == portal
                             ? theme.colorScheme.primary.withValues(alpha: 0.12)
-                            : (isDark ? AppColors.surfaceDark : Colors.grey.shade50),
+                            : (isDark
+                                  ? AppColors.surfaceDark
+                                  : Colors.grey.shade50),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: _activePortal == portal
                               ? theme.colorScheme.primary
-                              : theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+                              : theme.colorScheme.outlineVariant.withValues(
+                                  alpha: 0.5,
+                                ),
                           width: 1.5,
                         ),
                       ),
@@ -156,7 +160,9 @@ class _AiModeSelectorState extends State<AiModeSelector> {
                             context.translate(portal.translationKey),
                             textAlign: TextAlign.center,
                             style: theme.textTheme.labelMedium?.copyWith(
-                              fontWeight: _activePortal == portal ? FontWeight.bold : FontWeight.normal,
+                              fontWeight: _activePortal == portal
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
                               color: _activePortal == portal
                                   ? theme.colorScheme.primary
                                   : theme.colorScheme.onSurface,
@@ -173,7 +179,7 @@ class _AiModeSelectorState extends State<AiModeSelector> {
           ),
         ),
         const SizedBox(height: 12),
-        
+
         // ── 2. SUB-MODES SCROLLABLE ROW ──
         SizedBox(
           height: 38,
@@ -191,14 +197,21 @@ class _AiModeSelectorState extends State<AiModeSelector> {
                 onTap: () => widget.onModeChanged(mode),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: isSelected
                         ? theme.colorScheme.primary
-                        : (isDark ? AppColors.surfaceDark : Colors.grey.shade100),
+                        : (isDark
+                              ? AppColors.surfaceDark
+                              : Colors.grey.shade100),
                     borderRadius: BorderRadius.circular(18),
                     border: Border.all(
-                      color: isSelected ? theme.colorScheme.primary : Colors.transparent,
+                      color: isSelected
+                          ? theme.colorScheme.primary
+                          : Colors.transparent,
                       width: 1,
                     ),
                   ),
@@ -208,8 +221,14 @@ class _AiModeSelectorState extends State<AiModeSelector> {
                       Text(
                         context.translate(mode.translationKey),
                         style: theme.textTheme.labelSmall?.copyWith(
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                          color: isSelected ? Colors.white : (isDark ? Colors.white70 : Colors.grey.shade700),
+                          fontWeight: isSelected
+                              ? FontWeight.bold
+                              : FontWeight.w500,
+                          color: isSelected
+                              ? Colors.white
+                              : (isDark
+                                    ? Colors.white70
+                                    : Colors.grey.shade700),
                         ),
                       ),
                     ],

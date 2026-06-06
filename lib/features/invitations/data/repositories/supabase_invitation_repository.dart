@@ -97,7 +97,7 @@ class SupabaseInvitationRepository implements InvitationRepository {
 
     final response = await _client
         .from('invitations')
-        .update({'status': 'cancelled'})
+        .update({'status': 'cancelled', 'updated_by': user.id})
         .eq('id', invitation['id'])
         .select()
         .maybeSingle();
@@ -130,7 +130,7 @@ class SupabaseInvitationRepository implements InvitationRepository {
 
     final response = await _client
         .from('invitations')
-        .update({'status': 'cancelled'})
+        .update({'status': 'cancelled', 'updated_by': user.id})
         .eq('id', invitationId)
         .select()
         .maybeSingle();

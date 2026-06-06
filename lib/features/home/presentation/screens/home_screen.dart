@@ -22,12 +22,15 @@ import '../widgets/app_drawer.dart';
 import '../../../homes/presentation/screens/onboarding_screen.dart';
 import '../widgets/home_quick_actions.dart';
 import '../widgets/home_active_list_card.dart';
+import '../widgets/home_first_shopping_journey_card.dart';
 import '../widgets/home_header_sliver.dart';
 import 'package:sawa/app/theme/app_spacing.dart';
 import 'package:sawa/app/theme/app_colors.dart';
 import 'package:sawa/shared/widgets/design_system/sawa_card.dart';
 import 'package:sawa/shared/widgets/design_system/sawa_empty_state.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_skeleton_list.dart';
 import 'package:sawa/shared/widgets/design_system/sawa_button.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_loading_state.dart';
 import 'package:sawa/core/localization/app_localizations.dart';
 import 'package:sawa/core/services/startup_prefetch_provider.dart';
 import 'package:sawa/core/services/sync_coordinator.dart';
@@ -76,32 +79,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     if (hydration.status == HydrationStatus.hydratingHomes ||
         hydration.status == HydrationStatus.hydratingData) {
       return Scaffold(
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.xl),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const CircularProgressIndicator(),
-                AppSpacing.gapXL,
-                Text(
-                  context.translate('preparing_home_data'),
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                  textAlign: TextAlign.center,
-                ),
-                AppSpacing.gapMD,
-                Text(
-                  context.translate('syncing_lists_message'),
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          ),
+        body: SawaLoadingState(
+          message:
+              '${context.translate('preparing_home_data')}\n${context.translate('syncing_lists_message')}',
         ),
       );
     }
@@ -157,21 +137,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final hasHomesAsync = ref.watch(hasHomesProvider);
 
     if (hasHomesAsync.isLoading && !hasHomesAsync.hasValue) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(body: SawaSkeletonList(itemCount: 4));
     }
     final hasHomes = hasHomesAsync.value ?? true;
 
     // Trigger onboarding if initial sync completed and there are no homes
     final isHydrationComplete = hydration.status == HydrationStatus.success;
-    if (hasHomesAsync.value == false || (!hasHomes && homes.isEmpty) || (isHydrationComplete && homes.isEmpty)) {
+    if (hasHomesAsync.value == false ||
+        (!hasHomes && homes.isEmpty) ||
+        (isHydrationComplete && homes.isEmpty)) {
       return const OnboardingScreen();
     }
 
     if (homes.isEmpty) {
       // idle = hydration hasn't started yet (transient), hydratingHomes/Data = in progress.
-      // Both are caught here as a spinner. If hydrate() fails, the outer try-catch
-      // sets status to error → caught at line 116 above → error screen, not this spinner.
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      // Both are caught here as a skeleton. If hydrate() fails, the outer try-catch
+      // sets status to error → caught at line 116 above → error screen, not this skeleton.
+      return const Scaffold(body: SawaSkeletonList(itemCount: 4));
     }
 
     HomeModel? activeHome;
@@ -188,7 +170,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       // Only show spinner during active hydration; otherwise fall back to first home.
       if (hydration.status == HydrationStatus.hydratingHomes ||
           hydration.status == HydrationStatus.hydratingData) {
-        return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        return const Scaffold(body: SawaSkeletonList(itemCount: 4));
       }
       activeHome = homes.first;
     }
@@ -247,9 +229,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 skipLoadingOnReload: true,
                 data: (lists) {
                   final activeLists = lists.where((l) => l.isActive).toList();
-                  if (activeLists.isEmpty) return _buildEmptyListCard(homeId);
+                  if (activeLists.isEmpty) {
+                    return HomeFirstShoppingJourneyCard(homeId: homeId);
+                  }
                   final activeList = activeLists.first;
-                  return HomeActiveListCard(activeList: activeList);
+                  return Column(
+                    children: [
+                      HomeFirstShoppingJourneyCard(
+                        homeId: homeId,
+                        activeList: activeList,
+                      ),
+                      HomeActiveListCard(activeList: activeList),
+                    ],
+                  );
                 },
                 loading: () {
                   // Fallback to cached dashboard snapshot for instant perceived loading
@@ -259,7 +251,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   return const SawaCard(
                     child: Padding(
                       padding: EdgeInsets.all(AppSpacing.xl),
-                      child: Center(child: CircularProgressIndicator()),
+                      child: SawaLoadingState(message: null, size: 28),
                     ),
                   );
                 },
@@ -556,17 +548,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  // ─── Empty list card ─────────────────────────────────────────────────
-  Widget _buildEmptyListCard(String homeId) {
-    return SawaEmptyState(
-      title: context.translate('no_shopping_lists'),
-      message: context.translate('no_shopping_lists_desc'),
-      icon: Icons.shopping_cart_outlined,
-      actionText: context.translate('create_list'),
-      onAction: () => context.push(ShoppingRoutePaths.create, extra: homeId),
-    );
-  }
-
   // ─── Recent activity ─────────────────────────────────────────────────
   Widget _buildRecentActivity(String homeId, HomeDashboardSnapshot? snapshot) {
     final recentActivityAsync = ref.watch(recentHomeActivityProvider(homeId));
@@ -620,7 +601,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         }
         return const Padding(
           padding: EdgeInsets.symmetric(vertical: AppSpacing.xl),
-          child: Center(child: CircularProgressIndicator()),
+          child: SawaSkeletonList(itemCount: 3),
         );
       },
       error: (e, _) {

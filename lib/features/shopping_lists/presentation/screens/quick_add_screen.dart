@@ -101,7 +101,7 @@ class _QuickAddScreenState extends ConsumerState<QuickAddScreen> {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => SawaEmptyState(
           title: context.translate('error_title'),
-          message: error.toString(),
+          message: ErrorFormatter.format(error, context),
           icon: Icons.error_outline_rounded,
           isError: true,
           actionText: context.translate('retry'),

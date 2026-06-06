@@ -1,6 +1,7 @@
 import 'package:sawa/shared/widgets/design_system/sawa_snack_bar.dart';
 import 'package:sawa/core/services/supabase_service.dart';
 import 'package:sawa/shared/widgets/design_system/sawa_empty_state.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_loading_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -502,10 +503,11 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
                   ],
                 );
               },
-              loading: () => const Center(child: CircularProgressIndicator()),
+              loading: () =>
+                  SawaLoadingState(message: context.translate('loading_tasks')),
               error: (error, _) => SawaEmptyState(
                 title: context.translate('error_occurred'),
-                message: error.toString(),
+                message: ErrorFormatter.format(error, context),
                 icon: Icons.error_outline_rounded,
                 isError: true,
                 actionText: context.translate('retry'),

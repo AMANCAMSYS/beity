@@ -35,7 +35,9 @@ class SawaErrorState extends StatelessWidget {
             const SizedBox(height: AppSpacing.md),
             Text(
               displayTitle,
-              style: theme.textTheme.titleLarge?.copyWith(color: AppColors.error),
+              style: theme.textTheme.titleLarge?.copyWith(
+                color: AppColors.error,
+              ),
               textAlign: TextAlign.center,
             ),
             if (message != null) ...[

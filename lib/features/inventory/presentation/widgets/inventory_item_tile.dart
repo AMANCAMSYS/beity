@@ -29,6 +29,71 @@ class InventoryItemTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final isRtl = Directionality.of(context) == TextDirection.rtl;
     final theme = Theme.of(context);
+    final content = Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.lg,
+        vertical: AppSpacing.xs,
+      ),
+      child: SawaCard(
+        padding: EdgeInsets.zero,
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                theme.colorScheme.surface,
+                theme.colorScheme.surfaceContainerLow,
+              ],
+            ),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            item.name,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: theme.colorScheme.onSurface,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (item.isLowStock) ...[
+                          AppSpacing.gapSM,
+                          const LowStockBadge(),
+                        ],
+                      ],
+                    ),
+                    if (unitName != null ||
+                        (item.notes != null && item.notes!.isNotEmpty)) ...[
+                      AppSpacing.gapXXS,
+                      _buildSubtitle(context, theme),
+                    ],
+                  ],
+                ),
+              ),
+              AppSpacing.gapMD,
+              _buildQuantityControls(context, theme),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (onDelete == null) {
+      return content;
+    }
 
     return Dismissible(
       key: Key(item.id),
@@ -36,7 +101,10 @@ class InventoryItemTile extends StatelessWidget {
       background: Container(
         alignment: isRtl ? Alignment.centerLeft : Alignment.centerRight,
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
-        margin: const EdgeInsets.symmetric(vertical: AppSpacing.sm, horizontal: AppSpacing.lg),
+        margin: const EdgeInsets.symmetric(
+          vertical: AppSpacing.sm,
+          horizontal: AppSpacing.lg,
+        ),
         decoration: BoxDecoration(
           color: theme.colorScheme.error,
           borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
@@ -51,74 +119,26 @@ class InventoryItemTile extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.delete_outline_rounded, color: Colors.white, size: 28),
+            const Icon(
+              Icons.delete_outline_rounded,
+              color: Colors.white,
+              size: 28,
+            ),
             AppSpacing.gapXXS,
             Text(
-              context.translate('delete', fallback: 'Delete'),
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10),
+              context.translate('delete'),
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 10,
+              ),
             ),
           ],
         ),
       ),
       confirmDismiss: (_) => _showDeleteConfirmation(context),
       onDismissed: (_) => onDelete?.call(),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.xs),
-        child: SawaCard(
-          padding: EdgeInsets.zero,
-          onTap: onTap,
-          child: Container(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  theme.colorScheme.surface,
-                  theme.colorScheme.surfaceContainerLow,
-                ],
-              ),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              item.name,
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: theme.colorScheme.onSurface,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          if (item.isLowStock) ...[
-                            AppSpacing.gapSM,
-                            const LowStockBadge(),
-                          ],
-                        ],
-                      ),
-                      if (unitName != null || (item.notes != null && item.notes!.isNotEmpty)) ...[
-                        AppSpacing.gapXXS,
-                        _buildSubtitle(context, theme),
-                      ],
-                    ],
-                  ),
-                ),
-                AppSpacing.gapMD,
-                _buildQuantityControls(context, theme),
-              ],
-            ),
-          ),
-        ),
-      ),
+      child: content,
     );
   }
 
@@ -130,7 +150,11 @@ class InventoryItemTile extends StatelessWidget {
 
     return Row(
       children: [
-        Icon(Icons.info_outline_rounded, size: 12, color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6)),
+        Icon(
+          Icons.info_outline_rounded,
+          size: 12,
+          color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+        ),
         AppSpacing.gapXXS,
         Expanded(
           child: Text(
@@ -153,17 +177,21 @@ class InventoryItemTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-        border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3)),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           _QuantityButton(
             icon: Icons.remove_rounded,
-            onTap: () {
-              HapticFeedback.lightImpact();
-              onQuantityDecrement?.call();
-            },
+            onTap: onQuantityDecrement == null
+                ? null
+                : () {
+                    HapticFeedback.lightImpact();
+                    onQuantityDecrement?.call();
+                  },
           ),
           Container(
             constraints: const BoxConstraints(minWidth: 48),
@@ -180,10 +208,12 @@ class InventoryItemTile extends StatelessWidget {
           ),
           _QuantityButton(
             icon: Icons.add_rounded,
-            onTap: () {
-              HapticFeedback.lightImpact();
-              onQuantityIncrement?.call();
-            },
+            onTap: onQuantityIncrement == null
+                ? null
+                : () {
+                    HapticFeedback.lightImpact();
+                    onQuantityIncrement?.call();
+                  },
           ),
         ],
       ),
@@ -204,13 +234,15 @@ class InventoryItemTile extends StatelessWidget {
       builder: (context) => AlertDialog(
         backgroundColor: theme.colorScheme.surface,
         surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusXl)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+        ),
         title: Row(
           children: [
             Icon(Icons.warning_amber_rounded, color: theme.colorScheme.error),
             AppSpacing.gapMD,
             Text(
-              context.translate('delete_product', fallback: 'Delete Product'),
+              context.translate('delete_product'),
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
           ],
@@ -219,20 +251,22 @@ class InventoryItemTile extends StatelessWidget {
           context.translate(
             'delete_item_confirm',
             arguments: {'name': item.name},
-            fallback: 'Are you sure you want to delete "${item.name}"?',
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
             child: Text(
-              context.translate('cancel', fallback: 'Cancel'),
-              style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontWeight: FontWeight.bold),
+              context.translate('cancel'),
+              style: TextStyle(
+                color: theme.colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
           SawaButton(
             width: 100,
-            text: context.translate('delete', fallback: 'Delete'),
+            text: context.translate('delete'),
             onPressed: () => Navigator.pop(context, true),
             type: SawaButtonType.primary,
             icon: Icons.delete_outline_rounded,
@@ -252,6 +286,7 @@ class _QuantityButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isEnabled = onTap != null;
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -273,7 +308,9 @@ class _QuantityButton extends StatelessWidget {
           child: Icon(
             icon,
             size: 18,
-            color: theme.colorScheme.primary,
+            color: isEnabled
+                ? theme.colorScheme.primary
+                : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.42),
           ),
         ),
       ),

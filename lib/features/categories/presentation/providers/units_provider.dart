@@ -1,5 +1,5 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
 import 'package:sawa/core/local_database/daos/units_dao.dart';
 import 'package:sawa/core/local_database/local_database_service.dart';
 import 'package:sawa/core/services/supabase_service.dart';
@@ -29,10 +29,11 @@ final unitsStreamProvider = StreamProvider.autoDispose
       return repo.watchUnits(type: type);
     });
 
-class UnitNotifier extends StateNotifier<AsyncValue<void>> {
-  final UnitRepository _repo;
-
-  UnitNotifier(this._repo) : super(const AsyncValue.data(null));
+class UnitNotifier extends AsyncNotifier<void> {
+  @override
+  FutureOr<void> build() {
+    return null;
+  }
 
   Future<UnitModel> createUnit({
     required String name,
@@ -41,11 +42,9 @@ class UnitNotifier extends StateNotifier<AsyncValue<void>> {
   }) async {
     state = const AsyncValue.loading();
     try {
-      final unit = await _repo.createUnit(
-        name: name,
-        symbol: symbol,
-        type: type,
-      );
+      final unit = await ref
+          .read(unitRepositoryProvider)
+          .createUnit(name: name, symbol: symbol, type: type);
       state = const AsyncValue.data(null);
       return unit;
     } catch (e) {
@@ -61,11 +60,9 @@ class UnitNotifier extends StateNotifier<AsyncValue<void>> {
   }) async {
     state = const AsyncValue.loading();
     try {
-      final unit = await _repo.updateUnit(
-        unitId: unitId,
-        name: name,
-        symbol: symbol,
-      );
+      final unit = await ref
+          .read(unitRepositoryProvider)
+          .updateUnit(unitId: unitId, name: name, symbol: symbol);
       state = const AsyncValue.data(null);
       return unit;
     } catch (e) {
@@ -77,7 +74,7 @@ class UnitNotifier extends StateNotifier<AsyncValue<void>> {
   Future<void> deleteUnit({required String unitId}) async {
     state = const AsyncValue.loading();
     try {
-      await _repo.deleteUnit(unitId: unitId);
+      await ref.read(unitRepositoryProvider).deleteUnit(unitId: unitId);
       state = const AsyncValue.data(null);
     } catch (e) {
       state = AsyncValue.error(e, StackTrace.current);
@@ -86,8 +83,6 @@ class UnitNotifier extends StateNotifier<AsyncValue<void>> {
   }
 }
 
-final unitNotifierProvider =
-    StateNotifierProvider<UnitNotifier, AsyncValue<void>>((ref) {
-      final repo = ref.read(unitRepositoryProvider);
-      return UnitNotifier(repo);
-    });
+final unitNotifierProvider = AsyncNotifierProvider<UnitNotifier, void>(() {
+  return UnitNotifier();
+});

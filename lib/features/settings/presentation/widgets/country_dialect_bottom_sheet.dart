@@ -40,10 +40,12 @@ class CountryDialectBottomSheet extends ConsumerStatefulWidget {
   }
 
   @override
-  ConsumerState<CountryDialectBottomSheet> createState() => _CountryDialectBottomSheetState();
+  ConsumerState<CountryDialectBottomSheet> createState() =>
+      _CountryDialectBottomSheetState();
 }
 
-class _CountryDialectBottomSheetState extends ConsumerState<CountryDialectBottomSheet> {
+class _CountryDialectBottomSheetState
+    extends ConsumerState<CountryDialectBottomSheet> {
   String? _selectedCountry;
   String? _selectedDialect;
   bool _isLoading = false;
@@ -58,7 +60,9 @@ class _CountryDialectBottomSheetState extends ConsumerState<CountryDialectBottom
   String _translate(String key) {
     if (key == 'title') return context.translate('ai_country_dialect');
     if (key == 'subtitle') return context.translate('ai_country_dialect_desc');
-    if (key == 'success') return context.translate('ai_country_dialect_success');
+    if (key == 'success') {
+      return context.translate('ai_country_dialect_success');
+    }
     if (key == 'failed') return context.translate('ai_country_dialect_failed');
     return context.translate(key);
   }
@@ -68,10 +72,9 @@ class _CountryDialectBottomSheetState extends ConsumerState<CountryDialectBottom
 
     try {
       // 1. Update remote profile database
-      await ref.read(authNotifierProvider.notifier).updateProfile(
-            country: _selectedCountry,
-            dialect: _selectedDialect,
-          );
+      await ref
+          .read(authNotifierProvider.notifier)
+          .updateProfile(country: _selectedCountry, dialect: _selectedDialect);
 
       // 2. Update local SharedPreferences
       final notifier = ref.read(appSettingsProvider.notifier);
@@ -109,7 +112,7 @@ class _CountryDialectBottomSheetState extends ConsumerState<CountryDialectBottom
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final isRTL = widget.languageCode == 'ar';
+    final isRTL = AppLocalizations.isRtlLanguage(widget.languageCode);
 
     final countries = [
       {
@@ -117,42 +120,42 @@ class _CountryDialectBottomSheetState extends ConsumerState<CountryDialectBottom
         'name': _translate('country_sa'),
         'flag': '🇸🇦',
         'dialect': 'gulf',
-        'dialectDesc': _translate('dialect_gulf')
+        'dialectDesc': _translate('dialect_gulf'),
       },
       {
         'code': 'EG',
         'name': _translate('country_eg'),
         'flag': '🇪🇬',
         'dialect': 'egyptian',
-        'dialectDesc': _translate('dialect_egyptian')
+        'dialectDesc': _translate('dialect_egyptian'),
       },
       {
         'code': 'TR',
         'name': _translate('country_tr'),
         'flag': '🇹🇷',
         'dialect': 'turkish',
-        'dialectDesc': _translate('dialect_turkish')
+        'dialectDesc': _translate('dialect_turkish'),
       },
       {
         'code': 'AE',
         'name': _translate('country_ae'),
         'flag': '🇦🇪',
         'dialect': 'gulf',
-        'dialectDesc': _translate('dialect_gulf')
+        'dialectDesc': _translate('dialect_gulf'),
       },
       {
         'code': 'JO',
         'name': _translate('country_jo'),
         'flag': '🇯🇴',
         'dialect': 'levantine',
-        'dialectDesc': _translate('dialect_levantine')
+        'dialectDesc': _translate('dialect_levantine'),
       },
       {
         'code': 'US',
         'name': _translate('country_other'),
         'flag': '🌐',
         'dialect': 'standard',
-        'dialectDesc': _translate('dialect_standard')
+        'dialectDesc': _translate('dialect_standard'),
       },
     ];
 
@@ -185,7 +188,9 @@ class _CountryDialectBottomSheetState extends ConsumerState<CountryDialectBottom
               const SizedBox(height: 16),
               Text(
                 _translate('title'),
-                style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
@@ -212,7 +217,9 @@ class _CountryDialectBottomSheetState extends ConsumerState<CountryDialectBottom
                         scale: isSelected ? 1.02 : 1.0,
                         duration: const Duration(milliseconds: 150),
                         child: SawaCard(
-                          backgroundColor: isSelected ? theme.primaryColor.withValues(alpha: 0.12) : null,
+                          backgroundColor: isSelected
+                              ? theme.primaryColor.withValues(alpha: 0.12)
+                              : null,
                           hasBorder: isSelected,
                           onTap: () {
                             setState(() {
@@ -221,7 +228,10 @@ class _CountryDialectBottomSheetState extends ConsumerState<CountryDialectBottom
                             });
                           },
                           child: Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 6.0, horizontal: 4.0),
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 6.0,
+                              horizontal: 4.0,
+                            ),
                             child: Row(
                               children: [
                                 Text(
@@ -231,19 +241,24 @@ class _CountryDialectBottomSheetState extends ConsumerState<CountryDialectBottom
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         country['name']!,
-                                        style: theme.textTheme.titleMedium?.copyWith(
-                                          fontWeight: FontWeight.bold,
-                                          color: isSelected ? theme.primaryColor : null,
-                                        ),
+                                        style: theme.textTheme.titleMedium
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.bold,
+                                              color: isSelected
+                                                  ? theme.primaryColor
+                                                  : null,
+                                            ),
                                       ),
                                       const SizedBox(height: 2),
                                       Text(
                                         country['dialectDesc']!,
-                                        style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey),
+                                        style: theme.textTheme.bodySmall
+                                            ?.copyWith(color: Colors.grey),
                                       ),
                                     ],
                                   ),

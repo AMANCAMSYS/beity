@@ -56,10 +56,8 @@ class ListDetailSummaryBar extends StatelessWidget {
                     context: context,
                     isScrollControlled: true,
                     backgroundColor: Colors.transparent,
-                    builder: (context) => QuickAddItemBottomSheet(
-                      listId: listId,
-                      homeId: homeId,
-                    ),
+                    builder: (context) =>
+                        QuickAddItemBottomSheet(listId: listId, homeId: homeId),
                   );
                 }),
                 icon: const Icon(Icons.add_rounded),

@@ -6,7 +6,10 @@ enum IconStyle { rounded, outlined, plain }
 class ShoppingUiUtils {
   ShoppingUiUtils._();
 
-  static IconData getIconData(String iconName, {IconStyle style = IconStyle.rounded}) {
+  static IconData getIconData(
+    String iconName, {
+    IconStyle style = IconStyle.rounded,
+  }) {
     switch (style) {
       case IconStyle.rounded:
         return _roundedIcons[iconName] ?? Icons.shopping_cart_rounded;

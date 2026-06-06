@@ -6,16 +6,12 @@ class DeleteExpense {
   DeleteExpense(this._repository);
 
   Future<void> call(DeleteExpenseParams params) async {
-    return _repository.deleteExpense(
-      expenseId: params.expenseId,
-    );
+    return _repository.deleteExpense(expenseId: params.expenseId);
   }
 }
 
 class DeleteExpenseParams {
   final String expenseId;
 
-  const DeleteExpenseParams({
-    required this.expenseId,
-  });
+  const DeleteExpenseParams({required this.expenseId});
 }

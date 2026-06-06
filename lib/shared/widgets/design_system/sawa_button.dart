@@ -42,7 +42,9 @@ class SawaButton extends StatelessWidget {
         foregroundColor = colorScheme.onPrimary;
         break;
       case SawaButtonType.secondary:
-        backgroundColor = isDark ? AppColors.surfaceVariantDark : AppColors.surfaceVariantLight;
+        backgroundColor = isDark
+            ? AppColors.surfaceVariantDark
+            : AppColors.surfaceVariantLight;
         foregroundColor = colorScheme.onSurface;
         break;
       case SawaButtonType.outline:
@@ -61,7 +63,9 @@ class SawaButton extends StatelessWidget {
     }
 
     if (onPressed == null && !isLoading) {
-      backgroundColor = isDark ? AppColors.surfaceVariantDark : AppColors.surfaceVariantLight;
+      backgroundColor = isDark
+          ? AppColors.surfaceVariantDark
+          : AppColors.surfaceVariantLight;
       foregroundColor = colorScheme.onSurfaceVariant.withValues(alpha: 0.55);
       if (type == SawaButtonType.outline) {
         backgroundColor = Colors.transparent;
@@ -107,9 +111,15 @@ class SawaButton extends StatelessWidget {
     final ButtonStyle baseStyle = ButtonStyle(
       backgroundColor: WidgetStateProperty.all(backgroundColor),
       foregroundColor: WidgetStateProperty.all(foregroundColor),
-      overlayColor: WidgetStateProperty.all(foregroundColor.withValues(alpha: 0.1)),
+      overlayColor: WidgetStateProperty.all(
+        foregroundColor.withValues(alpha: 0.1),
+      ),
       padding: WidgetStateProperty.all(
-        padding ?? const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.md),
+        padding ??
+            const EdgeInsets.symmetric(
+              horizontal: AppSpacing.lg,
+              vertical: AppSpacing.md,
+            ),
       ),
       shape: WidgetStateProperty.all(
         RoundedRectangleBorder(

@@ -1,11 +1,67 @@
 # SAWA v0.2.0-preview QA Checklist
 
+## CI Quality Gate (T138-T142)
+
+All four checks must pass before merging any PR.
+
+### Quality Gate Commands
+
+```bash
+# 1. Formatting (T139)
+/home/omar/flutter/bin/dart format --set-exit-if-changed .
+
+# 2. Static analysis (T140)
+/home/omar/flutter/bin/flutter analyze
+
+# 3. Tests (T141)
+/home/omar/flutter/bin/flutter test
+
+# 4. Android release build (T142)
+cd android && ./gradlew :app:assembleRelease
+```
+
+### Verification Results (2026-06-05)
+
+| Check | Command | Status | Notes |
+|-------|---------|--------|-------|
+| T139: dart format | `dart format --set-exit-if-changed .` | PASS (after reformat) | 303 files reformatted; now clean |
+| T140: flutter analyze | `flutter analyze` | PASS | 17 info/warnings, 0 errors |
+| T141: flutter test | `flutter test` | PASS | 526 passed, 9 skipped, 0 failed |
+| T142: Android release | `./gradlew :app:assembleRelease` | PASS | BUILD SUCCESSFUL (3m 2s) |
+
+### Test Coverage Requirements
+
+- All new code must have corresponding tests
+- Minimum: repository + use case tests per feature
+- Critical UI flows (login, add item, shopping mode) require widget tests
+- No test may be permanently skipped without approval
+
+### Pre-merge Checklist
+
+- [ ] `dart format --set-exit-if-changed .` exits 0
+- [ ] `flutter analyze` reports 0 errors (warnings/info acceptable)
+- [ ] `flutter test` all tests pass (skips acceptable)
+- [ ] Android release build succeeds
+- [ ] No new `unused_import` warnings introduced
+- [ ] RLS policies cover any new Supabase tables
+- [ ] `created_by`/`updated_by` set on write operations
+
+### Build Verification Steps
+
+1. Run `dart format --set-exit-if-changed .` — must exit 0
+2. Run `flutter analyze` — must show 0 errors
+3. Run `flutter test` — must show "All tests passed!"
+4. Run `cd android && ./gradlew :app:assembleRelease` — must show "BUILD SUCCESSFUL"
+5. Verify APK exists at `android/app/build/outputs/flutter-apk/app-release.apk`
+
+---
+
 ## Pre-Release Verification
 
 ### Build & Static Analysis
 - [ ] `flutter analyze lib/` passes with 0 errors
-- [ ] `flutter test` passes with all tests green (58 tests)
-- [ ] App builds successfully for Android (debug)
+- [ ] `flutter test` passes with all tests green (526+ tests)
+- [ ] App builds successfully for Android (release)
 - [ ] App builds successfully for iOS (debug)
 
 ### Auth & Session
@@ -183,3 +239,148 @@
 - [ ] Add item completes in < 500ms
 - [ ] No visible jank during scrolling
 - [ ] App doesn't crash on rapid navigation
+
+---
+
+## Post-Launch Monitoring (T169-T171)
+
+### First 48-Hour Crash Monitoring Plan
+
+#### Monitoring Stack
+- **Firebase Crashlytics:** Primary crash reporting
+- **Google Play Console:** ANR and crash metrics
+- **Supabase Logs:** Backend errors and Edge Function failures
+
+#### Hour 0-2 (Immediate Post-Release)
+- [ ] Monitor Crashlytics dashboard continuously
+- [ ] Check for any new crash clusters
+- [ ] Verify crash-free rate stays above 99.5%
+- [ ] Check Google Play Console for ANR reports
+- [ ] Monitor Supabase Edge Function logs for errors
+- [ ] Verify FCM delivery rate in Firebase Console
+
+#### Hour 2-12
+- [ ] Check Crashlytics every 2 hours
+- [ ] Review any new crash signatures
+- [ ] Monitor realtime sync error rates
+- [ ] Check offline queue failure rates
+- [ ] Review feedback submissions for patterns
+
+#### Hour 12-48
+- [ ] Check Crashlytics every 4 hours
+- [ ] Compare crash rates across device types
+- [ ] Monitor user retention (DAU)
+- [ ] Review satisfaction survey ratings
+- [ ] Document any recurring issues
+
+#### Escalation Triggers (Immediate Hotfix Required)
+- Crash-free rate drops below 99.0%
+- Data loss reported by any user
+- Authentication failures affecting multiple users
+- Realtime sync completely broken
+- Push notification delivery failure >50%
+
+#### Monitoring Dashboard Checklist
+- [ ] Firebase Crashlytics bookmarked and accessible
+- [ ] Google Play Console crash section bookmarked
+- [ ] Supabase dashboard accessible
+- [ ] FCM delivery reports accessible
+- [ ] Team notification channel set up (Slack/WhatsApp)
+
+---
+
+### Hotfix Path and Rollback Rules
+
+#### Hotfix Process
+
+1. **Identify:** Crash/bug reported via Crashlytics or user feedback
+2. **Triage:** Classify severity (Critical / High / Medium / Low)
+3. **Fix:** Branch from `main`, fix, test locally
+4. **Verify:** Run full CI gate (`dart format`, `flutter analyze`, `flutter test`, release build)
+5. **Release:** Increment build number, build AAB, upload to Play Store
+6. **Monitor:** Watch Crashlytics for 2 hours post-release
+
+#### Severity Classification
+
+| Severity | Definition | Response Time | Example |
+|----------|------------|---------------|---------|
+| Critical | Data loss, auth broken, app unusable | < 2 hours | Offline queue loses items |
+| High | Major feature broken, crash on common flow | < 8 hours | Shopping Mode crashes |
+| Medium | Feature degraded, workaround exists | < 24 hours | Notification delay |
+| Low | Cosmetic, minor inconvenience | Next release | Wrong icon color |
+
+#### Hotfix Checklist
+- [ ] Issue confirmed and reproduced
+- [ ] Root cause identified
+- [ ] Fix tested on physical device
+- [ ] `flutter analyze` passes
+- [ ] `flutter test` passes
+- [ ] Release build succeeds
+- [ ] Version number incremented
+- [ ] CHANGELOG.md updated
+- [ ] AAB uploaded to Play Store
+- [ ] Crashlytics monitored post-release
+
+#### Rollback Rules
+
+**When to Rollback (Unpublish Previous Version):**
+- Critical data loss affecting >1% of users
+- Authentication system completely broken
+- App crashes on launch for >5% of users
+- Security vulnerability discovered
+
+**Rollback Process:**
+1. Go to Google Play Console → Release → Production
+2. Halt rollout of current version
+3. Promote previous version to production
+4. Notify users via in-app message (if possible)
+5. Document incident and root cause
+
+**When NOT to Rollback:**
+- Single user reports (investigate first)
+- Device-specific issues (fix and release)
+- Performance degradation <10%
+- Cosmetic issues
+
+---
+
+### Known Issues Transparency
+
+#### Internal Known Issues Tracking
+
+All known issues must be documented in `docs/beta/known-issues.md` with:
+- Issue description (Arabic + English)
+- Severity (Critical / High / Medium / Low)
+- Affected users / devices
+- Workaround (if any)
+- Status (Open / In Progress / Fixed / Won't Fix)
+- GitHub issue link (if tracked)
+
+#### Pre-Release Known Issues
+
+| # | Issue | Severity | Workaround | Status |
+|---|-------|----------|------------|--------|
+| 1 | Offline queue not fully wired | Medium | Use app online | In Progress |
+| 2 | Some notification text in English | Low | None needed | Open |
+| 3 | Expense filters incomplete | Low | Use date filter only | Deferred |
+| 4 | Shopping list description not saved | Low | Removed from UI | Deferred |
+| 5 | Join by code button hidden | Low | Use invitation link | Deferred |
+
+#### User-Facing Known Issues Communication
+
+**For beta users:** Share known issues in beta group before release:
+- List of known issues with workarounds
+- Expected fix timeline
+- How to report new issues (in-app feedback button)
+
+**For Play Store listing:** Do NOT list known issues publicly. Fix critical issues before public release.
+
+#### Post-Release Issue Response
+
+| Timeframe | Action |
+|-----------|--------|
+| 0-2 hours | Monitor Crashlytics, no action unless critical |
+| 2-8 hours | Triage new reports, update known-issues.md |
+| 8-24 hours | Begin hotfix for high-severity issues |
+| 24-48 hours | Release hotfix if needed |
+| 48+ hours | Plan fixes for next release cycle

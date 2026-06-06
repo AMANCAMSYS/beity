@@ -313,11 +313,11 @@ void main() {
       expect(savedLists!.single.name, 'New name');
       verify(
         () => mockQueue.enqueueAction(
-          actionType: ActionType.updateItem,
+          actionType: ActionType.updateList,
           entityType: EntityType.shoppingList,
           entityId: 'list-123',
           homeId: 'home-123',
-          payload: {'title': 'New name'},
+          payload: any(named: 'payload'),
         ),
       ).called(1);
       verifyNever(

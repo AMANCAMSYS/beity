@@ -28,8 +28,7 @@ class ShoppingProgressBar extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
               child: LinearProgressIndicator(
                 value: progress,
-                backgroundColor:
-                    theme.colorScheme.surfaceContainerHighest,
+                backgroundColor: theme.colorScheme.surfaceContainerHighest,
                 valueColor: AlwaysStoppedAnimation<Color>(
                   theme.colorScheme.primary,
                 ),
@@ -39,7 +38,13 @@ class ShoppingProgressBar extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           Text(
-            context.translate('items_ratio', arguments: {'purchased': purchasedCount.toString(), 'total': totalCount.toString()}),
+            context.translate(
+              'items_ratio',
+              arguments: {
+                'purchased': purchasedCount.toString(),
+                'total': totalCount.toString(),
+              },
+            ),
             style: theme.textTheme.bodyLarge?.copyWith(
               color: isComplete
                   ? theme.colorScheme.primary

@@ -30,20 +30,28 @@ void main() {
     );
 
     test('should create home through repository', () async {
-      when(() => mockRepository.createHome(
-            name: any(named: 'name'),
-            type: any(named: 'type'),
-            defaultCurrency: any(named: 'defaultCurrency'),
-          )).thenAnswer((_) async => tHome);
+      when(
+        () => mockRepository.createHome(
+          name: any(named: 'name'),
+          type: any(named: 'type'),
+          defaultCurrency: any(named: 'defaultCurrency'),
+        ),
+      ).thenAnswer((_) async => tHome);
 
-      final result = await useCase(name: tName, type: tType, defaultCurrency: tCurrency);
+      final result = await useCase(
+        name: tName,
+        type: tType,
+        defaultCurrency: tCurrency,
+      );
 
       expect(result, tHome);
-      verify(() => mockRepository.createHome(
-            name: tName,
-            type: tType,
-            defaultCurrency: tCurrency,
-          )).called(1);
+      verify(
+        () => mockRepository.createHome(
+          name: tName,
+          type: tType,
+          defaultCurrency: tCurrency,
+        ),
+      ).called(1);
     });
   });
 }

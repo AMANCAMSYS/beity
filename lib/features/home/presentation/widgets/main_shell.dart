@@ -17,11 +17,11 @@ class MainShell extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // Watch for revocation invalidations (user removed from active home)
     ref.watch(revocationWatcherProvider);
-    
+
     // Globally watch hydration and prefetch so background syncs run regardless of active tab
     ref.watch(initialDataHydrationServiceProvider);
     ref.watch(startupPrefetchProvider);
-    
+
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final items = [

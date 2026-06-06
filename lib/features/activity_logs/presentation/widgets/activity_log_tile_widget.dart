@@ -10,11 +10,7 @@ class ActivityLogTileWidget extends StatelessWidget {
   final ActivityLogModel log;
   final VoidCallback? onTap;
 
-  const ActivityLogTileWidget({
-    super.key,
-    required this.log,
-    this.onTap,
-  });
+  const ActivityLogTileWidget({super.key, required this.log, this.onTap});
 
   @override
   Widget build(BuildContext context) {

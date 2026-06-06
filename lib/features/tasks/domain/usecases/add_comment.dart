@@ -18,8 +18,5 @@ class AddCommentParams {
   final String taskId;
   final String content;
 
-  const AddCommentParams({
-    required this.taskId,
-    required this.content,
-  });
+  const AddCommentParams({required this.taskId, required this.content});
 }

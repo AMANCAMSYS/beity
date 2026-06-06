@@ -24,15 +24,13 @@ class FontSizeBottomSheet extends ConsumerStatefulWidget {
     return SawaBottomSheet.show(
       context,
       title: l10n.translate('font_size'),
-      child: FontSizeBottomSheet(
-        initialScale: initialScale,
-        l10n: l10n,
-      ),
+      child: FontSizeBottomSheet(initialScale: initialScale, l10n: l10n),
     );
   }
 
   @override
-  ConsumerState<FontSizeBottomSheet> createState() => _FontSizeBottomSheetState();
+  ConsumerState<FontSizeBottomSheet> createState() =>
+      _FontSizeBottomSheetState();
 }
 
 class _FontSizeBottomSheetState extends ConsumerState<FontSizeBottomSheet> {

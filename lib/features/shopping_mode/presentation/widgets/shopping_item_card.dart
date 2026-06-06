@@ -47,7 +47,6 @@ class _ShoppingItemCardState extends State<ShoppingItemCard> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
     final isPurchased = _optimisticPurchased ?? widget.item.isPurchased;
     final hasPartialPurchase =
         widget.item.purchasedQuantity > 0 &&
@@ -142,11 +141,7 @@ class _ShoppingItemCardState extends State<ShoppingItemCard> {
                               widget.item.unitId != null ||
                               hasPartialPurchase) ...[
                             const SizedBox(height: 4),
-                            _buildQuantitySubtitle(
-                              theme,
-                              hasPartialPurchase,
-                              isArabic,
-                            ),
+                            _buildQuantitySubtitle(theme, hasPartialPurchase),
                           ],
                           if (isPurchased && widget.purchaserName != null) ...[
                             const SizedBox(height: 2),
@@ -252,11 +247,7 @@ class _ShoppingItemCardState extends State<ShoppingItemCard> {
     );
   }
 
-  Widget _buildQuantitySubtitle(
-    ThemeData theme,
-    bool hasPartialPurchase,
-    bool isArabic,
-  ) {
+  Widget _buildQuantitySubtitle(ThemeData theme, bool hasPartialPurchase) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -269,7 +260,7 @@ class _ShoppingItemCardState extends State<ShoppingItemCard> {
           const SizedBox(width: 4),
         ],
         Text(
-          _formatQuantity(widget.item, isArabic),
+          _formatQuantity(widget.item),
           style: theme.textTheme.bodySmall?.copyWith(
             color: hasPartialPurchase
                 ? AppColors.warning
@@ -281,7 +272,7 @@ class _ShoppingItemCardState extends State<ShoppingItemCard> {
     );
   }
 
-  String _formatQuantity(ShoppingItemModel item, bool isArabic) {
+  String _formatQuantity(ShoppingItemModel item) {
     final qty = item.quantity == item.quantity.roundToDouble()
         ? item.quantity.toInt().toString()
         : item.quantity.toStringAsFixed(1);

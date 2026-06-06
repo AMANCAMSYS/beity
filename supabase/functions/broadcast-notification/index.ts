@@ -70,7 +70,7 @@ function toStringData(
 
 async function getFirebaseAccessToken(): Promise<string | null> {
   if (!firebaseServiceAccountJson) {
-    console.warn("FIREBASE_SERVICE_ACCOUNT_JSON not set, skipping FCM push");
+    console.warn(JSON.stringify({ event: "firebase_config_missing", key: "FIREBASE_SERVICE_ACCOUNT_JSON" }));
     return null;
   }
 
@@ -97,14 +97,14 @@ async function getFirebaseAccessToken(): Promise<string | null> {
     });
 
     if (!response.ok) {
-      console.error("Failed to get Firebase access token:", await response.text());
+      console.error(JSON.stringify({ event: "firebase_token_failed", status: response.status }));
       return null;
     }
 
     const tokenResponse = await response.json();
     return tokenResponse.access_token;
   } catch (error) {
-    console.error("Error creating Firebase access token:", error);
+    console.error(JSON.stringify({ event: "firebase_token_error", error: error instanceof Error ? error.message : String(error) }));
     return null;
   }
 }
@@ -287,7 +287,7 @@ Deno.serve(async (req: Request) => {
             .eq("user_id", row.user_id)
             .eq("token", row.token);
         } else {
-          console.error("Broadcast FCM send failed:", result.error);
+          console.error(JSON.stringify({ event: "broadcast_fcm_send_failed", userId: row.user_id, hasUnregistered: result.invalidToken }));
         }
       }
     }
@@ -300,7 +300,7 @@ Deno.serve(async (req: Request) => {
       failed_tokens: failedCount,
     });
   } catch (error) {
-    console.error("Error in broadcast-notification:", error);
+    console.error(JSON.stringify({ event: "broadcast_unhandled", error: error instanceof Error ? error.message : String(error) }));
     return jsonResponse({ error: "Internal server error" }, 500);
   }
 });

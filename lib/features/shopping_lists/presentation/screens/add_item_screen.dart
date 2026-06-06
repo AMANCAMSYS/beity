@@ -142,7 +142,7 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
           appBar: AppBar(title: Text(context.translate('add_item'))),
           body: SawaEmptyState(
             title: context.translate('error_title'),
-            message: error.toString(),
+            message: ErrorFormatter.format(error, context),
             icon: Icons.error_outline_rounded,
             isError: true,
             actionText: context.translate('retry'),

@@ -80,9 +80,10 @@ class _OnboardingIllustrationState extends State<OnboardingIllustration>
       duration: const Duration(seconds: 3),
     )..repeat(reverse: true);
 
-    _floatAnimation = Tween<double>(begin: -8, end: 8).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
+    _floatAnimation = Tween<double>(
+      begin: -8,
+      end: 8,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
   @override
@@ -164,7 +165,9 @@ class _OnboardingIllustrationState extends State<OnboardingIllustration>
                   height: 50,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: cfg.secondaryColor.withValues(alpha: isDark ? 0.3 : 0.8),
+                    color: cfg.secondaryColor.withValues(
+                      alpha: isDark ? 0.3 : 0.8,
+                    ),
                     boxShadow: [
                       BoxShadow(
                         color: cfg.primaryColor.withValues(alpha: 0.15),
@@ -195,7 +198,9 @@ class _OnboardingIllustrationState extends State<OnboardingIllustration>
                   height: 44,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: cfg.secondaryColor.withValues(alpha: isDark ? 0.3 : 0.8),
+                    color: cfg.secondaryColor.withValues(
+                      alpha: isDark ? 0.3 : 0.8,
+                    ),
                     boxShadow: [
                       BoxShadow(
                         color: cfg.primaryColor.withValues(alpha: 0.1),

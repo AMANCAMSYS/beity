@@ -18,15 +18,15 @@ class QuantityAdjusterWidget extends StatelessWidget {
   double get step {
     if (unitId == null) return 1.0;
     final lowerUnit = unitId!.toLowerCase();
-    if (lowerUnit.contains('kg') || 
-        lowerUnit.contains('كجم') || 
+    if (lowerUnit.contains('kg') ||
+        lowerUnit.contains('كجم') ||
         lowerUnit.contains('كيلو') ||
         lowerUnit.contains('kilo') ||
-        lowerUnit.contains('g') || 
-        lowerUnit.contains('جرام') || 
+        lowerUnit.contains('g') ||
+        lowerUnit.contains('جرام') ||
         lowerUnit.contains('gram') ||
-        lowerUnit.contains('liter') || 
-        lowerUnit.contains('litre') || 
+        lowerUnit.contains('liter') ||
+        lowerUnit.contains('litre') ||
         lowerUnit.contains('لتر') ||
         lowerUnit.contains('ltr')) {
       return 0.25;
@@ -39,11 +39,16 @@ class QuantityAdjusterWidget extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.sm,
+        vertical: AppSpacing.xs,
+      ),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-        border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5)),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -72,9 +77,11 @@ class QuantityAdjusterWidget extends StatelessWidget {
                 ),
                 if (unitId != null)
                   Text(
-                    context.translate('quantity', fallback: 'Quantity'),
+                    context.translate('quantity'),
                     style: theme.textTheme.labelSmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                      color: theme.colorScheme.onSurfaceVariant.withValues(
+                        alpha: 0.7,
+                      ),
                     ),
                   ),
               ],
@@ -117,11 +124,7 @@ class _StepButton extends StatelessWidget {
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.md),
-          child: Icon(
-            icon,
-            size: 24,
-            color: theme.colorScheme.primary,
-          ),
+          child: Icon(icon, size: 24, color: theme.colorScheme.primary),
         ),
       ),
     );

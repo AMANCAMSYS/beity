@@ -4,7 +4,10 @@ import '../localization/app_localizations.dart';
 import 'app_exception.dart';
 
 class ErrorHandler {
-  static ErrorHandlerMessage mapExceptionToMessage(dynamic exception, BuildContext context) {
+  static ErrorHandlerMessage mapExceptionToMessage(
+    dynamic exception,
+    BuildContext context,
+  ) {
     if (exception is NetworkException) {
       return ErrorHandlerMessage(
         message: context.translate('network_error_offline_sync'),

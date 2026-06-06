@@ -10,10 +10,12 @@ import '../providers/task_providers.dart';
 import '../widgets/comment_thread.dart';
 import '../../../../core/utils/action_debouncer.dart';
 import '../../../../shared/widgets/design_system/sawa_empty_state.dart';
+import '../../../../shared/widgets/design_system/sawa_loading_state.dart';
 import '../../../../shared/widgets/design_system/sawa_snack_bar.dart';
 import '../../../../shared/widgets/design_system/sawa_text_field.dart';
 import 'package:sawa/core/localization/app_localizations.dart';
 import 'package:sawa/core/errors/error_formatter.dart';
+import '../../../../core/providers/permissions_provider.dart';
 import 'package:sawa/features/settings/presentation/providers/app_settings_provider.dart';
 
 class TaskDetailScreen extends ConsumerStatefulWidget {
@@ -255,6 +257,10 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
   Widget build(BuildContext context) {
     final taskAsync = ref.watch(taskByIdProvider(widget.taskId));
     final membersAsync = ref.watch(homeMembersProvider(widget.homeId));
+    final permissions = ref.watch(
+      currentHomePermissionsProvider(widget.homeId),
+    );
+    final canManage = permissions.canEdit;
 
     // Build member name map
     final memberNames = <String, String>{};
@@ -273,7 +279,7 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
         ),
         title: Text(context.translate('task_details')),
         actions: [
-          if (!_isEditing)
+          if (!_isEditing && canManage)
             PopupMenuButton<String>(
               onSelected: (value) {
                 switch (value) {
@@ -445,7 +451,11 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
                               },
                             );
                           },
-                          loading: () => const CircularProgressIndicator(),
+                          loading: () => const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
                           error: (e, _) =>
                               Text(context.translate('error_occurred')),
                         ),
@@ -576,31 +586,33 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
                           ),
                         ],
                         const SizedBox(height: 24),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton.icon(
-                            onPressed: _isLoading
-                                ? null
-                                : () =>
-                                      ActionDebouncer.execute(_toggleComplete),
-                            icon: Icon(
-                              task.isCompleted
-                                  ? Icons.undo
-                                  : Icons.check_circle,
-                            ),
-                            label: Text(
-                              task.isCompleted
-                                  ? context.translate('undo_task')
-                                  : context.translate('complete_task'),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: task.isCompleted
-                                  ? AppColors.warning
-                                  : AppColors.success,
-                              foregroundColor: Colors.white,
+                        if (canManage)
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: _isLoading
+                                  ? null
+                                  : () => ActionDebouncer.execute(
+                                      _toggleComplete,
+                                    ),
+                              icon: Icon(
+                                task.isCompleted
+                                    ? Icons.undo
+                                    : Icons.check_circle,
+                              ),
+                              label: Text(
+                                task.isCompleted
+                                    ? context.translate('undo_task')
+                                    : context.translate('complete_task'),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: task.isCompleted
+                                    ? AppColors.warning
+                                    : AppColors.success,
+                                foregroundColor: Colors.white,
+                              ),
                             ),
                           ),
-                        ),
                       ],
                     ),
                   ),
@@ -614,7 +626,9 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
             ),
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => SawaLoadingState(
+          message: context.translate('loading_task_details'),
+        ),
         error: (error, _) => SawaEmptyState(
           title: context.translate('error_occurred'),
           message: ErrorFormatter.format(error, context),

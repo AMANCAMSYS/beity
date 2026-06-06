@@ -57,11 +57,7 @@ class _SidebarIconPainter extends CustomPainter {
     final lineX = isRtl ? w * 0.67 : w * 0.33;
     const top = padding + 3;
     final bottom = h - padding - 3;
-    canvas.drawLine(
-      Offset(lineX, top),
-      Offset(lineX, bottom),
-      paint,
-    );
+    canvas.drawLine(Offset(lineX, top), Offset(lineX, bottom), paint);
   }
 
   @override
@@ -69,4 +65,3 @@ class _SidebarIconPainter extends CustomPainter {
     return oldDelegate.color != color || oldDelegate.isRtl != isRtl;
   }
 }
-

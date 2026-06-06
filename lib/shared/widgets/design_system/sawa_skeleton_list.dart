@@ -6,11 +6,7 @@ class SawaSkeletonList extends StatelessWidget {
   final int itemCount;
   final double itemHeight;
 
-  const SawaSkeletonList({
-    super.key,
-    this.itemCount = 5,
-    this.itemHeight = 72,
-  });
+  const SawaSkeletonList({super.key, this.itemCount = 5, this.itemHeight = 72});
 
   @override
   Widget build(BuildContext context) {
@@ -20,11 +16,12 @@ class SawaSkeletonList extends StatelessWidget {
       physics: const NeverScrollableScrollPhysics(),
       shrinkWrap: true,
       itemCount: itemCount,
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
-      itemBuilder: (context, index) => _SkeletonRow(
-        height: itemHeight,
-        isDark: isDark,
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
       ),
+      itemBuilder: (context, index) =>
+          _SkeletonRow(height: itemHeight, isDark: isDark),
     );
   }
 }
@@ -51,9 +48,10 @@ class _SkeletonRowState extends State<_SkeletonRow>
       vsync: this,
       duration: const Duration(milliseconds: 1500),
     )..repeat();
-    _animation = Tween<double>(begin: 0.3, end: 0.7).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
+    _animation = Tween<double>(
+      begin: 0.3,
+      end: 0.7,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
   @override
@@ -64,7 +62,9 @@ class _SkeletonRowState extends State<_SkeletonRow>
 
   @override
   Widget build(BuildContext context) {
-    final baseColor = widget.isDark ? AppColors.surfaceDark : AppColors.dividerLight;
+    final baseColor = widget.isDark
+        ? AppColors.surfaceDark
+        : AppColors.dividerLight;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
@@ -98,7 +98,9 @@ class _SkeletonRowState extends State<_SkeletonRow>
                         height: 14,
                         width: double.infinity,
                         decoration: BoxDecoration(
-                          color: baseColor.withValues(alpha: _animation.value + 0.1),
+                          color: baseColor.withValues(
+                            alpha: _animation.value + 0.1,
+                          ),
                           borderRadius: BorderRadius.circular(4),
                         ),
                       ),
@@ -107,7 +109,9 @@ class _SkeletonRowState extends State<_SkeletonRow>
                         height: 12,
                         width: 120,
                         decoration: BoxDecoration(
-                          color: baseColor.withValues(alpha: _animation.value + 0.05),
+                          color: baseColor.withValues(
+                            alpha: _animation.value + 0.05,
+                          ),
                           borderRadius: BorderRadius.circular(4),
                         ),
                       ),

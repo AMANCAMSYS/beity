@@ -67,11 +67,10 @@ class _AccountHeaderWidget extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-
     final l10n = ref.watch(appLocalizationsProvider);
 
     final user = ref.watch(cachedCurrentUserProvider);
-    
+
     final displayName = user?.fullName ?? l10n.translate('guest_user');
     final email = user?.email ?? '';
 
@@ -174,7 +173,7 @@ class _AppVersionWidget extends ConsumerWidget {
     final theme = Theme.of(context);
     return Center(
       child: Text(
-        '${l10n.translate('sawa', fallback: 'SAWA')} 1.0.0',
+        '${l10n.translate('sawa')} 1.0.0',
         style: theme.textTheme.labelSmall?.copyWith(
           color: theme.colorScheme.onSurfaceVariant,
         ),

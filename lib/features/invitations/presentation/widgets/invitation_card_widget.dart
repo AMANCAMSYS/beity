@@ -248,23 +248,26 @@ class InvitationCardWidget extends ConsumerWidget {
     }
   }
 
-  Future<void> _cancelInvitation(WidgetRef ref, BuildContext context) async {
+  Future<void> _cancelInvitation(
+    WidgetRef ref,
+    BuildContext outerContext,
+  ) async {
     AppLogger.i(
       'Cancelling invitation: ${invitation.id} for ${invitation.email}',
     );
     final confirmed = await showDialog<bool>(
-      context: context,
+      context: outerContext,
       builder: (context) => AlertDialog(
         title: Text(
-          context.translate('cancel_invitation_question'),
-          textDirection: TextDirection.rtl,
+          outerContext.translate('cancel_invitation_question'),
+          textDirection: Directionality.of(outerContext),
         ),
         content: Text(
-          context.translate(
+          outerContext.translate(
             'cancel_invitation_confirm',
             arguments: {'email': invitation.email ?? ''},
           ),
-          textDirection: TextDirection.rtl,
+          textDirection: Directionality.of(outerContext),
         ),
         actions: [
           TextButton(
@@ -285,12 +288,12 @@ class InvitationCardWidget extends ConsumerWidget {
         await ref
             .read(invitationNotifierProvider.notifier)
             .cancelInvitation(invitationId: invitation.id);
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
+        if (outerContext.mounted) {
+          ScaffoldMessenger.of(outerContext).showSnackBar(
             SnackBar(
               content: Text(
-                context.translate('invitation_cancelled_success'),
-                textDirection: TextDirection.rtl,
+                outerContext.translate('invitation_cancelled_success'),
+                textDirection: Directionality.of(outerContext),
               ),
               backgroundColor: AppColors.success,
             ),
@@ -298,15 +301,15 @@ class InvitationCardWidget extends ConsumerWidget {
         }
       } catch (e) {
         AppLogger.i('Error cancelling invitation: $e');
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
+        if (outerContext.mounted) {
+          ScaffoldMessenger.of(outerContext).showSnackBar(
             SnackBar(
               content: Text(
-                context.translate(
+                outerContext.translate(
                   'invitation_cancel_failed',
                   arguments: {'error': e.toString()},
                 ),
-                textDirection: TextDirection.rtl,
+                textDirection: Directionality.of(outerContext),
               ),
               backgroundColor: AppColors.error,
             ),

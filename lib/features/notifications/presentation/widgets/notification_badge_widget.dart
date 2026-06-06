@@ -6,10 +6,7 @@ import '../providers/unread_count_provider.dart';
 class NotificationBadgeWidget extends ConsumerWidget {
   final VoidCallback? onTap;
 
-  const NotificationBadgeWidget({
-    super.key,
-    this.onTap,
-  });
+  const NotificationBadgeWidget({super.key, this.onTap});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

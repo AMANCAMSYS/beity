@@ -12,8 +12,10 @@ class GetExpenseSummary {
       endDate: params.endDate,
     );
 
-    final totalAmount =
-        expenses.fold<int>(0, (sum, expense) => sum + expense.convertedAmount);
+    final totalAmount = expenses.fold<int>(
+      0,
+      (sum, expense) => sum + expense.convertedAmount,
+    );
 
     final categoryBreakdown = <String, int>{};
     final memberBreakdown = <String, int>{};

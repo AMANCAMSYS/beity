@@ -8,23 +8,16 @@ abstract class RoleRepository {
     required String newRole,
   });
 
-  Future<void> removeMember({
-    required String homeId,
-    required String userId,
-  });
+  Future<void> removeMember({required String homeId, required String userId});
 
   Future<void> transferOwnership({
     required String homeId,
     required String newOwnerId,
   });
 
-  Future<List<HomeMemberModel>> getHomeMembers({
-    required String homeId,
-  });
+  Future<List<HomeMemberModel>> getHomeMembers({required String homeId});
 
-  Future<List<RolePermissionModel>> getRolePermissions({
-    required String role,
-  });
+  Future<List<RolePermissionModel>> getRolePermissions({required String role});
 
   Future<Map<String, List<RolePermissionModel>>> getAllRolePermissions();
 
@@ -34,7 +27,5 @@ abstract class RoleRepository {
     required String permission,
   });
 
-  Stream<List<HomeMemberModel>> watchHomeMembers({
-    required String homeId,
-  });
+  Stream<List<HomeMemberModel>> watchHomeMembers({required String homeId});
 }

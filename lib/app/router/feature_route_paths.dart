@@ -8,6 +8,7 @@ class FeatureRoutePaths {
   static const notifications = '/notifications';
   static const notificationPreferences = '/notifications/preferences';
   static const syncStatus = '/settings/sync-status';
+  static const subscriptionPlans = '/settings/subscription';
 
   // Inventory
   static const inventory = '/inventory';
@@ -28,7 +29,8 @@ class FeatureRoutePaths {
   static String tasks(String homeId) => '/home/$homeId/tasks';
   static String addTask(String homeId) => '/home/$homeId/tasks/add';
   static String archivedTasks(String homeId) => '/home/$homeId/tasks/archived';
-  static String task(String homeId, String taskId) => '/home/$homeId/tasks/$taskId';
+  static String task(String homeId, String taskId) =>
+      '/home/$homeId/tasks/$taskId';
 
   // Activity
   static String activityDetail(String id) => '/activity/$id';

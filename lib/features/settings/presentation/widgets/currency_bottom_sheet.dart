@@ -69,19 +69,13 @@ class CurrencyBottomSheet extends ConsumerWidget {
             ),
           ),
           trailing: isSelected
-              ? Icon(
-                  Icons.check_rounded,
-                  color: theme.colorScheme.primary,
-                )
+              ? Icon(Icons.check_rounded, color: theme.colorScheme.primary)
               : null,
           onTap: () async {
             Navigator.pop(context);
             try {
               final repo = ref.read(homeRepositoryProvider);
-              await repo.updateHomeCurrency(
-                homeId: homeId,
-                currency: code,
-              );
+              await repo.updateHomeCurrency(homeId: homeId, currency: code);
 
               // Invalidate and reload homes
               ref.invalidate(userHomesProvider);
@@ -91,7 +85,10 @@ class CurrencyBottomSheet extends ConsumerWidget {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
-                      l10n.translate('currency_updated_success', arguments: {'code': code}),
+                      l10n.translate(
+                        'currency_updated_success',
+                        arguments: {'code': code},
+                      ),
                     ),
                     backgroundColor: AppColors.success,
                   ),
@@ -102,7 +99,10 @@ class CurrencyBottomSheet extends ConsumerWidget {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
-                      l10n.translate('currency_updated_failed', arguments: {'error': e.toString()}),
+                      l10n.translate(
+                        'currency_updated_failed',
+                        arguments: {'error': e.toString()},
+                      ),
                     ),
                     backgroundColor: AppColors.error,
                   ),

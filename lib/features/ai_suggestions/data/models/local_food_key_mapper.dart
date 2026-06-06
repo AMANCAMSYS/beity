@@ -1,9 +1,9 @@
-
 /// Represents the result of matching an ingredient name to a standardized food key.
 class FoodKeyMatch {
   final String foodKey;
   final double confidence;
-  final String method; // 'exact' | 'synonym' | 'normalized' | 'partial' | 'similarity' | 'unknown'
+  final String
+  method; // 'exact' | 'synonym' | 'normalized' | 'partial' | 'similarity' | 'unknown'
 
   const FoodKeyMatch({
     required this.foodKey,
@@ -12,7 +12,8 @@ class FoodKeyMatch {
   });
 
   @override
-  String toString() => 'FoodKeyMatch(key: $foodKey, confidence: $confidence, method: $method)';
+  String toString() =>
+      'FoodKeyMatch(key: $foodKey, confidence: $confidence, method: $method)';
 }
 
 /// Helper class to map open ingredient names into standardized stable snake_case food keys.
@@ -162,9 +163,36 @@ class LocalFoodKeyMapper {
     s = s.replaceAll('ة', 'ه').replaceAll('ى', 'ي');
     // Remove common descriptive stop words that skew food key matching
     final stopwords = [
-      'جرام', 'كوب', 'ملعقة', 'كيس', 'علبة', 'حبة', 'قطع', 'قطعة', 'كيلو', 'حبات',
-      'مفروم', 'مقطع', 'طازج', 'ناعم', 'ملح', 'فلفل', 'بهارات', 'ماء', 'زيت',
-      'chopped', 'sliced', 'fresh', 'ground', 'powder', 'grams', 'kg', 'cup', 'cups', 'spoon', 'spoons',
+      'جرام',
+      'كوب',
+      'ملعقة',
+      'كيس',
+      'علبة',
+      'حبة',
+      'قطع',
+      'قطعة',
+      'كيلو',
+      'حبات',
+      'مفروم',
+      'مقطع',
+      'طازج',
+      'ناعم',
+      'ملح',
+      'فلفل',
+      'بهارات',
+      'ماء',
+      'زيت',
+      'chopped',
+      'sliced',
+      'fresh',
+      'ground',
+      'powder',
+      'grams',
+      'kg',
+      'cup',
+      'cups',
+      'spoon',
+      'spoons',
     ];
     for (final word in stopwords) {
       s = s.replaceAll(word, '');
@@ -178,16 +206,40 @@ class LocalFoodKeyMapper {
   /// Normalizes raw AI-generated keys to ensure they correspond to generic keys.
   static String normalizeFoodKey(String aiKey) {
     final cleaned = aiKey.toLowerCase().trim().replaceAll(' ', '_');
-    if (cleaned == 'tomatoes') return 'tomato';
-    if (cleaned == 'fresh_tomato' || cleaned == 'red_tomato' || cleaned == 'fresh_red_tomatoes') return 'tomato';
-    if (cleaned == 'rice' || cleaned == 'white_rice' || cleaned == 'basmati_rice') return 'rice_basmati';
-    if (cleaned == 'onions') return 'onion';
-    if (cleaned == 'eggs') return 'egg';
-    if (cleaned == 'potatoes') return 'potato';
-    if (cleaned == 'cucumbers') return 'cucumber';
-    if (cleaned == 'lemons') return 'lemon';
-    if (cleaned == 'black_pepper' || cleaned == 'pepper') return 'black_pepper';
-    if (cleaned == 'olive_oil' || cleaned == 'cooking_oil') return 'olive_oil';
+    if (cleaned == 'tomatoes') {
+      return 'tomato';
+    }
+    if (cleaned == 'fresh_tomato' ||
+        cleaned == 'red_tomato' ||
+        cleaned == 'fresh_red_tomatoes') {
+      return 'tomato';
+    }
+    if (cleaned == 'rice' ||
+        cleaned == 'white_rice' ||
+        cleaned == 'basmati_rice') {
+      return 'rice_basmati';
+    }
+    if (cleaned == 'onions') {
+      return 'onion';
+    }
+    if (cleaned == 'eggs') {
+      return 'egg';
+    }
+    if (cleaned == 'potatoes') {
+      return 'potato';
+    }
+    if (cleaned == 'cucumbers') {
+      return 'cucumber';
+    }
+    if (cleaned == 'lemons') {
+      return 'lemon';
+    }
+    if (cleaned == 'black_pepper' || cleaned == 'pepper') {
+      return 'black_pepper';
+    }
+    if (cleaned == 'olive_oil' || cleaned == 'cooking_oil') {
+      return 'olive_oil';
+    }
     return cleaned;
   }
 
@@ -195,7 +247,11 @@ class LocalFoodKeyMapper {
   static FoodKeyMatch match(String rawName) {
     final name = rawName.trim();
     if (name.isEmpty) {
-      return const FoodKeyMatch(foodKey: 'unknown', confidence: 0.0, method: 'unknown');
+      return const FoodKeyMatch(
+        foodKey: 'unknown',
+        confidence: 0.0,
+        method: 'unknown',
+      );
     }
 
     // 1. Exact check on raw value (ignoring casing)
@@ -221,7 +277,10 @@ class LocalFoodKeyMapper {
     // 3. Synonym matching on normalized substrings
     for (final entry in _synonymsMap.entries) {
       final normKeyName = normalize(entry.key);
-      if (normKeyName.isNotEmpty && (normName == normKeyName || normName.contains(normKeyName) || normKeyName.contains(normName))) {
+      if (normKeyName.isNotEmpty &&
+          (normName == normKeyName ||
+              normName.contains(normKeyName) ||
+              normKeyName.contains(normName))) {
         return FoodKeyMatch(
           foodKey: entry.value,
           confidence: 0.85,
@@ -269,11 +328,14 @@ class LocalFoodKeyMapper {
     int intersection = 0;
     for (final token in profile1.keys) {
       if (profile2.containsKey(token)) {
-        intersection += (profile1[token]! < profile2[token]!) ? profile1[token]! : profile2[token]!;
+        intersection += (profile1[token]! < profile2[token]!)
+            ? profile1[token]!
+            : profile2[token]!;
       }
     }
 
-    final int totalBigrams = _getBigramsCount(profile1) + _getBigramsCount(profile2);
+    final int totalBigrams =
+        _getBigramsCount(profile1) + _getBigramsCount(profile2);
     if (totalBigrams == 0) return 0.0;
     return (2.0 * intersection) / totalBigrams;
   }

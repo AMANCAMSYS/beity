@@ -16,7 +16,9 @@ class UpdateCategoryUseCase {
   }) async {
     // Validate name if provided
     if (name != null && name.isEmpty) {
-      throw const ValidationException(message: 'please_enter_category_name_validation');
+      throw const ValidationException(
+        message: 'please_enter_category_name_validation',
+      );
     }
 
     if (name != null && name.length > 100) {

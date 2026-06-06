@@ -5,7 +5,9 @@ void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   group('Offline → Online Sync', () {
-    testWidgets('Items added offline sync when connection is restored', (tester) async {
+    testWidgets('Items added offline sync when connection is restored', (
+      tester,
+    ) async {
       // Test scenario:
       // 1. User is online, opens a shopping list
       // 2. Enable airplane mode (simulate offline)
@@ -29,7 +31,9 @@ void main() {
       expect(true, isTrue); // Placeholder
     });
 
-    testWidgets('Handles items added offline and deleted by another user', (tester) async {
+    testWidgets('Handles items added offline and deleted by another user', (
+      tester,
+    ) async {
       // Test scenario:
       // 1. User A goes offline
       // 2. User A adds item X

@@ -13,6 +13,7 @@ import '../../domain/usecases/remove_member_with_balance_check.dart';
 import '../../../invitations/presentation/providers/invitations_provider.dart';
 import '../../../invitations/presentation/widgets/invitation_card_widget.dart';
 import 'package:sawa/core/localization/app_localizations.dart';
+import 'package:sawa/core/errors/error_formatter.dart';
 
 class HomeMembersScreen extends ConsumerWidget {
   final String homeId;
@@ -36,7 +37,12 @@ class HomeMembersScreen extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(context.translate('remove_member_confirm_msg', arguments: {'name': memberName})),
+            Text(
+              context.translate(
+                'remove_member_confirm_msg',
+                arguments: {'name': memberName},
+              ),
+            ),
             const SizedBox(height: AppSpacing.md),
             Container(
               padding: const EdgeInsets.all(AppSpacing.md),
@@ -96,7 +102,10 @@ class HomeMembersScreen extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      context.translate('unsettled_balances_msg', arguments: {'name': memberName}),
+                      context.translate(
+                        'unsettled_balances_msg',
+                        arguments: {'name': memberName},
+                      ),
                     ),
                     const SizedBox(height: AppSpacing.md),
                     Text(
@@ -123,18 +132,17 @@ class HomeMembersScreen extends ConsumerWidget {
 
             if (forceRemove == true && context.mounted) {
               await removeUseCase(
-                RemoveMemberParams(
-                  homeId: homeId,
-                  userId: userId,
-                  force: true,
-                ),
+                RemoveMemberParams(homeId: homeId, userId: userId, force: true),
               );
               ref.invalidate(homeMembersProvider(homeId));
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
-                      context.translate('member_removed_success', arguments: {'name': memberName}),
+                      context.translate(
+                        'member_removed_success',
+                        arguments: {'name': memberName},
+                      ),
                     ),
                   ),
                 );
@@ -147,7 +155,10 @@ class HomeMembersScreen extends ConsumerWidget {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(
-                  context.translate('member_removed_success', arguments: {'name': memberName}),
+                  context.translate(
+                    'member_removed_success',
+                    arguments: {'name': memberName},
+                  ),
                 ),
               ),
             );
@@ -158,7 +169,10 @@ class HomeMembersScreen extends ConsumerWidget {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                context.translate('remove_member_failed', arguments: {'error': e.toString()}),
+                context.translate(
+                  'remove_member_failed',
+                  arguments: {'error': ErrorFormatter.format(e, context)},
+                ),
               ),
               backgroundColor: AppColors.error,
             ),
@@ -202,7 +216,8 @@ class HomeMembersScreen extends ConsumerWidget {
       body: membersAsync.when(
         data: (members) {
           final pendingInvitations = invitationsAsync.when(
-            data: (invitations) => invitations.where((inv) => inv.isPending).toList(),
+            data: (invitations) =>
+                invitations.where((inv) => inv.isPending).toList(),
             loading: () => [],
             error: (err, stack) => [],
           );
@@ -219,14 +234,20 @@ class HomeMembersScreen extends ConsumerWidget {
             },
             color: theme.colorScheme.primary,
             child: ListView(
-              physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+              physics: const AlwaysScrollableScrollPhysics(
+                parent: BouncingScrollPhysics(),
+              ),
               padding: const EdgeInsets.all(AppSpacing.lg),
               children: [
                 // Pending Invitations Section
                 if (pendingInvitations.isNotEmpty) ...[
                   Row(
                     children: [
-                      Icon(Icons.mail_rounded, size: 20, color: theme.colorScheme.tertiary),
+                      Icon(
+                        Icons.mail_rounded,
+                        size: 20,
+                        color: theme.colorScheme.tertiary,
+                      ),
                       AppSpacing.gapSM,
                       Text(
                         context.translate('pending_invitations'),
@@ -237,10 +258,17 @@ class HomeMembersScreen extends ConsumerWidget {
                       ),
                       const Spacer(),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.sm,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.tertiary.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                          color: theme.colorScheme.tertiary.withValues(
+                            alpha: 0.1,
+                          ),
+                          borderRadius: BorderRadius.circular(
+                            AppSpacing.radiusSm,
+                          ),
                         ),
                         child: Text(
                           pendingInvitations.length.toString(),
@@ -253,22 +281,28 @@ class HomeMembersScreen extends ConsumerWidget {
                     ],
                   ),
                   AppSpacing.gapMD,
-                  ...pendingInvitations.map((invitation) => Padding(
-                    padding: const EdgeInsets.only(bottom: AppSpacing.md),
-                    child: InvitationCardWidget(
-                      invitation: invitation,
-                      isOwner: true,
+                  ...pendingInvitations.map(
+                    (invitation) => Padding(
+                      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                      child: InvitationCardWidget(
+                        invitation: invitation,
+                        isOwner: true,
+                      ),
                     ),
-                  )),
+                  ),
                   AppSpacing.gapLG,
                   Divider(color: theme.colorScheme.outlineVariant),
                   AppSpacing.gapLG,
                 ],
-                
+
                 // Active Members Section
                 Row(
                   children: [
-                    Icon(Icons.people_rounded, size: 20, color: theme.colorScheme.primary),
+                    Icon(
+                      Icons.people_rounded,
+                      size: 20,
+                      color: theme.colorScheme.primary,
+                    ),
                     AppSpacing.gapSM,
                     Text(
                       context.translate('active_members'),
@@ -280,22 +314,24 @@ class HomeMembersScreen extends ConsumerWidget {
                   ],
                 ),
                 AppSpacing.gapMD,
-                ...members.map((member) => Padding(
-                  padding: const EdgeInsets.only(bottom: AppSpacing.md),
-                  child: MemberCardWidget(
-                    member: member,
-                    isCurrentUserOwner: isCurrentUserOwner,
-                    onRemove: isCurrentUserOwner &&
-                            member.role != 'owner'
-                        ? () => _showRemoveConfirmation(
+                ...members.map(
+                  (member) => Padding(
+                    padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                    child: MemberCardWidget(
+                      member: member,
+                      isCurrentUserOwner: isCurrentUserOwner,
+                      onRemove: isCurrentUserOwner && member.role != 'owner'
+                          ? () => _showRemoveConfirmation(
                               context,
                               ref,
-                              member.userName ?? context.translate('this_member'),
+                              member.userName ??
+                                  context.translate('this_member'),
                               member.userId,
                             )
-                        : null,
+                          : null,
+                    ),
                   ),
-                )),
+                ),
               ],
             ),
           );
@@ -303,7 +339,7 @@ class HomeMembersScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stack) => SawaEmptyState(
           title: context.translate('load_members_failed'),
-          message: error.toString(),
+          message: ErrorFormatter.format(error, context),
           icon: Icons.error_outline_rounded,
           isError: true,
           actionText: context.translate('retry'),
@@ -323,7 +359,11 @@ class HomeMembersScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildEmptyState(BuildContext context, WidgetRef ref, List<HomeModel> homes) {
+  Widget _buildEmptyState(
+    BuildContext context,
+    WidgetRef ref,
+    List<HomeModel> homes,
+  ) {
     return SawaEmptyState(
       title: context.translate('no_other_members'),
       message: context.translate('no_other_members_desc'),

@@ -1,9 +1,7 @@
 import '../models/unit_model.dart';
 
 abstract class UnitRepository {
-  Future<List<UnitModel>> getUnits({
-    String? type,
-  });
+  Future<List<UnitModel>> getUnits({String? type});
 
   Future<UnitModel> createUnit({
     required String name,
@@ -17,15 +15,9 @@ abstract class UnitRepository {
     String? symbol,
   });
 
-  Future<void> deleteUnit({
-    required String unitId,
-  });
+  Future<void> deleteUnit({required String unitId});
 
-  Future<UnitModel?> getUnitById({
-    required String unitId,
-  });
+  Future<UnitModel?> getUnitById({required String unitId});
 
-  Stream<List<UnitModel>> watchUnits({
-    String? type,
-  });
+  Stream<List<UnitModel>> watchUnits({String? type});
 }

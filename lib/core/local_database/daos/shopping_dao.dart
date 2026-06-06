@@ -119,9 +119,7 @@ class ShoppingDao {
   Stream<ShoppingListModel?> watchShoppingListById(String listId) {
     final query = db.select(db.localShoppingLists)
       ..where((tbl) => tbl.id.equals(listId) & tbl.deletedAt.isNull());
-    return query.watchSingleOrNull().map(
-      (row) => row?.toShoppingListModel(),
-    );
+    return query.watchSingleOrNull().map((row) => row?.toShoppingListModel());
   }
 
   Stream<List<ShoppingItemModel>> watchShoppingItems(String listId) {

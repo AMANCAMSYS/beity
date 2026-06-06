@@ -19,12 +19,15 @@ void main() {
     const tHomeName = 'Sweet Home';
 
     test('should set active home in local data source', () async {
-      when(() => mockLocalDataSource.setActiveHome(any(), any()))
-          .thenAnswer((_) async => {});
+      when(
+        () => mockLocalDataSource.setActiveHome(any(), any()),
+      ).thenAnswer((_) async => {});
 
       await useCase(tHomeId, tHomeName);
 
-      verify(() => mockLocalDataSource.setActiveHome(tHomeId, tHomeName)).called(1);
+      verify(
+        () => mockLocalDataSource.setActiveHome(tHomeId, tHomeName),
+      ).called(1);
     });
   });
 }

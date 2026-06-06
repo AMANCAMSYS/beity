@@ -55,38 +55,8 @@ enum ActionType {
     }
   }
 
-  String get displayName {
-    switch (this) {
-      case ActionType.listCreated:
-        return 'إنشاء قائمة';
-      case ActionType.listRenamed:
-        return 'تعديل اسم القائمة';
-      case ActionType.listArchived:
-        return 'أرشفة قائمة';
-      case ActionType.listDeleted:
-        return 'حذف قائمة';
-      case ActionType.itemAdded:
-        return 'إضافة منتج';
-      case ActionType.itemUpdated:
-        return 'تعديل منتج';
-      case ActionType.itemPurchased:
-        return 'شراء منتج';
-      case ActionType.itemUnpurchased:
-        return 'إلغاء شراء';
-      case ActionType.itemDeleted:
-        return 'حذف منتج';
-      case ActionType.memberJoined:
-        return 'انضمام عضو';
-      case ActionType.memberRemoved:
-        return 'إزالة عضو';
-      case ActionType.memberRoleChanged:
-        return 'تغيير دور';
-      case ActionType.invitationAccepted:
-        return 'قبول دعوة';
-      case ActionType.aiItemsAdded:
-        return 'إضافة اقتراحات ذكية';
-    }
-  }
+  @Deprecated('Use LocalizedActionType.getLocalizedName(context) instead')
+  String get displayName => translationKey;
 
   static ActionType fromString(String value) {
     switch (value) {
@@ -181,38 +151,8 @@ enum EntityType {
     }
   }
 
-  String get displayName {
-    switch (this) {
-      case EntityType.shoppingList:
-        return 'قائمة تسوق';
-      case EntityType.shoppingItem:
-        return 'منتج';
-      case EntityType.homeMember:
-        return 'عضو';
-      case EntityType.invitation:
-        return 'دعوة';
-      case EntityType.task:
-        return 'مهمة';
-      case EntityType.expense:
-        return 'مصروف';
-      case EntityType.inventoryItem:
-        return 'عنصر مخزون';
-      case EntityType.category:
-        return 'تصنيف';
-      case EntityType.unit:
-        return 'وحدة';
-      case EntityType.shoppingModeSession:
-        return 'جلسة تسوق';
-      case EntityType.notification:
-        return 'إشعار';
-      case EntityType.notificationPreference:
-        return 'تفضيلات الإشعارات';
-      case EntityType.home:
-        return 'منزل';
-      case EntityType.unknown:
-        return 'عنصر';
-    }
-  }
+  @Deprecated('Use LocalizedEntityType.getLocalizedName(context) instead')
+  String get displayName => translationKey;
 
   static EntityType fromString(String value) {
     switch (value) {
@@ -282,43 +222,10 @@ class ActivityLog {
     required this.createdAt,
   });
 
-  String get actionDescription {
-    switch (action) {
-      case ActionType.listCreated:
-        return 'أنشأ قائمة "$entityName"';
-      case ActionType.listRenamed:
-        final oldName = metadata?['old_name'] ?? '';
-        final newName = metadata?['new_name'] ?? entityName;
-        return 'غيّر اسم القائمة من "$oldName" إلى "$newName"';
-      case ActionType.listArchived:
-        return 'أرشف قائمة "$entityName"';
-      case ActionType.listDeleted:
-        return 'حذف قائمة "$entityName"';
-      case ActionType.itemAdded:
-        return 'أضاف "$entityName"';
-      case ActionType.itemUpdated:
-        return 'عدّل "$entityName"';
-      case ActionType.itemPurchased:
-        return 'اشترى "$entityName"';
-      case ActionType.itemUnpurchased:
-        return 'ألغى شراء "$entityName"';
-      case ActionType.itemDeleted:
-        return 'حذف "$entityName"';
-      case ActionType.memberJoined:
-        return 'انضم إلى المنزل';
-      case ActionType.memberRemoved:
-        return 'تمت إزالته من المنزل';
-      case ActionType.memberRoleChanged:
-        final oldRole = metadata?['old_role'] ?? '';
-        final newRole = metadata?['new_role'] ?? '';
-        return 'غيّر دوره من "$oldRole" إلى "$newRole"';
-      case ActionType.invitationAccepted:
-        return 'قبل الدعوة';
-      case ActionType.aiItemsAdded:
-        final count = metadata?['items_count'] ?? 0;
-        return 'أضاف $count من الاقتراحات الذكية';
-    }
-  }
+  @Deprecated(
+    'Use LocalizedActivityLog.getLocalizedDescription(context) instead',
+  )
+  String get actionDescription => action.translationKey;
 
   ActivityLog copyWith({
     String? id,

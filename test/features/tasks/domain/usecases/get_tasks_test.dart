@@ -47,34 +47,30 @@ void main() {
     ];
 
     test('should get all tasks for home', () async {
-      when(() => mockRepository.getTasks(
-            homeId: 'home-123',
-            activeOnly: true,
-          )).thenAnswer((_) async => testTasks);
+      when(
+        () => mockRepository.getTasks(homeId: 'home-123', activeOnly: true),
+      ).thenAnswer((_) async => testTasks);
 
-      final result = await useCase(const GetTasksParams(
-        homeId: 'home-123',
-      ));
+      final result = await useCase(const GetTasksParams(homeId: 'home-123'));
 
       expect(result.length, 3);
       expect(result[0].title, 'تنظيف المطبخ');
     });
 
     test('should get tasks filtered by assignee', () async {
-      final assignedTasks = [
-        testTasks[0].copyWith(assignedTo: 'user-456'),
-      ];
+      final assignedTasks = [testTasks[0].copyWith(assignedTo: 'user-456')];
 
-      when(() => mockRepository.getTasks(
-            homeId: 'home-123',
-            assignedTo: 'user-456',
-            activeOnly: true,
-          )).thenAnswer((_) async => assignedTasks);
+      when(
+        () => mockRepository.getTasks(
+          homeId: 'home-123',
+          assignedTo: 'user-456',
+          activeOnly: true,
+        ),
+      ).thenAnswer((_) async => assignedTasks);
 
-      final result = await useCase(const GetTasksParams(
-        homeId: 'home-123',
-        assignedTo: 'user-456',
-      ));
+      final result = await useCase(
+        const GetTasksParams(homeId: 'home-123', assignedTo: 'user-456'),
+      );
 
       expect(result.length, 1);
       expect(result[0].assignedTo, 'user-456');
@@ -83,16 +79,17 @@ void main() {
     test('should get tasks filtered by status', () async {
       final completedTasks = [testTasks[1]];
 
-      when(() => mockRepository.getTasks(
-            homeId: 'home-123',
-            status: 'completed',
-            activeOnly: true,
-          )).thenAnswer((_) async => completedTasks);
+      when(
+        () => mockRepository.getTasks(
+          homeId: 'home-123',
+          status: 'completed',
+          activeOnly: true,
+        ),
+      ).thenAnswer((_) async => completedTasks);
 
-      final result = await useCase(const GetTasksParams(
-        homeId: 'home-123',
-        status: 'completed',
-      ));
+      final result = await useCase(
+        const GetTasksParams(homeId: 'home-123', status: 'completed'),
+      );
 
       expect(result.length, 1);
       expect(result[0].isCompleted, true);
@@ -109,62 +106,60 @@ void main() {
         createdBy: 'user-123',
       );
 
-      when(() => mockRepository.getTasks(
-            homeId: 'home-123',
-            activeOnly: true,
-          )).thenAnswer((_) async => [todayTask, ...testTasks]);
+      when(
+        () => mockRepository.getTasks(homeId: 'home-123', activeOnly: true),
+      ).thenAnswer((_) async => [todayTask, ...testTasks]);
 
-      final result = await useCase(const GetTasksParams(
-        homeId: 'home-123',
-        dueDateFilter: 'today',
-      ));
+      final result = await useCase(
+        const GetTasksParams(homeId: 'home-123', dueDateFilter: 'today'),
+      );
 
       expect(result.length, 1);
       expect(result[0].isDueToday, true);
     });
 
     test('should filter overdue tasks', () async {
-      when(() => mockRepository.getTasks(
-            homeId: 'home-123',
-            activeOnly: true,
-          )).thenAnswer((_) async => testTasks);
+      when(
+        () => mockRepository.getTasks(homeId: 'home-123', activeOnly: true),
+      ).thenAnswer((_) async => testTasks);
 
-      final result = await useCase(const GetTasksParams(
-        homeId: 'home-123',
-        dueDateFilter: 'overdue',
-      ));
+      final result = await useCase(
+        const GetTasksParams(homeId: 'home-123', dueDateFilter: 'overdue'),
+      );
 
       expect(result.length, 1);
       expect(result[0].isOverdue, true);
     });
 
     test('should sort tasks by due date ascending', () async {
-      when(() => mockRepository.getTasks(
-            homeId: 'home-123',
-            activeOnly: true,
-          )).thenAnswer((_) async => testTasks);
+      when(
+        () => mockRepository.getTasks(homeId: 'home-123', activeOnly: true),
+      ).thenAnswer((_) async => testTasks);
 
-      final result = await useCase(const GetTasksParams(
-        homeId: 'home-123',
-        sortBy: 'due_date',
-        sortAscending: true,
-      ));
+      final result = await useCase(
+        const GetTasksParams(
+          homeId: 'home-123',
+          sortBy: 'due_date',
+          sortAscending: true,
+        ),
+      );
 
       // Tasks should be returned (sorting applied)
       expect(result.length, 3);
     });
 
     test('should sort tasks by created date descending', () async {
-      when(() => mockRepository.getTasks(
-            homeId: 'home-123',
-            activeOnly: true,
-          )).thenAnswer((_) async => testTasks);
+      when(
+        () => mockRepository.getTasks(homeId: 'home-123', activeOnly: true),
+      ).thenAnswer((_) async => testTasks);
 
-      final result = await useCase(const GetTasksParams(
-        homeId: 'home-123',
-        sortBy: 'created_at',
-        sortAscending: false,
-      ));
+      final result = await useCase(
+        const GetTasksParams(
+          homeId: 'home-123',
+          sortBy: 'created_at',
+          sortAscending: false,
+        ),
+      );
 
       // Should be sorted by created date descending
       for (int i = 0; i < result.length - 1; i++) {

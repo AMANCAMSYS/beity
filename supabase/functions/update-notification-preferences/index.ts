@@ -158,7 +158,7 @@ Deno.serve(async (req: Request) => {
       .single();
 
     if (error) {
-      console.error("Error upserting preferences:", error);
+      console.error(JSON.stringify({ event: "preferences_upsert_failed", userId: user.id, homeId: home_id, error: error.message }));
       return new Response(
         JSON.stringify({ error: "Failed to update preferences" }),
         { status: 500, headers: { "Content-Type": "application/json" } },
@@ -170,7 +170,7 @@ Deno.serve(async (req: Request) => {
       { status: 200, headers: { "Content-Type": "application/json" } },
     );
   } catch (error) {
-    console.error("Error in update-notification-preferences:", error);
+    console.error(JSON.stringify({ event: "update_preferences_unhandled", error: error instanceof Error ? error.message : String(error) }));
     return new Response(
       JSON.stringify({ error: "Internal server error" }),
       { status: 500, headers: { "Content-Type": "application/json" } },

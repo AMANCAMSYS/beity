@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
 import 'package:sawa/core/services/supabase_service.dart';
 import '../../domain/entities/ai_suggestion.dart';
 import '../../domain/entities/ai_suggestion_request.dart';
@@ -50,11 +49,16 @@ class AiSuggestionsAdding extends AiSuggestionsState {
 }
 
 // --- Provider Setup ---
-final aiSuggestionRemoteDataSourceProvider = Provider<AiSuggestionRemoteDataSource>((ref) {
-  return AiSuggestionRemoteDataSource(supabaseClient: SupabaseService.client);
-});
+final aiSuggestionRemoteDataSourceProvider =
+    Provider<AiSuggestionRemoteDataSource>((ref) {
+      return AiSuggestionRemoteDataSource(
+        supabaseClient: SupabaseService.client,
+      );
+    });
 
-final aiSuggestionRepositoryProvider = Provider<AiSuggestionRepositoryImpl>((ref) {
+final aiSuggestionRepositoryProvider = Provider<AiSuggestionRepositoryImpl>((
+  ref,
+) {
   final remoteDataSource = ref.watch(aiSuggestionRemoteDataSourceProvider);
   return AiSuggestionRepositoryImpl(remoteDataSource: remoteDataSource);
 });
@@ -64,25 +68,38 @@ final getAiSuggestionsUseCaseProvider = Provider<GetAiSuggestions>((ref) {
   return GetAiSuggestions(repository);
 });
 
-final aiSuggestionsProvider = StateNotifierProvider<AiSuggestionsNotifier, AiSuggestionsState>((ref) {
-  final getAiSuggestions = ref.watch(getAiSuggestionsUseCaseProvider);
-  return AiSuggestionsNotifier(getAiSuggestions);
-});
+final aiSuggestionsProvider =
+    NotifierProvider<AiSuggestionsNotifier, AiSuggestionsState>(() {
+      return AiSuggestionsNotifier();
+    });
 
 // --- State Notifier ---
-class AiSuggestionsNotifier extends StateNotifier<AiSuggestionsState> {
-  final GetAiSuggestions _getAiSuggestions;
-
-  AiSuggestionsNotifier(this._getAiSuggestions) : super(const AiSuggestionsIdle());
+class AiSuggestionsNotifier extends Notifier<AiSuggestionsState> {
+  @override
+  AiSuggestionsState build() {
+    return const AiSuggestionsIdle();
+  }
 
   void fetchSuggestions(AiSuggestionRequest request) async {
     state = const AiSuggestionsLoading();
     try {
-      final suggestions = await _getAiSuggestions(request);
+      final suggestions = await ref.read(getAiSuggestionsUseCaseProvider)(
+        request,
+      );
       state = AiSuggestionsSuccess(suggestions, <int>{});
     } catch (e) {
-      state = AiSuggestionsError(e.toString());
+      state = AiSuggestionsError(_friendlyErrorMessage(e));
     }
+  }
+
+  String _friendlyErrorMessage(Object error) {
+    if (error is AiValidationException && error.message.trim().isNotEmpty) {
+      return error.message;
+    }
+    if (error is AiServiceException && error.message.trim().isNotEmpty) {
+      return error.message;
+    }
+    return 'unexpected_error_retry';
   }
 
   void toggleSelection(int index) {
@@ -102,7 +119,7 @@ class AiSuggestionsNotifier extends StateNotifier<AiSuggestionsState> {
     final currentState = state;
     if (currentState is AiSuggestionsSuccess) {
       final allIndices = Set<int>.from(
-        List.generate(currentState.suggestions.length, (index) => index)
+        List.generate(currentState.suggestions.length, (index) => index),
       );
       state = currentState.copyWith(selectedIndices: allIndices);
     }
@@ -132,7 +149,10 @@ class AiSuggestionsNotifier extends StateNotifier<AiSuggestionsState> {
   void setAddingState() {
     final currentState = state;
     if (currentState is AiSuggestionsSuccess) {
-      state = AiSuggestionsAdding(currentState.suggestions, currentState.selectedIndices);
+      state = AiSuggestionsAdding(
+        currentState.suggestions,
+        currentState.selectedIndices,
+      );
     }
   }
 

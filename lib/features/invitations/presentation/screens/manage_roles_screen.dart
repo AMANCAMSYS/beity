@@ -27,19 +27,11 @@ class _ManageRolesScreenState extends ConsumerState<ManageRolesScreen> {
     final membersAsync = ref.watch(homeMembersStreamProvider(widget.homeId));
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          context.translate('manage_members'),
-        ),
-      ),
+      appBar: AppBar(title: Text(context.translate('manage_members'))),
       body: membersAsync.when(
         data: (members) {
           if (members.isEmpty) {
-            return Center(
-              child: Text(
-                context.translate('no_members'),
-              ),
-            );
+            return Center(child: Text(context.translate('no_members')));
           }
 
           return ListView.builder(
@@ -54,7 +46,10 @@ class _ManageRolesScreenState extends ConsumerState<ManageRolesScreen> {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stack) => Center(
           child: Text(
-            context.translate('error_occurred_with_details', arguments: {'error': error.toString()}),
+            context.translate(
+              'error_occurred_with_details',
+              arguments: {'error': error.toString()},
+            ),
           ),
         ),
       ),
@@ -71,9 +66,7 @@ class _ManageRolesScreenState extends ConsumerState<ManageRolesScreen> {
         child: Row(
           children: [
             CircleAvatar(
-              child: Text(
-                (member.userName ?? 'U')[0].toUpperCase(),
-              ),
+              child: Text((member.userName ?? 'U')[0].toUpperCase()),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -88,8 +81,8 @@ class _ManageRolesScreenState extends ConsumerState<ManageRolesScreen> {
                   Text(
                     member.userEmail ?? '',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                     textDirection: TextDirection.ltr,
                   ),
                 ],
@@ -123,7 +116,9 @@ class _ManageRolesScreenState extends ConsumerState<ManageRolesScreen> {
 
   Future<void> _changeRole(String userId, String newRole) async {
     try {
-      await ref.read(roleNotifierProvider.notifier).changeMemberRole(
+      await ref
+          .read(roleNotifierProvider.notifier)
+          .changeMemberRole(
             homeId: widget.homeId,
             userId: userId,
             newRole: newRole,
@@ -132,9 +127,7 @@ class _ManageRolesScreenState extends ConsumerState<ManageRolesScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              context.translate('role_changed_success'),
-            ),
+            content: Text(context.translate('role_changed_success')),
             backgroundColor: AppColors.success,
           ),
         );
@@ -143,9 +136,7 @@ class _ManageRolesScreenState extends ConsumerState<ManageRolesScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              e.toString().replaceAll('Exception: ', ''),
-            ),
+            content: Text(e.toString().replaceAll('Exception: ', '')),
             backgroundColor: AppColors.error,
           ),
         );

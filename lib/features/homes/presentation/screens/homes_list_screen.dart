@@ -19,6 +19,7 @@ import '../../../tasks/presentation/providers/task_filter_providers.dart';
 import '../../../activity_logs/presentation/providers/activity_logs_provider.dart';
 import '../../../categories/presentation/providers/categories_provider.dart';
 import '../../../categories/presentation/providers/units_provider.dart';
+import '../../../../core/monitoring/monitoring_service.dart';
 
 class HomesListScreen extends ConsumerStatefulWidget {
   const HomesListScreen({super.key});
@@ -28,6 +29,8 @@ class HomesListScreen extends ConsumerStatefulWidget {
 }
 
 class _HomesListScreenState extends ConsumerState<HomesListScreen> {
+  bool _firstRenderReported = false;
+
   @override
   void initState() {
     super.initState();
@@ -57,6 +60,10 @@ class _HomesListScreenState extends ConsumerState<HomesListScreen> {
       ),
       body: homesAsync.when(
         data: (homes) {
+          if (!_firstRenderReported) {
+            _firstRenderReported = true;
+            MonitoringService().markHomeFirstRender();
+          }
           if (homes.isEmpty) {
             return _buildEmptyState(context);
           }
@@ -86,6 +93,9 @@ class _HomesListScreenState extends ConsumerState<HomesListScreen> {
                           .read(homesNotifierProvider.notifier)
                           .switchHome(home.id, home.name);
                       unawaited(_syncSelectedHome(home.id));
+                      unawaited(
+                        MonitoringService().breadcrumbHomeSelected(home.id),
+                      );
                       // Invalidate home-scoped providers to refresh for new home
                       ref.invalidate(notificationsProvider);
                       ref.invalidate(unreadCountProvider);
@@ -146,6 +156,12 @@ class _HomesListScreenState extends ConsumerState<HomesListScreen> {
       await ref
           .read(homeLocalDataSourceProvider)
           .setHomeInitialSyncCompleted(homeId, true);
-    } catch (_) {}
+    } catch (e, s) {
+      MonitoringService().logError(
+        e,
+        s,
+        reason: 'Home sync failed for $homeId',
+      );
+    }
   }
 }

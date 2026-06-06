@@ -7,7 +7,8 @@ import 'package:sawa/features/ai_suggestions/data/repositories/ai_suggestion_rep
 import 'package:sawa/features/ai_suggestions/domain/entities/ai_suggestion_request.dart';
 import 'package:sawa/core/errors/app_exception.dart';
 
-class MockAiSuggestionRemoteDataSource extends Mock implements AiSuggestionRemoteDataSource {}
+class MockAiSuggestionRemoteDataSource extends Mock
+    implements AiSuggestionRemoteDataSource {}
 
 void main() {
   late MockAiSuggestionRemoteDataSource mockRemoteDataSource;
@@ -15,15 +16,19 @@ void main() {
 
   setUp(() {
     mockRemoteDataSource = MockAiSuggestionRemoteDataSource();
-    repository = AiSuggestionRepositoryImpl(remoteDataSource: mockRemoteDataSource);
-    
-    registerFallbackValue(const AiSuggestionRequestModel(
-      prompt: '',
-      homeType: '',
-      listTitle: '',
-      existingItems: [],
-      language: 'en',
-    ));
+    repository = AiSuggestionRepositoryImpl(
+      remoteDataSource: mockRemoteDataSource,
+    );
+
+    registerFallbackValue(
+      const AiSuggestionRequestModel(
+        prompt: '',
+        homeType: '',
+        listTitle: '',
+        existingItems: [],
+        language: 'en',
+      ),
+    );
   });
 
   const tRequest = AiSuggestionRequest(
@@ -41,8 +46,9 @@ void main() {
 
   group('AiSuggestionRepositoryImpl', () {
     test('returns parsed suggestions on success', () async {
-      when(() => mockRemoteDataSource.fetchSuggestions(any()))
-          .thenAnswer((_) async => tModels);
+      when(
+        () => mockRemoteDataSource.fetchSuggestions(any()),
+      ).thenAnswer((_) async => tModels);
 
       final result = await repository.getSuggestions(tRequest);
 
@@ -52,25 +58,64 @@ void main() {
       verify(() => mockRemoteDataSource.fetchSuggestions(any())).called(1);
     });
 
-    test('rethrows AiValidationException', () async {
-      when(() => mockRemoteDataSource.fetchSuggestions(any()))
-          .thenThrow(const AiValidationException('Invalid input'));
+    test('filters duplicates and redacts sensitive suggestion text', () async {
+      final models = [
+        const AiSuggestionModel(name: ' item1 '),
+        const AiSuggestionModel(name: 'Milk', reason: 'Buy for user@test.com'),
+        const AiSuggestionModel(
+          name: ' milk ',
+          category: 'secret abcdefghijklmnopqrstuvwxyzABCDEF',
+        ),
+        const AiSuggestionModel(
+          name: 'Eggs',
+          unit: 'pcs',
+          reason:
+              'trace 123e4567-e89b-12d3-a456-426614174000 and eyJabc.def.ghi',
+        ),
+      ];
+      when(
+        () => mockRemoteDataSource.fetchSuggestions(any()),
+      ).thenAnswer((_) async => models);
 
-      expect(() => repository.getSuggestions(tRequest), throwsA(isA<AiValidationException>()));
+      final result = await repository.getSuggestions(tRequest);
+
+      expect(result.map((item) => item.name), ['Milk', 'Eggs']);
+      expect(result.first.reason, 'Buy for [email]');
+      expect(result.last.reason, contains('[id]'));
+      expect(result.last.reason, contains('[token]'));
+    });
+
+    test('rethrows AiValidationException', () async {
+      when(
+        () => mockRemoteDataSource.fetchSuggestions(any()),
+      ).thenThrow(const AiValidationException('Invalid input'));
+
+      expect(
+        () => repository.getSuggestions(tRequest),
+        throwsA(isA<AiValidationException>()),
+      );
     });
 
     test('rethrows AiServiceException', () async {
-      when(() => mockRemoteDataSource.fetchSuggestions(any()))
-          .thenThrow(const AiServiceException('API Error'));
+      when(
+        () => mockRemoteDataSource.fetchSuggestions(any()),
+      ).thenThrow(const AiServiceException('API Error'));
 
-      expect(() => repository.getSuggestions(tRequest), throwsA(isA<AiServiceException>()));
+      expect(
+        () => repository.getSuggestions(tRequest),
+        throwsA(isA<AiServiceException>()),
+      );
     });
 
     test('wraps unexpected exceptions into ServerException', () async {
-      when(() => mockRemoteDataSource.fetchSuggestions(any()))
-          .thenThrow(Exception('Unexpected error'));
+      when(
+        () => mockRemoteDataSource.fetchSuggestions(any()),
+      ).thenThrow(Exception('Unexpected error'));
 
-      expect(() => repository.getSuggestions(tRequest), throwsA(isA<DatabaseException>()));
+      expect(
+        () => repository.getSuggestions(tRequest),
+        throwsA(isA<DatabaseException>()),
+      );
     });
   });
 }

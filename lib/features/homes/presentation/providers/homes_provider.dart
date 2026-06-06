@@ -1,6 +1,6 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
 import 'package:sawa/core/services/local_cache_notifier.dart';
 import 'package:sawa/core/services/shared_prefs_provider.dart';
 import 'package:sawa/core/services/supabase_service.dart';
@@ -12,6 +12,7 @@ import '../../data/models/home_member_model.dart';
 import '../../data/models/home_selection.dart';
 import '../../domain/usecases/remove_member_with_balance_check.dart';
 import '../../../expenses/presentation/providers/balance_providers.dart';
+import '../../../../core/monitoring/monitoring_service.dart';
 import '../../../../core/services/initial_data_hydration_service.dart';
 
 final homeRepositoryProvider = Provider<HomeRepository>((ref) {
@@ -111,7 +112,13 @@ final cachedActiveHomeProvider = Provider<HomeModel?>((ref) {
 
   try {
     return homes.firstWhere((h) => h.id == activeHomeId && h.deletedAt == null);
-  } catch (_) {}
+  } catch (e, s) {
+    MonitoringService().logError(
+      e,
+      s,
+      reason: 'Active home lookup failed for id $activeHomeId',
+    );
+  }
 
   return null;
 });
@@ -182,23 +189,18 @@ final revocationWatcherProvider = Provider<void>((ref) {
   }
 });
 
-class HomesNotifier extends StateNotifier<AsyncValue<List<HomeModel>>> {
-  final HomeRepository _repo;
-  final HomeLocalDataSource _localDataSource;
-
-  HomesNotifier(this._repo, this._localDataSource)
-    : super(const AsyncValue.loading()) {
-    loadHomes();
+class HomesNotifier extends AsyncNotifier<List<HomeModel>> {
+  @override
+  FutureOr<List<HomeModel>> build() {
+    return ref.read(homeRepositoryProvider).getUserHomes();
   }
 
   Future<void> loadHomes() async {
     state = const AsyncValue.loading();
     try {
-      final homes = await _repo.getUserHomes();
-      if (!mounted) return;
+      final homes = await ref.read(homeRepositoryProvider).getUserHomes();
       state = AsyncValue.data(homes);
     } catch (e) {
-      if (!mounted) return;
       state = AsyncValue.error(e, StackTrace.current);
     }
   }
@@ -209,7 +211,9 @@ class HomesNotifier extends StateNotifier<AsyncValue<List<HomeModel>>> {
     String? defaultCurrency,
   }) async {
     try {
-      final home = await _repo.createHome(
+      final repo = ref.read(homeRepositoryProvider);
+      final localDataSource = ref.read(homeLocalDataSourceProvider);
+      final home = await repo.createHome(
         name: name,
         type: type,
         defaultCurrency: defaultCurrency,
@@ -217,7 +221,7 @@ class HomesNotifier extends StateNotifier<AsyncValue<List<HomeModel>>> {
 
       final user = SupabaseService.currentUser;
       if (user != null) {
-        await _localDataSource.setActiveHome(home.id, home.name);
+        await localDataSource.setActiveHome(home.id, home.name);
       }
       await loadHomes();
 
@@ -230,7 +234,9 @@ class HomesNotifier extends StateNotifier<AsyncValue<List<HomeModel>>> {
   Future<void> switchHome(String homeId, String homeName) async {
     final user = SupabaseService.currentUser;
     if (user != null) {
-      await _localDataSource.setActiveHome(homeId, homeName);
+      await ref
+          .read(homeLocalDataSourceProvider)
+          .setActiveHome(homeId, homeName);
       LocalCacheNotifier.notify('global', 'active_home');
     }
   }
@@ -241,8 +247,6 @@ class HomesNotifier extends StateNotifier<AsyncValue<List<HomeModel>>> {
 }
 
 final homesNotifierProvider =
-    StateNotifierProvider<HomesNotifier, AsyncValue<List<HomeModel>>>((ref) {
-      final repo = ref.read(homeRepositoryProvider);
-      final localDataSource = ref.read(homeLocalDataSourceProvider);
-      return HomesNotifier(repo, localDataSource);
+    AsyncNotifierProvider<HomesNotifier, List<HomeModel>>(() {
+      return HomesNotifier();
     });

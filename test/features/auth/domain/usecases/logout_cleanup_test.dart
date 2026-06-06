@@ -2,29 +2,32 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('Logout Cleanup', () {
-    test('logout clears cache, providers, realtime, offline queue, and device token', () async {
-      final mockAuthService = MockAuthService();
-      final mockCacheService = MockCacheService();
-      final mockRealtimeService = MockRealtimeService();
-      final mockOfflineQueue = MockOfflineQueue();
-      final mockTokenService = MockTokenService();
+    test(
+      'logout clears cache, providers, realtime, offline queue, and device token',
+      () async {
+        final mockAuthService = MockAuthService();
+        final mockCacheService = MockCacheService();
+        final mockRealtimeService = MockRealtimeService();
+        final mockOfflineQueue = MockOfflineQueue();
+        final mockTokenService = MockTokenService();
 
-      final sut = LogoutUseCase(
-        mockAuthService,
-        mockCacheService,
-        mockRealtimeService,
-        mockOfflineQueue,
-        mockTokenService,
-      );
+        final sut = LogoutUseCase(
+          mockAuthService,
+          mockCacheService,
+          mockRealtimeService,
+          mockOfflineQueue,
+          mockTokenService,
+        );
 
-      await sut.execute();
+        await sut.execute();
 
-      expect(mockTokenService.tokenCleared, true);
-      expect(mockAuthService.loggedOut, true);
-      expect(mockOfflineQueue.queueCleared, true);
-      expect(mockCacheService.cacheCleared, true);
-      expect(mockRealtimeService.invalidated, true);
-    });
+        expect(mockTokenService.tokenCleared, true);
+        expect(mockAuthService.loggedOut, true);
+        expect(mockOfflineQueue.queueCleared, true);
+        expect(mockCacheService.cacheCleared, true);
+        expect(mockRealtimeService.invalidated, true);
+      },
+    );
   });
 }
 

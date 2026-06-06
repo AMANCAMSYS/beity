@@ -7,6 +7,9 @@ import '../../../shopping_lists/domain/usecases/add_item_usecase.dart';
 import '../../../shopping_lists/presentation/providers/shopping_items_provider.dart';
 import '../../../shopping_lists/presentation/providers/shopping_lists_provider.dart';
 import '../../../../shared/widgets/design_system/sawa_dialog.dart';
+import '../../../../shared/widgets/design_system/sawa_text_field.dart';
+import '../../../../shared/widgets/design_system/sawa_button.dart';
+import '../../../../core/errors/error_formatter.dart';
 
 class ShoppingQuickAddOverlay extends ConsumerStatefulWidget {
   final String listId;
@@ -124,9 +127,9 @@ class _ShoppingQuickAddOverlayState
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.toString())));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(ErrorFormatter.format(e, context))),
+        );
       }
     }
   }
@@ -134,7 +137,6 @@ class _ShoppingQuickAddOverlayState
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
 
     return Container(
       decoration: BoxDecoration(
@@ -167,24 +169,17 @@ class _ShoppingQuickAddOverlayState
                   style: theme.textTheme.titleLarge,
                 ),
                 const SizedBox(height: 16),
-                // Text field
-                TextField(
+                SawaTextField(
                   controller: _controller,
                   focusNode: _focusNode,
                   autofocus: true,
-                  style: const TextStyle(fontSize: 18),
-                  decoration: InputDecoration(
-                    hintText: context.translate('item_name_placeholder'),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    suffixIcon: IconButton(
-                      icon: const Icon(Icons.clear),
-                      onPressed: () {
-                        _controller.clear();
-                        setState(() => _suggestions = []);
-                      },
-                    ),
+                  hintText: context.translate('item_name_placeholder'),
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.clear),
+                    onPressed: () {
+                      _controller.clear();
+                      setState(() => _suggestions = []);
+                    },
                   ),
                   onChanged: _onTextChanged,
                   onSubmitted: _addItem,
@@ -200,9 +195,7 @@ class _ShoppingQuickAddOverlayState
                           suggestion.unitName != null ||
                               suggestion.quantity != 1
                           ? Text(
-                              isArabic
-                                  ? '${suggestion.quantity == suggestion.quantity.roundToDouble() ? suggestion.quantity.toInt() : suggestion.quantity.toStringAsFixed(1)}${suggestion.unitName != null ? " ${suggestion.unitName}" : ""}'
-                                  : '${suggestion.quantity == suggestion.quantity.roundToDouble() ? suggestion.quantity.toInt() : suggestion.quantity.toStringAsFixed(1)}${suggestion.unitName != null ? " ${suggestion.unitName}" : ""}',
+                              '${suggestion.quantity == suggestion.quantity.roundToDouble() ? suggestion.quantity.toInt() : suggestion.quantity.toStringAsFixed(1)}${suggestion.unitName != null ? " ${suggestion.unitName}" : ""}',
                             )
                           : null,
                       onTap: () => _addItem(suggestion.name),
@@ -220,9 +213,9 @@ class _ShoppingQuickAddOverlayState
                     ),
                     Text(context.translate('add_another')),
                     const Spacer(),
-                    FilledButton(
+                    SawaButton(
                       onPressed: () => _addItem(_controller.text),
-                      child: Text(context.translate('add')),
+                      text: context.translate('add'),
                     ),
                   ],
                 ),

@@ -14,7 +14,9 @@ class CreateUnitUseCase {
   }) async {
     // Validate name
     if (name.isEmpty) {
-      throw const ValidationException(message: 'please_enter_unit_name_validation');
+      throw const ValidationException(
+        message: 'please_enter_unit_name_validation',
+      );
     }
 
     if (name.length > 50) {
@@ -23,7 +25,9 @@ class CreateUnitUseCase {
 
     // Validate symbol
     if (symbol.isEmpty) {
-      throw const ValidationException(message: 'please_enter_unit_symbol_validation');
+      throw const ValidationException(
+        message: 'please_enter_unit_symbol_validation',
+      );
     }
 
     if (symbol.length > 10) {
@@ -35,11 +39,7 @@ class CreateUnitUseCase {
       throw const ValidationException(message: 'invalid_unit_type');
     }
 
-    return _repository.createUnit(
-      name: name,
-      symbol: symbol,
-      type: type,
-    );
+    return _repository.createUnit(name: name, symbol: symbol, type: type);
   }
 
   bool _isValidType(String type) {

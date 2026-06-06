@@ -10,6 +10,7 @@ import 'app_drawer.dart';
 import '../../../notifications/presentation/widgets/notification_badge_widget.dart';
 import '../../../invitations/presentation/widgets/invitation_card_widget.dart';
 import '../../../invitations/presentation/providers/invitations_provider.dart';
+import '../../../../core/errors/error_formatter.dart';
 
 class HomeNoHomesView extends ConsumerWidget {
   const HomeNoHomesView({super.key});
@@ -27,9 +28,7 @@ class HomeNoHomesView extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         leadingWidth: 62,
-        leading: Builder(
-          builder: (context) => const DrawerToggleButton(),
-        ),
+        leading: Builder(builder: (context) => const DrawerToggleButton()),
         title: Text(
           context.translate('sawa'),
           style: const TextStyle(fontWeight: FontWeight.bold),
@@ -59,9 +58,9 @@ class HomeNoHomesView extends ConsumerWidget {
                       children: [
                         CircleAvatar(
                           radius: 28,
-                          backgroundColor: Theme.of(context)
-                              .primaryColor
-                              .withValues(alpha: 0.1),
+                          backgroundColor: Theme.of(
+                            context,
+                          ).primaryColor.withValues(alpha: 0.1),
                           child: Icon(
                             Icons.home_outlined,
                             color: Theme.of(context).primaryColor,
@@ -75,19 +74,13 @@ class HomeNoHomesView extends ConsumerWidget {
                             children: [
                               Text(
                                 '${context.translate('welcome_to_sawa')} 👋',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .titleLarge
-                                    ?.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                style: Theme.of(context).textTheme.titleLarge
+                                    ?.copyWith(fontWeight: FontWeight.bold),
                               ),
                               const SizedBox(height: 4),
                               Text(
                                 _getUserName(context, ref),
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyMedium
+                                style: Theme.of(context).textTheme.bodyMedium
                                     ?.copyWith(
                                       color: Theme.of(context)
                                           .colorScheme
@@ -104,9 +97,9 @@ class HomeNoHomesView extends ConsumerWidget {
                     Text(
                       context.translate('home_screen_no_homes_desc'),
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            height: 1.5,
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
+                        height: 1.5,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                     ),
                     const SizedBox(height: 24),
                     SizedBox(
@@ -125,22 +118,21 @@ class HomeNoHomesView extends ConsumerWidget {
               // Invitations Section
               Text(
                 context.translate('my_invitations'),
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
               invitationsAsync.when(
                 data: (invitations) {
-                  final pendingInvitations =
-                      invitations.where((inv) => inv.isPending).toList();
+                  final pendingInvitations = invitations
+                      .where((inv) => inv.isPending)
+                      .toList();
                   if (pendingInvitations.isEmpty) {
                     return SawaCard(
                       child: Center(
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 24,
-                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 24),
                           child: Column(
                             children: [
                               Icon(
@@ -153,10 +145,10 @@ class HomeNoHomesView extends ConsumerWidget {
                               ),
                               const SizedBox(height: 12),
                               Text(
-                                context.translate('no_pending_invitations_user'),
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyMedium
+                                context.translate(
+                                  'no_pending_invitations_user',
+                                ),
+                                style: Theme.of(context).textTheme.bodyMedium
                                     ?.copyWith(
                                       color: Theme.of(context)
                                           .colorScheme
@@ -190,8 +182,10 @@ class HomeNoHomesView extends ConsumerWidget {
                 ),
                 error: (err, _) => SawaCard(
                   child: Text(
-                    context.translate('error_loading_invitations',
-                        arguments: {'error': err.toString()}),
+                    context.translate(
+                      'error_loading_invitations',
+                      arguments: {'error': ErrorFormatter.format(err, context)},
+                    ),
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.error,
                     ),

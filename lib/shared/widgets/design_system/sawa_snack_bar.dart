@@ -47,20 +47,64 @@ class SawaSnackBar {
       ..showSnackBar(snackBar);
   }
 
-  static void success(BuildContext context, String message, {String? actionLabel, VoidCallback? onAction}) {
-    show(context, message: message, type: SawaSnackType.success, actionLabel: actionLabel, onAction: onAction);
+  static void success(
+    BuildContext context,
+    String message, {
+    String? actionLabel,
+    VoidCallback? onAction,
+  }) {
+    show(
+      context,
+      message: message,
+      type: SawaSnackType.success,
+      actionLabel: actionLabel,
+      onAction: onAction,
+    );
   }
 
-  static void error(BuildContext context, String message, {String? actionLabel, VoidCallback? onAction}) {
-    show(context, message: message, type: SawaSnackType.error, actionLabel: actionLabel, onAction: onAction);
+  static void error(
+    BuildContext context,
+    String message, {
+    String? actionLabel,
+    VoidCallback? onAction,
+  }) {
+    show(
+      context,
+      message: message,
+      type: SawaSnackType.error,
+      actionLabel: actionLabel,
+      onAction: onAction,
+    );
   }
 
-  static void warning(BuildContext context, String message, {String? actionLabel, VoidCallback? onAction}) {
-    show(context, message: message, type: SawaSnackType.warning, actionLabel: actionLabel, onAction: onAction);
+  static void warning(
+    BuildContext context,
+    String message, {
+    String? actionLabel,
+    VoidCallback? onAction,
+  }) {
+    show(
+      context,
+      message: message,
+      type: SawaSnackType.warning,
+      actionLabel: actionLabel,
+      onAction: onAction,
+    );
   }
 
-  static void info(BuildContext context, String message, {String? actionLabel, VoidCallback? onAction}) {
-    show(context, message: message, type: SawaSnackType.info, actionLabel: actionLabel, onAction: onAction);
+  static void info(
+    BuildContext context,
+    String message, {
+    String? actionLabel,
+    VoidCallback? onAction,
+  }) {
+    show(
+      context,
+      message: message,
+      type: SawaSnackType.info,
+      actionLabel: actionLabel,
+      onAction: onAction,
+    );
   }
 
   static Color _color(SawaSnackType type) {

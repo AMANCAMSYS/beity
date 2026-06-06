@@ -1,3 +1,4 @@
+import 'package:sawa/shared/widgets/design_system/sawa_skeleton_list.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -35,7 +36,7 @@ void main() {
       ),
     );
 
-    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(find.byType(SawaSkeletonList), findsOneWidget);
   });
 
   testWidgets(

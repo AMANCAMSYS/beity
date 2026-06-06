@@ -18,8 +18,5 @@ class AssignTaskParams {
   final String taskId;
   final String? assignedTo;
 
-  const AssignTaskParams({
-    required this.taskId,
-    this.assignedTo,
-  });
+  const AssignTaskParams({required this.taskId, this.assignedTo});
 }

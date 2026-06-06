@@ -143,7 +143,9 @@ class AppTheme {
           backgroundColor: colorScheme.primary,
           foregroundColor: primaryButtonForeground,
           disabledBackgroundColor: surfaceVariantColor,
-          disabledForegroundColor: colorScheme.onSurfaceVariant.withValues(alpha: 0.55),
+          disabledForegroundColor: colorScheme.onSurfaceVariant.withValues(
+            alpha: 0.55,
+          ),
           minimumSize: const Size(48, 48),
           padding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.lg,
@@ -241,7 +243,9 @@ class AppTheme {
           vertical: 14,
         ),
         hintStyle: textTheme.bodyMedium?.copyWith(color: colorScheme.outline),
-        labelStyle: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
+        labelStyle: textTheme.bodyMedium?.copyWith(
+          color: colorScheme.onSurfaceVariant,
+        ),
         floatingLabelStyle: textTheme.bodyMedium?.copyWith(
           color: focusColor,
           fontWeight: FontWeight.w600,
@@ -265,8 +269,12 @@ class AppTheme {
       ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
-        backgroundColor: isDark ? AppColors.surfaceElevatedDark : AppColors.textPrimaryLight,
-        actionTextColor: isDark ? AppColors.primaryLight : AppColors.accentLight,
+        backgroundColor: isDark
+            ? AppColors.surfaceElevatedDark
+            : AppColors.textPrimaryLight,
+        actionTextColor: isDark
+            ? AppColors.primaryLight
+            : AppColors.accentLight,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
         ),
@@ -289,7 +297,9 @@ class AppTheme {
         surfaceTintColor: Colors.transparent,
         elevation: 8,
         shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusXl)),
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(AppSpacing.radiusXl),
+          ),
         ),
         showDragHandle: true,
         dragHandleColor: colorScheme.outlineVariant,
@@ -308,8 +318,12 @@ class AppTheme {
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
         backgroundColor: surfaceColor,
         selectedItemColor: colorScheme.primary,
-        unselectedItemColor: colorScheme.onSurfaceVariant.withValues(alpha: 0.62),
-        selectedLabelStyle: textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w700),
+        unselectedItemColor: colorScheme.onSurfaceVariant.withValues(
+          alpha: 0.62,
+        ),
+        selectedLabelStyle: textTheme.labelSmall?.copyWith(
+          fontWeight: FontWeight.w700,
+        ),
         unselectedLabelStyle: textTheme.labelSmall,
         type: BottomNavigationBarType.fixed,
         elevation: 0,
@@ -357,20 +371,93 @@ class AppTheme {
         : AppColors.textSecondaryLight;
 
     return TextTheme(
-      displayLarge: TextStyle(fontSize: 32, fontWeight: FontWeight.w700, color: primary, letterSpacing: 0),
-      displayMedium: TextStyle(fontSize: 28, fontWeight: FontWeight.w700, color: primary, letterSpacing: 0),
-      displaySmall: TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: primary, letterSpacing: 0),
-      headlineMedium: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: primary, letterSpacing: 0),
-      headlineSmall: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: primary, letterSpacing: 0),
-      titleLarge: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: primary, letterSpacing: 0),
-      titleMedium: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: primary, letterSpacing: 0),
-      titleSmall: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: primary, letterSpacing: 0),
-      bodyLarge: TextStyle(fontSize: 16, fontWeight: FontWeight.w400, color: primary, height: 1.45, letterSpacing: 0),
-      bodyMedium: TextStyle(fontSize: 14, fontWeight: FontWeight.w400, color: primary, height: 1.45, letterSpacing: 0),
-      bodySmall: TextStyle(fontSize: 12, fontWeight: FontWeight.w400, color: secondary, height: 1.35, letterSpacing: 0),
-      labelLarge: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: primary, letterSpacing: 0),
-      labelMedium: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: secondary, letterSpacing: 0),
-      labelSmall: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: secondary, letterSpacing: 0),
+      displayLarge: TextStyle(
+        fontSize: 32,
+        fontWeight: FontWeight.w700,
+        color: primary,
+        letterSpacing: 0,
+      ),
+      displayMedium: TextStyle(
+        fontSize: 28,
+        fontWeight: FontWeight.w700,
+        color: primary,
+        letterSpacing: 0,
+      ),
+      displaySmall: TextStyle(
+        fontSize: 24,
+        fontWeight: FontWeight.w700,
+        color: primary,
+        letterSpacing: 0,
+      ),
+      headlineMedium: TextStyle(
+        fontSize: 20,
+        fontWeight: FontWeight.w700,
+        color: primary,
+        letterSpacing: 0,
+      ),
+      headlineSmall: TextStyle(
+        fontSize: 18,
+        fontWeight: FontWeight.w700,
+        color: primary,
+        letterSpacing: 0,
+      ),
+      titleLarge: TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w700,
+        color: primary,
+        letterSpacing: 0,
+      ),
+      titleMedium: TextStyle(
+        fontSize: 15,
+        fontWeight: FontWeight.w600,
+        color: primary,
+        letterSpacing: 0,
+      ),
+      titleSmall: TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
+        color: primary,
+        letterSpacing: 0,
+      ),
+      bodyLarge: TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w400,
+        color: primary,
+        height: 1.45,
+        letterSpacing: 0,
+      ),
+      bodyMedium: TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w400,
+        color: primary,
+        height: 1.45,
+        letterSpacing: 0,
+      ),
+      bodySmall: TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w400,
+        color: secondary,
+        height: 1.35,
+        letterSpacing: 0,
+      ),
+      labelLarge: TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w700,
+        color: primary,
+        letterSpacing: 0,
+      ),
+      labelMedium: TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w600,
+        color: secondary,
+        letterSpacing: 0,
+      ),
+      labelSmall: TextStyle(
+        fontSize: 11,
+        fontWeight: FontWeight.w600,
+        color: secondary,
+        letterSpacing: 0,
+      ),
     );
   }
 }

@@ -6,7 +6,7 @@ class EmptyStateWidget extends StatelessWidget {
   final String? subtitle;
   final String? actionText;
   final VoidCallback? onAction;
-  
+
   const EmptyStateWidget({
     super.key,
     required this.icon,
@@ -24,11 +24,7 @@ class EmptyStateWidget extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              icon,
-              size: 80,
-              color: Colors.grey[400],
-            ),
+            Icon(icon, size: 80, color: Colors.grey[400]),
             const SizedBox(height: 24),
             Text(
               title,
@@ -43,9 +39,9 @@ class EmptyStateWidget extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 subtitle!,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.grey[600],
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
                 textAlign: TextAlign.center,
                 textDirection: TextDirection.rtl,
               ),
@@ -55,10 +51,7 @@ class EmptyStateWidget extends StatelessWidget {
               ElevatedButton.icon(
                 onPressed: onAction,
                 icon: const Icon(Icons.add),
-                label: Text(
-                  actionText!,
-                  textDirection: TextDirection.rtl,
-                ),
+                label: Text(actionText!, textDirection: TextDirection.rtl),
               ),
             ],
           ],

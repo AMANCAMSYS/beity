@@ -96,41 +96,44 @@ class _EditInventoryItemScreenState
 
     try {
       ActionDebouncer.execute(() async {
-          final repo = ref.read(inventoryRepositoryProvider);
-          final minQuantity = _minQuantityController.text.isNotEmpty
-              ? double.tryParse(_minQuantityController.text)
-              : null;
-          final notesText = _notesController.text.trim();
-          final fieldsToNull = <String>[];
-          if (notesText.isEmpty) fieldsToNull.add('notes');
+        final repo = ref.read(inventoryRepositoryProvider);
+        final minQuantity = _minQuantityController.text.isNotEmpty
+            ? double.tryParse(_minQuantityController.text)
+            : null;
+        final notesText = _notesController.text.trim();
+        final fieldsToNull = <String>[];
+        if (notesText.isEmpty) fieldsToNull.add('notes');
 
-          await repo.updateInventoryItem(
-            itemId: widget.itemId,
-            name: _nameController.text.trim(),
-            quantity: _quantity,
-            minQuantity: minQuantity,
-            notes: notesText.isNotEmpty ? notesText : null,
-            fieldsToNull: fieldsToNull,
+        await repo.updateInventoryItem(
+          itemId: widget.itemId,
+          name: _nameController.text.trim(),
+          quantity: _quantity,
+          minQuantity: minQuantity,
+          notes: notesText.isNotEmpty ? notesText : null,
+          fieldsToNull: fieldsToNull,
+        );
+
+        // Only log transaction if quantity actually changed
+        if (_quantity != _originalQuantity) {
+          await repo.createTransaction(
+            inventoryItemId: widget.itemId,
+            homeId: widget.homeId,
+            previousQuantity: _originalQuantity,
+            newQuantity: _quantity,
+            changeReason: 'manual_update',
           );
+        }
 
-          // Only log transaction if quantity actually changed
-          if (_quantity != _originalQuantity) {
-            await repo.createTransaction(
-              inventoryItemId: widget.itemId,
-              homeId: widget.homeId,
-              previousQuantity: _originalQuantity,
-              newQuantity: _quantity,
-              changeReason: 'manual_update',
-            );
-          }
+        ref.invalidate(inventoryItemsProvider(widget.homeId));
 
-          ref.invalidate(inventoryItemsProvider(widget.homeId));
-
-          if (mounted) {
-            SawaSnackBar.success(context, context.translate('product_updated_success'));
-            context.pop();
-          }
-        });
+        if (mounted) {
+          SawaSnackBar.success(
+            context,
+            context.translate('product_updated_success'),
+          );
+          context.pop();
+        }
+      });
     } catch (e) {
       if (mounted) {
         SawaSnackBar.error(
@@ -149,14 +152,24 @@ class _EditInventoryItemScreenState
 
     if (_isLoading) {
       return Scaffold(
-        appBar: AppBar(title: Text(context.translate('edit_product'), style: const TextStyle(fontWeight: FontWeight.bold))),
+        appBar: AppBar(
+          title: Text(
+            context.translate('edit_product'),
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+        ),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     if (_itemNotFound) {
       return Scaffold(
-        appBar: AppBar(title: Text(context.translate('edit_product'), style: const TextStyle(fontWeight: FontWeight.bold))),
+        appBar: AppBar(
+          title: Text(
+            context.translate('edit_product'),
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+        ),
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(AppSpacing.xxl),
@@ -166,20 +179,30 @@ class _EditInventoryItemScreenState
                 Container(
                   padding: const EdgeInsets.all(AppSpacing.xxl),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.errorContainer.withValues(alpha: 0.2),
+                    color: theme.colorScheme.errorContainer.withValues(
+                      alpha: 0.2,
+                    ),
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(Icons.error_outline_rounded, size: 64, color: theme.colorScheme.error),
+                  child: Icon(
+                    Icons.error_outline_rounded,
+                    size: 64,
+                    color: theme.colorScheme.error,
+                  ),
                 ),
                 AppSpacing.gapLG,
                 Text(
                   context.translate('item_not_found'),
-                  style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 AppSpacing.gapSM,
                 Text(
                   context.translate('item_not_found_deleted'),
-                  style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
                   textAlign: TextAlign.center,
                 ),
                 AppSpacing.gapXL,
@@ -202,7 +225,10 @@ class _EditInventoryItemScreenState
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: Text(context.translate('edit_product'), style: const TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(
+          context.translate('edit_product'),
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
       ),
       body: Form(
         key: _formKey,
@@ -219,15 +245,25 @@ class _EditInventoryItemScreenState
                       Container(
                         padding: const EdgeInsets.all(AppSpacing.sm),
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                          color: theme.colorScheme.primary.withValues(
+                            alpha: 0.1,
+                          ),
+                          borderRadius: BorderRadius.circular(
+                            AppSpacing.radiusMd,
+                          ),
                         ),
-                        child: Icon(Icons.edit_document, color: theme.colorScheme.primary, size: 20),
+                        child: Icon(
+                          Icons.edit_document,
+                          color: theme.colorScheme.primary,
+                          size: 20,
+                        ),
                       ),
                       AppSpacing.gapMD,
                       Text(
                         context.translate('edit_details'),
-                        style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ],
                   ),
@@ -251,16 +287,23 @@ class _EditInventoryItemScreenState
                   Container(
                     padding: const EdgeInsets.all(AppSpacing.lg),
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                      color: theme.colorScheme.surfaceContainerHighest
+                          .withValues(alpha: 0.3),
                       borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-                      border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.1)),
+                      border: Border.all(
+                        color: theme.colorScheme.outline.withValues(alpha: 0.1),
+                      ),
                     ),
                     child: Column(
                       children: [
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.numbers_rounded, size: 16, color: theme.colorScheme.onSurfaceVariant),
+                            Icon(
+                              Icons.numbers_rounded,
+                              size: 16,
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
                             AppSpacing.gapSM,
                             Text(
                               context.translate('adjust_current_quantity'),
@@ -290,7 +333,9 @@ class _EditInventoryItemScreenState
                     labelText: context.translate('low_stock_alert'),
                     hintText: context.translate('min_quantity_alert'),
                     prefixIcon: Icons.notification_important_rounded,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
                   ),
                   AppSpacing.gapLG,
 

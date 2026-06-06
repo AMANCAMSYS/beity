@@ -1,17 +1,19 @@
 enum HomeType {
-  family('family', 'عائلة'),
-  couple('couple', 'زوجان'),
-  sharedHouse('shared_house', 'سكن مشترك'),
-  studentHousing('student_housing', 'سكن طلاب'),
-  singleUser('single_user', 'مستخدم فردي'),
-  office('office', 'مكتب');
+  family('family'),
+  couple('couple'),
+  sharedHouse('shared_house'),
+  studentHousing('student_housing'),
+  singleUser('single_user'),
+  office('office');
 
   final String value;
-  final String arabicName;
 
-  const HomeType(this.value, this.arabicName);
+  const HomeType(this.value);
 
   String get translationKey => 'home_type_$value';
+
+  @Deprecated('Use translationKey with context.translate() instead')
+  String get arabicName => translationKey;
 
   static HomeType fromValue(String value) {
     return HomeType.values.firstWhere(

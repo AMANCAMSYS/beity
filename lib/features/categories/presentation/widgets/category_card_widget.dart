@@ -49,19 +49,22 @@ class CategoryCardWidget extends ConsumerWidget {
         title: Text(
           category.name,
           style: Theme.of(context).textTheme.titleMedium,
-          textDirection: TextDirection.rtl,
+          textDirection: Directionality.of(context),
         ),
         subtitle: Text(
           _getTypeName(context),
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-          textDirection: TextDirection.rtl,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+          textDirection: Directionality.of(context),
         ),
         trailing: isCustom && showActions
             ? IconButton(
-                icon: const Icon(Icons.delete,
-                    size: 20, color: AppColors.error),
+                icon: const Icon(
+                  Icons.delete,
+                  size: 20,
+                  color: AppColors.error,
+                ),
                 onPressed: () => _deleteCategory(context, ref),
               )
             : null,
@@ -118,22 +121,27 @@ class CategoryCardWidget extends ConsumerWidget {
         final second = words[1].substring(0, 1).toUpperCase();
         return '$first$second';
       } else {
-        return name.length >= 2 ? name.substring(0, 2).toUpperCase() : name.toUpperCase();
+        return name.length >= 2
+            ? name.substring(0, 2).toUpperCase()
+            : name.toUpperCase();
       }
     }
   }
 
-  void _deleteCategory(BuildContext context, WidgetRef ref) {
+  void _deleteCategory(BuildContext outerContext, WidgetRef ref) {
     showDialog(
-      context: context,
+      context: outerContext,
       builder: (context) => AlertDialog(
         title: Text(
-          context.translate('delete_category'),
-          textDirection: TextDirection.rtl,
+          outerContext.translate('delete_category'),
+          textDirection: Directionality.of(outerContext),
         ),
         content: Text(
-          context.translate('delete_category_confirm', arguments: {'name': category.name}),
-          textDirection: TextDirection.rtl,
+          outerContext.translate(
+            'delete_category_confirm',
+            arguments: {'name': category.name},
+          ),
+          textDirection: Directionality.of(outerContext),
         ),
         actions: [
           TextButton(
@@ -148,7 +156,10 @@ class CategoryCardWidget extends ConsumerWidget {
                     .read(categoryNotifierProvider.notifier)
                     .deleteCategory(categoryId: category.id);
                 if (context.mounted) {
-                  SawaSnackBar.success(context, context.translate('category_deleted_success'));
+                  SawaSnackBar.success(
+                    context,
+                    context.translate('category_deleted_success'),
+                  );
                 }
               } catch (e) {
                 if (context.mounted) {

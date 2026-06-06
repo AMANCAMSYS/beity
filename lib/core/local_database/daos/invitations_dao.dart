@@ -59,15 +59,15 @@ class InvitationsDao {
   }
 
   Future<LocalInvitation?> getInvitationByToken(String token) async {
-    return (db.select(db.localInvitations)
-          ..where((tbl) => tbl.token.equals(token)))
-        .getSingleOrNull();
+    return (db.select(
+      db.localInvitations,
+    )..where((tbl) => tbl.token.equals(token))).getSingleOrNull();
   }
 
   Future<LocalInvitation?> getInvitationById(String id) async {
-    return (db.select(db.localInvitations)
-          ..where((tbl) => tbl.id.equals(id)))
-        .getSingleOrNull();
+    return (db.select(
+      db.localInvitations,
+    )..where((tbl) => tbl.id.equals(id))).getSingleOrNull();
   }
 
   Future<void> upsertInvitations(List<LocalInvitation> invitations) async {
@@ -99,9 +99,9 @@ class InvitationsDao {
 
   Future<void> deleteByEmail(String email) async {
     if (email.isEmpty) return;
-    await (db.delete(db.localInvitations)
-          ..where((tbl) => tbl.email.equals(email)))
-        .go();
+    await (db.delete(
+      db.localInvitations,
+    )..where((tbl) => tbl.email.equals(email))).go();
   }
 
   Future<void> updateStatus({

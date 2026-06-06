@@ -188,6 +188,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ? AppColors.textHintDark
                             : AppColors.textHintLight,
                       ),
+                      tooltip: _obscurePassword
+                          ? context.translate('show_password')
+                          : context.translate('hide_password'),
                       onPressed: () {
                         setState(() {
                           _obscurePassword = !_obscurePassword;
@@ -205,10 +208,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   AppSpacing.gapLG,
 
                   // Login Button
-                  SawaButton(
-                    text: context.translate('login'),
-                    isLoading: _isLoading,
-                    onPressed: () => _guard.run(_login),
+                  Semantics(
+                    label: context.translate('login'),
+                    button: true,
+                    child: SawaButton(
+                      text: context.translate('login'),
+                      isLoading: _isLoading,
+                      onPressed: () => _guard.run(_login),
+                    ),
                   ),
                   AppSpacing.gapLG,
 
@@ -248,24 +255,28 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   AppSpacing.gapLG,
 
                   // Google Sign-In Button
-                  OutlinedButton.icon(
-                    onPressed: _isLoading
-                        ? null
-                        : () => _guard.run(_signInWithGoogle),
-                    icon: const Icon(Icons.g_mobiledata, size: 24),
-                    label: Text(context.translate('sign_in_with_google')),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 14,
-                        horizontal: 24,
-                      ),
-                      side: BorderSide(
-                        color: isDark
-                            ? AppColors.textHintDark
-                            : AppColors.textHintLight,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                  Semantics(
+                    label: context.translate('sign_in_with_google'),
+                    button: true,
+                    child: OutlinedButton.icon(
+                      onPressed: _isLoading
+                          ? null
+                          : () => _guard.run(_signInWithGoogle),
+                      icon: const Icon(Icons.g_mobiledata, size: 24),
+                      label: Text(context.translate('sign_in_with_google')),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 14,
+                          horizontal: 24,
+                        ),
+                        side: BorderSide(
+                          color: isDark
+                              ? AppColors.textHintDark
+                              : AppColors.textHintLight,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                     ),
                   ),
@@ -279,13 +290,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         context.translate('dont_have_account'),
                         style: theme.textTheme.bodyMedium,
                       ),
-                      TextButton(
-                        onPressed: () => context.go('/register'),
-                        child: Text(
-                          context.translate('create_account'),
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.primaryColor,
-                            fontWeight: FontWeight.bold,
+                      Semantics(
+                        label: context.translate('create_account'),
+                        button: true,
+                        child: TextButton(
+                          onPressed: () => context.go('/register'),
+                          child: Text(
+                            context.translate('create_account'),
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.primaryColor,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ),

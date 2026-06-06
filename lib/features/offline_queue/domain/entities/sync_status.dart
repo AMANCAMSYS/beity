@@ -3,16 +3,8 @@ enum SyncStatus {
   syncing,
   failed;
 
-  String get displayName {
-    switch (this) {
-      case SyncStatus.pending:
-        return 'Pending';
-      case SyncStatus.syncing:
-        return 'Syncing';
-      case SyncStatus.failed:
-        return 'Failed';
-    }
-  }
+  @Deprecated('Use translationKey with context.translate() instead')
+  String get displayName => translationKey;
 
   String get translationKey => 'sync_status_$name';
 }

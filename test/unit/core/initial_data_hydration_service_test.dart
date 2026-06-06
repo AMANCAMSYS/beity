@@ -1,3 +1,4 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:sawa/core/services/initial_data_hydration_service.dart';
@@ -7,12 +8,18 @@ import 'package:sawa/core/services/supabase_service.dart';
 import 'package:sawa/features/homes/data/repositories/home_repository.dart';
 import 'package:sawa/features/homes/data/repositories/home_local_data_source.dart';
 import 'package:sawa/features/homes/data/models/home_model.dart';
+import 'package:sawa/features/homes/presentation/providers/homes_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class MockHomeRepository extends Mock implements HomeRepository {}
 
-class MockSyncCoordinator extends Mock implements SyncCoordinator {}
+class MockSyncCoordinator extends Notifier<SyncState>
+    with Mock
+    implements SyncCoordinator {
+  @override
+  SyncState build() => SyncState(status: SyncStatus.idle);
+}
 
 class MockHomeLocalDataSource extends Mock implements HomeLocalDataSource {}
 
@@ -22,6 +29,13 @@ class MockGoTrueClient extends Mock implements GoTrueClient {}
 
 class MockUser extends Mock implements User {}
 
+class FakeInitialDataHydrationService extends InitialDataHydrationService {
+  @override
+  HydrationState build() {
+    return HydrationState.idle();
+  }
+}
+
 void main() {
   late MockHomeRepository mockHomeRepository;
   late MockSyncCoordinator mockSyncCoordinator;
@@ -30,6 +44,7 @@ void main() {
   late MockGoTrueClient mockGoTrueClient;
   late MockUser mockUser;
   late InitialDataHydrationService hydrationService;
+  late ProviderContainer container;
 
   const userId = 'user-abc';
 
@@ -107,6 +122,24 @@ void main() {
     when(
       () => mockSyncCoordinator.initialFullSync(any()),
     ).thenAnswer((_) async {});
+
+    container = ProviderContainer(
+      overrides: [
+        homeRepositoryProvider.overrideWithValue(mockHomeRepository),
+        syncCoordinatorProvider.overrideWith(() => mockSyncCoordinator),
+        homeLocalDataSourceProvider.overrideWithValue(mockHomeLocalDataSource),
+        initialDataHydrationServiceProvider.overrideWith(
+          () => FakeInitialDataHydrationService(),
+        ),
+      ],
+    );
+    hydrationService = container.read(
+      initialDataHydrationServiceProvider.notifier,
+    );
+  });
+
+  tearDown(() {
+    container.dispose();
   });
 
   group('InitialDataHydrationService Tests', () {
@@ -118,11 +151,8 @@ void main() {
           () => mockHomeRepository.getCachedUserHomes(),
         ).thenAnswer((_) async => [singleHome]);
 
-        hydrationService = InitialDataHydrationService(
-          homeRepository: mockHomeRepository,
-          syncCoordinator: mockSyncCoordinator,
-          localDataSource: mockHomeLocalDataSource,
-          autoHydrate: false,
+        hydrationService = container.read(
+          initialDataHydrationServiceProvider.notifier,
         );
 
         await hydrationService.hydrate();
@@ -152,11 +182,8 @@ void main() {
         () => mockHomeRepository.getCachedUserHomes(),
       ).thenAnswer((_) async => [firstHome, secondHome]);
 
-      hydrationService = InitialDataHydrationService(
-        homeRepository: mockHomeRepository,
-        syncCoordinator: mockSyncCoordinator,
-        localDataSource: mockHomeLocalDataSource,
-        autoHydrate: false,
+      hydrationService = container.read(
+        initialDataHydrationServiceProvider.notifier,
       );
 
       await hydrationService.hydrate();
@@ -191,11 +218,8 @@ void main() {
         () => mockHomeRepository.getCachedUserHomes(),
       ).thenAnswer((_) async => [secondHome]);
 
-      hydrationService = InitialDataHydrationService(
-        homeRepository: mockHomeRepository,
-        syncCoordinator: mockSyncCoordinator,
-        localDataSource: mockHomeLocalDataSource,
-        autoHydrate: false,
+      hydrationService = container.read(
+        initialDataHydrationServiceProvider.notifier,
       );
 
       await hydrationService.hydrate();
@@ -221,11 +245,8 @@ void main() {
         () => mockSyncCoordinator.initialFullSync('home-1'),
       ).thenThrow(Exception('مزامنة البيانات فشلت'));
 
-      hydrationService = InitialDataHydrationService(
-        homeRepository: mockHomeRepository,
-        syncCoordinator: mockSyncCoordinator,
-        localDataSource: mockHomeLocalDataSource,
-        autoHydrate: false,
+      hydrationService = container.read(
+        initialDataHydrationServiceProvider.notifier,
       );
 
       await hydrationService.hydrate();
@@ -251,11 +272,8 @@ void main() {
           () => mockHomeLocalDataSource.isInitialSyncCompleted(userId),
         ).thenAnswer((_) async => true);
 
-        hydrationService = InitialDataHydrationService(
-          homeRepository: mockHomeRepository,
-          syncCoordinator: mockSyncCoordinator,
-          localDataSource: mockHomeLocalDataSource,
-          autoHydrate: false,
+        hydrationService = container.read(
+          initialDataHydrationServiceProvider.notifier,
         );
 
         await hydrationService.hydrate();

@@ -5,6 +5,9 @@ enum ActionType {
   restoreItem,
   markPurchased,
   updateQuantity,
+  createList,
+  updateList,
+  deleteList,
   createCategory,
   updateCategory,
   deleteCategory,
@@ -34,6 +37,12 @@ enum ActionType {
         return 'Mark Purchased';
       case ActionType.updateQuantity:
         return 'Update Quantity';
+      case ActionType.createList:
+        return 'Create List';
+      case ActionType.updateList:
+        return 'Update List';
+      case ActionType.deleteList:
+        return 'Delete List';
       case ActionType.createCategory:
         return 'Create Category';
       case ActionType.updateCategory:

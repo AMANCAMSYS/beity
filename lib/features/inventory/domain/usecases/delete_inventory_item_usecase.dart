@@ -5,10 +5,7 @@ class DeleteInventoryItemUseCase {
 
   DeleteInventoryItemUseCase(this._repository);
 
-  Future<void> call({
-    required String itemId,
-    required String homeId,
-  }) async {
+  Future<void> call({required String itemId, required String homeId}) async {
     final item = await _repository.getInventoryItemById(itemId: itemId);
     if (item == null) return;
 

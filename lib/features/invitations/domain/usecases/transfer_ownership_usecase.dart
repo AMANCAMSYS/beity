@@ -13,9 +13,6 @@ class TransferOwnershipUseCase {
       throw Exception('home_owner_required');
     }
 
-    await _repository.transferOwnership(
-      homeId: homeId,
-      newOwnerId: newOwnerId,
-    );
+    await _repository.transferOwnership(homeId: homeId, newOwnerId: newOwnerId);
   }
 }

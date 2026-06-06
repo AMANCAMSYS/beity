@@ -21,7 +21,11 @@ class AiStatusBadge extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: color),
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: color,
+        ),
       ),
     );
   }
@@ -29,19 +33,47 @@ class AiStatusBadge extends StatelessWidget {
   (Color, Color, String) _badgeConfig(BuildContext context) {
     switch (status) {
       case IngredientStatus.available:
-        return (AppColors.success, AppColors.success.withValues(alpha: 0.12), context.translate('available'));
+        return (
+          AppColors.success,
+          AppColors.success.withValues(alpha: 0.12),
+          context.translate('available'),
+        );
       case IngredientStatus.missing:
-        return (AppColors.error, AppColors.error.withValues(alpha: 0.12), context.translate('missing'));
+        return (
+          AppColors.error,
+          AppColors.error.withValues(alpha: 0.12),
+          context.translate('missing'),
+        );
       case IngredientStatus.alreadyInList:
-        return (AppColors.info, AppColors.info.withValues(alpha: 0.12), context.translate('in_list'));
+        return (
+          AppColors.info,
+          AppColors.info.withValues(alpha: 0.12),
+          context.translate('in_list'),
+        );
       case IngredientStatus.inCurrentList:
-        return (AppColors.info, AppColors.info.withValues(alpha: 0.12), context.translate('in_current_list'));
+        return (
+          AppColors.info,
+          AppColors.info.withValues(alpha: 0.12),
+          context.translate('in_current_list'),
+        );
       case IngredientStatus.inOtherList:
-        return (AppColors.warning, AppColors.warning.withValues(alpha: 0.12), context.translate('in_other_list'));
+        return (
+          AppColors.warning,
+          AppColors.warning.withValues(alpha: 0.12),
+          context.translate('in_other_list'),
+        );
       case IngredientStatus.optional:
-        return (AppColors.warning, AppColors.warning.withValues(alpha: 0.12), context.translate('optional'));
+        return (
+          AppColors.warning,
+          AppColors.warning.withValues(alpha: 0.12),
+          context.translate('optional'),
+        );
       case IngredientStatus.unknown:
-        return (Colors.grey, Colors.grey.withValues(alpha: 0.12), context.translate('unknown'));
+        return (
+          Colors.grey,
+          Colors.grey.withValues(alpha: 0.12),
+          context.translate('unknown'),
+        );
     }
   }
 }

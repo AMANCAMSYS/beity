@@ -27,7 +27,7 @@ Deno.serve(async (req: Request) => {
       .select("id");
 
     if (error) {
-      console.error("Error deleting old notifications:", error);
+      console.error(JSON.stringify({ event: "cleanup_delete_failed", error: error.message }));
       return new Response(
         JSON.stringify({ error: "Failed to delete old notifications" }),
         { status: 500, headers: { "Content-Type": "application/json" } }
@@ -35,14 +35,14 @@ Deno.serve(async (req: Request) => {
     }
 
     const deletedCount = data?.length || 0;
-    console.log(`Deleted ${deletedCount} old notifications`);
+    console.log(JSON.stringify({ event: "cleanup_completed", deletedCount }));
 
     return new Response(
       JSON.stringify({ success: true, deleted_count: deletedCount }),
       { status: 200, headers: { "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("Error in cleanup-old-notifications:", error);
+    console.error(JSON.stringify({ event: "cleanup_unhandled", error: error instanceof Error ? error.message : String(error) }));
     return new Response(
       JSON.stringify({ error: "Internal server error" }),
       { status: 500, headers: { "Content-Type": "application/json" } }

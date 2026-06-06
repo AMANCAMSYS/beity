@@ -33,10 +33,13 @@ void main() {
     );
 
     test('should complete task successfully', () async {
-      when(() => mockRepository.completeTask(taskId: 'task-123'))
-          .thenAnswer((_) async => completedTask);
+      when(
+        () => mockRepository.completeTask(taskId: 'task-123'),
+      ).thenAnswer((_) async => completedTask);
 
-      final result = await completeTask(const CompleteTaskParams(taskId: 'task-123'));
+      final result = await completeTask(
+        const CompleteTaskParams(taskId: 'task-123'),
+      );
 
       expect(result.isCompleted, true);
       expect(result.completedBy, 'user-123');
@@ -51,26 +54,33 @@ void main() {
         completedAt: DateTime(2026, 5, 13),
       );
 
-      when(() => mockRepository.completeTask(taskId: 'task-123'))
-          .thenAnswer((_) async => completedRecurringTask);
-      when(() => mockRepository.createNextRecurringTask(taskId: 'task-123'))
-          .thenAnswer((_) async => 'new-task-456');
+      when(
+        () => mockRepository.completeTask(taskId: 'task-123'),
+      ).thenAnswer((_) async => completedRecurringTask);
+      when(
+        () => mockRepository.createNextRecurringTask(taskId: 'task-123'),
+      ).thenAnswer((_) async => 'new-task-456');
 
-      final result = await completeTask(const CompleteTaskParams(taskId: 'task-123'));
+      final result = await completeTask(
+        const CompleteTaskParams(taskId: 'task-123'),
+      );
 
       expect(result.isCompleted, true);
-      verify(() => mockRepository.createNextRecurringTask(taskId: 'task-123'))
-          .called(1);
+      verify(
+        () => mockRepository.createNextRecurringTask(taskId: 'task-123'),
+      ).called(1);
     });
 
     test('should not create next task when task is not recurring', () async {
-      when(() => mockRepository.completeTask(taskId: 'task-123'))
-          .thenAnswer((_) async => completedTask);
+      when(
+        () => mockRepository.completeTask(taskId: 'task-123'),
+      ).thenAnswer((_) async => completedTask);
 
       await completeTask(const CompleteTaskParams(taskId: 'task-123'));
 
       verifyNever(
-          () => mockRepository.createNextRecurringTask(taskId: 'task-123'));
+        () => mockRepository.createNextRecurringTask(taskId: 'task-123'),
+      );
     });
   });
 
@@ -86,13 +96,13 @@ void main() {
     );
 
     test('should uncomplete task successfully', () async {
-      when(() => mockRepository.uncompleteTask(taskId: 'task-123'))
-          .thenAnswer((_) async => completedTask.copyWith(
-                status: 'incomplete',
-              ));
+      when(
+        () => mockRepository.uncompleteTask(taskId: 'task-123'),
+      ).thenAnswer((_) async => completedTask.copyWith(status: 'incomplete'));
 
-      final result =
-          await uncompleteTask(const UncompleteTaskParams(taskId: 'task-123'));
+      final result = await uncompleteTask(
+        const UncompleteTaskParams(taskId: 'task-123'),
+      );
 
       expect(result.isIncomplete, true);
     });

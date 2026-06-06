@@ -8,16 +8,8 @@ enum MutationScope {
   user,
   global;
 
-  String get displayName {
-    switch (this) {
-      case MutationScope.home:
-        return 'Home';
-      case MutationScope.user:
-        return 'User';
-      case MutationScope.global:
-        return 'Global';
-    }
-  }
+  @Deprecated('Use translationKey with context.translate() instead')
+  String get displayName => translationKey;
 
   String get translationKey => 'mutation_scope_$name';
 }

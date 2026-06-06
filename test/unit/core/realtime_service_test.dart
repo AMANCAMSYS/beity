@@ -15,9 +15,7 @@ void main() {
     });
 
     test('disconnected status reports isDisconnected', () {
-      const state = ConnectionStateModel(
-        status: ConnectionStatus.disconnected,
-      );
+      const state = ConnectionStateModel(status: ConnectionStatus.disconnected);
 
       expect(state.isConnected, false);
       expect(state.isDisconnected, true);
@@ -25,9 +23,7 @@ void main() {
     });
 
     test('reconnecting status reports isReconnecting', () {
-      const state = ConnectionStateModel(
-        status: ConnectionStatus.reconnecting,
-      );
+      const state = ConnectionStateModel(status: ConnectionStatus.reconnecting);
 
       expect(state.isConnected, false);
       expect(state.isDisconnected, false);

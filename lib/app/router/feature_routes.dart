@@ -10,6 +10,7 @@ import '../../features/activity_logs/data/models/activity_log_model.dart';
 import '../../features/notifications/presentation/screens/notification_center_screen.dart';
 import '../../features/notifications/presentation/screens/notification_preferences_screen.dart';
 import '../../features/offline_queue/presentation/screens/sync_status_screen.dart';
+import '../../features/billing/presentation/screens/subscription_plans_screen.dart';
 import '../../features/inventory/presentation/screens/inventory_screen.dart';
 import '../../features/inventory/presentation/screens/add_inventory_item_screen.dart';
 import '../../features/inventory/presentation/screens/inventory_item_detail_screen.dart';
@@ -27,7 +28,9 @@ import '../../features/homes/presentation/widgets/no_active_home_widget.dart';
 import '../../core/config/feature_flags.dart';
 import 'feature_route_paths.dart';
 
-List<GoRoute> featureRoutes(String Function(GoRouterState) getEffectiveHomeId) => [
+List<GoRoute> featureRoutes(
+  String Function(GoRouterState) getEffectiveHomeId,
+) => [
   GoRoute(
     path: FeatureRoutePaths.profile,
     builder: (context, state) => const ProfileScreen(),
@@ -81,6 +84,10 @@ List<GoRoute> featureRoutes(String Function(GoRouterState) getEffectiveHomeId) =
     builder: (context, state) => const SyncStatusScreen(),
   ),
   GoRoute(
+    path: FeatureRoutePaths.subscriptionPlans,
+    builder: (context, state) => const SubscriptionPlansScreen(),
+  ),
+  GoRoute(
     path: FeatureRoutePaths.inventory,
     builder: (context, state) {
       final homeId = getEffectiveHomeId(state);
@@ -108,7 +115,8 @@ List<GoRoute> featureRoutes(String Function(GoRouterState) getEffectiveHomeId) =
     path: '/inventory/:id',
     builder: (context, state) {
       final extra = state.extra as Map<String, dynamic>? ?? {};
-      final String homeId = (extra['homeId'] as String?) ?? getEffectiveHomeId(state);
+      final String homeId =
+          (extra['homeId'] as String?) ?? getEffectiveHomeId(state);
       if (homeId.isEmpty) return const NoActiveHomeWidget();
       return InventoryItemDetailScreen(
         itemId: state.pathParameters['id']!,
@@ -124,7 +132,8 @@ List<GoRoute> featureRoutes(String Function(GoRouterState) getEffectiveHomeId) =
     path: '/inventory/:id/edit',
     builder: (context, state) {
       final extra = state.extra as Map<String, dynamic>? ?? {};
-      final String homeId = (extra['homeId'] as String?) ?? getEffectiveHomeId(state);
+      final String homeId =
+          (extra['homeId'] as String?) ?? getEffectiveHomeId(state);
       if (homeId.isEmpty) return const NoActiveHomeWidget();
       return EditInventoryItemScreen(
         itemId: state.pathParameters['id']!,

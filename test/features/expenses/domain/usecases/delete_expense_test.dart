@@ -16,23 +16,21 @@ void main() {
 
   group('DeleteExpense', () {
     test('should soft delete expense', () async {
-      when(() => mockRepository.deleteExpense(
-            expenseId: 'expense-123',
-          )).thenAnswer((_) async {});
+      when(
+        () => mockRepository.deleteExpense(expenseId: 'expense-123'),
+      ).thenAnswer((_) async {});
 
-      await useCase(const DeleteExpenseParams(
-        expenseId: 'expense-123',
-      ));
+      await useCase(const DeleteExpenseParams(expenseId: 'expense-123'));
 
-      verify(() => mockRepository.deleteExpense(
-            expenseId: 'expense-123',
-          )).called(1);
+      verify(
+        () => mockRepository.deleteExpense(expenseId: 'expense-123'),
+      ).called(1);
     });
 
     test('should throw when expense not found', () async {
-      when(() => mockRepository.deleteExpense(
-            expenseId: 'non-existent',
-          )).thenThrow(Exception('Expense not found'));
+      when(
+        () => mockRepository.deleteExpense(expenseId: 'non-existent'),
+      ).thenThrow(Exception('Expense not found'));
 
       expect(
         () => useCase(const DeleteExpenseParams(expenseId: 'non-existent')),

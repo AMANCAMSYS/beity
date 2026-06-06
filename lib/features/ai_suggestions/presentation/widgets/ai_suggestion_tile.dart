@@ -20,15 +20,18 @@ class AiSuggestionTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(aiSuggestionsProvider);
-    final isSelected = state is AiSuggestionsSuccess && state.selectedIndices.contains(index);
-    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+    final isSelected =
+        state is AiSuggestionsSuccess && state.selectedIndices.contains(index);
+    final isRtl = context.isRtl;
 
     // Duplicate detection (case-insensitive, trimmed match)
     final suggestionNameClean = suggestion.name.trim().toLowerCase();
-    final isDuplicate = existingItemNames.any((name) => name.trim().toLowerCase() == suggestionNameClean);
+    final isDuplicate = existingItemNames.any(
+      (name) => name.trim().toLowerCase() == suggestionNameClean,
+    );
 
     return Directionality(
-      textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
+      textDirection: context.textDirection,
       child: CheckboxListTile(
         value: isSelected,
         onChanged: (bool? value) {
@@ -52,25 +55,28 @@ class AiSuggestionTile extends ConsumerWidget {
                 ),
                 child: Text(
                   context.translate('already_in_list_badge'),
-                  style: const TextStyle(fontSize: 10, color: AppColors.warning),
+                  style: const TextStyle(
+                    fontSize: 10,
+                    color: AppColors.warning,
+                  ),
                 ),
               ),
           ],
         ),
-        subtitle: _buildSubtitle(context, isArabic),
+        subtitle: _buildSubtitle(context, isRtl),
         controlAffinity: ListTileControlAffinity.leading,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       ),
     );
   }
 
-  Widget? _buildSubtitle(BuildContext context, bool isArabic) {
+  Widget? _buildSubtitle(BuildContext context, bool isRtl) {
     final infoParts = <Widget>[];
-    
+
     if (suggestion.quantity != null && suggestion.quantity! != 1.0) {
       infoParts.add(Text('${suggestion.quantity}'));
     }
-    
+
     if (suggestion.unit != null && suggestion.unit!.isNotEmpty) {
       if (infoParts.isNotEmpty) infoParts.add(const SizedBox(width: 4));
       infoParts.add(Text(suggestion.unit!));
@@ -93,7 +99,7 @@ class AiSuggestionTile extends ConsumerWidget {
             suggestion.category!,
             style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
           ),
-        )
+        ),
       );
     }
 
@@ -103,10 +109,7 @@ class AiSuggestionTile extends ConsumerWidget {
         if (infoParts.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 4.0),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: infoParts,
-            ),
+            child: Row(mainAxisSize: MainAxisSize.min, children: infoParts),
           ),
         if (suggestion.reason != null && suggestion.reason!.isNotEmpty)
           Padding(

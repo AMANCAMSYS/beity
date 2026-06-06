@@ -28,9 +28,9 @@ class InvitationsListScreen extends ConsumerWidget {
         },
         data: (_) {
           if (previous?.isLoading == true) {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text(context.translate('action_success'))));
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(context.translate('action_success'))),
+            );
           }
         },
       );
@@ -39,7 +39,9 @@ class InvitationsListScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          homeId != null ? context.translate('home_invitations') : context.translate('my_invitations'),
+          homeId != null
+              ? context.translate('home_invitations')
+              : context.translate('my_invitations'),
         ),
       ),
       body: invitationsAsync.when(
@@ -93,9 +95,7 @@ class InvitationsListScreen extends ConsumerWidget {
             children: [
               const Icon(Icons.error_outline, size: 48, color: AppColors.error),
               const SizedBox(height: 16),
-              Text(
-                context.translate('load_invitations_failed'),
-              ),
+              Text(context.translate('load_invitations_failed')),
               const SizedBox(height: 8),
               ElevatedButton(
                 onPressed: () => ref.invalidate(

@@ -38,7 +38,8 @@ class PerformanceMonitor {
       await _monitoring.logError(
         e,
         stackTrace,
-        reason: 'Failed operation: $operation (${stopwatch.elapsedMilliseconds}ms)',
+        reason:
+            'Failed operation: $operation (${stopwatch.elapsedMilliseconds}ms)',
       );
       rethrow;
     }

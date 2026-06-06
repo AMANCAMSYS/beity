@@ -79,7 +79,7 @@ final presenceProvider = StreamProvider.autoDispose
           userId: currentUser.id,
           displayName:
               currentUser.userMetadata?['full_name'] as String? ??
-                  l10n.translate('guest_user'),
+              l10n.translate('guest_user'),
           avatarUrl: currentUser.userMetadata?['avatar_url'] as String?,
         ),
       );

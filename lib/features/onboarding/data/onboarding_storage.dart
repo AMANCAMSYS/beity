@@ -11,8 +11,11 @@ class OnboardingStorage {
   static const String _inventoryTourSeenVersionKey = 'inventoryTourSeenVersion';
   static const String _expensesTourSeenVersionKey = 'expensesTourSeenVersion';
   static const String _tasksTourSeenVersionKey = 'tasksTourSeenVersion';
-  static const String _categoriesTourSeenVersionKey = 'categoriesTourSeenVersion';
+  static const String _categoriesTourSeenVersionKey =
+      'categoriesTourSeenVersion';
   static const String _unitsTourSeenVersionKey = 'unitsTourSeenVersion';
+  static String _firstShoppingJourneyCompletedKey(String homeId) =>
+      'firstShoppingJourneyCompleted_$homeId';
 
   /// Bump these to force re-show after content changes.
   static const int currentWelcomeOnboardingVersion = 1;
@@ -64,7 +67,8 @@ class OnboardingStorage {
   // ── Inventory Tour ───────────────────────────────────────────────────
 
   static bool shouldShowInventoryTour() {
-    final seen = AppPreferences.instance.getInt(_inventoryTourSeenVersionKey) ?? 0;
+    final seen =
+        AppPreferences.instance.getInt(_inventoryTourSeenVersionKey) ?? 0;
     return seen < currentInventoryTourVersion;
   }
 
@@ -82,7 +86,8 @@ class OnboardingStorage {
   // ── Expenses Tour ────────────────────────────────────────────────────
 
   static bool shouldShowExpensesTour() {
-    final seen = AppPreferences.instance.getInt(_expensesTourSeenVersionKey) ?? 0;
+    final seen =
+        AppPreferences.instance.getInt(_expensesTourSeenVersionKey) ?? 0;
     return seen < currentExpensesTourVersion;
   }
 
@@ -118,7 +123,8 @@ class OnboardingStorage {
   // ── Categories Tour ───────────────────────────────────────────────────
 
   static bool shouldShowCategoriesTour() {
-    final seen = AppPreferences.instance.getInt(_categoriesTourSeenVersionKey) ?? 0;
+    final seen =
+        AppPreferences.instance.getInt(_categoriesTourSeenVersionKey) ?? 0;
     return seen < currentCategoriesTourVersion;
   }
 
@@ -149,6 +155,31 @@ class OnboardingStorage {
 
   static Future<void> resetUnitsTour() async {
     await AppPreferences.instance.setInt(_unitsTourSeenVersionKey, 0);
+  }
+
+  // ── First Shopping Journey ───────────────────────────────────────────
+
+  static bool shouldShowFirstShoppingJourney(String homeId) {
+    if (homeId.isEmpty) return false;
+    return !(AppPreferences.instance.getBool(
+          _firstShoppingJourneyCompletedKey(homeId),
+        ) ??
+        false);
+  }
+
+  static Future<void> markFirstShoppingJourneyCompleted(String homeId) async {
+    if (homeId.isEmpty) return;
+    await AppPreferences.instance.setBool(
+      _firstShoppingJourneyCompletedKey(homeId),
+      true,
+    );
+  }
+
+  static Future<void> resetFirstShoppingJourney(String homeId) async {
+    if (homeId.isEmpty) return;
+    await AppPreferences.instance.remove(
+      _firstShoppingJourneyCompletedKey(homeId),
+    );
   }
 }
 

@@ -1,3 +1,4 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:sawa/features/ai_suggestions/domain/entities/ai_suggestion.dart';
@@ -9,19 +10,31 @@ class MockGetAiSuggestions extends Mock implements GetAiSuggestions {}
 
 void main() {
   late MockGetAiSuggestions mockGetAiSuggestions;
+  late ProviderContainer container;
   late AiSuggestionsNotifier notifier;
 
   setUp(() {
     mockGetAiSuggestions = MockGetAiSuggestions();
-    notifier = AiSuggestionsNotifier(mockGetAiSuggestions);
-    
-    registerFallbackValue(const AiSuggestionRequest(
-      prompt: '',
-      homeType: '',
-      listTitle: '',
-      existingItems: [],
-      language: 'en',
-    ));
+    container = ProviderContainer(
+      overrides: [
+        getAiSuggestionsUseCaseProvider.overrideWithValue(mockGetAiSuggestions),
+      ],
+    );
+    notifier = container.read(aiSuggestionsProvider.notifier);
+
+    registerFallbackValue(
+      const AiSuggestionRequest(
+        prompt: '',
+        homeType: '',
+        listTitle: '',
+        existingItems: [],
+        language: 'en',
+      ),
+    );
+  });
+
+  tearDown(() {
+    container.dispose();
   });
 
   const tRequest = AiSuggestionRequest(
@@ -32,10 +45,7 @@ void main() {
     language: 'en',
   );
 
-  const tSuggestions = [
-    AiSuggestion(name: 'Milk'),
-    AiSuggestion(name: 'Eggs'),
-  ];
+  const tSuggestions = [AiSuggestion(name: 'Milk'), AiSuggestion(name: 'Eggs')];
 
   group('AiSuggestionsNotifier', () {
     test('initial state is idle', () {
@@ -43,8 +53,9 @@ void main() {
     });
 
     test('fetchSuggestions updates state to loading then success', () async {
-      when(() => mockGetAiSuggestions(any()))
-          .thenAnswer((_) async => tSuggestions);
+      when(
+        () => mockGetAiSuggestions(any()),
+      ).thenAnswer((_) async => tSuggestions);
 
       notifier.fetchSuggestions(tRequest);
 
@@ -61,8 +72,9 @@ void main() {
     });
 
     test('fetchSuggestions updates state to error on failure', () async {
-      when(() => mockGetAiSuggestions(any()))
-          .thenThrow(Exception('Service Error'));
+      when(
+        () => mockGetAiSuggestions(any()),
+      ).thenThrow(Exception('Service Error'));
 
       notifier.fetchSuggestions(tRequest);
 
@@ -70,12 +82,13 @@ void main() {
 
       expect(notifier.state, isA<AiSuggestionsError>());
       final errorState = notifier.state as AiSuggestionsError;
-      expect(errorState.message, contains('Service Error'));
+      expect(errorState.message, 'unexpected_error_retry');
     });
 
     test('toggleSelection works correctly', () async {
-      when(() => mockGetAiSuggestions(any()))
-          .thenAnswer((_) async => tSuggestions);
+      when(
+        () => mockGetAiSuggestions(any()),
+      ).thenAnswer((_) async => tSuggestions);
 
       notifier.fetchSuggestions(tRequest);
       await Future.delayed(const Duration(milliseconds: 500));
@@ -91,8 +104,9 @@ void main() {
     });
 
     test('selectAll and deselectAll work correctly', () async {
-      when(() => mockGetAiSuggestions(any()))
-          .thenAnswer((_) async => tSuggestions);
+      when(
+        () => mockGetAiSuggestions(any()),
+      ).thenAnswer((_) async => tSuggestions);
 
       notifier.fetchSuggestions(tRequest);
       await Future.delayed(const Duration(milliseconds: 500));
@@ -105,8 +119,9 @@ void main() {
     });
 
     test('reset clears state back to idle', () async {
-      when(() => mockGetAiSuggestions(any()))
-          .thenAnswer((_) async => tSuggestions);
+      when(
+        () => mockGetAiSuggestions(any()),
+      ).thenAnswer((_) async => tSuggestions);
 
       notifier.fetchSuggestions(tRequest);
       await Future.delayed(const Duration(milliseconds: 500));

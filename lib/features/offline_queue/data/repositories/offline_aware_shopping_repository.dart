@@ -49,8 +49,12 @@ class OfflineAwareShoppingRepository implements ShoppingListRepository {
        _homeId = homeId;
 
   Future<String> _getUserId() async {
-    final user = SupabaseService.client.auth.currentUser;
-    if (user != null) return user.id;
+    try {
+      final user = SupabaseService.client.auth.currentUser;
+      if (user != null) return user.id;
+    } catch (_) {
+      // Supabase not initialized (e.g., in tests)
+    }
     return _localDataSource.getLastLoggedInUserId();
   }
 
@@ -219,12 +223,15 @@ class OfflineAwareShoppingRepository implements ShoppingListRepository {
     switch (actionType) {
       case ActionType.addItem:
       case ActionType.restoreItem:
+      case ActionType.createList:
         return localStatePendingCreate;
       case ActionType.deleteItem:
+      case ActionType.deleteList:
         return localStatePendingDelete;
       case ActionType.updateItem:
       case ActionType.updateQuantity:
       case ActionType.markPurchased:
+      case ActionType.updateList:
         return localStatePendingUpdate;
       default:
         return localStatePendingUpdate;
@@ -410,6 +417,7 @@ class OfflineAwareShoppingRepository implements ShoppingListRepository {
       switch (entry.actionType) {
         case ActionType.addItem:
         case ActionType.restoreItem:
+        case ActionType.createList:
           try {
             final localList = ShoppingListModel.fromJson(payload);
             if (localList.homeId == homeId) {
@@ -423,12 +431,14 @@ class OfflineAwareShoppingRepository implements ShoppingListRepository {
         case ActionType.updateItem:
         case ActionType.updateQuantity:
         case ActionType.markPurchased:
+        case ActionType.updateList:
           final current = byId[entry.entityId] ?? cachedById[entry.entityId];
           if (current != null) {
             byId[entry.entityId] = _applyQueuedListUpdate(current, payload);
           }
           break;
         case ActionType.deleteItem:
+        case ActionType.deleteList:
           byId.remove(entry.entityId);
           break;
         default:
@@ -757,11 +767,13 @@ class OfflineAwareShoppingRepository implements ShoppingListRepository {
       }
     }
 
+    final userId = await _getUserId();
     final payload = <String, dynamic>{};
     if (name != null) payload['title'] = name;
     if (description != null) payload['type'] = description;
     if (status != null) payload['status'] = status;
     if (baseUpdatedAt != null) payload['base_updated_at'] = baseUpdatedAt;
+    payload['updated_by'] = userId;
 
     // 2. Perform online/offline operation
     if (isOnline) {
@@ -800,7 +812,7 @@ class OfflineAwareShoppingRepository implements ShoppingListRepository {
         return serverList;
       } catch (_) {
         await _queueRepository.enqueueAction(
-          actionType: ActionType.updateItem,
+          actionType: ActionType.updateList,
           entityType: EntityType.shoppingList,
           entityId: listId,
           homeId: _requireQueueHomeId(resolvedHomeId),
@@ -809,7 +821,7 @@ class OfflineAwareShoppingRepository implements ShoppingListRepository {
       }
     } else {
       await _queueRepository.enqueueAction(
-        actionType: ActionType.updateItem,
+        actionType: ActionType.updateList,
         entityType: EntityType.shoppingList,
         entityId: listId,
         homeId: _requireQueueHomeId(resolvedHomeId),
@@ -819,7 +831,6 @@ class OfflineAwareShoppingRepository implements ShoppingListRepository {
 
     if (updatedList != null) return updatedList;
 
-    final userId = await _getUserId();
     return ShoppingListModel(
       id: listId,
       homeId: resolvedHomeId ?? '',
@@ -887,13 +898,14 @@ class OfflineAwareShoppingRepository implements ShoppingListRepository {
       }
     }
 
-    final payload = <String, dynamic>{};
+    final userId = await _getUserId();
+    final payload = <String, dynamic>{'updated_by': userId};
     if (baseUpdatedAt != null) {
       payload['base_updated_at'] = baseUpdatedAt;
     }
 
     await _queueRepository.enqueueAction(
-      actionType: ActionType.deleteItem,
+      actionType: ActionType.deleteList,
       entityType: EntityType.shoppingList,
       entityId: listId,
       homeId: queueHomeId,
@@ -1257,6 +1269,7 @@ class OfflineAwareShoppingRepository implements ShoppingListRepository {
       }
     }
 
+    final userId = await _getUserId();
     final payload = <String, dynamic>{};
     if (name != null) payload['name'] = name;
     if (quantity != null) payload['quantity'] = quantity;
@@ -1276,6 +1289,7 @@ class OfflineAwareShoppingRepository implements ShoppingListRepository {
       payload['note'] = notes as String?;
     }
     if (baseUpdatedAt != null) payload['base_updated_at'] = baseUpdatedAt;
+    payload['updated_by'] = userId;
 
     // 2. Perform online/offline operation
     if (await _isOnline) {
@@ -1341,7 +1355,6 @@ class OfflineAwareShoppingRepository implements ShoppingListRepository {
       if (cached != null) return cached;
     }
 
-    final userId = await _getUserId();
     return ShoppingItemModel(
       id: itemId,
       shoppingListId: targetListId,
@@ -1402,12 +1415,14 @@ class OfflineAwareShoppingRepository implements ShoppingListRepository {
           );
         }
       } else {
+        final userId = await _getUserId();
         await _queueRepository.enqueueAction(
           actionType: ActionType.deleteItem,
           entityType: EntityType.shoppingItem,
           entityId: itemId,
           homeId: _requireQueueHomeId(),
           payload: {
+            'updated_by': userId,
             if (savedItem != null)
               'base_updated_at': _baseUpdatedAt(
                 savedItem.updatedAt,
@@ -1420,12 +1435,14 @@ class OfflineAwareShoppingRepository implements ShoppingListRepository {
       // If remote deletion fails, enqueue it for later retry
       // Note: We do NOT rollback the local deletion here, because we want the UI
       // to remain optimistically updated while the action is queued.
+      final userId = await _getUserId();
       await _queueRepository.enqueueAction(
         actionType: ActionType.deleteItem,
         entityType: EntityType.shoppingItem,
         entityId: itemId,
         homeId: _requireQueueHomeId(),
         payload: {
+          'updated_by': userId,
           if (savedItem != null)
             'base_updated_at': _baseUpdatedAt(
               savedItem.updatedAt,
@@ -1487,12 +1504,14 @@ class OfflineAwareShoppingRepository implements ShoppingListRepository {
       } catch (_) {}
     }
 
+    final userId = await _getUserId();
     await _queueRepository.enqueueAction(
       actionType: ActionType.restoreItem,
       entityType: EntityType.shoppingItem,
       entityId: item.id,
       homeId: _requireQueueHomeId(homeId),
       payload: {
+        'updated_by': userId,
         if (_baseUpdatedAt(item.updatedAt, item.createdAt) != null)
           'base_updated_at': _baseUpdatedAt(item.updatedAt, item.createdAt),
       },
@@ -1565,10 +1584,12 @@ class OfflineAwareShoppingRepository implements ShoppingListRepository {
       }
     }
 
+    final userId = await _getUserId();
     final payload = <String, dynamic>{
       'status': isPurchased ? 'completed' : 'pending',
       'completed_at': isPurchased ? DateTime.now().toIso8601String() : null,
       if (!isPurchased) 'purchased_quantity': 0.0,
+      'updated_by': userId,
     };
     if (baseUpdatedAt != null) {
       payload['base_updated_at'] = baseUpdatedAt;
@@ -1636,7 +1657,6 @@ class OfflineAwareShoppingRepository implements ShoppingListRepository {
       if (cached != null) return cached;
     }
 
-    final userId = await _getUserId();
     return ShoppingItemModel(
       id: itemId,
       shoppingListId: targetListId,

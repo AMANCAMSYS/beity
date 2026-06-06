@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import '../../data/models/shopping_item_model.dart';
 import '../../data/repositories/shopping_list_repository.dart';
+import '../../../../core/monitoring/monitoring_service.dart';
 
 enum AddItemResult { success, duplicateWarning, error }
 
@@ -58,6 +61,9 @@ class AddItemUseCase {
       notes: notes?.trim(),
     );
 
+    unawaited(MonitoringService().breadcrumbAddItem(listId));
+    MonitoringService().markAddItemLocalCommit();
+
     // Template sync is a secondary convenience feature. The item add itself is
     // already complete here, so template failures must not surface as add errors.
     try {
@@ -68,7 +74,13 @@ class AddItemUseCase {
         unitId: unitId,
         categoryId: categoryId,
       );
-    } catch (_) {}
+    } catch (e, s) {
+      MonitoringService().logError(
+        e,
+        s,
+        reason: 'Template sync on add failed for "$name"',
+      );
+    }
 
     return item;
   }

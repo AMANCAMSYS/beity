@@ -26,8 +26,6 @@ class SettingsPreferencesSection extends ConsumerWidget {
       _ => l10n.translate('huge'),
     };
 
-
-
     // Map country code to readable string
     final countryLabel = switch (settings.country) {
       'SA' => l10n.translate('country_sa'),
@@ -61,7 +59,10 @@ class SettingsPreferencesSection extends ConsumerWidget {
         SettingsActionTile(
           icon: Icons.format_size_rounded,
           title: l10n.translate('font_size'),
-          subtitle: l10n.translate('current_font_size', arguments: {'label': fontSizeLabel}),
+          subtitle: l10n.translate(
+            'current_font_size',
+            arguments: {'label': fontSizeLabel},
+          ),
           onTap: () => FontSizeBottomSheet.show(
             context,
             ref,

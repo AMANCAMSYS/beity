@@ -196,6 +196,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             ? AppColors.textHintDark
                             : AppColors.textHintLight,
                       ),
+                      tooltip: _obscurePassword
+                          ? context.translate('show_password')
+                          : context.translate('hide_password'),
                       onPressed: () {
                         setState(() {
                           _obscurePassword = !_obscurePassword;
@@ -232,6 +235,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             ? AppColors.textHintDark
                             : AppColors.textHintLight,
                       ),
+                      tooltip: _obscureConfirmPassword
+                          ? context.translate('show_password')
+                          : context.translate('hide_password'),
                       onPressed: () {
                         setState(() {
                           _obscureConfirmPassword = !_obscureConfirmPassword;
@@ -252,10 +258,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   AppSpacing.gapLG,
 
                   // Register Button
-                  SawaButton(
-                    text: context.translate('create_account'),
-                    isLoading: _isLoading,
-                    onPressed: () => _guard.run(_register),
+                  Semantics(
+                    label: context.translate('create_account'),
+                    button: true,
+                    child: SawaButton(
+                      text: context.translate('create_account'),
+                      isLoading: _isLoading,
+                      onPressed: () => _guard.run(_register),
+                    ),
                   ),
                   AppSpacing.gapMD,
 

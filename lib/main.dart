@@ -23,6 +23,7 @@ import 'core/monitoring/monitoring_service.dart';
 import 'core/local_database/local_data_migration_service.dart';
 import 'features/auth/presentation/providers/auth_provider.dart';
 import 'features/settings/presentation/providers/app_settings_provider.dart';
+import 'core/localization/app_localizations.dart';
 import 'features/homes/presentation/providers/homes_provider.dart';
 import 'core/services/shared_prefs_provider.dart';
 import 'core/errors/sawa_error_widget.dart';
@@ -33,6 +34,9 @@ const bool isBeta = bool.fromEnvironment('BETA', defaultValue: false);
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // T145: Mark app start time for performance monitoring
+  MonitoringService().markAppStart();
 
   // 1. Initialize SharedPreferences Singleton synchronously (required for local cache layout on first frame)
   await AppPreferences.init();
@@ -178,7 +182,8 @@ class _SawaAppState extends ConsumerState<SawaApp> with WidgetsBindingObserver {
     ref.watch(startupPrefetchProvider);
 
     return Directionality(
-      textDirection: settings.locale.languageCode == 'ar'
+      textDirection:
+          AppLocalizations.isRtlLanguage(settings.locale.languageCode)
           ? TextDirection.rtl
           : TextDirection.ltr,
       child: MaterialApp.router(

@@ -21,7 +21,10 @@ class AiSuggestionRequestModel {
       homeType: entity.homeType.trim(),
       listTitle: entity.listTitle.trim(),
       // Ensure only item name strings are passed, up to 100 items.
-      existingItems: entity.existingItems.take(100).map((e) => e.trim()).toList(),
+      existingItems: entity.existingItems
+          .take(100)
+          .map((e) => e.trim())
+          .toList(),
       language: entity.language,
     );
   }

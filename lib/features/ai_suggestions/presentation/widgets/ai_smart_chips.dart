@@ -8,7 +8,11 @@ class AiSmartChips extends StatelessWidget {
   final ValueChanged<String> onChipSelected;
   final ValueChanged<AiMode>? onModeChanged;
 
-  const AiSmartChips({super.key, required this.onChipSelected, this.onModeChanged});
+  const AiSmartChips({
+    super.key,
+    required this.onChipSelected,
+    this.onModeChanged,
+  });
 
   static const _chipKeys = [
     'ai_chip_quick_meal',
@@ -23,14 +27,14 @@ class AiSmartChips extends StatelessWidget {
 
   // Map chip index to the appropriate AI mode
   static const _chipModes = [
-    AiMode.quickMeals,      // وجبة سريعة
-    AiMode.budgetMeals,     // وجبة اقتصادية
-    AiMode.whatToCook,      // بالدجاج
+    AiMode.quickMeals, // وجبة سريعة
+    AiMode.budgetMeals, // وجبة اقتصادية
+    AiMode.whatToCook, // بالدجاج
     AiMode.cookByVegetables, // بالخضار
-    AiMode.kidsMeals,       // للأطفال
-    AiMode.guestMeals,      // للضيوف
-    AiMode.healthyMeals,    // صحية
-    AiMode.ramadanList,     // رمضان
+    AiMode.kidsMeals, // للأطفال
+    AiMode.guestMeals, // للضيوف
+    AiMode.healthyMeals, // صحية
+    AiMode.ramadanList, // رمضان
   ];
 
   @override

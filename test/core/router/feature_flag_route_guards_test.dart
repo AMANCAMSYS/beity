@@ -4,7 +4,7 @@ void main() {
   group('Feature Flag Route Guards', () {
     test('disabled features route to placeholder or are blocked', () {
       final router = FakeFeatureFlagRouter();
-      
+
       // Disabled routes
       expect(router.navigate('/inventory'), '/disabled_feature');
       expect(router.navigate('/expenses'), '/disabled_feature');
@@ -30,11 +30,11 @@ class FakeFeatureFlagRouter {
 
   String navigate(String path) {
     final route = path.replaceAll('/', '');
-    
+
     if (featureFlags.containsKey(route) && !featureFlags[route]!) {
       return '/disabled_feature';
     }
-    
+
     return path;
   }
 }

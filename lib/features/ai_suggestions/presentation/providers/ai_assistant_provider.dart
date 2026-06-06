@@ -1,7 +1,6 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
-import 'package:sawa/core/services/supabase_service.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sawa/core/services/supabase_service.dart';
 import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/errors/error_formatter.dart';
 
@@ -14,7 +13,6 @@ import '../../domain/entities/local_ingredient_context.dart';
 import '../../domain/services/smart_item_resolver.dart';
 import '../../data/models/local_food_key_mapper.dart';
 import '../../data/datasources/ai_suggestion_remote_data_source.dart';
-import '../../../shopping_lists/data/repositories/shopping_list_repository.dart';
 import '../../../shopping_lists/domain/usecases/add_item_usecase.dart';
 import '../../../shopping_lists/presentation/providers/shopping_lists_provider.dart';
 import '../../../shopping_lists/presentation/providers/shopping_items_provider.dart';
@@ -86,10 +84,8 @@ final aiAssistantDataSourceProvider = Provider<AiSuggestionRemoteDataSource>((
 });
 
 final aiAssistantProvider =
-    StateNotifierProvider<AiAssistantNotifier, AiAssistantState>((ref) {
-      final dataSource = ref.watch(aiAssistantDataSourceProvider);
-      final shoppingRepository = ref.watch(shoppingListRepositoryProvider);
-      return AiAssistantNotifier(dataSource, shoppingRepository, ref);
+    NotifierProvider<AiAssistantNotifier, AiAssistantState>(() {
+      return AiAssistantNotifier();
     });
 
 // ──────────────────── Context Gathering Provider ────────────────────
@@ -141,8 +137,14 @@ final aiLocalContextProvider = FutureProvider.autoDispose
 
         final l10n = ref.read(appLocalizationsProvider);
         final listSuffix = isCurrentList
-            ? l10n.translate('current_list_suffix', arguments: {'name': list.name})
-            : l10n.translate('other_list_suffix', arguments: {'name': list.name});
+            ? l10n.translate(
+                'current_list_suffix',
+                arguments: {'name': list.name},
+              )
+            : l10n.translate(
+                'other_list_suffix',
+                arguments: {'name': list.name},
+              );
 
         for (final item in items) {
           if (!item.isPurchased) {
@@ -462,13 +464,11 @@ AiSuggestion _matchSuggestionLocal(
 
 // ──────────────────── Notifier ────────────────────
 
-class AiAssistantNotifier extends StateNotifier<AiAssistantState> {
-  final AiSuggestionRemoteDataSource _dataSource;
-  final ShoppingListRepository _shoppingRepository;
-  final Ref _ref;
-
-  AiAssistantNotifier(this._dataSource, this._shoppingRepository, this._ref)
-    : super(const AiAssistantIdle());
+class AiAssistantNotifier extends Notifier<AiAssistantState> {
+  @override
+  AiAssistantState build() {
+    return const AiAssistantIdle();
+  }
 
   /// Send a request to the AI assistant.
   void startLoading() {
@@ -485,7 +485,9 @@ class AiAssistantNotifier extends StateNotifier<AiAssistantState> {
     state = const AiAssistantLoading();
 
     try {
-      final response = await _dataSource.fetchAssistantResponse(request);
+      final response = await ref
+          .read(aiAssistantDataSourceProvider)
+          .fetchAssistantResponse(request);
 
       if (response is AiErrorResponse) {
         state = AiAssistantError(response.message);
@@ -502,24 +504,25 @@ class AiAssistantNotifier extends StateNotifier<AiAssistantState> {
             List<InventoryItem> inventoryItems = [];
             try {
               inventoryItems =
-                  _ref.read(inventoryItemsProvider(homeId)).value ?? [];
+                  ref.read(inventoryItemsProvider(homeId)).value ?? [];
             } catch (_) {}
 
             List<ShoppingList> lists = [];
             try {
-              lists = _ref.read(shoppingListsProvider(homeId)).value ?? [];
+              lists = ref.read(shoppingListsProvider(homeId)).value ?? [];
             } catch (_) {}
             final uncompletedLists = lists.where((l) => !l.isArchived).toList();
 
             List<ShoppingItem> currentListItems = [];
-            final l10n = _ref.read(appLocalizationsProvider);
-            String currentListName = request.listTitle ?? l10n.translate('default_list_name');
+            final l10n = ref.read(appLocalizationsProvider);
+            String currentListName =
+                request.listTitle ?? l10n.translate('default_list_name');
             final Map<String, List<ShoppingItem>> otherListsItems = {};
 
             for (final list in uncompletedLists) {
               List<ShoppingItem> items = [];
               try {
-                items = _ref.read(shoppingItemsProvider(list.id)).value ?? [];
+                items = ref.read(shoppingItemsProvider(list.id)).value ?? [];
               } catch (_) {}
               if (list.id == listId) {
                 currentListItems = items;
@@ -624,24 +627,25 @@ class AiAssistantNotifier extends StateNotifier<AiAssistantState> {
             List<InventoryItem> inventoryItems = [];
             try {
               inventoryItems =
-                  _ref.read(inventoryItemsProvider(homeId)).value ?? [];
+                  ref.read(inventoryItemsProvider(homeId)).value ?? [];
             } catch (_) {}
 
             List<ShoppingList> lists = [];
             try {
-              lists = _ref.read(shoppingListsProvider(homeId)).value ?? [];
+              lists = ref.read(shoppingListsProvider(homeId)).value ?? [];
             } catch (_) {}
             final uncompletedLists = lists.where((l) => !l.isArchived).toList();
 
             List<ShoppingItem> currentListItems = [];
-            final l10n = _ref.read(appLocalizationsProvider);
-            String currentListName = request.listTitle ?? l10n.translate('default_list_name');
+            final l10n = ref.read(appLocalizationsProvider);
+            String currentListName =
+                request.listTitle ?? l10n.translate('default_list_name');
             final Map<String, List<ShoppingItem>> otherListsItems = {};
 
             for (final list in uncompletedLists) {
               List<ShoppingItem> items = [];
               try {
-                items = _ref.read(shoppingItemsProvider(list.id)).value ?? [];
+                items = ref.read(shoppingItemsProvider(list.id)).value ?? [];
               } catch (_) {}
               if (list.id == listId) {
                 currentListItems = items;
@@ -690,13 +694,13 @@ class AiAssistantNotifier extends StateNotifier<AiAssistantState> {
 
       state = AiAssistantResult(response);
     } on AiValidationException catch (e) {
-      final l10n = _ref.read(appLocalizationsProvider);
+      final l10n = ref.read(appLocalizationsProvider);
       state = AiAssistantError(ErrorFormatter.formatWithL10n(e, l10n));
     } on AiServiceException catch (e) {
-      final l10n = _ref.read(appLocalizationsProvider);
+      final l10n = ref.read(appLocalizationsProvider);
       state = AiAssistantError(ErrorFormatter.formatWithL10n(e, l10n));
     } catch (e) {
-      final l10n = _ref.read(appLocalizationsProvider);
+      final l10n = ref.read(appLocalizationsProvider);
       state = AiAssistantError(ErrorFormatter.formatWithL10n(e, l10n));
     }
   }
@@ -715,17 +719,11 @@ class AiAssistantNotifier extends StateNotifier<AiAssistantState> {
     String? country,
     String? dialect,
   }) async {
-    final String prompt;
-    if (language == 'ar') {
-      prompt =
-          'أعطني مكونات وجبة "$mealName" بالتفصيل وبالمقادير الدقيقة مع خطوات الطبخ بالتفصيل خطوة بخطوة';
-    } else if (language == 'tr') {
-      prompt =
-          '"$mealName" yemeğinin detaylı malzemelerini, ölçülerini ve adım adım tarifini/hazırlanış adımlarını ver.';
-    } else {
-      prompt =
-          'Give me the detailed ingredients, precise measurements, and step-by-step cooking instructions for "$mealName".';
-    }
+    final l10n = ref.read(appLocalizationsProvider);
+    final prompt = l10n.translate(
+      'ai_recipe_prompt_template',
+      arguments: {'mealName': mealName},
+    );
 
     final request = AiAssistantRequest(
       mode: AiMode.recipeIngredients,
@@ -764,7 +762,7 @@ class AiAssistantNotifier extends StateNotifier<AiAssistantState> {
         )
         .toList();
 
-    final l10n = _ref.read(appLocalizationsProvider);
+    final l10n = ref.read(appLocalizationsProvider);
     final response = AiRecipeIngredientsResponse(
       meal: AiMealInfo(
         name: mealName,
@@ -906,7 +904,7 @@ class AiAssistantNotifier extends StateNotifier<AiAssistantState> {
     );
 
     try {
-      final useCase = AddItemUseCase(_shoppingRepository);
+      final useCase = AddItemUseCase(ref.read(shoppingListRepositoryProvider));
 
       // Fetch user context for precise mapping
       List<UnitModel> units = [];
@@ -914,13 +912,13 @@ class AiAssistantNotifier extends StateNotifier<AiAssistantState> {
       List<ItemTemplateModel> templates = [];
 
       try {
-        units = _ref.read(unitsProvider(null)).value ?? [];
+        units = ref.read(unitsProvider(null)).value ?? [];
       } catch (_) {}
       try {
-        categories = _ref.read(categoriesProvider(homeId)).value ?? [];
+        categories = ref.read(categoriesProvider(homeId)).value ?? [];
       } catch (_) {}
       try {
-        templates = _ref.read(itemTemplatesProvider(homeId)).value ?? [];
+        templates = ref.read(itemTemplatesProvider(homeId)).value ?? [];
       } catch (_) {}
 
       // Add items concurrently instead of sequentially to prevent UI freezing
@@ -949,8 +947,13 @@ class AiAssistantNotifier extends StateNotifier<AiAssistantState> {
       state = const AiAssistantIdle();
       return true;
     } catch (e) {
-      final l10n = _ref.read(appLocalizationsProvider);
-      state = AiAssistantError(l10n.translate('ai_add_items_error', arguments: {'error': e.toString()}));
+      final l10n = ref.read(appLocalizationsProvider);
+      state = AiAssistantError(
+        l10n.translate(
+          'ai_add_items_error',
+          arguments: {'error': ErrorFormatter.formatWithL10n(e, l10n)},
+        ),
+      );
       return false;
     }
   }

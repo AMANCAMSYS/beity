@@ -4,7 +4,9 @@ import 'package:go_router/go_router.dart';
 import '../providers/task_providers.dart';
 import '../widgets/task_card.dart';
 import '../../../../shared/widgets/design_system/sawa_empty_state.dart';
+import '../../../../shared/widgets/design_system/sawa_loading_state.dart';
 import 'package:sawa/core/localization/app_localizations.dart';
+import 'package:sawa/core/errors/error_formatter.dart';
 
 class ArchivedTasksScreen extends ConsumerWidget {
   final String homeId;
@@ -27,15 +29,19 @@ class ArchivedTasksScreen extends ConsumerWidget {
         future: repository.getTasks(homeId: homeId, activeOnly: false),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return SawaLoadingState(
+              message: context.translate('loading_archived_tasks'),
+            );
           }
 
           if (snapshot.hasError) {
             return SawaEmptyState(
               title: context.translate('error_occurred'),
-              message: snapshot.error.toString(),
+              message: ErrorFormatter.format(snapshot.error!, context),
               icon: Icons.error_outline_rounded,
               isError: true,
+              actionText: context.translate('retry'),
+              onAction: () => ref.invalidate(taskRepositoryProvider),
             );
           }
 

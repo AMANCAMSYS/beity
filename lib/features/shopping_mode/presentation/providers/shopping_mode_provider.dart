@@ -1,4 +1,4 @@
-import 'package:flutter_riverpod/legacy.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class ShoppingModeState {
   final bool isActive;
@@ -28,8 +28,11 @@ class ShoppingModeState {
   }
 }
 
-class ShoppingModeNotifier extends StateNotifier<ShoppingModeState> {
-  ShoppingModeNotifier() : super(const ShoppingModeState());
+class ShoppingModeNotifier extends Notifier<ShoppingModeState> {
+  @override
+  ShoppingModeState build() {
+    return const ShoppingModeState();
+  }
 
   void activate(String sessionId) {
     state = state.copyWith(isActive: true, sessionId: sessionId);
@@ -60,6 +63,6 @@ class ShoppingModeNotifier extends StateNotifier<ShoppingModeState> {
 }
 
 final shoppingModeProvider =
-    StateNotifierProvider<ShoppingModeNotifier, ShoppingModeState>((ref) {
+    NotifierProvider<ShoppingModeNotifier, ShoppingModeState>(() {
       return ShoppingModeNotifier();
     });

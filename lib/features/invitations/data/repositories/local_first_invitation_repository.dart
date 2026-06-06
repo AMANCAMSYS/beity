@@ -1,6 +1,3 @@
-import 'dart:async';
-
-import 'package:sawa/core/services/notification_service.dart';
 import 'package:sawa/core/local_database/daos/invitations_dao.dart';
 import 'package:sawa/core/local_database/daos/users_dao.dart';
 import 'package:sawa/core/local_database/local_database_service.dart';
@@ -105,19 +102,6 @@ class LocalFirstInvitationRepository implements InvitationRepository {
 
       final model = InvitationModel.fromJson(response as Map<String, dynamic>);
       await _invitationsDao.upsertInvitations([model.toLocalRow()]);
-      unawaited(
-        NotificationService.sendInvitationNotification(
-          eventType: 'invitation_accepted',
-          homeId: model.homeId,
-          actorId: user.id,
-          invitationId: model.id,
-          targetUserIds: [model.invitedBy],
-          context: {
-            'home_name': 'home',
-            if (model.email != null) 'email': model.email!,
-          },
-        ),
-      );
       return model;
     } catch (e) {
       if (e.toString().contains('Not authenticated')) {
@@ -166,9 +150,14 @@ class LocalFirstInvitationRepository implements InvitationRepository {
         throw Exception('invitation_not_found');
       }
 
+      final userId = _client.auth.currentUser?.id;
       final response = await _client
           .from('invitations')
-          .update({'status': 'cancelled'})
+          .update({
+            'status': 'cancelled',
+            // ignore: use_null_aware_elements
+            if (userId != null) 'updated_by': userId,
+          })
           .eq('id', invitation['id'])
           .select()
           .maybeSingle();
@@ -176,22 +165,6 @@ class LocalFirstInvitationRepository implements InvitationRepository {
       if (response != null) {
         final model = InvitationModel.fromJson(response);
         await _invitationsDao.upsertInvitations([model.toLocalRow()]);
-        final actorId = _userId;
-        if (actorId != null) {
-          unawaited(
-            NotificationService.sendInvitationNotification(
-              eventType: 'invitation_declined',
-              homeId: model.homeId,
-              actorId: actorId,
-              invitationId: model.id,
-              targetUserIds: [model.invitedBy],
-              context: {
-                'home_name': 'home',
-                if (model.email != null) 'email': model.email!,
-              },
-            ),
-          );
-        }
         return model;
       }
     } catch (_) {
@@ -228,9 +201,14 @@ class LocalFirstInvitationRepository implements InvitationRepository {
 
     // Try Supabase
     try {
+      final userId = _client.auth.currentUser?.id;
       final response = await _client
           .from('invitations')
-          .update({'status': 'cancelled'})
+          .update({
+            'status': 'cancelled',
+            // ignore: use_null_aware_elements
+            if (userId != null) 'updated_by': userId,
+          })
           .eq('id', invitationId)
           .select()
           .maybeSingle();

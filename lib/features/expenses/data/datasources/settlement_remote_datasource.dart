@@ -7,9 +7,7 @@ class SettlementRemoteDataSource {
 
   SettlementRemoteDataSource(this._client);
 
-  Future<List<SettlementModel>> getSettlements({
-    required String homeId,
-  }) async {
+  Future<List<SettlementModel>> getSettlements({required String homeId}) async {
     final response = await _client
         .from('settlements')
         .select()
@@ -34,61 +32,58 @@ class SettlementRemoteDataSource {
       throw Exception('must_login_first');
     }
 
-    final response = await _client.rpc('record_settlement', params: {
-      'p_home_id': homeId,
-      'p_from_member': fromMember,
-      'p_to_member': toMember,
-      'p_amount': amount,
-      'p_payment_method': paymentMethod,
-      'p_date': date.toIso8601String().split('T')[0],
-    });
+    final response = await _client.rpc(
+      'record_settlement',
+      params: {
+        'p_home_id': homeId,
+        'p_from_member': fromMember,
+        'p_to_member': toMember,
+        'p_amount': amount,
+        'p_payment_method': paymentMethod,
+        'p_date': date.toIso8601String().split('T')[0],
+      },
+    );
 
     return SettlementModel.fromJson(response);
   }
 
-  Future<List<Balance>> calculateBalances({
-    required String homeId,
-  }) async {
-    final response =
-        await _client.rpc('calculate_home_balances', params: {
-      'p_home_id': homeId,
-    });
+  Future<List<Balance>> calculateBalances({required String homeId}) async {
+    final response = await _client.rpc(
+      'calculate_home_balances',
+      params: {'p_home_id': homeId},
+    );
 
-    return (response as List<dynamic>)
-        .map((json) {
-          final map = json as Map<String, dynamic>;
-          return Balance(
-            memberA: map['member_a'] as String? ?? '',
-            memberB: map['member_b'] as String? ?? '',
-            netAmount: (map['net_amount'] as num?)?.toInt() ?? 0,
-          );
-        })
-        .toList();
+    return (response as List<dynamic>).map((json) {
+      final map = json as Map<String, dynamic>;
+      return Balance(
+        memberA: map['member_a'] as String? ?? '',
+        memberB: map['member_b'] as String? ?? '',
+        netAmount: (map['net_amount'] as num?)?.toInt() ?? 0,
+      );
+    }).toList();
   }
 
   Future<bool> hasUnsettledBalances({
     required String homeId,
     required String userId,
   }) async {
-    final response =
-        await _client.rpc('has_unsettled_balances', params: {
-      'p_home_id': homeId,
-      'p_user_id': userId,
-    });
+    final response = await _client.rpc(
+      'has_unsettled_balances',
+      params: {'p_home_id': homeId, 'p_user_id': userId},
+    );
 
     return response == true;
   }
 
-  Stream<List<SettlementModel>> watchSettlements({
-    required String homeId,
-  }) {
+  Stream<List<SettlementModel>> watchSettlements({required String homeId}) {
     return _client
         .from('settlements')
         .stream(primaryKey: ['id'])
         .eq('home_id', homeId)
         .order('date', ascending: false)
-        .map((response) => response
-            .map((json) => SettlementModel.fromJson(json))
-            .toList());
+        .map(
+          (response) =>
+              response.map((json) => SettlementModel.fromJson(json)).toList(),
+        );
   }
 }

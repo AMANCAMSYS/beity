@@ -102,33 +102,33 @@ class _WelcomeOnboardingScreenState extends State<WelcomeOnboardingScreen> {
           // ── Skip button (top trailing) ────────────────────────────────
           SafeArea(
             child: Align(
-              alignment:
-                  isRtl ? Alignment.topLeft : Alignment.topRight,
+              alignment: isRtl ? Alignment.topLeft : Alignment.topRight,
               child: Padding(
                 padding: const EdgeInsets.all(AppSpacing.md),
                 child: AnimatedOpacity(
                   opacity: isLast ? 0.0 : 1.0,
                   duration: const Duration(milliseconds: 200),
-                  child: TextButton(
-                    onPressed: isLast ? null : _finishOnboarding,
-                    style: TextButton.styleFrom(
-                      foregroundColor: Colors.white,
-                      backgroundColor:
-                          Colors.white.withValues(alpha: 0.2),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(
-                          AppSpacing.radiusPill,
+                  child: Semantics(
+                    label: t('onboarding_skip'),
+                    button: true,
+                    child: TextButton(
+                      onPressed: isLast ? null : _finishOnboarding,
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        backgroundColor: Colors.white.withValues(alpha: 0.2),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(
+                            AppSpacing.radiusPill,
+                          ),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.lg,
+                          vertical: AppSpacing.sm,
                         ),
                       ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.lg,
-                        vertical: AppSpacing.sm,
-                      ),
-                    ),
-                    child: Text(
-                      t('onboarding_skip'),
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
+                      child: Text(
+                        t('onboarding_skip'),
+                        style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
                     ),
                   ),
@@ -161,29 +161,36 @@ class _WelcomeOnboardingScreenState extends State<WelcomeOnboardingScreen> {
                     SizedBox(
                       width: double.infinity,
                       height: 52,
-                      child: FilledButton(
-                        onPressed: _nextPage,
-                        style: FilledButton.styleFrom(
-                          backgroundColor:
-                              Colors.white.withValues(alpha: 0.25),
-                          foregroundColor: Colors.white,
-                          side: BorderSide(
-                            color: Colors.white.withValues(alpha: 0.5),
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(
-                              AppSpacing.radiusPill,
+                      child: Semantics(
+                        label: isLast
+                            ? t('onboarding_get_started')
+                            : t('onboarding_next'),
+                        button: true,
+                        child: FilledButton(
+                          onPressed: _nextPage,
+                          style: FilledButton.styleFrom(
+                            backgroundColor: Colors.white.withValues(
+                              alpha: 0.25,
+                            ),
+                            foregroundColor: Colors.white,
+                            side: BorderSide(
+                              color: Colors.white.withValues(alpha: 0.5),
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(
+                                AppSpacing.radiusPill,
+                              ),
+                            ),
+                            textStyle: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
                             ),
                           ),
-                          textStyle: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
+                          child: Text(
+                            isLast
+                                ? t('onboarding_get_started')
+                                : t('onboarding_next'),
                           ),
-                        ),
-                        child: Text(
-                          isLast
-                              ? t('onboarding_get_started')
-                              : t('onboarding_next'),
                         ),
                       ),
                     ),

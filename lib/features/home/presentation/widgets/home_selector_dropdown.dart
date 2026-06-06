@@ -30,40 +30,49 @@ class HomeSelectorDropdown extends StatelessWidget {
       offset: const Offset(0, 40),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       itemBuilder: (context) => [
-        ...homes.map((home) => PopupMenuItem(
-              value: home.id,
-              child: Row(
-                children: [
-                  Icon(
-                    home.isActive ? Icons.check_circle : Icons.home_outlined,
-                    color: home.isActive ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
+        ...homes.map(
+          (home) => PopupMenuItem(
+            value: home.id,
+            child: Row(
+              children: [
+                Icon(
+                  home.isActive ? Icons.check_circle : Icons.home_outlined,
+                  color: home.isActive
+                      ? theme.colorScheme.primary
+                      : theme.colorScheme.onSurfaceVariant,
+                  size: 20,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        home.name,
+                        style: TextStyle(
+                          fontWeight: home.isActive
+                              ? FontWeight.bold
+                              : FontWeight.normal,
+                        ),
+                      ),
+                      if (home.memberCount > 0)
                         Text(
-                          home.name,
+                          context.translate(
+                            'members_count',
+                            arguments: {'count': home.memberCount.toString()},
+                          ),
                           style: TextStyle(
-                            fontWeight: home.isActive ? FontWeight.bold : FontWeight.normal,
+                            fontSize: 12,
+                            color: theme.colorScheme.onSurfaceVariant,
                           ),
                         ),
-                        if (home.memberCount > 0)
-                          Text(
-                            context.translate('members_count', arguments: {'count': home.memberCount.toString()}),
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                      ],
-                    ),
+                    ],
                   ),
-                ],
-              ),
-            )),
+                ),
+              ],
+            ),
+          ),
+        ),
         const PopupMenuDivider(),
         PopupMenuItem(
           value: 'manage',

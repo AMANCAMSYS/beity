@@ -218,7 +218,9 @@ class LocalDataMigrationService {
           );
           if (migrated.isNotEmpty) {
             final invitationsDao = InvitationsDao(_db);
-            final isUserInvitations = key.startsWith('cached_user_invitations_');
+            final isUserInvitations = key.startsWith(
+              'cached_user_invitations_',
+            );
             final cacheUserId = isUserInvitations
                 ? key.substring('cached_user_invitations_'.length)
                 : null;

@@ -42,9 +42,9 @@ class BetaWelcomeDialog extends StatelessWidget {
           const SizedBox(height: 16),
           Text(
             context.translate('beta_how_to_report'),
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           Text(context.translate('beta_step_1')),
@@ -53,9 +53,9 @@ class BetaWelcomeDialog extends StatelessWidget {
           const SizedBox(height: 16),
           Text(
             context.translate('beta_feedback_helps'),
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.grey[600],
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
           ),
         ],
       ),

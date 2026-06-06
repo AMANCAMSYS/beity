@@ -74,7 +74,10 @@ class SettingsHomeSection extends ConsumerWidget {
           icon: Icons.payments_rounded,
           title: l10n.translate('default_currency'),
           subtitle: activeHome != null
-              ? l10n.translate('current_currency', arguments: {'currency': activeHome!.defaultCurrency ?? "TRY"})
+              ? l10n.translate(
+                  'current_currency',
+                  arguments: {'currency': activeHome!.defaultCurrency ?? "TRY"},
+                )
               : l10n.translate('default_currency_subtitle'),
           onTap: () {
             if (activeHomeId != null && activeHomeId!.isNotEmpty) {

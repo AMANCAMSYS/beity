@@ -1,6 +1,7 @@
 import 'package:sawa/shared/widgets/design_system/sawa_button.dart';
 import 'package:sawa/shared/widgets/design_system/sawa_card.dart';
 import 'package:sawa/shared/widgets/design_system/sawa_empty_state.dart';
+import 'package:sawa/shared/widgets/design_system/sawa_loading_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -11,6 +12,7 @@ import 'package:sawa/app/theme/app_colors.dart';
 import '../providers/expense_providers.dart';
 import '../widgets/expense_card.dart';
 import '../../../../core/localization/app_localizations.dart';
+import '../../../../core/errors/error_formatter.dart';
 import '../../../onboarding/presentation/providers/app_tour_controller.dart';
 import '../../../onboarding/presentation/providers/app_tour_target_registry.dart';
 
@@ -33,7 +35,9 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(appTourControllerProvider.notifier).maybeStartExpensesTour(context);
+      ref
+          .read(appTourControllerProvider.notifier)
+          .maybeStartExpensesTour(context);
     });
   }
 
@@ -41,7 +45,9 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
   Widget build(BuildContext context) {
     final expensesAsync = ref.watch(expensesProvider(widget.homeId));
     final theme = Theme.of(context);
-    final permissions = ref.watch(currentHomePermissionsProvider(widget.homeId));
+    final permissions = ref.watch(
+      currentHomePermissionsProvider(widget.homeId),
+    );
     final canManage = permissions.canEdit;
 
     return Scaffold(
@@ -110,7 +116,7 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
 
               if (_startDate != null) {
                 filteredExpenses = filteredExpenses
-                    .where((e) => e.date.isAfter(_startDate!))
+                    .where((e) => !e.date.isBefore(_startDate!))
                     .toList();
               }
               if (_endDate != null) {
@@ -143,21 +149,20 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
                       : context.translate('expenses_filter_empty_desc'),
                   icon: Icons.receipt_long_rounded,
                   actionText: expenses.isEmpty
-                      ? (canManage ? context.translate('add_first_expense') : null)
+                      ? (canManage
+                            ? context.translate('add_first_expense')
+                            : null)
                       : context.translate('clear_filters_action'),
                   onAction: expenses.isEmpty
-                      ? (canManage ? () => ActionDebouncer.execute(
-                          () => context.push(
-                            '/expenses/add',
-                            extra: widget.homeId,
-                          ),
-                        ) : null)
-                      : () => setState(() {
-                          _startDate = null;
-                          _endDate = null;
-                          _selectedCategoryId = null;
-                          _selectedMemberId = null;
-                        }),
+                      ? (canManage
+                            ? () => ActionDebouncer.execute(
+                                () => context.push(
+                                  '/expenses/add',
+                                  extra: widget.homeId,
+                                ),
+                              )
+                            : null)
+                      : () => setState(_clearFilters),
                 );
               }
 
@@ -185,14 +190,12 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
                 ),
               );
             },
-            loading: () => Center(
-              child: CircularProgressIndicator(
-                color: theme.colorScheme.primary,
-              ),
+            loading: () => SawaLoadingState(
+              message: context.translate('loading_expenses'),
             ),
             error: (error, stack) => SawaEmptyState(
               title: context.translate('error_title'),
-              message: error.toString(),
+              message: ErrorFormatter.format(error, context),
               icon: Icons.error_outline_rounded,
               isError: true,
               actionText: context.translate('retry'),
@@ -201,14 +204,16 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
           ),
         ),
       ),
-      floatingActionButton: canManage ? FloatingActionButton.extended(
-        key: AppTourTargetRegistry.expensesAddKey,
-        onPressed: () => ActionDebouncer.execute(
-          () => context.push('/expenses/add', extra: widget.homeId),
-        ),
-        icon: const Icon(Icons.add_rounded),
-        label: Text(context.translate('add_expense')),
-      ) : null,
+      floatingActionButton: canManage
+          ? FloatingActionButton.extended(
+              key: AppTourTargetRegistry.expensesAddKey,
+              onPressed: () => ActionDebouncer.execute(
+                () => context.push('/expenses/add', extra: widget.homeId),
+              ),
+              icon: const Icon(Icons.add_rounded),
+              label: Text(context.translate('add_expense')),
+            )
+          : null,
     );
   }
 
@@ -322,10 +327,7 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
                         type: SawaButtonType.secondary,
                         text: context.translate('clear_all'),
                         onPressed: () {
-                          setState(() {
-                            _startDate = null;
-                            _endDate = null;
-                          });
+                          setState(_clearFilters);
                           Navigator.pop(context);
                         },
                       ),
@@ -414,5 +416,12 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
         ),
       ),
     );
+  }
+
+  void _clearFilters() {
+    _startDate = null;
+    _endDate = null;
+    _selectedCategoryId = null;
+    _selectedMemberId = null;
   }
 }

@@ -31,53 +31,64 @@ void main() {
     test('should update expense amount', () async {
       final updatedExpense = existingExpense.copyWith(amount: 15000);
 
-      when(() => mockRepository.updateExpense(
-            expenseId: 'expense-123',
-            amount: 15000,
-          )).thenAnswer((_) async => updatedExpense);
+      when(
+        () => mockRepository.updateExpense(
+          expenseId: 'expense-123',
+          amount: 15000,
+        ),
+      ).thenAnswer((_) async => updatedExpense);
 
-      final result = await useCase(const EditExpenseParams(
-        expenseId: 'expense-123',
-        amount: 15000,
-      ));
+      final result = await useCase(
+        const EditExpenseParams(expenseId: 'expense-123', amount: 15000),
+      );
 
       expect(result.amount, 15000);
-      verify(() => mockRepository.updateExpense(
-            expenseId: 'expense-123',
-            amount: 15000,
-          )).called(1);
+      verify(
+        () => mockRepository.updateExpense(
+          expenseId: 'expense-123',
+          amount: 15000,
+        ),
+      ).called(1);
     });
 
     test('should update expense description', () async {
-      final updatedExpense =
-          existingExpense.copyWith(description: 'Weekly groceries');
-
-      when(() => mockRepository.updateExpense(
-            expenseId: 'expense-123',
-            description: 'Weekly groceries',
-          )).thenAnswer((_) async => updatedExpense);
-
-      final result = await useCase(const EditExpenseParams(
-        expenseId: 'expense-123',
+      final updatedExpense = existingExpense.copyWith(
         description: 'Weekly groceries',
-      ));
+      );
+
+      when(
+        () => mockRepository.updateExpense(
+          expenseId: 'expense-123',
+          description: 'Weekly groceries',
+        ),
+      ).thenAnswer((_) async => updatedExpense);
+
+      final result = await useCase(
+        const EditExpenseParams(
+          expenseId: 'expense-123',
+          description: 'Weekly groceries',
+        ),
+      );
 
       expect(result.description, 'Weekly groceries');
     });
 
     test('should update expense category', () async {
-      final updatedExpense =
-          existingExpense.copyWith(categoryId: 'cat-456');
+      final updatedExpense = existingExpense.copyWith(categoryId: 'cat-456');
 
-      when(() => mockRepository.updateExpense(
-            expenseId: 'expense-123',
-            categoryId: 'cat-456',
-          )).thenAnswer((_) async => updatedExpense);
+      when(
+        () => mockRepository.updateExpense(
+          expenseId: 'expense-123',
+          categoryId: 'cat-456',
+        ),
+      ).thenAnswer((_) async => updatedExpense);
 
-      final result = await useCase(const EditExpenseParams(
-        expenseId: 'expense-123',
-        categoryId: 'cat-456',
-      ));
+      final result = await useCase(
+        const EditExpenseParams(
+          expenseId: 'expense-123',
+          categoryId: 'cat-456',
+        ),
+      );
 
       expect(result.categoryId, 'cat-456');
     });

@@ -22,22 +22,23 @@ abstract class ExpenseLocalDataSource {
     required List<ExpenseModel> expenses,
   });
 
-  Future<List<ExpenseModel>> getExpensesStreamCache({
-    required String homeId,
-  });
+  Future<List<ExpenseModel>> getExpensesStreamCache({required String homeId});
 
   Future<void> saveExpensesStreamCache({
     required String homeId,
     required List<ExpenseModel> expenses,
   });
 
-  Future<void> setInitialSyncCompleted({required String homeId, required bool completed});
+  Future<void> setInitialSyncCompleted({
+    required String homeId,
+    required bool completed,
+  });
   Future<bool> isInitialSyncCompleted({required String homeId});
 }
 
-
 /// SharedPreferences-based implementation of [ExpenseLocalDataSource].
-class SharedPreferencesExpenseLocalDataSource implements ExpenseLocalDataSource {
+class SharedPreferencesExpenseLocalDataSource
+    implements ExpenseLocalDataSource {
   String _getExpensesKey(
     String homeId,
     DateTime? startDate,
@@ -50,8 +51,7 @@ class SharedPreferencesExpenseLocalDataSource implements ExpenseLocalDataSource 
     return 'cached_expenses_${homeId}_${startStr}_${endStr}_${categoryId ?? "null"}_${memberId ?? "null"}';
   }
 
-  String _getStreamKey(String homeId) =>
-      'cached_expenses_stream_$homeId';
+  String _getStreamKey(String homeId) => 'cached_expenses_stream_$homeId';
 
   @override
   Future<List<ExpenseModel>> getExpenses({
@@ -63,7 +63,13 @@ class SharedPreferencesExpenseLocalDataSource implements ExpenseLocalDataSource 
   }) async {
     try {
       final prefs = AppPreferences.instance;
-      final key = _getExpensesKey(homeId, startDate, endDate, categoryId, memberId);
+      final key = _getExpensesKey(
+        homeId,
+        startDate,
+        endDate,
+        categoryId,
+        memberId,
+      );
       final jsonStr = prefs.getString(key);
       if (jsonStr == null) return [];
 
@@ -85,7 +91,13 @@ class SharedPreferencesExpenseLocalDataSource implements ExpenseLocalDataSource 
   }) async {
     try {
       final prefs = AppPreferences.instance;
-      final key = _getExpensesKey(homeId, startDate, endDate, categoryId, memberId);
+      final key = _getExpensesKey(
+        homeId,
+        startDate,
+        endDate,
+        categoryId,
+        memberId,
+      );
       final jsonStr = jsonEncode(expenses.map((e) => e.toJson()).toList());
       await prefs.setString(key, jsonStr);
     } catch (_) {}
@@ -122,10 +134,16 @@ class SharedPreferencesExpenseLocalDataSource implements ExpenseLocalDataSource 
   }
 
   @override
-  Future<void> setInitialSyncCompleted({required String homeId, required bool completed}) async {
+  Future<void> setInitialSyncCompleted({
+    required String homeId,
+    required bool completed,
+  }) async {
     try {
       final prefs = AppPreferences.instance;
-      await prefs.setBool('initial_sync_completed_expenses_home_$homeId', completed);
+      await prefs.setBool(
+        'initial_sync_completed_expenses_home_$homeId',
+        completed,
+      );
     } catch (_) {}
   }
 
@@ -133,7 +151,8 @@ class SharedPreferencesExpenseLocalDataSource implements ExpenseLocalDataSource 
   Future<bool> isInitialSyncCompleted({required String homeId}) async {
     try {
       final prefs = AppPreferences.instance;
-      return prefs.getBool('initial_sync_completed_expenses_home_$homeId') ?? false;
+      return prefs.getBool('initial_sync_completed_expenses_home_$homeId') ??
+          false;
     } catch (_) {
       return false;
     }

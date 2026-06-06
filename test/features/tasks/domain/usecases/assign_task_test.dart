@@ -27,34 +27,34 @@ void main() {
     test('should assign task to member', () async {
       final assignedTask = testTask.copyWith(assignedTo: 'user-456');
 
-      when(() => mockRepository.updateTask(
-            taskId: 'task-123',
-            assignedTo: 'user-456',
-          )).thenAnswer((_) async => assignedTask);
+      when(
+        () => mockRepository.updateTask(
+          taskId: 'task-123',
+          assignedTo: 'user-456',
+        ),
+      ).thenAnswer((_) async => assignedTask);
 
-      final result = await useCase(const AssignTaskParams(
-        taskId: 'task-123',
-        assignedTo: 'user-456',
-      ));
+      final result = await useCase(
+        const AssignTaskParams(taskId: 'task-123', assignedTo: 'user-456'),
+      );
 
       expect(result.assignedTo, 'user-456');
-      verify(() => mockRepository.updateTask(
-            taskId: 'task-123',
-            assignedTo: 'user-456',
-          )).called(1);
+      verify(
+        () => mockRepository.updateTask(
+          taskId: 'task-123',
+          assignedTo: 'user-456',
+        ),
+      ).called(1);
     });
 
     test('should unassign task when null is passed', () async {
+      when(
+        () => mockRepository.updateTask(taskId: 'task-123', assignedTo: null),
+      ).thenAnswer((_) async => testTask);
 
-      when(() => mockRepository.updateTask(
-            taskId: 'task-123',
-            assignedTo: null,
-          )).thenAnswer((_) async => testTask);
-
-      final result = await useCase(const AssignTaskParams(
-        taskId: 'task-123',
-        assignedTo: null,
-      ));
+      final result = await useCase(
+        const AssignTaskParams(taskId: 'task-123', assignedTo: null),
+      );
 
       expect(result.assignedTo, null);
     });
@@ -63,15 +63,16 @@ void main() {
       final assignedTask = testTask.copyWith(assignedTo: 'user-456');
       final reassignedTask = assignedTask.copyWith(assignedTo: 'user-789');
 
-      when(() => mockRepository.updateTask(
-            taskId: 'task-123',
-            assignedTo: 'user-789',
-          )).thenAnswer((_) async => reassignedTask);
+      when(
+        () => mockRepository.updateTask(
+          taskId: 'task-123',
+          assignedTo: 'user-789',
+        ),
+      ).thenAnswer((_) async => reassignedTask);
 
-      final result = await useCase(const AssignTaskParams(
-        taskId: 'task-123',
-        assignedTo: 'user-789',
-      ));
+      final result = await useCase(
+        const AssignTaskParams(taskId: 'task-123', assignedTo: 'user-789'),
+      );
 
       expect(result.assignedTo, 'user-789');
     });

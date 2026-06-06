@@ -8,9 +8,7 @@ class TaskCommentRepositoryImpl implements TaskCommentRepository {
   TaskCommentRepositoryImpl(this._dataSource);
 
   @override
-  Future<List<TaskComment>> getComments({
-    required String taskId,
-  }) async {
+  Future<List<TaskComment>> getComments({required String taskId}) async {
     return _dataSource.getComments(taskId: taskId);
   }
 
@@ -23,16 +21,12 @@ class TaskCommentRepositoryImpl implements TaskCommentRepository {
   }
 
   @override
-  Future<void> deleteComment({
-    required String commentId,
-  }) async {
+  Future<void> deleteComment({required String commentId}) async {
     return _dataSource.deleteComment(commentId: commentId);
   }
 
   @override
-  Stream<List<TaskComment>> watchComments({
-    required String taskId,
-  }) {
+  Stream<List<TaskComment>> watchComments({required String taskId}) {
     return _dataSource.watchComments(taskId: taskId);
   }
 }

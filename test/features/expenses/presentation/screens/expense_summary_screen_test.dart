@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:sawa/features/expenses/domain/entities/expense.dart';
 import 'package:sawa/features/expenses/domain/repositories/expense_repository.dart';
@@ -18,10 +17,11 @@ import 'package:sawa/core/services/sync_coordinator.dart';
 
 class MockExpenseRepository extends Mock implements ExpenseRepository {}
 
-class MockSyncCoordinator extends StateNotifier<SyncState>
+class MockSyncCoordinator extends Notifier<SyncState>
     with Mock
     implements SyncCoordinator {
-  MockSyncCoordinator() : super(SyncState(status: SyncStatus.idle));
+  @override
+  SyncState build() => SyncState(status: SyncStatus.idle);
 }
 
 void main() {
@@ -42,6 +42,8 @@ void main() {
         any(),
         force: any(named: 'force'),
         targetDomain: any(named: 'targetDomain'),
+        repairMissing: any(named: 'repairMissing'),
+        silent: any(named: 'silent'),
       ),
     ).thenAnswer((_) async {});
   });
@@ -56,7 +58,7 @@ void main() {
     return ProviderScope(
       overrides: [
         expenseRepositoryProvider.overrideWithValue(mockRepository),
-        syncCoordinatorProvider.overrideWith((ref) => mockSyncCoordinator),
+        syncCoordinatorProvider.overrideWith(() => mockSyncCoordinator),
         appLocalizationsProvider.overrideWithValue(AppLocalizations(locale)),
         categoriesByTypeProvider((
           homeId: homeId,
@@ -230,6 +232,8 @@ void main() {
             'home-123',
             force: true,
             targetDomain: 'expenses',
+            repairMissing: true,
+            silent: false,
           ),
         ).called(1);
       },

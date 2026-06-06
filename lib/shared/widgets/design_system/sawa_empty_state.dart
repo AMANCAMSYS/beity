@@ -43,7 +43,9 @@ class SawaEmptyState extends StatelessWidget {
             Text(
               title,
               style: theme.textTheme.headlineSmall?.copyWith(
-                color: isError ? theme.colorScheme.error : theme.colorScheme.onSurfaceVariant,
+                color: isError
+                    ? theme.colorScheme.error
+                    : theme.colorScheme.onSurfaceVariant,
                 fontWeight: FontWeight.w600,
               ),
               textAlign: TextAlign.center,
@@ -53,7 +55,9 @@ class SawaEmptyState extends StatelessWidget {
               Text(
                 message!,
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.78),
+                  color: theme.colorScheme.onSurfaceVariant.withValues(
+                    alpha: 0.78,
+                  ),
                 ),
                 textAlign: TextAlign.center,
               ),

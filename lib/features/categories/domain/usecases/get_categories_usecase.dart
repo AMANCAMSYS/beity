@@ -6,13 +6,7 @@ class GetCategoriesUseCase {
 
   GetCategoriesUseCase(this._repository);
 
-  Future<List<Category>> call({
-    String? homeId,
-    String? type,
-  }) async {
-    return _repository.getCategories(
-      homeId: homeId,
-      type: type,
-    );
+  Future<List<Category>> call({String? homeId, String? type}) async {
+    return _repository.getCategories(homeId: homeId, type: type);
   }
 }

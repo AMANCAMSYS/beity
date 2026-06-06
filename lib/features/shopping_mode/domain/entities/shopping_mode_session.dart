@@ -24,8 +24,10 @@ class ShoppingModeSession {
   });
 
   bool get isActive => endedAt == null;
-  bool get isComplete => itemsPurchasedCount == itemsTotalCount && itemsTotalCount > 0;
-  double get progress => itemsTotalCount > 0 ? itemsPurchasedCount / itemsTotalCount : 0;
+  bool get isComplete =>
+      itemsPurchasedCount == itemsTotalCount && itemsTotalCount > 0;
+  double get progress =>
+      itemsTotalCount > 0 ? itemsPurchasedCount / itemsTotalCount : 0;
 
   ShoppingModeSession copyWith({
     String? id,

@@ -85,107 +85,111 @@ class _FeedbackBottomSheetState extends State<FeedbackBottomSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                context.translate('send_feedback'),
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              Semantics(
-                button: true,
-                label: 'Close feedback form',
-                child: IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: () => Navigator.of(context).pop(),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  context.translate('send_feedback'),
+                  style: Theme.of(context).textTheme.titleMedium,
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          // Type selector
-          Semantics(
-            label: 'Feedback type selector',
-            child: SegmentedButton<String>(
-              segments: [
-                ButtonSegment(
-                  value: 'bug',
-                  icon: const Icon(Icons.bug_report_rounded),
-                  label: Text(context.translate('bug')),
-                ),
-                ButtonSegment(
-                  value: 'survey',
-                  icon: const Icon(Icons.lightbulb_rounded),
-                  label: Text(context.translate('suggestion')),
+                Semantics(
+                  button: true,
+                  label: 'Close feedback form',
+                  child: IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
                 ),
               ],
-              selected: {_feedbackType},
-              showSelectedIcon: false,
-              onSelectionChanged: (selection) {
-                setState(() {
-                  _feedbackType = selection.first;
-                });
-              },
             ),
-          ),
-          const SizedBox(height: 16),
-          // Description field
-          Semantics(
-            label: 'Feedback description input',
-            textField: true,
-            child: TextFormField(
-              controller: _descriptionController,
-              maxLines: 4,
-              maxLength: 2000,
-              decoration: InputDecoration(
-                hintText: context.translate('feedback_description_hint'),
-                border: const OutlineInputBorder(),
+            const SizedBox(height: 16),
+            // Type selector
+            Semantics(
+              label: 'Feedback type selector',
+              child: SegmentedButton<String>(
+                segments: [
+                  ButtonSegment(
+                    value: 'bug',
+                    icon: const Icon(Icons.bug_report_rounded),
+                    label: Text(context.translate('bug')),
+                  ),
+                  ButtonSegment(
+                    value: 'survey',
+                    icon: const Icon(Icons.lightbulb_rounded),
+                    label: Text(context.translate('suggestion')),
+                  ),
+                ],
+                selected: {_feedbackType},
+                showSelectedIcon: false,
+                onSelectionChanged: (selection) {
+                  setState(() {
+                    _feedbackType = selection.first;
+                  });
+                },
               ),
             ),
-          ),
-          if (_error != null) ...[
-            const SizedBox(height: 8),
-            Text(
-              _error!,
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
-            ),
-          ],
-          const SizedBox(height: 8),
-          if (widget.screenRoute != null && widget.screenRoute != 'unknown_screen') ...[
-            Text(
-              context.translate('current_screen_label', arguments: {'route': widget.screenRoute!}),
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Colors.grey[600],
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
-            const SizedBox(height: 4),
-          ],
-          Text(
-            context.translate('feedback_auto_attach_info'),
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.grey[600],
+            const SizedBox(height: 16),
+            // Description field
+            Semantics(
+              label: 'Feedback description input',
+              textField: true,
+              child: TextFormField(
+                controller: _descriptionController,
+                maxLines: 4,
+                maxLength: 2000,
+                decoration: InputDecoration(
+                  hintText: context.translate('feedback_description_hint'),
+                  border: const OutlineInputBorder(),
                 ),
-          ),
-          const SizedBox(height: 16),
-          Semantics(
-            button: true,
-            label: 'Submit feedback',
-            child: FilledButton(
-              onPressed: _isSubmitting ? null : _submit,
-              child: _isSubmitting
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : Text(context.translate('send_feedback')),
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
-        ],
+            if (_error != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                _error!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+            ],
+            const SizedBox(height: 8),
+            if (widget.screenRoute != null &&
+                widget.screenRoute != 'unknown_screen') ...[
+              Text(
+                context.translate(
+                  'current_screen_label',
+                  arguments: {'route': widget.screenRoute!},
+                ),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 4),
+            ],
+            Text(
+              context.translate('feedback_auto_attach_info'),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
+            ),
+            const SizedBox(height: 16),
+            Semantics(
+              button: true,
+              label: 'Submit feedback',
+              child: FilledButton(
+                onPressed: _isSubmitting ? null : _submit,
+                child: _isSubmitting
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Text(context.translate('send_feedback')),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
       ),
-     ),
     );
   }
 }

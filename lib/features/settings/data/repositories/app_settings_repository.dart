@@ -48,11 +48,15 @@ class AppSettingsRepository {
 
     // Default to device locale if not set
     try {
-      final deviceLanguageCode = ui.PlatformDispatcher.instance.locale.languageCode;
+      final deviceLanguageCode =
+          ui.PlatformDispatcher.instance.locale.languageCode;
       return switch (deviceLanguageCode) {
         'ar' => const Locale('ar', 'SA'),
         'tr' => const Locale('tr', 'TR'),
-        _ => const Locale('en', 'US'), // If device language is not supported, default to English
+        _ => const Locale(
+          'en',
+          'US',
+        ), // If device language is not supported, default to English
       };
     } catch (_) {
       return const Locale('en', 'US');

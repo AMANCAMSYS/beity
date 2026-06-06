@@ -124,9 +124,7 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             behavior: SnackBarBehavior.floating,
-            content: Text(
-              context.translate('must_login_first'),
-            ),
+            content: Text(context.translate('must_login_first')),
             backgroundColor: AppColors.error,
           ),
         );
@@ -150,21 +148,15 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
           : const <({String memberId, int amount})>[];
 
       if (!activeMembers.any((member) => member.userId == paidBy)) {
-        throw Exception(
-          context.translate('select_active_payer'),
-        );
+        throw Exception(context.translate('select_active_payer'));
       }
 
       if (shouldCreateSplits) {
         if (splits.length <= 1) {
-          throw Exception(
-            context.translate('select_at_least_two_members'),
-          );
+          throw Exception(context.translate('select_at_least_two_members'));
         }
         if (!SplitExpense.validateSplits(totalAmount: amount, splits: splits)) {
-          throw Exception(
-            context.translate('split_total_must_match'),
-          );
+          throw Exception(context.translate('split_total_must_match'));
         }
       }
 
@@ -194,9 +186,7 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             behavior: SnackBarBehavior.floating,
-            content: Text(
-              context.translate('expense_saved_success'),
-            ),
+            content: Text(context.translate('expense_saved_success')),
             backgroundColor: AppColors.success,
           ),
         );
@@ -207,7 +197,9 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             behavior: SnackBarBehavior.floating,
-            content: Text('${context.translate('error')}: ${ErrorFormatter.format(e, context)}'),
+            content: Text(
+              '${context.translate('error')}: ${ErrorFormatter.format(e, context)}',
+            ),
             backgroundColor: AppColors.error,
           ),
         );
@@ -251,7 +243,9 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
             Text(
               '${context.translate('step')} ${_currentStep + 1} ${context.translate('of')} 3',
               style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                color: theme.colorScheme.onSurfaceVariant.withValues(
+                  alpha: 0.7,
+                ),
               ),
             ),
           ],
@@ -265,7 +259,9 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
             LinearProgressIndicator(
               value: (_currentStep + 1) / 3.0,
               backgroundColor: theme.colorScheme.surfaceContainerHighest,
-              valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
+              valueColor: AlwaysStoppedAnimation<Color>(
+                theme.colorScheme.primary,
+              ),
             ),
             Expanded(
               child: ListView(
@@ -289,7 +285,11 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
     );
   }
 
-  Widget _buildStep0(BuildContext context, ThemeData theme, String defaultCurrency) {
+  Widget _buildStep0(
+    BuildContext context,
+    ThemeData theme,
+    String defaultCurrency,
+  ) {
     return SawaCard(
       padding: const EdgeInsets.all(AppSpacing.xl),
       child: Column(
@@ -303,7 +303,10 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
                   color: theme.colorScheme.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(Icons.payments_rounded, color: theme.colorScheme.primary),
+                child: Icon(
+                  Icons.payments_rounded,
+                  color: theme.colorScheme.primary,
+                ),
               ),
               AppSpacing.gapMD,
               Text(
@@ -323,9 +326,7 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
             hintText: '0.00',
             prefixIcon: Icons.payments_rounded,
             suffixText: defaultCurrency,
-            keyboardType: const TextInputType.numberWithOptions(
-              decimal: true,
-            ),
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
             onSubmitted: (_) {
               FocusScope.of(context).requestFocus(_descriptionFocusNode);
             },
@@ -378,11 +379,10 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
             child: Container(
               padding: const EdgeInsets.all(AppSpacing.md),
               decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainerHighest
-                    .withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(
-                  AppSpacing.radiusMd,
+                color: theme.colorScheme.surfaceContainerHighest.withValues(
+                  alpha: 0.3,
                 ),
+                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
                 border: Border.all(
                   color: theme.colorScheme.outlineVariant.withValues(
                     alpha: 0.5,
@@ -467,7 +467,10 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
                       color: theme.colorScheme.primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Icon(Icons.person_rounded, color: theme.colorScheme.primary),
+                    child: Icon(
+                      Icons.person_rounded,
+                      color: theme.colorScheme.primary,
+                    ),
                   ),
                   AppSpacing.gapMD,
                   Text(
@@ -521,7 +524,7 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
       error: (error, _) => SawaCard(
         padding: const EdgeInsets.all(AppSpacing.lg),
         child: Text(
-          error.toString(),
+          ErrorFormatter.format(error, context),
           style: theme.textTheme.bodyMedium?.copyWith(
             color: theme.colorScheme.error,
           ),
@@ -565,7 +568,10 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
                       color: theme.colorScheme.primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Icon(Icons.pie_chart_rounded, color: theme.colorScheme.primary),
+                    child: Icon(
+                      Icons.pie_chart_rounded,
+                      color: theme.colorScheme.primary,
+                    ),
                   ),
                   AppSpacing.gapMD,
                   Text(
@@ -677,7 +683,9 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
               }
             },
             isLoading: _isLoading,
-            icon: _currentStep < 2 ? Icons.arrow_forward_rounded : Icons.check_rounded,
+            icon: _currentStep < 2
+                ? Icons.arrow_forward_rounded
+                : Icons.check_rounded,
           ),
         ),
       ],

@@ -24,11 +24,11 @@ class AiMealCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+    final isRtl = context.isRtl;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Directionality(
-      textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
+      textDirection: context.textDirection,
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         decoration: BoxDecoration(
@@ -47,20 +47,41 @@ class AiMealCard extends StatelessWidget {
           children: [
             // Image Header
             ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusLg)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(AppSpacing.radiusLg),
+              ),
               child: AspectRatio(
                 aspectRatio: 16 / 9,
                 child: SawaCachedImage(
-                  imageUrl: 'https://tse2.mm.bing.net/th?q=${Uri.encodeComponent('${meal.name} food recipe')}&w=600&h=400&c=7&rs=1&p=0',
+                  imageUrl:
+                      'https://tse2.mm.bing.net/th?q=${Uri.encodeComponent('${meal.name} food recipe')}&w=600&h=400&c=7&rs=1&p=0',
                   fit: BoxFit.cover,
-                  backgroundColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade100,
+                  backgroundColor: isDark
+                      ? Colors.white.withValues(alpha: 0.05)
+                      : Colors.grey.shade100,
                   placeholder: Container(
-                    color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade100,
-                    child: const Center(child: Icon(Icons.restaurant_rounded, color: Colors.grey, size: 30)),
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.05)
+                        : Colors.grey.shade100,
+                    child: const Center(
+                      child: Icon(
+                        Icons.restaurant_rounded,
+                        color: Colors.grey,
+                        size: 30,
+                      ),
+                    ),
                   ),
                   errorWidget: Container(
-                    color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade100,
-                    child: const Center(child: Icon(Icons.restaurant_rounded, color: Colors.grey, size: 30)),
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.05)
+                        : Colors.grey.shade100,
+                    child: const Center(
+                      child: Icon(
+                        Icons.restaurant_rounded,
+                        color: Colors.grey,
+                        size: 30,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -71,9 +92,9 @@ class AiMealCard extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
               child: Text(
                 meal.name,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
               ),
             ),
 
@@ -98,12 +119,24 @@ class AiMealCard extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
               child: Row(
                 children: [
-                  _metaChip(Icons.timer_outlined, '${meal.estimatedTimeMinutes} ${context.translate('minutes_short')}', isDark),
+                  _metaChip(
+                    Icons.timer_outlined,
+                    '${meal.estimatedTimeMinutes} ${context.translate('minutes_short')}',
+                    isDark,
+                  ),
                   const SizedBox(width: 8),
                   if (meal.difficulty.isNotEmpty)
-                    _metaChip(Icons.signal_cellular_alt_rounded, meal.difficulty, isDark),
+                    _metaChip(
+                      Icons.signal_cellular_alt_rounded,
+                      meal.difficulty,
+                      isDark,
+                    ),
                   if (meal.difficulty.isNotEmpty) const SizedBox(width: 8),
-                  _metaChip(Icons.people_outline_rounded, '${meal.servings}', isDark),
+                  _metaChip(
+                    Icons.people_outline_rounded,
+                    '${meal.servings}',
+                    isDark,
+                  ),
                 ],
               ),
             ),
@@ -115,14 +148,28 @@ class AiMealCard extends StatelessWidget {
                 child: Wrap(
                   spacing: 6,
                   runSpacing: 4,
-                  children: meal.tags.map((tag) => Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(tag, style: const TextStyle(fontSize: 11, color: AppColors.primary, fontWeight: FontWeight.w500)),
-                  )).toList(),
+                  children: meal.tags
+                      .map(
+                        (tag) => Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            tag,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      )
+                      .toList(),
                 ),
               ),
 
@@ -131,8 +178,11 @@ class AiMealCard extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
                 child: Text(
-                  meal.mainIngredients.join(isArabic ? '، ' : ', '),
-                  style: TextStyle(fontSize: 12, color: isDark ? Colors.white38 : Colors.grey.shade500),
+                  meal.mainIngredients.join(isRtl ? '، ' : ', '),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isDark ? Colors.white38 : Colors.grey.shade500,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -145,12 +195,20 @@ class AiMealCard extends StatelessWidget {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.lightbulb_outline_rounded, size: 14, color: AppColors.accent),
+                    const Icon(
+                      Icons.lightbulb_outline_rounded,
+                      size: 14,
+                      color: AppColors.accent,
+                    ),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         meal.whyThisMeal,
-                        style: const TextStyle(fontSize: 12, color: AppColors.accent, fontStyle: FontStyle.italic),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.accent,
+                          fontStyle: FontStyle.italic,
+                        ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -160,18 +218,28 @@ class AiMealCard extends StatelessWidget {
               ),
 
             // Pantry info (available vs missing)
-            if (isPantryMeal && (availableIngredients.isNotEmpty || missingIngredients.isNotEmpty))
+            if (isPantryMeal &&
+                (availableIngredients.isNotEmpty ||
+                    missingIngredients.isNotEmpty))
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     if (availableIngredients.isNotEmpty)
-                      _pantryRow(Icons.check_circle_outline, AppColors.success, 
-                        '${context.translate('available')}: ${availableIngredients.join(isArabic ? '، ' : ', ')}', isDark),
+                      _pantryRow(
+                        Icons.check_circle_outline,
+                        AppColors.success,
+                        '${context.translate('available')}: ${availableIngredients.join(isRtl ? '، ' : ', ')}',
+                        isDark,
+                      ),
                     if (missingIngredients.isNotEmpty)
-                      _pantryRow(Icons.add_circle_outline, AppColors.warning, 
-                        '${context.translate('missing')}: ${missingIngredients.join(isArabic ? '، ' : ', ')}', isDark),
+                      _pantryRow(
+                        Icons.add_circle_outline,
+                        AppColors.warning,
+                        '${context.translate('missing')}: ${missingIngredients.join(isRtl ? '، ' : ', ')}',
+                        isDark,
+                      ),
                   ],
                 ),
               ),
@@ -187,8 +255,12 @@ class AiMealCard extends StatelessWidget {
                   label: Text(context.translate('show_ingredients')),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.primary,
-                    side: BorderSide(color: AppColors.primary.withValues(alpha: 0.3)),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    side: BorderSide(
+                      color: AppColors.primary.withValues(alpha: 0.3),
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                     padding: const EdgeInsets.symmetric(vertical: 10),
                   ),
                 ),
@@ -204,15 +276,27 @@ class AiMealCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.grey.shade100,
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.06)
+            : Colors.grey.shade100,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: isDark ? Colors.white54 : Colors.grey.shade600),
+          Icon(
+            icon,
+            size: 14,
+            color: isDark ? Colors.white54 : Colors.grey.shade600,
+          ),
           const SizedBox(width: 4),
-          Text(text, style: TextStyle(fontSize: 12, color: isDark ? Colors.white54 : Colors.grey.shade600)),
+          Text(
+            text,
+            style: TextStyle(
+              fontSize: 12,
+              color: isDark ? Colors.white54 : Colors.grey.shade600,
+            ),
+          ),
         ],
       ),
     );
@@ -227,7 +311,15 @@ class AiMealCard extends StatelessWidget {
           Icon(icon, size: 14, color: color),
           const SizedBox(width: 6),
           Expanded(
-            child: Text(text, style: TextStyle(fontSize: 11, color: isDark ? Colors.white54 : Colors.grey.shade600), maxLines: 1, overflow: TextOverflow.ellipsis),
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: 11,
+                color: isDark ? Colors.white54 : Colors.grey.shade600,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
         ],
       ),

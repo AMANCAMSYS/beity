@@ -15,6 +15,7 @@ import '../../../offline_queue/presentation/providers/connectivity_provider.dart
 import '../../../homes/presentation/providers/homes_provider.dart';
 
 import '../../data/datasources/shopping_local_datasource.dart';
+import '../../../../core/monitoring/monitoring_service.dart';
 
 final shoppingLocalDataSourceProvider = Provider<ShoppingLocalDataSource>((
   ref,
@@ -87,9 +88,7 @@ final shoppingListByIdProvider = StreamProvider.autoDispose
       }
       // Fallback: prime cache then return one-shot
       final repository = ref.watch(shoppingListRepositoryProvider);
-      return Stream.fromFuture(
-        repository.getShoppingListById(listId: listId),
-      );
+      return Stream.fromFuture(repository.getShoppingListById(listId: listId));
     });
 
 final shoppingListByIdForHomeProvider = StreamProvider.autoDispose
@@ -173,7 +172,9 @@ final shoppingListSummariesProvider = StreamProvider.autoDispose
         final subscriptions = <StreamSubscription>[];
 
         Future<Map<String, ShoppingListSummary>> compute() async {
-          final lists = await localDS.getShoppingListsStreamCache(homeId: homeId);
+          final lists = await localDS.getShoppingListsStreamCache(
+            homeId: homeId,
+          );
           final activeLists = lists.where((l) => l.isActive).toList();
           if (activeLists.isEmpty) return {};
 
@@ -195,14 +196,20 @@ final shoppingListSummariesProvider = StreamProvider.autoDispose
         Future<void> emitLatest() async {
           try {
             controller.add(await compute());
-          } catch (_) {}
+          } catch (e, s) {
+            MonitoringService().logError(
+              e,
+              s,
+              reason: 'Shopping list summary computation failed',
+            );
+          }
         }
 
         // Watch shopping_lists table
         subscriptions.add(
-          localDS.watchShoppingListsStreamCache(homeId: homeId).listen(
-            (_) => emitLatest(),
-          ),
+          localDS
+              .watchShoppingListsStreamCache(homeId: homeId)
+              .listen((_) => emitLatest()),
         );
 
         // Watch all active lists' items by subscribing per-list
@@ -216,9 +223,9 @@ final shoppingListSummariesProvider = StreamProvider.autoDispose
           final activeLists = lists.where((l) => l.isActive).toList();
           for (final list in activeLists) {
             subscriptions.add(
-              localDS.watchShoppingItemsStreamCache(listId: list.id).listen(
-                (_) => emitLatest(),
-              ),
+              localDS
+                  .watchShoppingItemsStreamCache(listId: list.id)
+                  .listen((_) => emitLatest()),
             );
           }
         }
@@ -228,9 +235,7 @@ final shoppingListSummariesProvider = StreamProvider.autoDispose
         subscriptions[0].cancel();
         subscriptions.clear();
         subscriptions.add(
-          localDS.watchShoppingListsStreamCache(homeId: homeId).listen((
-            lists,
-          ) {
+          localDS.watchShoppingListsStreamCache(homeId: homeId).listen((lists) {
             resubscribeItems(lists);
             emitLatest();
           }),

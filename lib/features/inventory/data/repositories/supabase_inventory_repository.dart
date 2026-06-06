@@ -151,10 +151,13 @@ class SupabaseInventoryRepository implements InventoryRepository {
         .from('inventory_items')
         .update(updates)
         .eq('id', itemId)
-        .select()
-        .single();
+        .select();
 
-    final item = InventoryItemModel.fromJson(response);
+    if (response.isEmpty) {
+      throw Exception('error_item_not_found_in_inventory');
+    }
+
+    final item = InventoryItemModel.fromJson(response.first);
 
     // Update local cache and notify UI
     await _refreshLocalCache(item.homeId);

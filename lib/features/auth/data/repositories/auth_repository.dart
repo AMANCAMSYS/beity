@@ -1,5 +1,6 @@
 import 'package:sawa/core/local_database/daos/users_dao.dart';
 import 'package:sawa/core/local_database/local_database_service.dart';
+import 'package:sawa/core/constants/app_constants.dart';
 import 'package:sawa/core/services/shared_prefs_provider.dart';
 import 'package:sawa/core/services/supabase_service.dart';
 import 'package:flutter/foundation.dart';
@@ -169,7 +170,9 @@ class AuthRepositoryImpl implements AuthRepository {
               'id': response.user!.id,
               'email': response.user!.email ?? '',
               'full_name':
-                  metadata['full_name'] ?? metadata['name'] ?? 'مستخدم',
+                  metadata['full_name'] ??
+                  metadata['name'] ??
+                  AppConstants.defaultUserNameKey,
               'avatar_url': metadata['avatar_url'] ?? metadata['picture'],
               'created_at': DateTime.now().toIso8601String(),
               'updated_at': DateTime.now().toIso8601String(),
@@ -228,7 +231,9 @@ class AuthRepositoryImpl implements AuthRepository {
       return UserModel(
         id: user.id,
         email: user.email ?? '',
-        fullName: user.userMetadata?['full_name'] as String? ?? 'مستخدم',
+        fullName:
+            user.userMetadata?['full_name'] as String? ??
+            AppConstants.defaultUserNameKey,
         avatarUrl: user.userMetadata?['avatar_url'] as String?,
         createdAt: DateTime.tryParse(user.createdAt) ?? DateTime.now(),
         updatedAt: DateTime.now(),

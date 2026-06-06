@@ -238,13 +238,10 @@ class ExpenseRemoteDataSource {
     }
 
     final response = await query;
-    return (response as List<dynamic>).fold<int>(
-      0,
-      (sum, json) {
-        final map = json as Map<String, dynamic>;
-        return sum + (map['converted_amount'] as int);
-      },
-    );
+    return (response as List<dynamic>).fold<int>(0, (sum, json) {
+      final map = json as Map<String, dynamic>;
+      return sum + (map['converted_amount'] as int);
+    });
   }
 
   Stream<List<ExpenseModel>> watchExpenses({required String homeId}) {

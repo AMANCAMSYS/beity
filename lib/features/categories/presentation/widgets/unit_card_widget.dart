@@ -45,19 +45,22 @@ class UnitCardWidget extends ConsumerWidget {
         title: Text(
           unit.name,
           style: Theme.of(context).textTheme.titleMedium,
-          textDirection: TextDirection.rtl,
+          textDirection: Directionality.of(context),
         ),
         subtitle: Text(
           '${_getTypeName(context)} • ${unit.symbol}',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-          textDirection: TextDirection.rtl,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+          textDirection: Directionality.of(context),
         ),
         trailing: !unit.isDefault && showActions
             ? IconButton(
-                icon: const Icon(Icons.delete,
-                    size: 20, color: AppColors.error),
+                icon: const Icon(
+                  Icons.delete,
+                  size: 20,
+                  color: AppColors.error,
+                ),
                 onPressed: () => _deleteUnit(context, ref),
               )
             : null,
@@ -91,17 +94,20 @@ class UnitCardWidget extends ConsumerWidget {
     }
   }
 
-  void _deleteUnit(BuildContext context, WidgetRef ref) {
+  void _deleteUnit(BuildContext outerContext, WidgetRef ref) {
     showDialog(
-      context: context,
+      context: outerContext,
       builder: (context) => AlertDialog(
         title: Text(
-          context.translate('delete_unit'),
-          textDirection: TextDirection.rtl,
+          outerContext.translate('delete_unit'),
+          textDirection: Directionality.of(outerContext),
         ),
         content: Text(
-          context.translate('delete_unit_confirm', arguments: {'name': unit.name}),
-          textDirection: TextDirection.rtl,
+          outerContext.translate(
+            'delete_unit_confirm',
+            arguments: {'name': unit.name},
+          ),
+          textDirection: Directionality.of(outerContext),
         ),
         actions: [
           TextButton(
@@ -116,7 +122,10 @@ class UnitCardWidget extends ConsumerWidget {
                     .read(unitNotifierProvider.notifier)
                     .deleteUnit(unitId: unit.id);
                 if (context.mounted) {
-                  SawaSnackBar.success(context, context.translate('unit_deleted_success'));
+                  SawaSnackBar.success(
+                    context,
+                    context.translate('unit_deleted_success'),
+                  );
                 }
               } catch (e) {
                 if (context.mounted) {

@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
+
+import 'package:sawa/core/constants/app_constants.dart';
 import 'package:sawa/core/services/supabase_service.dart';
 import '../../data/models/activity_log_model.dart';
 import '../../data/repositories/activity_log_repository.dart';
@@ -26,7 +27,7 @@ final homeActivityProvider = StreamProvider.autoDispose
             final memberMap = {for (final m in members) m.userId: m.userName};
             return logs.map((log) {
               if (log.actorName == null ||
-                  log.actorName == 'مستخدم' ||
+                  log.actorName == AppConstants.defaultUserNameKey ||
                   log.actorName!.isEmpty) {
                 final cachedName = memberMap[log.userId];
                 if (cachedName != null && cachedName.isNotEmpty) {
@@ -53,7 +54,7 @@ final recentHomeActivityProvider = StreamProvider.autoDispose
             final memberMap = {for (final m in members) m.userId: m.userName};
             return logs.map((log) {
               if (log.actorName == null ||
-                  log.actorName == 'مستخدم' ||
+                  log.actorName == AppConstants.defaultUserNameKey ||
                   log.actorName!.isEmpty) {
                 final cachedName = memberMap[log.userId];
                 if (cachedName != null && cachedName.isNotEmpty) {
@@ -89,7 +90,7 @@ final listActivityProvider = StreamProvider.autoDispose
                 };
                 return logs.map((log) {
                   if (log.actorName == null ||
-                      log.actorName == 'مستخدم' ||
+                      log.actorName == AppConstants.defaultUserNameKey ||
                       log.actorName!.isEmpty) {
                     final cachedName = memberMap[log.userId];
                     if (cachedName != null && cachedName.isNotEmpty) {
@@ -154,7 +155,7 @@ final activityActorsProvider =
     });
 
 final activityFilterProvider =
-    StateNotifierProvider<ActivityFilterNotifier, ActivityFilter>((ref) {
+    NotifierProvider<ActivityFilterNotifier, ActivityFilter>(() {
       return ActivityFilterNotifier();
     });
 
@@ -205,8 +206,11 @@ class ActivityFilter {
   }
 }
 
-class ActivityFilterNotifier extends StateNotifier<ActivityFilter> {
-  ActivityFilterNotifier() : super(const ActivityFilter());
+class ActivityFilterNotifier extends Notifier<ActivityFilter> {
+  @override
+  ActivityFilter build() {
+    return const ActivityFilter();
+  }
 
   void setActor(String? actorId) {
     state = state.copyWith(actorId: actorId, clearActor: actorId == null);

@@ -27,11 +27,11 @@ class _SyncStatusScreenState extends ConsumerState<SyncStatusScreen> {
   bool _isSyncingInProgress = false;
 
   String _getActionDisplayName(BuildContext context, ActionType type) {
-    return context.translate(type.translationKey, fallback: type.displayName);
+    return context.translate(type.translationKey);
   }
 
   String _getEntityDisplayName(BuildContext context, EntityType type) {
-    return context.translate(type.translationKey, fallback: type.displayName);
+    return context.translate(type.translationKey);
   }
 
   String _getPayloadSummary(QueueEntry entry) {
@@ -69,15 +69,8 @@ class _SyncStatusScreenState extends ConsumerState<SyncStatusScreen> {
           SnackBar(
             content: Text(
               hasOutboxFailure
-                  ? context.translate(
-                      'sync_partial_success',
-                      fallback:
-                          'Data was fetched, but some pending actions did not sync',
-                    )
-                  : context.translate(
-                      'sync_success_msg',
-                      fallback: 'Data synced successfully',
-                    ),
+                  ? context.translate('sync_partial_success')
+                  : context.translate('sync_success_msg'),
             ),
             backgroundColor: hasOutboxFailure
                 ? AppColors.warning
@@ -93,7 +86,6 @@ class _SyncStatusScreenState extends ConsumerState<SyncStatusScreen> {
               context.translate(
                 'sync_failed_msg',
                 arguments: {'error': e.toString()},
-                fallback: 'Sync failed: ${e.toString()}',
               ),
             ),
             backgroundColor: AppColors.error,
@@ -135,15 +127,8 @@ class _SyncStatusScreenState extends ConsumerState<SyncStatusScreen> {
           SnackBar(
             content: Text(
               hasOutboxFailure
-                  ? context.translate(
-                      'sync_retry_partial_failure',
-                      fallback:
-                          'Data was fetched, but some retry actions failed',
-                    )
-                  : context.translate(
-                      'sync_retry_triggered',
-                      fallback: 'Sync retry triggered',
-                    ),
+                  ? context.translate('sync_retry_partial_failure')
+                  : context.translate('sync_retry_triggered'),
             ),
             backgroundColor: hasOutboxFailure
                 ? AppColors.warning
@@ -159,7 +144,6 @@ class _SyncStatusScreenState extends ConsumerState<SyncStatusScreen> {
               context.translate(
                 'sync_retry_failed',
                 arguments: {'error': e.toString()},
-                fallback: 'Failed to retry sync: ${e.toString()}',
               ),
             ),
             backgroundColor: AppColors.error,
@@ -176,28 +160,17 @@ class _SyncStatusScreenState extends ConsumerState<SyncStatusScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(
-          context.translate(
-            'sync_delete_action_title',
-            fallback: 'Delete Action?',
-          ),
-        ),
-        content: Text(
-          context.translate(
-            'sync_delete_action_confirm',
-            fallback:
-                'Are you sure you want to delete this action? This will undo your local modification.',
-          ),
-        ),
+        title: Text(context.translate('sync_delete_action_title')),
+        content: Text(context.translate('sync_delete_action_confirm')),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: Text(context.translate('cancel', fallback: 'Cancel')),
+            child: Text(context.translate('cancel')),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
             style: TextButton.styleFrom(foregroundColor: AppColors.error),
-            child: Text(context.translate('delete', fallback: 'Delete')),
+            child: Text(context.translate('delete')),
           ),
         ],
       ),
@@ -241,7 +214,7 @@ class _SyncStatusScreenState extends ConsumerState<SyncStatusScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(context.translate('sync_status', fallback: 'Sync Status')),
+        title: Text(context.translate('sync_status')),
         centerTitle: true,
       ),
       body: activeHomeId == null || activeHomeId.isEmpty
@@ -253,7 +226,7 @@ class _SyncStatusScreenState extends ConsumerState<SyncStatusScreen> {
                       const Center(child: CircularProgressIndicator()),
                   error: (err, stack) => Center(
                     child: Text(
-                      '${context.translate('error_loading_data', fallback: 'Error loading data')}: $err',
+                      '${context.translate('error_loading_data')}: $err',
                       style: const TextStyle(color: AppColors.error),
                     ),
                   ),
@@ -268,7 +241,6 @@ class _SyncStatusScreenState extends ConsumerState<SyncStatusScreen> {
                               context.translate(
                                 'sync_fetch_error',
                                 arguments: {'error': err.toString()},
-                                fallback: 'Error fetching sync entries: $err',
                               ),
                             ),
                           ),
@@ -301,21 +273,14 @@ class _SyncStatusScreenState extends ConsumerState<SyncStatusScreen> {
             ),
             AppSpacing.gapLG,
             Text(
-              context.translate(
-                'sync_no_active_home',
-                fallback: 'No active home selected',
-              ),
+              context.translate('sync_no_active_home'),
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
             ),
             AppSpacing.gapSM,
             Text(
-              context.translate(
-                'sync_select_home_instructions',
-                fallback:
-                    'Please go to Manage Homes and select an active home to sync.',
-              ),
+              context.translate('sync_select_home_instructions'),
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
@@ -325,9 +290,7 @@ class _SyncStatusScreenState extends ConsumerState<SyncStatusScreen> {
             ElevatedButton.icon(
               onPressed: () => context.push('/homes'),
               icon: const Icon(Icons.home),
-              label: Text(
-                context.translate('manage_homes', fallback: 'Manage Homes'),
-              ),
+              label: Text(context.translate('manage_homes')),
             ),
           ],
         ),
@@ -368,7 +331,7 @@ class _SyncStatusScreenState extends ConsumerState<SyncStatusScreen> {
               Expanded(
                 child: _buildStatBox(
                   theme,
-                  context.translate('sync_status_pending', fallback: 'Pending'),
+                  context.translate('sync_status_pending'),
                   pendingCount.toString(),
                   AppColors.info,
                 ),
@@ -377,7 +340,7 @@ class _SyncStatusScreenState extends ConsumerState<SyncStatusScreen> {
               Expanded(
                 child: _buildStatBox(
                   theme,
-                  context.translate('sync_status_failed', fallback: 'Failed'),
+                  context.translate('sync_status_failed'),
                   failedCount.toString(),
                   failedCount > 0 ? AppColors.error : theme.colorScheme.outline,
                 ),
@@ -413,8 +376,8 @@ class _SyncStatusScreenState extends ConsumerState<SyncStatusScreen> {
                   : const Icon(Icons.sync_rounded),
               label: Text(
                 _isSyncingInProgress
-                    ? context.translate('syncing_dots', fallback: 'Syncing...')
-                    : context.translate('sync_now', fallback: 'Sync Now'),
+                    ? context.translate('syncing_dots')
+                    : context.translate('sync_now'),
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
@@ -428,10 +391,7 @@ class _SyncStatusScreenState extends ConsumerState<SyncStatusScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                context.translate(
-                  'sync_pending_logs_title',
-                  fallback: 'Pending Action Logs',
-                ),
+                context.translate('sync_pending_logs_title'),
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
@@ -440,7 +400,6 @@ class _SyncStatusScreenState extends ConsumerState<SyncStatusScreen> {
                 context.translate(
                   'sync_actions_count',
                   arguments: {'count': totalActions.toString()},
-                  fallback: '$totalActions actions',
                 ),
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
@@ -516,14 +475,8 @@ class _SyncStatusScreenState extends ConsumerState<SyncStatusScreen> {
               children: [
                 Text(
                   isOffline
-                      ? context.translate(
-                          'sync_offline_mode',
-                          fallback: 'Offline Mode',
-                        )
-                      : context.translate(
-                          'sync_online_status',
-                          fallback: 'Online Status',
-                        ),
+                      ? context.translate('sync_offline_mode')
+                      : context.translate('sync_online_status'),
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: isOffline
@@ -534,16 +487,8 @@ class _SyncStatusScreenState extends ConsumerState<SyncStatusScreen> {
                 const SizedBox(height: 2),
                 Text(
                   isOffline
-                      ? context.translate(
-                          'sync_offline_desc',
-                          fallback:
-                              'Local changes will be preserved and synced when you reconnect',
-                        )
-                      : context.translate(
-                          'sync_online_desc',
-                          fallback:
-                              'Your app is fully connected and ready for instant sync',
-                        ),
+                      ? context.translate('sync_offline_desc')
+                      : context.translate('sync_online_desc'),
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                     height: 1.3,
@@ -614,20 +559,14 @@ class _SyncStatusScreenState extends ConsumerState<SyncStatusScreen> {
             ),
             AppSpacing.gapMD,
             Text(
-              context.translate(
-                'sync_all_synced_title',
-                fallback: 'All data is fully synced!',
-              ),
+              context.translate('sync_all_synced_title'),
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
             ),
             AppSpacing.gapXS,
             Text(
-              context.translate(
-                'sync_no_pending_actions',
-                fallback: 'There are no pending actions in your local queue.',
-              ),
+              context.translate('sync_no_pending_actions'),
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
@@ -744,7 +683,6 @@ class _SyncStatusScreenState extends ConsumerState<SyncStatusScreen> {
                         context.translate(
                           'sync_retries_count',
                           arguments: {'count': entry.retryCount.toString()},
-                          fallback: 'Retries: ${entry.retryCount}',
                         ),
                         style: theme.textTheme.labelSmall?.copyWith(
                           fontSize: 10,
@@ -780,10 +718,7 @@ class _SyncStatusScreenState extends ConsumerState<SyncStatusScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      context.translate(
-                        'sync_error_message_label',
-                        fallback: 'Error Message:',
-                      ),
+                      context.translate('sync_error_message_label'),
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: AppColors.error,
                         fontWeight: FontWeight.bold,
@@ -808,12 +743,7 @@ class _SyncStatusScreenState extends ConsumerState<SyncStatusScreen> {
                   onPressed: () => _deleteEntry(homeId, entry),
                   style: TextButton.styleFrom(foregroundColor: AppColors.error),
                   icon: const Icon(Icons.delete_outline_rounded, size: 18),
-                  label: Text(
-                    context.translate(
-                      'sync_cancel_action',
-                      fallback: 'Cancel Action',
-                    ),
-                  ),
+                  label: Text(context.translate('sync_cancel_action')),
                 ),
                 if (isFailed) ...[
                   const SizedBox(width: AppSpacing.sm),
@@ -825,12 +755,7 @@ class _SyncStatusScreenState extends ConsumerState<SyncStatusScreen> {
                       elevation: 0,
                     ),
                     icon: const Icon(Icons.refresh_rounded, size: 18),
-                    label: Text(
-                      context.translate(
-                        'sync_retry_now',
-                        fallback: 'Retry Now',
-                      ),
-                    ),
+                    label: Text(context.translate('sync_retry_now')),
                   ),
                 ],
               ],

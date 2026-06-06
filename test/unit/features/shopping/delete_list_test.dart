@@ -3,7 +3,8 @@ import 'package:mocktail/mocktail.dart';
 import 'package:sawa/features/shopping_lists/data/repositories/shopping_list_repository.dart';
 import 'package:sawa/features/shopping_lists/domain/usecases/delete_list_usecase.dart';
 
-class MockShoppingListRepository extends Mock implements ShoppingListRepository {}
+class MockShoppingListRepository extends Mock
+    implements ShoppingListRepository {}
 
 void main() {
   late MockShoppingListRepository mockRepository;
@@ -18,12 +19,15 @@ void main() {
     const tListId = 'list-123';
 
     test('should delete shopping list in repository', () async {
-      when(() => mockRepository.deleteShoppingList(listId: any(named: 'listId')))
-          .thenAnswer((_) async => {});
+      when(
+        () => mockRepository.deleteShoppingList(listId: any(named: 'listId')),
+      ).thenAnswer((_) async => {});
 
       await useCase(listId: tListId);
 
-      verify(() => mockRepository.deleteShoppingList(listId: tListId)).called(1);
+      verify(
+        () => mockRepository.deleteShoppingList(listId: tListId),
+      ).called(1);
     });
   });
 }

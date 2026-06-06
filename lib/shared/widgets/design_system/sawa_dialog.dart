@@ -61,7 +61,13 @@ class SawaDialog extends StatelessWidget {
       title: Row(
         children: [
           if (icon != null) ...[
-            Icon(icon, size: 24, color: isDestructive ? theme.colorScheme.error : theme.colorScheme.primary),
+            Icon(
+              icon,
+              size: 24,
+              color: isDestructive
+                  ? theme.colorScheme.error
+                  : theme.colorScheme.primary,
+            ),
             const SizedBox(width: AppSpacing.sm),
           ],
           Expanded(child: Text(title)),
@@ -78,7 +84,9 @@ class SawaDialog extends StatelessWidget {
           ElevatedButton(
             onPressed: onConfirm ?? () => Navigator.of(context).pop(true),
             style: isDestructive
-                ? ElevatedButton.styleFrom(backgroundColor: theme.colorScheme.error)
+                ? ElevatedButton.styleFrom(
+                    backgroundColor: theme.colorScheme.error,
+                  )
                 : null,
             child: Text(confirmText!),
           ),

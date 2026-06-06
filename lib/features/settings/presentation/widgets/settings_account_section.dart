@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../app/router/feature_route_paths.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/localization/app_localizations.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
@@ -66,6 +67,13 @@ class SettingsAccountSection extends ConsumerWidget {
     return SettingsSection(
       title: l10n.translate('account_area'),
       children: [
+        SettingsActionTile(
+          icon: Icons.workspace_premium_rounded,
+          title: l10n.translate('subscription_plans'),
+          subtitle: l10n.translate('subscription_plans_subtitle'),
+          onTap: () => context.push(FeatureRoutePaths.subscriptionPlans),
+        ),
+        const SettingsDivider(),
         SettingsActionTile(
           icon: Icons.notifications_rounded,
           title: l10n.translate('notification_settings'),

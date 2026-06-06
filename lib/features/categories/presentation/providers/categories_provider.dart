@@ -1,5 +1,5 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
 import 'package:sawa/core/services/supabase_service.dart';
 import 'package:sawa/core/services/sync_service.dart';
 import '../../data/datasources/category_local_datasource.dart';
@@ -52,10 +52,11 @@ final categoriesStreamProvider = StreamProvider.autoDispose
       return repo.watchCategories(homeId: homeId);
     });
 
-class CategoryNotifier extends StateNotifier<AsyncValue<void>> {
-  final CategoryRepository _repo;
-
-  CategoryNotifier(this._repo) : super(const AsyncValue.data(null));
+class CategoryNotifier extends AsyncNotifier<void> {
+  @override
+  FutureOr<void> build() {
+    return null;
+  }
 
   Future<CategoryModel> createCategory({
     required String homeId,
@@ -67,14 +68,16 @@ class CategoryNotifier extends StateNotifier<AsyncValue<void>> {
   }) async {
     state = const AsyncValue.loading();
     try {
-      final category = await _repo.createCategory(
-        homeId: homeId,
-        name: name,
-        type: type,
-        icon: icon,
-        color: color,
-        sortOrder: sortOrder,
-      );
+      final category = await ref
+          .read(categoryRepositoryProvider)
+          .createCategory(
+            homeId: homeId,
+            name: name,
+            type: type,
+            icon: icon,
+            color: color,
+            sortOrder: sortOrder,
+          );
       state = const AsyncValue.data(null);
       return category;
     } catch (e) {
@@ -92,13 +95,15 @@ class CategoryNotifier extends StateNotifier<AsyncValue<void>> {
   }) async {
     state = const AsyncValue.loading();
     try {
-      final category = await _repo.updateCategory(
-        categoryId: categoryId,
-        name: name,
-        icon: icon,
-        color: color,
-        sortOrder: sortOrder,
-      );
+      final category = await ref
+          .read(categoryRepositoryProvider)
+          .updateCategory(
+            categoryId: categoryId,
+            name: name,
+            icon: icon,
+            color: color,
+            sortOrder: sortOrder,
+          );
       state = const AsyncValue.data(null);
       return category;
     } catch (e) {
@@ -110,7 +115,9 @@ class CategoryNotifier extends StateNotifier<AsyncValue<void>> {
   Future<void> deleteCategory({required String categoryId}) async {
     state = const AsyncValue.loading();
     try {
-      await _repo.deleteCategory(categoryId: categoryId);
+      await ref
+          .read(categoryRepositoryProvider)
+          .deleteCategory(categoryId: categoryId);
       state = const AsyncValue.data(null);
     } catch (e) {
       state = AsyncValue.error(e, StackTrace.current);
@@ -119,8 +126,8 @@ class CategoryNotifier extends StateNotifier<AsyncValue<void>> {
   }
 }
 
-final categoryNotifierProvider =
-    StateNotifierProvider<CategoryNotifier, AsyncValue<void>>((ref) {
-      final repo = ref.read(categoryRepositoryProvider);
-      return CategoryNotifier(repo);
-    });
+final categoryNotifierProvider = AsyncNotifierProvider<CategoryNotifier, void>(
+  () {
+    return CategoryNotifier();
+  },
+);

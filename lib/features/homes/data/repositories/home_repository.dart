@@ -77,6 +77,7 @@ class HomeRepositoryImpl implements HomeRepository {
             'type': type,
             'owner_id': user.id,
             'default_currency': defaultCurrency ?? 'TRY',
+            'created_by': user.id,
           })
           .select()
           .single();
@@ -326,9 +327,13 @@ class HomeRepositoryImpl implements HomeRepository {
     }
 
     try {
+      final user = _client.auth.currentUser;
       await _client
           .from('homes')
-          .update({'deleted_at': DateTime.now().toIso8601String()})
+          .update({
+            'deleted_at': DateTime.now().toIso8601String(),
+            if (user != null) 'updated_by': user.id,
+          })
           .eq('id', homeId);
 
       if (userId != null) {
@@ -413,9 +418,13 @@ class HomeRepositoryImpl implements HomeRepository {
     }
 
     try {
+      final user = _client.auth.currentUser;
       await _client
           .from('homes')
-          .update({'default_currency': currency})
+          .update({
+            'default_currency': currency,
+            if (user != null) 'updated_by': user.id,
+          })
           .eq('id', homeId);
     } catch (e) {
       // Revert cache on remote failure

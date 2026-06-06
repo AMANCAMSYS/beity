@@ -85,8 +85,7 @@ class _UnitsListScreenState extends ConsumerState<UnitsListScreen> {
                   },
                 );
               },
-              loading: () =>
-                  const Center(child: CircularProgressIndicator()),
+              loading: () => const Center(child: CircularProgressIndicator()),
               error: (error, stack) => SawaEmptyState(
                 title: context.translate('error_occurred'),
                 message: error.toString(),

@@ -17,24 +17,27 @@ final connectionStateProvider = StreamProvider<ConnectionStateModel>((ref) {
 });
 
 final offlineQueueFlushProvider = Provider<void>((ref) {
-  ref.listen<AsyncValue<ConnectionStateModel>>(connectionStateProvider,
-      (previous, next) async {
+  ref.listen<AsyncValue<ConnectionStateModel>>(connectionStateProvider, (
+    previous,
+    next,
+  ) async {
     final currentState = next.value;
     final previousState = previous?.value;
     if (currentState != null &&
         currentState.status == ConnectionStatus.connected &&
         previousState?.status != ConnectionStatus.connected) {
-      
       final syncUseCase = ref.read(syncQueueUseCaseProvider);
       final localDataSource = ref.read(homeLocalDataSourceProvider);
       final activeHomeId = await localDataSource.getActiveHomeId();
-      
+
       if (activeHomeId != null && activeHomeId.isNotEmpty) {
         // 1. Flush offline outbox queue first
         await syncUseCase.execute(activeHomeId);
-        
+
         // 2. Trigger global background delta sync when connection is restored
-        ref.read(syncCoordinatorProvider.notifier).syncAll(activeHomeId, force: true);
+        ref
+            .read(syncCoordinatorProvider.notifier)
+            .syncAll(activeHomeId, force: true);
       }
     }
   });

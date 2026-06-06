@@ -8,14 +8,12 @@ import '../providers/shopping_lists_provider.dart';
 import '../../domain/entities/shopping_item.dart';
 import '../../../categories/presentation/providers/categories_provider.dart';
 import '../../../../core/localization/app_localizations.dart';
+import 'package:sawa/core/errors/error_formatter.dart';
 
 class ListSummaryScreen extends ConsumerWidget {
   final String listId;
 
-  const ListSummaryScreen({
-    super.key,
-    required this.listId,
-  });
+  const ListSummaryScreen({super.key, required this.listId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -31,7 +29,10 @@ class ListSummaryScreen extends ConsumerWidget {
         return Scaffold(
           appBar: AppBar(
             title: Text(
-              context.translate('summary_title', arguments: {'name': list?.name ?? ''}),
+              context.translate(
+                'summary_title',
+                arguments: {'name': list?.name ?? ''},
+              ),
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
           ),
@@ -49,7 +50,7 @@ class ListSummaryScreen extends ConsumerWidget {
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (error, _) => SawaEmptyState(
               title: context.translate('error_title'),
-              message: error.toString(),
+              message: ErrorFormatter.format(error, context),
               icon: Icons.error_outline_rounded,
               isError: true,
               actionText: context.translate('retry'),
@@ -68,7 +69,7 @@ class ListSummaryScreen extends ConsumerWidget {
         appBar: AppBar(title: Text(context.translate('list_summary'))),
         body: SawaEmptyState(
           title: context.translate('error_title'),
-          message: error.toString(),
+          message: ErrorFormatter.format(error, context),
           icon: Icons.error_outline_rounded,
           isError: true,
         ),
@@ -79,7 +80,7 @@ class ListSummaryScreen extends ConsumerWidget {
   Widget _buildSummary(BuildContext context, List<ShoppingItem> items) {
     final unpurchasedItems = items.where((i) => !i.isPurchased).toList();
     final purchasedItems = items.where((i) => i.isPurchased).toList();
-    
+
     final totalItems = items.length;
     final purchasedCount = purchasedItems.length;
     // Calculate fractional progress (e.g. 15/20 bottles = 0.75 of one item)
@@ -88,7 +89,10 @@ class ListSummaryScreen extends ConsumerWidget {
       if (item.isPurchased) {
         totalProgress += 1.0;
       } else if (item.quantity > 0 && item.purchasedQuantity > 0) {
-        totalProgress += (item.purchasedQuantity / item.quantity).clamp(0.0, 1.0);
+        totalProgress += (item.purchasedQuantity / item.quantity).clamp(
+          0.0,
+          1.0,
+        );
       }
     }
     final completionPercentage = totalItems > 0
@@ -98,7 +102,7 @@ class ListSummaryScreen extends ConsumerWidget {
     final totalPrice = items
         .where((i) => i.hasPrice)
         .fold<double>(0, (sum, i) => sum + (i.price! * i.quantity));
-    
+
     final purchasedTotal = purchasedItems
         .where((i) => i.hasPrice)
         .fold<double>(0, (sum, i) => sum + (i.price! * i.quantity));
@@ -108,7 +112,13 @@ class ListSummaryScreen extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildProgressCard(context, totalItems, purchasedCount, completionPercentage, totalProgress),
+          _buildProgressCard(
+            context,
+            totalItems,
+            purchasedCount,
+            completionPercentage,
+            totalProgress,
+          ),
           AppSpacing.gapLG,
           if (totalPrice > 0) ...[
             _buildPriceCard(context, totalPrice, purchasedTotal),
@@ -117,11 +127,19 @@ class ListSummaryScreen extends ConsumerWidget {
           _buildCategoryBreakdown(context, items),
           AppSpacing.gapLG,
           if (unpurchasedItems.isNotEmpty) ...[
-            _buildItemsList(context, context.translate('to_buy'), unpurchasedItems),
+            _buildItemsList(
+              context,
+              context.translate('to_buy'),
+              unpurchasedItems,
+            ),
             AppSpacing.gapLG,
           ],
           if (purchasedItems.isNotEmpty) ...[
-            _buildItemsList(context, context.translate('purchased'), purchasedItems),
+            _buildItemsList(
+              context,
+              context.translate('purchased'),
+              purchasedItems,
+            ),
           ],
         ],
       ),
@@ -149,9 +167,9 @@ class ListSummaryScreen extends ConsumerWidget {
               Text(
                 '$percentage%',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: Theme.of(context).primaryColor,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  color: Theme.of(context).primaryColor,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ],
           ),
@@ -166,8 +184,16 @@ class ListSummaryScreen extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               _buildStatItem(context, context.translate('total'), '$total'),
-              _buildStatItem(context, context.translate('purchased'), '$purchased'),
-              _buildStatItem(context, context.translate('remaining'), '${total - purchased}'),
+              _buildStatItem(
+                context,
+                context.translate('purchased'),
+                '$purchased',
+              ),
+              _buildStatItem(
+                context,
+                context.translate('remaining'),
+                '${total - purchased}',
+              ),
             ],
           ),
         ],
@@ -180,25 +206,21 @@ class ListSummaryScreen extends ConsumerWidget {
       children: [
         Text(
           value,
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
         ),
         Text(
           label,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Colors.grey[600],
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
         ),
       ],
     );
   }
 
-  Widget _buildPriceCard(
-    BuildContext context,
-    double total,
-    double purchased,
-  ) {
+  Widget _buildPriceCard(BuildContext context, double total, double purchased) {
     final remaining = total - purchased;
 
     return SawaCard(
@@ -215,8 +237,16 @@ class ListSummaryScreen extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               _buildPriceItem(context, context.translate('total'), total),
-              _buildPriceItem(context, context.translate('purchased_cost'), purchased),
-              _buildPriceItem(context, context.translate('remaining'), remaining),
+              _buildPriceItem(
+                context,
+                context.translate('purchased_cost'),
+                purchased,
+              ),
+              _buildPriceItem(
+                context,
+                context.translate('remaining'),
+                remaining,
+              ),
             ],
           ),
         ],
@@ -229,23 +259,26 @@ class ListSummaryScreen extends ConsumerWidget {
       children: [
         Text(
           '${amount.toStringAsFixed(2)} ${context.translate('currency_symbol')}',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
         ),
         Text(
           label,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildCategoryBreakdown(BuildContext context, List<ShoppingItem> items) {
+  Widget _buildCategoryBreakdown(
+    BuildContext context,
+    List<ShoppingItem> items,
+  ) {
     final categoryMap = <String?, List<ShoppingItem>>{};
-    
+
     for (final item in items) {
       categoryMap.putIfAbsent(item.categoryId, () => []).add(item);
     }
@@ -258,11 +291,13 @@ class ListSummaryScreen extends ConsumerWidget {
         final listAsync = ref.watch(shoppingListByIdProvider(listId));
         final homeId = listAsync.value?.homeId ?? '';
         final categoriesAsync = ref.watch(categoriesProvider(homeId));
-        
+
         final categoryNames = <String, String>{};
         categoriesAsync.whenData((categories) {
           for (final cat in categories) {
-            categoryNames[cat.id] = cat.name == 'Other' ? context.translate('other') : cat.name;
+            categoryNames[cat.id] = cat.name == 'Other'
+                ? context.translate('other')
+                : cat.name;
           }
         });
 
@@ -279,16 +314,17 @@ class ListSummaryScreen extends ConsumerWidget {
               ...categoryMap.entries.map((entry) {
                 final categoryId = entry.key;
                 final categoryName = categoryId != null
-                    ? (categoryNames[categoryId] ?? context.translate('unknown_category'))
+                    ? (categoryNames[categoryId] ??
+                          context.translate('unknown_category'))
                     : context.translate('uncategorized');
-                final purchased = entry.value.where((i) => i.isPurchased).length;
+                final purchased = entry.value
+                    .where((i) => i.isPurchased)
+                    .length;
                 return Padding(
                   padding: const EdgeInsets.only(bottom: AppSpacing.sm),
                   child: Row(
                     children: [
-                      Expanded(
-                        child: Text(categoryName),
-                      ),
+                      Expanded(child: Text(categoryName)),
                       Text('$purchased/${entry.value.length}'),
                       AppSpacing.gapMD,
                       SizedBox(
@@ -298,7 +334,9 @@ class ListSummaryScreen extends ConsumerWidget {
                               ? purchased / entry.value.length
                               : 0,
                           minHeight: 4,
-                          borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                          borderRadius: BorderRadius.circular(
+                            AppSpacing.radiusSm,
+                          ),
                         ),
                       ),
                     ],
@@ -324,45 +362,54 @@ class ListSummaryScreen extends ConsumerWidget {
         children: [
           Text(
             '$title (${items.length})',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
           ),
           AppSpacing.gapMD,
-          ...items.map((item) => ListTile(
-                dense: true,
-                contentPadding: EdgeInsets.zero,
-                leading: Icon(
-                  item.isPurchased
-                      ? Icons.check_circle_rounded
-                      : Icons.radio_button_unchecked_rounded,
-                  color: item.isPurchased 
-                      ? Theme.of(context).colorScheme.primary 
-                      : Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
-                  size: 20,
+          ...items.map(
+            (item) => ListTile(
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(
+                item.isPurchased
+                    ? Icons.check_circle_rounded
+                    : Icons.radio_button_unchecked_rounded,
+                color: item.isPurchased
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(
+                        context,
+                      ).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                size: 20,
+              ),
+              title: Text(
+                item.name,
+                style: TextStyle(
+                  decoration: item.isPurchased
+                      ? TextDecoration.lineThrough
+                      : null,
+                  color: item.isPurchased
+                      ? Theme.of(context).colorScheme.onSurfaceVariant
+                      : null,
                 ),
-                title: Text(
-                  item.name,
-                  style: TextStyle(
-                    decoration: item.isPurchased ? TextDecoration.lineThrough : null,
-                    color: item.isPurchased ? Theme.of(context).colorScheme.onSurfaceVariant : null,
-                  ),
-                ),
-                subtitle: _buildItemSubtitle(context, item),
-                trailing: item.hasPrice
-                    ? Text(
-                        '${(item.price! * item.quantity).toStringAsFixed(2)} ${context.translate('currency_symbol')}',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      )
-                    : null,
-              )),
+              ),
+              subtitle: _buildItemSubtitle(context, item),
+              trailing: item.hasPrice
+                  ? Text(
+                      '${(item.price! * item.quantity).toStringAsFixed(2)} ${context.translate('currency_symbol')}',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    )
+                  : null,
+            ),
+          ),
         ],
       ),
     );
   }
 
   Widget? _buildItemSubtitle(BuildContext context, ShoppingItem item) {
-    final hasPartial = item.purchasedQuantity > 0 &&
+    final hasPartial =
+        item.purchasedQuantity > 0 &&
         item.purchasedQuantity < item.quantity &&
         !item.isPurchased;
 
@@ -373,7 +420,8 @@ class ListSummaryScreen extends ConsumerWidget {
         : item.quantity.toStringAsFixed(1);
 
     if (hasPartial) {
-      final purchasedQty = item.purchasedQuantity == item.purchasedQuantity.roundToDouble()
+      final purchasedQty =
+          item.purchasedQuantity == item.purchasedQuantity.roundToDouble()
           ? item.purchasedQuantity.toInt().toString()
           : item.purchasedQuantity.toStringAsFixed(1);
 
@@ -382,10 +430,10 @@ class ListSummaryScreen extends ConsumerWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            context.translate('bought_of_total', arguments: {
-              'bought': purchasedQty,
-              'total': qty,
-            }),
+            context.translate(
+              'bought_of_total',
+              arguments: {'bought': purchasedQty, 'total': qty},
+            ),
             style: TextStyle(
               fontSize: 12,
               color: Theme.of(context).colorScheme.primary,
@@ -412,8 +460,6 @@ class ListSummaryScreen extends ConsumerWidget {
       );
     }
 
-    return Text(context.translate('qty_label', arguments: {
-      'qty': qty,
-    }));
+    return Text(context.translate('qty_label', arguments: {'qty': qty}));
   }
 }

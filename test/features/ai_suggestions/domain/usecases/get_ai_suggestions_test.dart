@@ -6,7 +6,8 @@ import 'package:sawa/features/ai_suggestions/domain/repositories/ai_suggestion_r
 import 'package:sawa/features/ai_suggestions/domain/usecases/get_ai_suggestions.dart';
 import 'package:sawa/core/errors/app_exception.dart';
 
-class MockAiSuggestionRepository extends Mock implements AiSuggestionRepository {}
+class MockAiSuggestionRepository extends Mock
+    implements AiSuggestionRepository {}
 
 void main() {
   late MockAiSuggestionRepository mockRepository;
@@ -15,24 +16,25 @@ void main() {
   setUp(() {
     mockRepository = MockAiSuggestionRepository();
     useCase = GetAiSuggestions(mockRepository);
-    
-    registerFallbackValue(const AiSuggestionRequest(
-      prompt: '',
-      homeType: '',
-      listTitle: '',
-      existingItems: [],
-      language: 'en',
-    ));
+
+    registerFallbackValue(
+      const AiSuggestionRequest(
+        prompt: '',
+        homeType: '',
+        listTitle: '',
+        existingItems: [],
+        language: 'en',
+      ),
+    );
   });
 
-  const tSuggestions = [
-    AiSuggestion(name: 'Milk'),
-  ];
+  const tSuggestions = [AiSuggestion(name: 'Milk')];
 
   group('GetAiSuggestions', () {
     test('calls repository with valid request', () async {
-      when(() => mockRepository.getSuggestions(any()))
-          .thenAnswer((_) async => tSuggestions);
+      when(
+        () => mockRepository.getSuggestions(any()),
+      ).thenAnswer((_) async => tSuggestions);
 
       const request = AiSuggestionRequest(
         prompt: 'test',

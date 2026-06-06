@@ -2,9 +2,7 @@ import '../entities/settlement.dart';
 import '../entities/balance.dart';
 
 abstract class SettlementRepository {
-  Future<List<Settlement>> getSettlements({
-    required String homeId,
-  });
+  Future<List<Settlement>> getSettlements({required String homeId});
 
   Future<Settlement> createSettlement({
     required String homeId,
@@ -15,16 +13,12 @@ abstract class SettlementRepository {
     required DateTime date,
   });
 
-  Future<List<Balance>> calculateBalances({
-    required String homeId,
-  });
+  Future<List<Balance>> calculateBalances({required String homeId});
 
   Future<bool> hasUnsettledBalances({
     required String homeId,
     required String userId,
   });
 
-  Stream<List<Settlement>> watchSettlements({
-    required String homeId,
-  });
+  Stream<List<Settlement>> watchSettlements({required String homeId});
 }

@@ -1,3 +1,4 @@
+import 'package:sawa/core/constants/app_constants.dart';
 import '../../domain/entities/shopping_list.dart';
 
 const _modelSentinel = Object();
@@ -21,7 +22,7 @@ class ShoppingListModel extends ShoppingList {
     return ShoppingListModel(
       id: json['id'] as String? ?? 'unknown',
       homeId: json['home_id'] as String? ?? '',
-      name: json['title'] as String? ?? 'Untitled',
+      name: json['title'] as String? ?? AppConstants.defaultUntitledKey,
       description: json['type'] as String?,
       icon: json['icon'] as String? ?? 'shopping_cart',
       createdBy: json['created_by'] as String? ?? 'unknown',
@@ -99,14 +100,24 @@ class ShoppingListModel extends ShoppingList {
       id: id ?? this.id,
       homeId: homeId ?? this.homeId,
       name: name ?? this.name,
-      description: identical(description, _modelSentinel) ? this.description : description as String?,
+      description: identical(description, _modelSentinel)
+          ? this.description
+          : description as String?,
       icon: icon ?? this.icon,
       createdBy: createdBy ?? this.createdBy,
       status: status ?? this.status,
-      createdAt: identical(createdAt, _modelSentinel) ? this.createdAt : createdAt as DateTime?,
-      updatedAt: identical(updatedAt, _modelSentinel) ? this.updatedAt : updatedAt as DateTime?,
-      deletedAt: identical(deletedAt, _modelSentinel) ? this.deletedAt : deletedAt as DateTime?,
-      inventoryTransferredAt: identical(inventoryTransferredAt, _modelSentinel) ? this.inventoryTransferredAt : inventoryTransferredAt as DateTime?,
+      createdAt: identical(createdAt, _modelSentinel)
+          ? this.createdAt
+          : createdAt as DateTime?,
+      updatedAt: identical(updatedAt, _modelSentinel)
+          ? this.updatedAt
+          : updatedAt as DateTime?,
+      deletedAt: identical(deletedAt, _modelSentinel)
+          ? this.deletedAt
+          : deletedAt as DateTime?,
+      inventoryTransferredAt: identical(inventoryTransferredAt, _modelSentinel)
+          ? this.inventoryTransferredAt
+          : inventoryTransferredAt as DateTime?,
     );
   }
 }

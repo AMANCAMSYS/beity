@@ -17,7 +17,9 @@ class CreateCategoryUseCase {
   }) async {
     // Validate name
     if (name.isEmpty) {
-      throw const ValidationException(message: 'please_enter_category_name_validation');
+      throw const ValidationException(
+        message: 'please_enter_category_name_validation',
+      );
     }
 
     if (name.length > 100) {

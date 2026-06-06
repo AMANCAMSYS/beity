@@ -14,10 +14,7 @@ class ManageRecurrence {
   }
 
   Future<Task> disableRecurrence(DisableRecurrenceParams params) async {
-    return _repository.updateTask(
-      taskId: params.taskId,
-      recurrenceType: null,
-    );
+    return _repository.updateTask(taskId: params.taskId, recurrenceType: null);
   }
 }
 

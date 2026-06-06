@@ -1,8 +1,4 @@
-enum CategoryType {
-  shopping,
-  inventory,
-  expense;
-}
+enum CategoryType { shopping, inventory, expense }
 
 class Category {
   final String id;

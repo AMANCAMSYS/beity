@@ -8,9 +8,36 @@ const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+const RATE_LIMIT_MAX = 10;
+const RATE_LIMIT_WINDOW_MINUTES = 5;
+
+async function checkRateLimit(userId: string, endpoint: string): Promise<Response | null> {
+  const windowStart = new Date();
+  windowStart.setSeconds(0, 0);
+
+  const { data, error } = await supabase.rpc("check_and_increment_rate_limit", {
+    p_user_id: userId,
+    p_endpoint: endpoint,
+    p_window_start: windowStart.toISOString(),
+    p_max_requests: RATE_LIMIT_MAX,
+  });
+
+  if (error) {
+    console.error(JSON.stringify({ event: "rate_limit_rpc_failed", endpoint, error: error.message }));
+    return null;
+  }
+
+  if (data === false) {
+    return new Response(
+      JSON.stringify({ error: "Rate limit exceeded. Try again later." }),
+      { status: 429, headers: { "Content-Type": "application/json", "Retry-After": String(RATE_LIMIT_WINDOW_MINUTES * 60) } },
+    );
+  }
+  return null;
+}
+
 Deno.serve(async (req: Request) => {
   try {
-    // Extract user from JWT
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(
@@ -28,6 +55,9 @@ Deno.serve(async (req: Request) => {
         { status: 401, headers: { "Content-Type": "application/json" } }
       );
     }
+
+    const rateLimitResponse = await checkRateLimit(user.id, "submit-feedback");
+    if (rateLimitResponse) return rateLimitResponse;
 
     // Parse request body
     const body = await req.json();
@@ -103,21 +133,21 @@ Deno.serve(async (req: Request) => {
       .single();
 
     if (insertError) {
-      console.error("Error inserting feedback:", insertError);
+      console.error(JSON.stringify({ event: "feedback_insert_failed", userId: user.id, error: insertError.message }));
       return new Response(
         JSON.stringify({ error: "Internal server error" }),
         { status: 500, headers: { "Content-Type": "application/json" } }
       );
     }
 
-    console.log(`Feedback submitted: ${data.id} by user ${user.id} (type: ${feedback_type})`);
+    console.log(JSON.stringify({ event: "feedback_submitted", feedbackId: data.id, userId: user.id, feedbackType: feedback_type }));
 
     return new Response(
       JSON.stringify({ id: data.id, status: "received" }),
       { status: 201, headers: { "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("Error in submit-feedback:", error);
+    console.error(JSON.stringify({ event: "submit_feedback_unhandled", error: error instanceof Error ? error.message : String(error) }));
     return new Response(
       JSON.stringify({ error: "Internal server error" }),
       { status: 500, headers: { "Content-Type": "application/json" } }

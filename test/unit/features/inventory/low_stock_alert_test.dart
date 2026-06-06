@@ -28,30 +28,33 @@ void main() {
       expect(item2.isLowStock, isTrue);
     });
 
-    test('isLowStock returns false when quantity is > minQuantity or minQuantity is null', () {
-      const item1 = InventoryItemModel(
-        id: 'inv-123',
-        homeId: 'home-123',
-        name: 'Sugar',
-        quantity: 3.0,
-        minQuantity: 2.0,
-        createdBy: 'user-123',
-        updatedBy: 'user-123',
-      );
+    test(
+      'isLowStock returns false when quantity is > minQuantity or minQuantity is null',
+      () {
+        const item1 = InventoryItemModel(
+          id: 'inv-123',
+          homeId: 'home-123',
+          name: 'Sugar',
+          quantity: 3.0,
+          minQuantity: 2.0,
+          createdBy: 'user-123',
+          updatedBy: 'user-123',
+        );
 
-      const item2 = InventoryItemModel(
-        id: 'inv-123',
-        homeId: 'home-123',
-        name: 'Sugar',
-        quantity: 1.0,
-        minQuantity: null,
-        createdBy: 'user-123',
-        updatedBy: 'user-123',
-      );
+        const item2 = InventoryItemModel(
+          id: 'inv-123',
+          homeId: 'home-123',
+          name: 'Sugar',
+          quantity: 1.0,
+          minQuantity: null,
+          createdBy: 'user-123',
+          updatedBy: 'user-123',
+        );
 
-      expect(item1.isLowStock, isFalse);
-      expect(item2.isLowStock, isFalse);
-    });
+        expect(item1.isLowStock, isFalse);
+        expect(item2.isLowStock, isFalse);
+      },
+    );
 
     test('restockSuggestion returns correct quantity calculations', () {
       const item1 = InventoryItemModel(

@@ -1,9 +1,4 @@
-enum UnitType {
-  weight,
-  volume,
-  count,
-  length;
-}
+enum UnitType { weight, volume, count, length }
 
 class Unit {
   final String id;

@@ -122,7 +122,7 @@ class _SettlementFormState extends ConsumerState<SettlementForm> {
             SnackBar(
               behavior: SnackBarBehavior.floating,
               content: Text(
-                '${context.translate('error', fallback: 'Error')}: ${ErrorFormatter.format(e, context)}',
+                '${context.translate('error')}: ${ErrorFormatter.format(e, context)}',
               ),
               backgroundColor: Theme.of(context).colorScheme.error,
             ),
@@ -158,28 +158,19 @@ class _SettlementFormState extends ConsumerState<SettlementForm> {
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
-                  labelText: context.translate('amount', fallback: 'Amount'),
+                  labelText: context.translate('amount'),
                   hintText: '0.00',
                   suffixIcon: const Icon(Icons.currency_exchange_rounded),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return context.translate(
-                        'please_enter_amount',
-                        fallback: 'Please enter amount',
-                      );
+                      return context.translate('please_enter_amount');
                     }
                     final amount = value.tryParseDouble();
                     if (amount == null || amount <= 0) {
-                      return context.translate(
-                        'please_enter_valid_amount',
-                        fallback: 'Please enter a valid amount',
-                      );
+                      return context.translate('please_enter_valid_amount');
                     }
                     if (amount * 100 > widget.maxAmount) {
-                      return context.translate(
-                        'amount_exceeds_balance',
-                        fallback: 'Amount exceeds remaining balance',
-                      );
+                      return context.translate('amount_exceeds_balance');
                     }
                     return null;
                   },
@@ -190,7 +181,7 @@ class _SettlementFormState extends ConsumerState<SettlementForm> {
                   initialValue: _paymentMethod,
                   style: theme.textTheme.bodyLarge,
                   decoration: InputDecoration(
-                    labelText: context.translate('payment_method', fallback: 'Payment Method'),
+                    labelText: context.translate('payment_method'),
                     prefixIcon: const Icon(Icons.payments_rounded),
                     labelStyle: theme.textTheme.bodyMedium?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
@@ -222,15 +213,15 @@ class _SettlementFormState extends ConsumerState<SettlementForm> {
                   items: [
                     DropdownMenuItem(
                       value: 'cash',
-                      child: Text(context.translate('cash', fallback: 'Cash')),
+                      child: Text(context.translate('cash')),
                     ),
                     DropdownMenuItem(
                       value: 'transfer',
-                      child: Text(context.translate('bank_transfer', fallback: 'Bank Transfer')),
+                      child: Text(context.translate('bank_transfer')),
                     ),
                     DropdownMenuItem(
                       value: 'other',
-                      child: Text(context.translate('other', fallback: 'Other')),
+                      child: Text(context.translate('other')),
                     ),
                   ],
                   onChanged: (value) {
@@ -275,7 +266,7 @@ class _SettlementFormState extends ConsumerState<SettlementForm> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              context.translate('date', fallback: 'Date'),
+                              context.translate('date'),
                               style: theme.textTheme.labelSmall?.copyWith(
                                 color: theme.colorScheme.onSurfaceVariant,
                                 fontWeight: FontWeight.bold,
@@ -299,7 +290,7 @@ class _SettlementFormState extends ConsumerState<SettlementForm> {
           AppSpacing.gapXL,
 
           SawaButton(
-            text: context.translate('record_payment', fallback: 'Record Payment'),
+            text: context.translate('record_payment'),
             onPressed: _submit,
             isLoading: _isLoading,
             icon: Icons.check_circle_outline_rounded,

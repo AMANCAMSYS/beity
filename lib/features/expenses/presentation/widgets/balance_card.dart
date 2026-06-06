@@ -22,8 +22,7 @@ class BalanceCard extends StatelessWidget {
     final theme = Theme.of(context);
     final amount = balance.absoluteAmount / 100;
     final debtorName =
-        memberNames[balance.getDebtor()] ??
-        context.translate('unknown_member');
+        memberNames[balance.getDebtor()] ?? context.translate('unknown_member');
     final creditorName =
         memberNames[balance.getCreditor()] ??
         context.translate('unknown_member');

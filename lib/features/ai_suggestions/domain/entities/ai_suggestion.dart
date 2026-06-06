@@ -19,10 +19,12 @@ class AiSuggestion {
     this.status = IngredientStatus.missing,
     this.displayName,
     this.sourceListName,
-  })  : assert(name.length > 0, 'Name cannot be empty'),
-        assert(name.length <= 100, 'Name must be 100 characters or less'),
-        assert(quantity == null || (quantity > 0 && quantity <= 9999),
-            'Quantity must be between 0 and 9999');
+  }) : assert(name.length > 0, 'Name cannot be empty'),
+       assert(name.length <= 100, 'Name must be 100 characters or less'),
+       assert(
+         quantity == null || (quantity > 0 && quantity <= 9999),
+         'Quantity must be between 0 and 9999',
+       );
 
   AiSuggestion copyWith({
     String? name,
@@ -50,4 +52,3 @@ class AiSuggestion {
   bool get isSelectedByDefault =>
       status == IngredientStatus.missing || status == IngredientStatus.unknown;
 }
-

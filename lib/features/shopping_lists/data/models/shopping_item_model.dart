@@ -135,19 +135,35 @@ class ShoppingItemModel extends ShoppingItem {
       name: name ?? this.name,
       quantity: quantity ?? this.quantity,
       purchasedQuantity: purchasedQuantity ?? this.purchasedQuantity,
-      unitId: identical(unitId, _modelSentinel) ? this.unitId : unitId as String?,
-      categoryId: identical(categoryId, _modelSentinel) ? this.categoryId : categoryId as String?,
+      unitId: identical(unitId, _modelSentinel)
+          ? this.unitId
+          : unitId as String?,
+      categoryId: identical(categoryId, _modelSentinel)
+          ? this.categoryId
+          : categoryId as String?,
       priority: priority ?? this.priority,
       price: identical(price, _modelSentinel) ? this.price : price as double?,
-      currency: identical(currency, _modelSentinel) ? this.currency : currency as String?,
+      currency: identical(currency, _modelSentinel)
+          ? this.currency
+          : currency as String?,
       notes: identical(notes, _modelSentinel) ? this.notes : notes as String?,
       isPurchased: isPurchased ?? this.isPurchased,
-      purchasedBy: identical(purchasedBy, _modelSentinel) ? this.purchasedBy : purchasedBy as String?,
-      purchasedAt: identical(purchasedAt, _modelSentinel) ? this.purchasedAt : purchasedAt as DateTime?,
+      purchasedBy: identical(purchasedBy, _modelSentinel)
+          ? this.purchasedBy
+          : purchasedBy as String?,
+      purchasedAt: identical(purchasedAt, _modelSentinel)
+          ? this.purchasedAt
+          : purchasedAt as DateTime?,
       createdBy: createdBy ?? this.createdBy,
-      createdAt: identical(createdAt, _modelSentinel) ? this.createdAt : createdAt as DateTime?,
-      updatedAt: identical(updatedAt, _modelSentinel) ? this.updatedAt : updatedAt as DateTime?,
-      deletedAt: identical(deletedAt, _modelSentinel) ? this.deletedAt : deletedAt as DateTime?,
+      createdAt: identical(createdAt, _modelSentinel)
+          ? this.createdAt
+          : createdAt as DateTime?,
+      updatedAt: identical(updatedAt, _modelSentinel)
+          ? this.updatedAt
+          : updatedAt as DateTime?,
+      deletedAt: identical(deletedAt, _modelSentinel)
+          ? this.deletedAt
+          : deletedAt as DateTime?,
     );
   }
 }

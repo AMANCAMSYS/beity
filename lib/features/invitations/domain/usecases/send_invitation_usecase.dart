@@ -26,11 +26,7 @@ class SendInvitationUseCase {
       throw const ValidationException(message: 'invalid_role_selected');
     }
 
-    return _repository.sendInvitation(
-      homeId: homeId,
-      email: email,
-      role: role,
-    );
+    return _repository.sendInvitation(homeId: homeId, email: email, role: role);
   }
 
   bool _isValidEmail(String email) {

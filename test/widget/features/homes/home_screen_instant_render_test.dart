@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -29,24 +28,22 @@ class MockHomeRepository extends Mock implements HomeRepository {}
 class MockHomeLocalDataSource extends Mock implements HomeLocalDataSource {}
 
 class FakeHydrationService extends InitialDataHydrationService {
-  FakeHydrationService(HydrationState state)
-    : super(
-        homeRepository: MockHomeRepository(),
-        syncCoordinator: MockSyncCoordinator(),
-        localDataSource: MockHomeLocalDataSource(),
-        autoHydrate: false,
-      ) {
-    this.state = state;
-  }
+  final HydrationState _initialState;
+
+  FakeHydrationService(this._initialState);
+
+  @override
+  HydrationState build() => _initialState;
 
   @override
   Future<void> hydrate({bool force = false}) async {}
 }
 
-class MockSyncCoordinator extends StateNotifier<SyncState>
+class MockSyncCoordinator extends Notifier<SyncState>
     with Mock
     implements SyncCoordinator {
-  MockSyncCoordinator() : super(SyncState(status: SyncStatus.idle));
+  @override
+  SyncState build() => SyncState(status: SyncStatus.idle);
 }
 
 void main() {
@@ -93,12 +90,12 @@ void main() {
             cachedUserHomesProvider.overrideWithValue([testHome]),
             cachedActiveHomeIdProvider.overrideWithValue('home-123'),
             startupPrefetchProvider.overrideWith((ref) {}),
-            syncCoordinatorProvider.overrideWith((ref) => mockSyncCoordinator),
+            syncCoordinatorProvider.overrideWith(() => mockSyncCoordinator),
             connectivityStatusProvider.overrideWith(
               (ref) => Stream.value(DeviceSyncStatus.online),
             ),
             initialDataHydrationServiceProvider.overrideWith(
-              (ref) => FakeHydrationService(
+              () => FakeHydrationService(
                 HydrationState(status: HydrationStatus.success),
               ),
             ),

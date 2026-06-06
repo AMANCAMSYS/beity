@@ -5,9 +5,7 @@ class DeleteListUseCase {
 
   DeleteListUseCase(this._repository);
 
-  Future<void> call({
-    required String listId,
-  }) async {
+  Future<void> call({required String listId}) async {
     await _repository.deleteShoppingList(listId: listId);
   }
 }

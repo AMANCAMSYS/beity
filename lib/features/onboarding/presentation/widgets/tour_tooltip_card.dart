@@ -63,10 +63,13 @@ class TourTooltipCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
                 ),
                 child: Text(
-                  t('tour_step_counter', arguments: {
-                    'current': currentStep.toString(),
-                    'total': totalSteps.toString(),
-                  }),
+                  t(
+                    'tour_step_counter',
+                    arguments: {
+                      'current': currentStep.toString(),
+                      'total': totalSteps.toString(),
+                    },
+                  ),
                   style: theme.textTheme.labelSmall?.copyWith(
                     color: theme.colorScheme.onPrimaryContainer,
                     fontWeight: FontWeight.bold,

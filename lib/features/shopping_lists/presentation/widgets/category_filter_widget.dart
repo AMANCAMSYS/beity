@@ -24,7 +24,7 @@ class CategoryFilterWidget extends StatelessWidget {
         children: [
           _buildFilterChip(
             context,
-            label: context.translate('all', fallback: 'All'),
+            label: context.translate('all'),
             isSelected: selectedCategoryId == null,
             onTap: () => onCategorySelected(null),
           ),

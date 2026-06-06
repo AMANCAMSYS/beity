@@ -3,10 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:sawa/app/theme/app_spacing.dart';
 import 'package:sawa/app/theme/app_colors.dart';
 import 'package:sawa/core/localization/app_localizations.dart';
-import 'package:sawa/features/settings/presentation/providers/app_settings_provider.dart';
 import 'package:sawa/shared/widgets/design_system/sawa_text_field.dart';
 import 'package:sawa/shared/widgets/design_system/sawa_card.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 enum SplitType { equally, percentage, shares, custom }
 
@@ -32,7 +30,7 @@ class SplitSelector extends StatefulWidget {
 
 class _SplitSelectorState extends State<SplitSelector> {
   SplitType _splitType = SplitType.equally;
-  
+
   // Equal Split toggles
   Set<String> _selectedMembers = {};
 
@@ -52,22 +50,22 @@ class _SplitSelectorState extends State<SplitSelector> {
   void initState() {
     super.initState();
     _selectedMembers = Set.from(widget.memberIds);
-    
+
     for (var id in widget.memberIds) {
       _amountControllers[id] = TextEditingController();
       _percentageControllers[id] = TextEditingController();
       _sharesControllers[id] = TextEditingController();
-      
+
       // Default calculations: Equal distribution percentages
       final defaultPct = 100.0 / widget.memberIds.length;
       _percentages[id] = defaultPct;
       _percentageControllers[id]!.text = defaultPct.toStringAsFixed(1);
-      
+
       // Default shares = 1 share per member
       _shares[id] = 1.0;
       _sharesControllers[id]!.text = '1';
     }
-    
+
     _updateSplits();
   }
 
@@ -148,7 +146,7 @@ class _SplitSelectorState extends State<SplitSelector> {
     final selected = widget.memberIds
         .where((id) => _selectedMembers.contains(id))
         .toList();
-        
+
     final baseAmount = widget.totalAmount ~/ selected.length;
     final remainder = widget.totalAmount % selected.length;
     final remainderMember = selected.contains(widget.payerId)
@@ -184,10 +182,15 @@ class _SplitSelectorState extends State<SplitSelector> {
     final isSumMatched = (totalPct - 100.0).abs() < 0.01;
 
     if (isSumMatched) {
-      final sumCents = initialSplits.fold(0, (sum, split) => sum + split.amount);
+      final sumCents = initialSplits.fold(
+        0,
+        (sum, split) => sum + split.amount,
+      );
       final diff = widget.totalAmount - sumCents;
       if (diff != 0) {
-        final adjustIndex = initialSplits.indexWhere((s) => s.memberId == widget.payerId);
+        final adjustIndex = initialSplits.indexWhere(
+          (s) => s.memberId == widget.payerId,
+        );
         final targetIndex = adjustIndex != -1 ? adjustIndex : 0;
         initialSplits[targetIndex] = (
           memberId: initialSplits[targetIndex].memberId,
@@ -215,7 +218,9 @@ class _SplitSelectorState extends State<SplitSelector> {
     final sumCents = initialSplits.fold(0, (sum, split) => sum + split.amount);
     final diff = widget.totalAmount - sumCents;
     if (diff != 0) {
-      final adjustIndex = initialSplits.indexWhere((s) => s.memberId == widget.payerId);
+      final adjustIndex = initialSplits.indexWhere(
+        (s) => s.memberId == widget.payerId,
+      );
       final targetIndex = adjustIndex != -1 ? adjustIndex : 0;
       initialSplits[targetIndex] = (
         memberId: initialSplits[targetIndex].memberId,
@@ -228,7 +233,7 @@ class _SplitSelectorState extends State<SplitSelector> {
 
   @override
   Widget build(BuildContext context) {
-    final currencySymbol = context.translate('currency_symbol', fallback: 'SAR');
+    final currencySymbol = context.translate('currency_symbol');
     final theme = Theme.of(context);
 
     return Column(
@@ -270,9 +275,7 @@ class _SplitSelectorState extends State<SplitSelector> {
             ],
             selected: {_splitType},
             showSelectedIcon: false,
-            style: const ButtonStyle(
-              visualDensity: VisualDensity.compact,
-            ),
+            style: const ButtonStyle(visualDensity: VisualDensity.compact),
             onSelectionChanged: (selection) {
               setState(() {
                 _splitType = selection.first;
@@ -290,12 +293,15 @@ class _SplitSelectorState extends State<SplitSelector> {
           ),
         ),
         AppSpacing.gapSM,
-        
+
         // ── Render correct sharing layout based on strategy ──
         switch (_splitType) {
           SplitType.equally => _buildEqualSplitView(currencySymbol, theme),
           SplitType.custom => _buildCustomSplitView(currencySymbol, theme),
-          SplitType.percentage => _buildPercentageSplitView(currencySymbol, theme),
+          SplitType.percentage => _buildPercentageSplitView(
+            currencySymbol,
+            theme,
+          ),
           SplitType.shares => _buildSharesSplitView(currencySymbol, theme),
         },
 
@@ -398,7 +404,8 @@ class _SplitSelectorState extends State<SplitSelector> {
                       onChanged: (value) {
                         final val = double.tryParse(value) ?? 0.0;
                         setState(() {
-                          _customAmounts[widget.memberIds[i]] = (val * 100).round();
+                          _customAmounts[widget.memberIds[i]] = (val * 100)
+                              .round();
                           _updateSplits();
                         });
                       },
@@ -550,11 +557,18 @@ class _SplitSelectorState extends State<SplitSelector> {
           ),
           child: Row(
             children: [
-              const Icon(Icons.check_circle_rounded, color: AppColors.success, size: 20),
+              const Icon(
+                Icons.check_circle_rounded,
+                color: AppColors.success,
+                size: 20,
+              ),
               AppSpacing.gapMD,
               Expanded(
                 child: Text(
-                  context.translate('split_equally_msg', arguments: {'count': _selectedMembers.length.toString()}),
+                  context.translate(
+                    'split_equally_msg',
+                    arguments: {'count': _selectedMembers.length.toString()},
+                  ),
                   style: theme.textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: AppColors.success,
@@ -565,7 +579,10 @@ class _SplitSelectorState extends State<SplitSelector> {
           ),
         );
       case SplitType.custom:
-        final currentTotal = _customAmounts.values.fold(0, (sum, val) => sum + val);
+        final currentTotal = _customAmounts.values.fold(
+          0,
+          (sum, val) => sum + val,
+        );
         final diff = widget.totalAmount - currentTotal;
         final isMatched = diff == 0;
 
@@ -594,10 +611,17 @@ class _SplitSelectorState extends State<SplitSelector> {
                 child: Text(
                   isMatched
                       ? context.translate('total_matches')
-                      : context.translate('remaining_distribute', arguments: {'amount': (diff / 100).toStringAsFixed(2)}),
+                      : context.translate(
+                          'remaining_distribute',
+                          arguments: {
+                            'amount': (diff / 100).toStringAsFixed(2),
+                          },
+                        ),
                   style: theme.textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: isMatched ? AppColors.success : theme.colorScheme.error,
+                    color: isMatched
+                        ? AppColors.success
+                        : theme.colorScheme.error,
                   ),
                 ),
               ),
@@ -634,13 +658,18 @@ class _SplitSelectorState extends State<SplitSelector> {
                 child: Text(
                   isMatched
                       ? context.translate('sum_percentages_match')
-                      : context.translate('percentage_sum_warning', arguments: {
-                          'current': totalPct.toStringAsFixed(1),
-                          'remaining': diff.toStringAsFixed(1)
-                        }),
+                      : context.translate(
+                          'percentage_sum_warning',
+                          arguments: {
+                            'current': totalPct.toStringAsFixed(1),
+                            'remaining': diff.toStringAsFixed(1),
+                          },
+                        ),
                   style: theme.textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: isMatched ? AppColors.success : theme.colorScheme.error,
+                    color: isMatched
+                        ? AppColors.success
+                        : theme.colorScheme.error,
                   ),
                 ),
               ),
@@ -675,11 +704,16 @@ class _SplitSelectorState extends State<SplitSelector> {
               Expanded(
                 child: Text(
                   isValid
-                      ? context.translate('total_shares_count', arguments: {'count': totalShares.toString()})
+                      ? context.translate(
+                          'total_shares_count',
+                          arguments: {'count': totalShares.toString()},
+                        )
                       : context.translate('shares_error_msg'),
                   style: theme.textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: isValid ? AppColors.success : theme.colorScheme.error,
+                    color: isValid
+                        ? AppColors.success
+                        : theme.colorScheme.error,
                   ),
                 ),
               ),

@@ -5,7 +5,8 @@ import 'package:sawa/features/shopping_lists/data/models/shopping_list_model.dar
 import 'package:sawa/features/shopping_lists/data/repositories/shopping_list_repository.dart';
 import 'package:sawa/features/shopping_lists/domain/usecases/get_shopping_lists_usecase.dart';
 
-class MockShoppingListRepository extends Mock implements ShoppingListRepository {}
+class MockShoppingListRepository extends Mock
+    implements ShoppingListRepository {}
 
 void main() {
   late MockShoppingListRepository mockRepository;
@@ -38,18 +39,19 @@ void main() {
     ];
 
     test('should return list of shopping lists from repository', () async {
-      when(() => mockRepository.getShoppingLists(
-            homeId: any(named: 'homeId'),
-            status: any(named: 'status'),
-          )).thenAnswer((_) async => tShoppingLists);
+      when(
+        () => mockRepository.getShoppingLists(
+          homeId: any(named: 'homeId'),
+          status: any(named: 'status'),
+        ),
+      ).thenAnswer((_) async => tShoppingLists);
 
       final result = await useCase(homeId: tHomeId, status: tStatus);
 
       expect(result, tShoppingLists);
-      verify(() => mockRepository.getShoppingLists(
-            homeId: tHomeId,
-            status: tStatus,
-          )).called(1);
+      verify(
+        () => mockRepository.getShoppingLists(homeId: tHomeId, status: tStatus),
+      ).called(1);
     });
   });
 }
